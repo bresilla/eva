@@ -55,6 +55,18 @@ comes prebuilt from the paneworks binary cache. The engine and its Lua library
 always come from that same release. A shell in `~/.config/morf/default` is used
 in place of the packaged one, unless `programs.eva.usePackagedShell` is set.
 
+## Which morf
+
+`morf.lua` says which engine eva is written for (`morf = ">=0.3.0"`) and the
+release line it was last tested on (`tested = "0.3"`). An engine that reads it
+(morf 0.4 and later) refuses eva when it is too old, with a plain
+`eva 0.1.0 needs morf >=0.4.0; this is morf 0.3.0`, and `morf check` fails, so
+the NixOS launcher falls back. An engine past the tested line runs eva and
+logs a warning. A theme's manifest can ask for more than eva does
+(`morf = ">=0.4"` beside its `api`): on an engine that cannot meet it, eva
+starts in Material with a notification saying why, and the switcher refuses
+the theme with the same reason.
+
 ## Run and develop
 
 ```sh

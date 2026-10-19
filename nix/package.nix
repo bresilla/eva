@@ -38,6 +38,7 @@ runCommand "eva-${version}"
     for part in shell lock greet themes models; do
       cp -R ${src}/$part "$out/"
     done
+    cp ${src}/morf.lua "$out/morf.lua"
     chmod -R u+w "$out"
     mkdir -p "$out/library"
     cp -R ${library}/share/morf/library/lib "$out/library/"

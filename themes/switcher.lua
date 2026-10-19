@@ -119,6 +119,8 @@ function M.blocker()
 end
 function M.request(target)
   if M.busy:get() or unchanged(target) then return false end
+  local problem = themes.problem((resolve(target)))
+  if problem then M.message:set(problem) return false end
   local reason=guard and guard()
   if reason then M.message:set(reason) return false end
   send("request",target,own)

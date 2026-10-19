@@ -1,5 +1,5 @@
 return {
-  api = 1, id = "tsugumori", name = "Tsugumori",
+  api = 1, id = "tsugumori", name = "Tsugumori", morf = ">=0.3.0",
   views = {
     keyboard = "themes.layouts.views.keyboard",
     lule_page = "themes.layouts.views.lule_page",

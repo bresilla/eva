@@ -1,5 +1,5 @@
 return {
-  api = 1, id = "material", name = "Material",
+  api = 1, id = "material", name = "Material", morf = ">=0.3.0",
   tokens = require("themes.material.tokens"),
   motion = "themes.material.motion",
   components = "themes.material.components",

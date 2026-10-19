@@ -461,6 +461,11 @@ require("themes.switcher").start(function()
   if require("lule_studio").busy:get() then return "Wait for Lule to finish applying." end
   if require("planner").client.busy:get() then return "Wait for the task update to finish." end
 end)
+-- A theme this engine cannot show was set aside at start: say so.
+if require("themes").refused then
+  notifs.push { summary = "Theme unavailable", body = require("themes").refused .. "; using Material.",
+    urgency = 1, app = "eva" }
+end
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)

@@ -16,7 +16,9 @@
   outputs =
     { self, nixpkgs, flake-utils, morf, ... }:
     let
-      version = "0.1.0";
+      # eva's own version, as morf.lua declares it.
+      version = builtins.head (builtins.match ''.*version = "([0-9.]+)".*''
+        (builtins.replaceStrings [ "\n" ] [ " " ] (builtins.readFile ./morf.lua)));
     in
     flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
       system:
