@@ -260,3 +260,56 @@ across_it("upright, quick settings pull shut from a slider, which stays put", fu
   test.falsy(state().open.sidebar, "pulled from the slider")
   test.eq(state().brightness_sets, 0)
 end)
+
+-- How it feels: a quick short flick toward its edge shuts a panel, and the
+-- same distance pushed slowly and held before letting go leaves it open.
+local function flick(x, y, dx, dy)
+  test.touch("down", 0, x, y) test.advance(16)
+  for i = 1, 4 do test.touch("move", 0, x + dx * i / 4, y + dy * i / 4) test.advance(16) end
+  test.touch("up", 0, x + dx, y + dy) test.advance(800)
+end
+local function nudge(x, y, dx, dy)
+  test.touch("down", 0, x, y) test.advance(16)
+  for i = 1, 14 do test.touch("move", 0, x + dx * i / 14, y + dy * i / 14) test.advance(16) end
+  test.advance(150) test.touch("up", 0, x + dx, y + dy) test.advance(800)
+end
+local PANELS = {
+  { "sideways right panel", SIDEWAYS, "sidebar", { SIDEWAYS[1] - 2, 360, SIDEWAYS[1] - 420, 360 }, { 70, 0 } },
+  { "sideways left panel", SIDEWAYS, "leftbar", { 2, 360, 420, 360 }, { -70, 0 } },
+  { "sideways bottom panel", SIDEWAYS, "bottom", { 640, 718, 640, 270 }, { 0, 70 } },
+  { "sideways dashboard", SIDEWAYS, "dashboard", { 640, 2, 640, 420 }, { 0, -70 } },
+  { "upright quick settings", UPRIGHT, "sidebar", { 465, 2, 465, 600 }, { 0, -70 } },
+  { "upright dashboard", UPRIGHT, "dashboard", { 310, 1378, 310, 680 }, { 0, 70 } },
+}
+for _, p in ipairs(PANELS) do
+  test.it(p[1] .. " flicks shut, and a slow nudge leaves it open", function()
+    load(p[2][1], p[2][2])
+    local o, d = p[4], p[5]
+    drag(o[1], o[2], o[3], o[4])
+    test.truthy(state().open[p[3]], "opens")
+    local x, y = middle(p[3])
+    nudge(x, y, d[1], d[2])
+    test.truthy(state().open[p[3]], "a slow nudge leaves it open")
+    x, y = middle(p[3])
+    flick(x, y, d[1], d[2])
+    test.falsy(state().open[p[3]], "a flick shuts it")
+  end)
+end
+for _, size in ipairs { UPRIGHT, SIDEWAYS } do
+  test.it(("at %dx%d the session menu and the launcher flick shut"):format(size[1], size[2]), function()
+    load(size[1], size[2])
+    test.ipc("session", "open") test.advance(800)
+    local x, y = middle("session")
+    nudge(x, y, 70, 0)
+    test.truthy(state().open.session, "a slow nudge leaves it open")
+    flick(x, y, 70, 0)
+    test.falsy(state().open.session, "a flick shuts the session menu")
+    test.ipc("launcher", "open") test.advance(800)
+    x, y = middle("launcher")
+    local away = state().menu == "web" and 70 or -70
+    nudge(x, y, away / 2, 0)
+    test.truthy(state().open.launcher, "a slow nudge leaves it open")
+    flick(x, y, away, 0)
+    test.falsy(state().open.launcher, "a flick shuts the launcher")
+  end)
+end
