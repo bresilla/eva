@@ -12,6 +12,9 @@ morf=${MORF:-morf}
 jobs=${JOBS:-$(nproc 2>/dev/null || echo 4)}
 [ "$jobs" -gt 8 ] && jobs=8
 
+MORF_FONT_PATH="$PWD/shell/fonts${MORF_FONT_PATH:+:$MORF_FONT_PATH}"
+export MORF_FONT_PATH
+
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/eva-test.XXXXXX")
 trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/state" "$scratch/cache" "$scratch/config" "$scratch/run"

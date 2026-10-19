@@ -17,6 +17,7 @@ let
     { package = material-symbols; name = "MaterialSymbolsRounded*.ttf"; }
     { package = ibm-plex; name = "IBMPlexMono-Regular.otf"; }
     { package = nerd-fonts."m+"; name = "M+1NerdFont-Regular.ttf"; }
+    { package = nerd-fonts.caskaydia-cove; name = "CaskaydiaCoveNerdFont-Regular.ttf"; }
   ];
 in
 # The shell, lock screen and greeter as one tree, with the Lua library of the
@@ -24,6 +25,7 @@ in
 runCommand "eva-${version}"
   {
     inherit version;
+    passthru.fontPackages = map (font: font.package) fonts;
     meta = {
       description = "A desktop shell, lock screen and greeter for morf";
       homepage = "https://github.com/bresilla/eva";

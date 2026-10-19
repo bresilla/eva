@@ -62,6 +62,9 @@
         };
         devShells.default = pkgs.mkShell {
           packages = [ engine pkgs.coreutils pkgs.git-cliff ];
+          # The faces eva draws with, whatever the machine has installed:
+          # the specs measure text in them.
+          MORF_FONT_PATH = pkgs.lib.makeSearchPath "share/fonts" eva.fontPackages;
         };
       }
     )
