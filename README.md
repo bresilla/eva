@@ -37,6 +37,19 @@ phone gestures and pattern unlock. Its options live under `programs.eva`:
 `uiScale`, `idle.*`, `phone.*`, `pattern.enable`, `hyprland.extraConfig`,
 `greeter.*`, `wallpaperLogo` and `usePackagedShell`.
 
+On a phone, `phone.enable` adds continuous touch gestures, a hidden pointer and
+deliberate double-tap or power-button wake. `phone.idleTimeout = 0` disables
+automatic locking in the user session; the phone greeter still blanks after
+one minute. Panels follow the finger and carry release speed into their
+settling animation. An inward pull from the left edge opens Apps and from the
+right edge opens Web. A short, fast fling works too, while cancelled pulls and
+authentication prompts suppress launcher gestures. Bottom gestures remain
+available for workspaces and the keyboard. Lists use Android's
+[OverScroller spline physics](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/core/java/android/widget/OverScroller.java):
+faster releases coast farther, touching stops the coast, and slow frames do not
+change the travel distance. `phone.gestureDriver = "lisgd"` selects the
+completed-swipe fallback; the default is `"native"`.
+
 eva pins the morf release it is written against in `flake.nix`, and the engine
 comes prebuilt from the paneworks binary cache. The engine and its Lua library
 always come from that same release. A shell in `~/.config/morf/default` is used
@@ -243,7 +256,12 @@ installing.
 make test                                   # every spec, in parallel shards
 sh tools/test.sh tests/panels_spec.lua      # some of them
 MORF=path/to/morf sh tools/test.sh          # against another engine build
+python3 -m unittest discover -s nix/tests   # the NixOS module's screen and wallpaper helpers
 ```
+
+`tools/films/` records frame-by-frame films of the drawers and the motion,
+and `tools/keyring_test_ui.py` runs the keyring dialog against a real GCR
+prompt; neither runs in CI.
 
 The specs stub external commands and never change the user's tasks or
 record the desktop. The library's own tests (Lule, Taskwarrior) live with
