@@ -21,15 +21,18 @@ local SOURCE = [[
     return { open = open, switches = switches, keyboard = require("keyboard").active(),
       menu = require("menus").source:get(), sidebar_tab = require("sidebar").tab:get(),
       leftbar_tab = require("leftbar").panel.tab:get(), insets = require("bar").insets(),
-      brightness_sets = brightness_sets }
+      brightness_sets = brightness_sets, touch = require("models.touchscreens").attached() }
   end
 ]]
 
-local function load(width, height)
+-- `touch`: the devices include a touchscreen.
+local function load(width, height, touch)
   test.stub_run("task", { code = 0, stdout = "[]" })
   for _, program in ipairs { "systemctl", "loginctl" } do test.stub_run(program, { code = 0 }) end
+  local devices = morf.env("EVA_INPUT_DEVICES")
   test.load("../shell/init.lua", { source = SOURCE, size = { width, height },
     env = { EVA_DRY_RUN = "1", EVA_WALLPAPER = "", EVA_FONT_FILE = "",
+      EVA_INPUT_DEVICES = devices and touch and devices .. "-touch" or devices,
       LULE_A = "/nonexistent/lule", HOME = morf.env("XDG_CACHE_HOME") } })
   test.settle(2000)
 end
@@ -222,18 +225,16 @@ for _, size in ipairs { UPRIGHT, SIDEWAYS } do
   end)
 end
 
--- A slider or a tab row keeps only the drags along it (engines after 0.4.1
--- tell the runtime their axis): a pull across one shuts the panel holding
--- it, and leaves the slider where it was.
-local function across_it(name, fn)
-  if morf.satisfies(">0.4.1") then test.it(name, fn) else test.skip(name, "the engine has no drag_axis") end
-end
-across_it("the dashboard pulls shut from its tab row, upright and on its side", function()
+test.it("a touchscreen is told from the input devices", function()
+  load(UPRIGHT[1], UPRIGHT[2]) test.falsy(state().touch)
+  load(UPRIGHT[1], UPRIGHT[2], true) test.truthy(state().touch)
+end)
+test.it("on a touchscreen the dashboard pulls shut from its tab row, upright and on its side", function()
   for _, case in ipairs {
     { UPRIGHT, { UPRIGHT[1] / 2, UPRIGHT[2] - 2 }, { UPRIGHT[1] / 2, UPRIGHT[2] - 700 }, 420 },
     { SIDEWAYS, { SIDEWAYS[1] / 2, 2 }, { SIDEWAYS[1] / 2, 420 }, -300 },
   } do
-    load(case[1][1], case[1][2])
+    load(case[1][1], case[1][2], true)
     drag(case[2][1], case[2][2], case[3][1], case[3][2])
     test.truthy(state().open.dashboard)
     local tab = test.get("dashboard-tab-battery")
@@ -242,6 +243,12 @@ across_it("the dashboard pulls shut from its tab row, upright and on its side", 
     test.falsy(state().open.dashboard, "pulled from the tab row")
   end
 end)
+-- A slider keeps only the drags along it (engines after 0.4.1 tell the
+-- runtime its axis): a pull across one shuts the panel holding it, and
+-- leaves the slider where it was.
+local function across_it(name, fn)
+  if morf.satisfies(">0.4.1") then test.it(name, fn) else test.skip(name, "the engine has no drag_axis") end
+end
 across_it("upright, quick settings pull shut from a slider, which stays put", function()
   local W, H = UPRIGHT[1], UPRIGHT[2]
   load(W, H)

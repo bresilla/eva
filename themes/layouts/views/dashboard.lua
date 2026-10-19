@@ -85,12 +85,17 @@ local function build()
 
 local TABS = model.tabs
 
+-- Tabs reorder by drag where a pull across the row still reaches the
+-- drawer: an engine that knows a drag's axis, or no touchscreen.
+local AXIS = pcall(function() ui.destroy(ui.Item { drag_axis = "x" }) end)
+local REORDER = AXIS or not require("models.touchscreens").attached()
+
 -- The row follows the drawer as it eases between the tabs' sizes (a
 -- growing row), and names its tabs after their labels:
 -- `dashboard-tab-<name>`.
 local function tabs()
   local row = kit.tabs { id = "dashboard", accessible_name = "Dashboard", tabs = TABS, tab = M.tab,
-    width = width, height = TABS_H, pad = PAD, ids = "name", growing = true, reorderable = true,
+    width = width, height = TABS_H, pad = PAD, ids = "name", growing = true, reorderable = REORDER,
     icons_only = COMPACT }
   if not TABS_BELOW then return row end
   return ui.Item { y = function() return panel_height()-TABS_H end, width = PANEL_W, height = TABS_H, row }
