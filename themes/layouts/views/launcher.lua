@@ -577,6 +577,21 @@ function V.build(M)
     end)
     local content = ui.Item {
       anchors = { fill = true },
+      -- A pull back toward the side it came from shuts it on release.
+      on_panned = function(phase, dx, dy, vx)
+        local sign = require("menus").source:get() == "web" and 1 or -1
+        if phase == "begin" then
+          return math.abs(dx) > math.abs(dy) * 1.2 and dx * sign > 0
+        elseif phase == "end" then
+          local motion = require("gesture_motion")
+          local distance, velocity = dx * sign, (vx or 0) * sign
+          if distance >= 80 or (distance >= motion.TRAVEL and velocity >= motion.FLING) then
+            require("launcher").drawer.set(false)
+          end
+        end
+      end,
+      -- The sheet's empty parts take presses too.
+      ui.MouseArea { anchors = { fill = true }, z = -1 },
       -- An instrument's panel: a hairline frame, and L-brackets on its corners.
       INSTRUMENT and ui.Rect {
         anchors = { fill = true }, color = "transparent", border_width = 1, border_color = kit.stroke("quiet"),

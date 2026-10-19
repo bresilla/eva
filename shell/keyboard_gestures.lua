@@ -1,6 +1,6 @@
 -- Desktop bindings for the keyboard gestures shared with lock and greet.
 local shared=require("themes.keyboard")
-local M={area=shared.area}
+local M={area=shared.area,strip=shared.strip,reach=shared.reach}
 function M.contacts(region,allowed,single)
   local function keyboard() return require("keyboard") end
   return shared.contacts(region,{

@@ -52,8 +52,8 @@ function M.new(ctx)
   local surface=require("themes.touch_contacts").new {
     allowed=function() return ctx.main() and not ctx.busy:get() end,single=single}
   local bottom=shared.contacts("bottom",model,single)
-  local edge=shared.area(bottom,{id=ctx.prefix.."-keyboard-edge",z=200,
-    x=0,y=H-20,width=W,height=20,visible=function() return H>W and ready() end})
+  local edge=shared.strip(bottom,shared.reach(ctx.prefix..".keyboard.edge."..ctx.output),
+    function() return H end,{id=ctx.prefix.."-keyboard-edge",z=200,x=0,width=W,visible=ready})
   local was_sheet=false
   morf.effect(ctx.prefix..".keyboard.stage."..ctx.output,function()
     local is_sheet=ctx.stage:get()=="sheet"

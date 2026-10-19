@@ -12,6 +12,9 @@ function M.new(root)
   local generation=0
   local animation
   local drag_origin=0
+  -- Along the bottom the pages lie side by side ("x"); along a side, where
+  -- the rail stands upright, one above the other ("y").
+  local axis="x"
   local wallpaper=require("workspace_wallpaper").new()
   -- Keep the real shell frame, rail and its decorations above the preview.
   local viewport=ui.Item {id="phone-workspace-preview",z=-1,clip=true,
@@ -41,6 +44,11 @@ function M.new(root)
   end
   refresh_style()
   local function width() return math.max(1,(select(3,require("bar").desk()))) end
+  -- How far a page is along the axis the pages lie on.
+  local function span()
+    local _,_,w,h=require("bar").desk()
+    return math.max(1,axis=="y" and h or w)
+  end
   local function release(source)
     if source and source~="" and morf.screencopy then pcall(morf.screencopy.release,source) end
   end
@@ -80,7 +88,7 @@ function M.new(root)
     local screen=(morf.screens or {})[1]
     local sw,sh=screen and screen.width or w,screen and screen.height or h
     local node=ui.Item {id="phone-workspace-page-"..position,width=w,height=h,clip=true,
-      x=position*w,
+      x=axis=="x" and position*w or 0,y=axis=="y" and position*h or 0,
       ui.Rect {anchors={fill=true},z=-2,color=function() return C.surface end},
       -- The real wallpaper covers the entire output, including the area
       -- behind the bar. Preserve that crop and origin inside this viewport.
@@ -134,16 +142,18 @@ function M.new(root)
   end
   local next_id,previous_id
   local g={state=state}
-  function g.begin()
+  function g.begin(direction)
+    direction=direction=="y" and "y" or "x"
     wallpaper.sync()
     -- Catch the displayed pose, retaining the snapshots while settling.
-    if state.active and state.from==services.workspace.active() then
+    if state.active and state.from==services.workspace.active() and direction==axis then
       if animation then animation:stop() animation=nil end
-      drag_origin=track.translate_x or 0
+      drag_origin=track["translate_"..axis] or 0
       return true
     end
     clear()
-    drag_origin=0 track.translate_x=0
+    axis=direction
+    drag_origin=0 track.translate_x=0 track.translate_y=0
     refresh_style()
     state.from=services.workspace.active()
     state.target=state.from state.offset=0
@@ -170,27 +180,27 @@ function M.new(root)
     capture_next()
     return true
   end
-  function g.update(dx)
+  function g.update(delta)
     if not state.active then return end
-    local w=width()
-    local position=drag_origin+dx
-    state.offset=math.max(-w,math.min(w,position))
+    local size=span()
+    local position=drag_origin+delta
+    state.offset=math.max(-size,math.min(size,position))
     state.target=position<0 and next_id or previous_id
     if state.target==state.from then state.offset=state.offset*.2 end
-    track.translate_x=state.offset
+    track["translate_"..axis]=state.offset
   end
   function g.finish(canceled,velocity,allowed)
     if not state.active then return end
-    local commit=not canceled and math.abs(state.offset)>=width()*.35 and state.target~=state.from
+    local commit=not canceled and math.abs(state.offset)>=span()*.35 and state.target~=state.from
     if not canceled and motion.fling(state.offset,velocity) then
       -- Reversing a pull returns to the current workspace, without sending
       -- it in the direction of the earlier part of the gesture.
       commit=state.offset*(velocity or 0)>0 and state.target~=state.from
     end
     local target=state.target
-    local final=commit and (state.offset<0 and -width() or width()) or 0
-    animation=morf.animation.play {motion.step(track,"translate_x",final,
-      canceled and 0 or velocity,width()),on_finished=function(reason)
+    local final=commit and (state.offset<0 and -span() or span()) or 0
+    animation=morf.animation.play {motion.step(track,"translate_"..axis,final,
+      canceled and 0 or velocity,span()),on_finished=function(reason)
       if reason~="completed" then return end
       -- Native broker leases can retire while the preview is settling.
       -- Check at the last point before issuing the workspace command.

@@ -138,6 +138,16 @@ function V.build(M)
 
   local content = ui.Item {
     anchors = { fill = true },
+    -- A pull toward its edge drags it shut.
+    on_panned = function(phase, dx, dy, vx)
+      local drawer = require("session").drawer
+      if phase == "begin" then
+        return dx > 0 and math.abs(dx) > math.abs(dy) * 1.2 and drawer.begin_drag()
+      elseif phase == "update" then drawer.drag_by(dx)
+      else drawer.end_drag(vx or 0, phase == "cancel") end
+    end,
+    -- The panel's empty parts take presses too.
+    ui.MouseArea { anchors = { fill = true }, z = -1 },
     L.decor_box("corners", { length = 10 }),
     kit.heading { id = "session-title", x = PAD, y = TITLE_Y, width = RW - 80, height = TITLE_H, level = "section",
       text = "Session", active = function() return M.opened:get() end, ink = kit.ink("hi") },

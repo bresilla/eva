@@ -12,7 +12,8 @@ function V.build(model)
       build = function(width, height) return model.page(tab.key, width, height) end }
   end
   local panel = require("kit").tabbed { id = "bottom", width = w, height = function() return h end,
-    tabs = tabs, tab = model.tab, on_present = model.present }
+    tabs = tabs, tab = model.tab, on_present = model.present, dismiss = "down",
+    close = function() require("bottom").drawer.set(false) end }
   morf.effect("material.bottom.shown", function() panel.shown(model.opened:get()) end)
   return { width = w, height = function() return h end, content = panel.content }
 end

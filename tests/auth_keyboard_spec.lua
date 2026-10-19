@@ -56,8 +56,8 @@ local HOST=[=[
   morf.ipc.draft=function() auth.type_text("x") end
   morf.ipc.password=function() auth.method:set("password") end
 ]=]
-local function load(role,style)
-  test.load("../"..role.."/init.lua",{source=HOST,size={620,1380},
+local function load(role,style,size)
+  test.load("../"..role.."/init.lua",{source=HOST,size=size or {620,1380},
     args=role=="lock" and {"window","preview"} or {"preview"},
     env={AUTH_ROLE=role,EVA_STYLE=style,EVA_SCALE_MODE="compositor",
       EVA_DRY_RUN="1",GREETD_SOCK=false}})
@@ -107,6 +107,26 @@ for _,style in ipairs {"material","tsugumori"} do
       test.swipe({handle.x+handle.width/2,handle.y+10},{handle.x+handle.width/2,handle.y+140},{duration=300})
       test.advance(900)
       test.eq(state().stage,"rest") test.eq(state().typed,0) test.falsy(state().open)
+      test.eq(test.logs("error"),{})
+    end)
+  end
+end
+
+-- The keyboard comes up from the bottom on its side too, and the second
+-- finger may land a little above the edge, a moment after the first.
+local function two_up(x,y,y2)
+  test.touch("down",10,x,y) test.advance(16)
+  for i=1,3 do test.touch("move",10,x,y-6*i) test.advance(16) end
+  test.touch("down",11,x+70,y2) test.advance(16)
+  for i=1,10 do test.touch("move",10,x,y-18-16*i) test.touch("move",11,x+70,y2-16*i) test.advance(16) end
+  test.touch("up",10,x,y-178) test.touch("up",11,x+70,y2-160) test.advance(900)
+end
+for _,role in ipairs {"lock","greet"} do
+  for _,size in ipairs {{620,1380},{1280,720}} do
+    test.it(("%s at %dx%d brings the keyboard on two fingers from the bottom"):format(role,size[1],size[2]),function()
+      load(role,"material",size)
+      two_up(size[1]/2-40,size[2]-3,size[2]-70)
+      test.truthy(state().open) test.eq(state().stage,"sheet") test.eq(state().typed,0)
       test.eq(test.logs("error"),{})
     end)
   end

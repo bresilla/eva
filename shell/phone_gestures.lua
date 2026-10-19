@@ -10,6 +10,8 @@ M.continuous = pcall(function() probe.on_panned = function() end end)
 ui.destroy(probe)
 local attached = {}
 local EDGE = 20 -- Matches the runtime's on_edge_swiped recognition zone.
+local SIDE = 2 * EDGE -- How far in from a side a drag along it starts.
+local CATCH = require("themes.keyboard").CATCH -- How far above the bottom strip a second finger may land.
 local function native_enabled()
   local gate=rawget(_G,"__morf_global_recognizers_enabled")
   return type(gate)~="function" or gate()==true
@@ -88,35 +90,43 @@ end
 
 -- Horizontal navigation belongs to a panel, not a fullscreen gesture
 -- overlay. The runtime bubbles a swipe past passive content, retaining a
--- slider's drag and a notification's own dismissal.
+-- slider's drag and a notification's own dismissal. A swipe toward the edge
+-- the panel hangs from (`dismiss`) shuts it; one across it turns the tab.
 function M.panel(spec)
   return function(direction)
     if blocked() then return end
-    if direction == "left" or direction == "right" then
-      local next_tab = spec.tab:get() + (direction == "left" and 1 or -1)
-      spec.tab:set(math.max(1, math.min(spec.count, next_tab)))
-    elseif direction == spec.dismiss and spec.close and
+    if direction == spec.dismiss and spec.close and
         (not spec.can_dismiss or spec.can_dismiss()) then
       spec.close()
+    elseif direction == "left" or direction == "right" then
+      local next_tab = spec.tab:get() + (direction == "left" and 1 or -1)
+      spec.tab:set(math.max(1, math.min(spec.count, next_tab)))
     end
   end
 end
 
--- Each recognizer owns one contact; its begin can decline to a parent.
+-- Each recognizer owns one contact; its begin can decline to a parent. A
+-- drag toward the edge the panel hangs from pulls it shut under the finger;
+-- one across the panel pages, when it has a pager.
 function M.pan(spec)
   if not M.continuous then return nil end
+  local across = spec.dismiss == "left" or spec.dismiss == "right"
   local drawer, pager
   return function(phase, dx, dy, vx, vy)
     if phase == "begin" then
       if blocked() then return false end
-      if math.abs(dx) >= math.abs(dy) then
+      local horizontal = math.abs(dx) >= math.abs(dy)
+      local toward = ({ up = -dy, down = dy, left = -dx, right = dx })[spec.dismiss or ""]
+      if toward and toward > 0 and horizontal == across
+        and (not spec.can_dismiss or spec.can_dismiss()) then
+        drawer = require(spec.drawer).drawer
+        return drawer.begin_drag()
+      end
+      if horizontal then
         pager=spec.pager
         return pager and pager.begin() or false
       end
-      if not spec.dismiss or (spec.can_dismiss and not spec.can_dismiss()) then return false end
-      if (spec.dismiss == "down" and dy < 0) or (spec.dismiss == "up" and dy > 0) then return false end
-      drawer = require(spec.drawer).drawer
-      return drawer.begin_drag()
+      return false
     elseif (pager or drawer) and blocked() then
       if pager then pager.finish(0,true) pager=nil end
       if drawer then drawer.end_drag(0,true) drawer=nil end
@@ -124,8 +134,10 @@ function M.pan(spec)
       if phase=="update" then pager.update(dx)
       else pager.finish(vx,phase=="cancel") pager=nil end
     elseif drawer then
-      if phase == "update" then drawer.drag_by(dy)
-      else drawer.end_drag(vy,phase=="cancel") drawer=nil end
+      local travel, velocity = dy, vy
+      if across then travel, velocity = dx, vx end
+      if phase == "update" then drawer.drag_by(travel)
+      else drawer.end_drag(velocity,phase=="cancel") drawer=nil end
     end
   end
 end
@@ -272,6 +284,31 @@ function M.attach(root)
     return false
   end
   else root.on_edge_swiped=function(edge) if edge~="bottom" then M.swipe(edge) end end end
+  -- On a desk a drag up or down along either side scrolls the workspaces.
+  if M.continuous then
+    local rail
+    cancel_global[#cancel_global+1]=function() if rail then rail.cancel() rail=nil end end
+    root.on_panned=function(phase,dx,dy,vx,vy,x)
+      if phase=="begin" then
+        rail=nil
+        if not M.global_allowed() or blocked() or require("responsive").portrait() then return false end
+        if math.abs(dy)<=math.abs(dx)*1.2 or not x then return false end
+        -- From the rail itself, or a finger's width in from a bare side.
+        local width=(morf.screens[1] or {}).width or morf.surface.width
+        local insets=require("bar").insets()
+        if x>math.max(SIDE,insets.left) and x<width-math.max(SIDE,insets.right) then return false end
+        for _,drawer in ipairs(require("drawer").all) do
+          if drawer.open:get() and drawer.name~="keyboard" then return false end
+        end
+        rail=preview
+        return rail.begin("y")
+      elseif rail then
+        if phase=="update" then rail.update(dy)
+        elseif phase=="end" then rail.update(dy) rail.finish(false,vy,M.global_allowed) rail=nil
+        else rail.cancel() rail=nil end
+      end
+    end
+  end
   -- Under the existing controls: tapping the bar/rail still reaches them.
   -- An Item, rather than a fullscreen MouseArea, leaves apps interactive.
   ui.reparent(ui.Item {
@@ -289,32 +326,41 @@ function M.attach(root)
           -require("themes.keyboard").inset:get()-2*EDGE)
       end },
   }, root)
-  local bottom={id="phone-gesture-bottom",height=EDGE,z=200,visible=regions_visible,
-    anchors={left=true,right=true},
-    y=function() return ((morf.screens[1] or {}).height or morf.surface.height)
-      -require("themes.keyboard").inset:get()-EDGE end}
+  -- A finger resting on the strip lets it reach higher (themes.keyboard).
+  local reach=gestures.reach("eva.gesture.bottom.held")
+  local hold=reach.hold
+  local function floor()
+    return ((morf.screens[1] or {}).height or morf.surface.height)-require("themes.keyboard").inset:get()
+  end
+  local bottom={id="phone-gesture-bottom",height=reach.height,z=200,visible=regions_visible,
+    anchors={left=true,right=true},y=function() return floor()-reach.height() end}
   if M.continuous then
+    bottom.on_touch_pressed=function() hold(true) end
+    bottom.on_touch_released=function() hold(false) end
     bottom.on_panned=function(phase,dx,dy,vx,vy)
       if phase=="begin" then
         if not M.global_allowed() or blocked() then return false end
         single("begin") single("update",dx,dy,vx,vy)
         return mode=="workspace" or mode=="dashboard"
       end
+      if phase~="update" then hold(false) end
       if not M.global_allowed() or blocked() then single("cancel") return end
       single(phase,dx,dy,vx,vy)
     end
     bottom.on_two_finger_panned=function(phase,dx1,dy1,dx2,dy2,x1,y1,x2,y2)
       if phase=="begin" then
         if not M.global_allowed() or blocked() or require("keyboard").active() then return false end
-        local height=((morf.screens[1] or {}).height or morf.surface.height)
-        return y1>=height-EDGE and y2>=height-EDGE
-      elseif phase=="end" and M.global_allowed() and not blocked() and dy1<=-48 and dy2<=-48
+        -- One finger from the edge itself, the other from it or the band above.
+        return math.max(y1,y2)>=floor()-EDGE and math.min(y1,y2)>=floor()-EDGE-CATCH
+      end
+      if phase~="update" then hold(false) end
+      if phase=="end" and M.global_allowed() and not blocked() and dy1<=-48 and dy2<=-48
         and -dy1>math.abs(dx1)*1.2 and -dy2>math.abs(dx2)*1.2 then
         require("keyboard").show("full")
       end
     end
     ui.reparent(ui.MouseArea(bottom),root)
-  else ui.reparent(gestures.area(contacts,bottom),root) end
+  else ui.reparent(gestures.strip(contacts,reach,floor,bottom),root) end
 end
 
 return M
