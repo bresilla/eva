@@ -228,7 +228,7 @@ M.drawer = drawer.new {
 -- for -- and goes with it, when the launcher was what brought it.
 local brought_keyboard = false
 local function keyboard_attached()
-  local ok, attached = pcall(function() return require("lib.services.keyboards").attached() end)
+  local ok, attached = pcall(function() return require("models.keyboards").attached() end)
   return not ok or attached ~= false
 end
 morf.effect("eva.launcher.open", function()

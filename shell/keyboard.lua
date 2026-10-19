@@ -14,7 +14,7 @@
 local morf = require("morf")
 local config = require("config")
 local osk = require("lib.util.osk")
-local keyboards = require("lib.services.keyboards")
+local keyboards = require("models.keyboards")
 local hyprland = require("lib.integrations.hyprland")
 local M = { opened = morf.signal("eva.keyboard.shown", false) }
 

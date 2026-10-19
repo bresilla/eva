@@ -248,7 +248,7 @@ local function pattern(dots)
   submit()
 end
 local function keyboard_attached()
-  local ok, value = pcall(function() return require("lib.services.keyboards").attached() end)
+  local ok, value = pcall(function() return require("models.keyboards").attached() end)
   return not ok or value
 end
 local function key(keysym, typed_text)

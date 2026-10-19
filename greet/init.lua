@@ -35,7 +35,7 @@ local screen = morf.screens[1]
 local W = (screen and screen.width) or 1920
 local H = (screen and screen.height) or 1080
 local function keyboard_attached()
-  local ok, value = pcall(function() return require("lib.services.keyboards").attached() end)
+  local ok, value = pcall(function() return require("models.keyboards").attached() end)
   return not ok or value
 end
 local s = require("themes.auth_metrics")(W, H, keyboard_attached())
