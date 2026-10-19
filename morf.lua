@@ -3,5 +3,5 @@ return {
   name = "eva",
   version = "0.1.0",
   morf = ">=0.3.0",
-  tested = "0.4",
+  tested = "0.5",
 }
