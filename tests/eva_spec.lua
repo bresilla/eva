@@ -22,10 +22,27 @@ local function no_action_commands()
   for _, run in ipairs(test.runs()) do test.eq(run, probe) end
 end
 
+-- The shell itself, with the weather it shows fixed: no spec asks the network.
+local SHELL = [[
+  local daily = {}
+  for i = 1, 7 do
+    daily[i] = { time = morf.time.time { year = 2026, month = 9, day = 21 + i, hour = 12 },
+      low = i - 5, high = i + 8, code = 61 }
+  end
+  local reading = { available = true, place = "Windshire, Netherlands", temperature = -2.4,
+    feels_like = -4.5, humidity = 82, wind_speed = 12.25, condition = "Light rain", code = 61,
+    is_day = true, daily = daily, units = { temperature = "°C", wind = "km/h" } }
+  package.loaded["lib.integrations.weather"] = {
+    new = function() return { get = function() return reading end } end,
+  }
+  return require("init")
+]]
+
 local function load(extra)
   for _, program in ipairs { "systemctl", "loginctl" } do test.stub_run(program, { code = 0 }) end
   test.stub_run("task", { code = 0, stdout = "[]" })
   test.load("../shell/init.lua", {
+    source = SHELL,
     size = { W, H },
     -- EVA_DRY_RUN: the session menu logs its commands instead of
     -- running them (and they are stubbed besides).
