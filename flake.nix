@@ -8,7 +8,7 @@
 
   inputs = {
     # The engine eva is written against: a release, moved on deliberately.
-    morf.url = "github:paneworks/morf/v0.3.0";
+    morf.url = "github:paneworks/morf/v0.4.1";
     nixpkgs.follows = "morf/nixpkgs";
     flake-utils.follows = "morf/flake-utils";
   };
