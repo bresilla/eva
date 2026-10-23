@@ -3,7 +3,8 @@
 -- A thin strip on the frame's border -- the bottom edge under the
 -- launcher, the right edge beside the sidebar, the left edge beside the
 -- left panel (the sides' pills under them) -- opens its
--- drawer after a short dwell, including at the outermost pixel.
+-- drawer after a short dwell, including at the outermost pixel -- or, with
+-- its setting off, on a press there.
 -- A drawer opened this way shuts again
 -- once the pointer has left the strip and every panel that belongs to it,
 -- after a moment's grace for the crossing from the edge onto the panel. One
@@ -33,25 +34,30 @@ local NEAR = 8
 function M.edge(opts)
   local d = opts.drawer
   local panels = opts.panels or { d.panel }
+  -- With hovering turned off by its setting, a press on the strip opens it.
+  local function pressed()
+    if opts.setting and config.get(opts.setting) == false and (not opts.enabled or opts.enabled())
+      and not d.open:get() then d.set(true) end
+  end
   local strip
   if opts.edge == "bottom" or opts.edge == "top" then
     strip = ui.MouseArea {
       id = opts.name .. "-trigger",
       anchors = { [opts.edge] = true, horizontal_center = true },
-      width = opts.length, height = theme.BORDER,
+      width = opts.length, height = theme.BORDER, on_pressed = pressed,
     }
   elseif opts.edge == "left" then
     -- Near the edge, not only on it: a little way into the opening.
     strip = ui.MouseArea {
       id = opts.name .. "-trigger",
       x = 0, y = opts.from,
-      width = theme.LEFT + NEAR, height = opts.length,
+      width = theme.LEFT + NEAR, height = opts.length, on_pressed = pressed,
     }
   else
     strip = ui.MouseArea {
       id = opts.name .. "-trigger",
       anchors = { right = true }, y = opts.from or 0,
-      width = theme.BORDER + NEAR, height = opts.length,
+      width = theme.BORDER + NEAR, height = opts.length, on_pressed = pressed,
     }
   end
 

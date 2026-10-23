@@ -2,7 +2,7 @@ local test = morf.test
 local HOST = [[
   local mobile = {state=morf.state {
     available=false, data=true, locked=false, registered=true,
-    signal=72, technology="LTE", operator="Test network"
+    signal=72, technology="LTE", operator="Test network", roaming=false
   }}
   local calls = 0
   mobile.set_data = function(on) calls=calls+1 mobile.state.data=on end

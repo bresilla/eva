@@ -18,6 +18,7 @@ local builders={
   tunnel=function(w,h) return require("net_pages").vpn_page("tunnel",w,h,M.displayed) end,
   focus=function(w,h) return view.focus_page(M,w,h) end,
   theme=function(w,h) return view.theme_page(M,w,h) end,
+  eva=function(w,h) return view.eva_page(M,w,h) end,
   ["theme/lule"]=function(w,h) return require("lule_page").build(w,h) end,
 }
 function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end

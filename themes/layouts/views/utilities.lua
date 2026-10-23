@@ -26,6 +26,27 @@ function V.theme_page(model,w,h)
   }
 end
 
+--- The Eva page: the shell's own parts -- the bar, one page in -- and how
+--- its panels open.
+function V.eva_page(model,w,h)
+  local inner=P.inner(w)
+  local bar=model.CONTROLS.bar
+  local hover=model.edge_hover
+  return P.page {id="settings-eva-scroll",width=w,height=h,
+    P.section {id="settings-eva",width=w,title="Shell",
+      P.row {id="settings-eva-bar",width=inner,icon="toolbar",title="Bar",
+        subtitle=function() local s=bar.status() return s=="Off" and "Off" or "On the "..s:lower().." edge" end,
+        trailing=P.chevron(),on_clicked=function() model.request("bar") end},
+    },
+    P.section {id="settings-eva-panels",width=w,title="Panels",
+      P.row {id="settings-eva-hover",width=inner,icon="near_me",title="Open on hover",on=hover,
+        subtitle=function() return hover() and "Reaching an edge opens its panel" or "A press at an edge opens its panel" end,
+        trailing=P.switch {id="utilities-toggle-edge-hover",name="Open panels on hover",on=hover,
+          on_toggled=model.set_edge_hover}},
+    },
+  }
+end
+
 function V.focus_page(model,w,h)
   local inner=P.inner(w)
   local section={id="settings-focus",width=w,title="Interruptions"}
