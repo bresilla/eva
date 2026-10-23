@@ -626,10 +626,23 @@ end
 --- Material prints no decorative codes.
 function M.code() return "" end
 
---- No decorations either: the call is accepted and the box it asked for
+--- Warning tape: wide diagonal bands across `width` x `height` (numbers
+--- or bindings), `spacing` apart and `weight` thick, in `color`.
+local function tape(spec)
+  local function get(v) if type(v) == "function" then return v() end return v end
+  local gap = spec.spacing or 56
+  return ui.Path { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = spec.height,
+    view_box = function() return { 0, 0, get(spec.width), get(spec.height) } end,
+    d = function() return morf.geometry.hatch(get(spec.width), get(spec.height), gap) end,
+    fill_color = "transparent", stroke_color = spec.color or M.stroke("faint"),
+    stroke_width = spec.weight or gap * 0.4, stroke_cap = "butt" }
+end
+
+--- No other decorations: the call is accepted and the box it asked for
 --- is kept, empty.
-function M.decor(_, spec)
+function M.decor(name, spec)
   if type(spec) ~= "table" then return nil end
+  if name == "tape" then return tape(spec) end
   local w = spec.width or spec.length
   local h = spec.height or (spec.vertical and spec.length) or spec.size
   if w == nil and h == nil and spec.anchors == nil then return nil end

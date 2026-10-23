@@ -382,8 +382,8 @@ return function(theme)
     }
   end
 
-  --- Tsugumori decorations: registration `corners` (any box) and
-  --- `brackets` (a sized box), and a hairline `grid`. Ticks, scales and
+  --- Tsugumori decorations: registration `corners` (any box),
+  --- `brackets` (a sized box), warning `tape` and a hairline `grid`. Ticks, scales and
   --- hatching are not part of this style.
   function M.decor(name, spec)
     spec = spec or {}
@@ -395,6 +395,11 @@ return function(theme)
         return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = spec.height, node }
       end
       return node
+    elseif name == "tape" then
+      -- Warning tape: the hatch drawn wide, in bands.
+      local gap = spec.spacing or 56
+      return stripes.box { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = spec.height,
+        gap = gap, weight = spec.weight or gap * 0.4, color = spec.color or M.stroke("faint") }
     elseif name == "grid" and type(spec.width) == "number" and type(spec.height) == "number" then
       local w, h = spec.width, spec.height
       local cols, rows = spec.columns or 8, spec.rows or 4
