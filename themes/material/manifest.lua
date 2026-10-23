@@ -21,6 +21,7 @@ return {
     authsteps = "themes.layouts.views.authsteps",
     headphones = "themes.layouts.views.headphones",
     session = "themes.layouts.views.session",
+    window_menu = "themes.layouts.views.window_menu",
     launcher = "themes.layouts.views.launcher",
     assistant = "themes.layouts.views.assistant",
     drop = "themes.layouts.views.drop",

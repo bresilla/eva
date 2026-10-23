@@ -125,11 +125,12 @@ for _, pair in ipairs { { capture.drawer, bottom.drawer }, { bottom.drawer, capt
 end
 local keyboard = require("keyboard")
 local bar = require("bar")
+local window_menu = require("window_menu")
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
 morf.effect("eva.keyboard.focus", function()
-  local exclusive = launcher.drawer.open:get() or session.drawer.open:get()
+  local exclusive = launcher.drawer.open:get() or session.drawer.open:get() or window_menu.opened:get()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get() or capture.editor.active:get()
   -- Typed into on a click: the planner, the terminal, Lule's page.
   local editor_open = leftbar.drawer.open:get()
@@ -201,6 +202,8 @@ require("prek_controls").attach(frame_root)
 -- The shell's window, to a screen reader.
 frame_root.accessible_name = "Eva"
 ui.reparent(capture.editor.node,frame_root)
+-- The focused window's menu, over it: in the screen's own coordinates.
+ui.reparent(window_menu.node,frame_root)
 capture.editor.on_export=function(action,result)
   notifs.push {summary=action=="copy" and "Capture copied" or action=="save" and "Capture saved" or "Capture uploaded",
     body=action=="upload" and tostring(result or "Link copied to clipboard") or action=="save" and tostring(result or "") or "",app="Morf"}
@@ -284,6 +287,22 @@ ipc["dashboard-history"] = function(output)
   return status
 end
 ipc.session = verb(session.drawer)
+-- `window_menu [open|close|toggle|state]`: the menu of the focused window,
+-- over it on the screen it is on. Opening answers false when no window has
+-- the focus.
+ipc.window_menu = function(how)
+  how = how or "toggle"
+  local mine = window_menu.here()
+  if how == "close" then window_menu.close() end
+  if how == "close" or how == "state" then
+    if mine then return window_menu.opened:get() end
+    return
+  end
+  if how ~= "open" and how ~= "toggle" then error("`" .. tostring(how) .. "`: open, close, toggle or state") end
+  if not mine then window_menu.close() return end
+  if how == "open" then return window_menu.open() end
+  return window_menu.toggle()
+end
 -- `polkit` says whether this screen is the agent and what it is asking;
 -- `polkit demo` opens the dialog on a made-up request (any password but
 -- "wrong" is taken, and it goes nowhere). `view`, `answer` and `cancel`
