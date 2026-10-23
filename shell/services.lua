@@ -10,8 +10,11 @@ local hyprland = require("lib.integrations.hyprland")
 local M = {}
 
 local function quiet_connect(name)
-  local ok, lib = pcall(require, "lib." .. name)
-  if not ok then return nil end
+  local ok, lib = pcall(require, "lib.services." .. name)
+  if not ok then
+    morf.log("warn", "eva: " .. name .. " missing: " .. tostring(lib))
+    return nil
+  end
   local ok2, service = pcall(lib.connect)
   if ok2 then return service end
   morf.log("warn", "eva: " .. name .. " unavailable: " .. tostring(service))
@@ -150,8 +153,16 @@ end
 -- started and stopped from the quick settings and never enabled, so every
 -- boot starts without it. Up is told by its SOCKS port listening -- a look
 -- at /proc every few seconds, no command.
+--- Whether `command` is a program on PATH.
+function M.installed(command)
+  for dir in ((morf.env and morf.env("PATH") or "") .. ":/usr/bin:/usr/local/bin"):gmatch("[^:]+") do
+    if morf.fs.exists(dir .. "/" .. command) then return true end
+  end
+  return false
+end
+
 do
-  local installed = morf.fs.exists("/usr/bin/tor") or morf.fs.exists("/usr/local/bin/tor")
+  local installed = M.installed("tor")
   local ok, tor = pcall(require, "lib.integrations.tor")
   if ok and installed then
     local t = tor.new { unit = "tor.service", socks = 9050 }
