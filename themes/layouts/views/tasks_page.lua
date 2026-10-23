@@ -26,7 +26,9 @@ function M.build(model, w, h)
   end
   -- Refresh at its label's width, a new task the rest of the row.
   local refresh = P.button { id = "tasks-refresh", label = "Refresh", icon = "refresh", on_clicked = model.refresh }
+  local function missing() return (model.error:get() or ""):find("Taskwarrior unavailable", 1, true) ~= nil end
   local add = P.button { id = "tasks-add", label = "New task", icon = "add", tone = "primary",
+    enabled = function() return not missing() end,
     width = function() return w - (refresh.layout_width or 0) - 8 end, on_clicked = function() model.edit() end }
 
   -- A task: the circle that finishes it, and the rest of the row opens it.
@@ -56,8 +58,14 @@ function M.build(model, w, h)
     end,
   }
   local empty = P.empty { id = "tasks-empty", width = w, icon = "task_alt",
-    title = function() return model.loaded:get() and "A little breathing room." or "Your tasks, right here." end,
-    text = function() return model.busy:get() and "Loading tasks…" or "Add a task, or choose another view." end }
+    title = function()
+      if missing() then return "Taskwarrior is not installed" end
+      return model.loaded:get() and "A little breathing room." or "Your tasks, right here."
+    end,
+    text = function()
+      if missing() then return "Install task to keep your tasks here." end
+      return model.busy:get() and "Loading tasks…" or "Add a task, or choose another view."
+    end }
   empty.visible = function() return rows:len() == 0 end
   local list = P.section { id = "tasks-open", width = w,
     title = function() return filter:get() .. " tasks" end,

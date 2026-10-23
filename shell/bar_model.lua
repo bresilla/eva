@@ -24,7 +24,7 @@ function M.new(ctx)
           return "network_wifi_1_bar"
         end
       end
-      if n.state.wired then return "lan" end
+      if n.state.wired and n.state.wired.connected then return "lan" end
       return n.state.wifi_enabled and "wifi_find" or "wifi_off"
     end
     return "wifi"

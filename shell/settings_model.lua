@@ -189,6 +189,12 @@ function M.set_airplane(on)
   config.set("airplane.on", on == true)
 end
 
+--- The default audio input, or nil without one.
+local function input()
+  local ok, source = pcall(function() return morf.audio.available() and morf.audio.default_source() end)
+  return ok and source or nil
+end
+
 M.TOGGLES = {
   {
     id = "wifi", icon = "wifi", name = "Wi-Fi", detail = "network",
@@ -200,6 +206,7 @@ M.TOGGLES = {
           local ap = model:get(i)
           if ap.in_use then return ap.ssid or "Connected" end
         end
+        if n.state.wifi_enabled then return "Not connected" end
       end
       return nil
     end,
@@ -403,11 +410,32 @@ M.TOGGLES = {
     end,
   },
   {
-    id = "mic", icon = function() return "mic" end, name = "Microphone", detail = "microphone",
-    on = function() return local_state.mic:get() end,
+    -- The default input's mute, or the configured commands without one.
+    id = "mic", name = "Microphone", detail = "microphone",
+    icon = function()
+      local source = input()
+      if source then return source.muted and "mic_off" or "mic" end
+      return local_state.mic:get() and "mic" or "mic_off"
+    end,
+    on = function()
+      local source = input()
+      if source then return not source.muted end
+      return local_state.mic:get()
+    end,
     set = function(now)
+      local source = input()
+      if source then
+        if dry_run() then morf.log("info", "eva: microphone " .. (now and "on" or "off") .. " (dry run)") return end
+        morf.audio.set_mute(source.id, not now)
+        return
+      end
       M.run(now and "mic_on" or "mic_off")
       local_state.mic:set(now)
+    end,
+    status = function()
+      local source = input()
+      if not source then return nil end
+      return source.muted and "Muted" or ("%d%%"):format(math.floor((source.volume or 0) * 100 + 0.5))
     end,
   },
   {
@@ -588,6 +616,8 @@ for _, kind in ipairs {"volume","brightness"} do
     require("osd")["set_"..kind](value)
   end
 end
+-- A screen without a backlight to read has no brightness to set.
+M.levels.brightness_known=reading(function() return select(2,require("osd").brightness())~=false end,true)
 morf.effect("eva.settings.presentation",function()
   local open,key=M.opened:get(),M.displayed:get()
   local presentation=require("presentation")

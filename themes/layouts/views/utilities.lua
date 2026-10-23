@@ -155,10 +155,13 @@ end
 
 local function sliders()
   local osd = model.levels
+  local brightness = slider("utilities-brightness", function() return (osd.brightness()) end, osd.set_brightness,
+    osd.brightness_icon, "Brightness")
+  brightness.visible = osd.brightness_known
   local column=ui.Column {
     x = P.PAD, y = P.PAD, gap = 4,
     slider("utilities-volume", function() return (osd.volume()) end, osd.set_volume, osd.volume_icon, "Volume"),
-    slider("utilities-brightness", function() return (osd.brightness()) end, osd.set_brightness, osd.brightness_icon, "Brightness"),
+    brightness,
     slider("utilities-scale", scale_now, scale_set, "zoom_in",
       require("themes.ui_scale").compositor and "Display scale" or "Scale", scale_reading),
   }

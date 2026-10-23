@@ -496,7 +496,7 @@ test.describe("eva", function()
     test.near(d.y, 10, 1)
     test.near(d.height, H - 20, 1)
     test.eq(d.width, 450)
-    for _, id in ipairs { "utilities-sliders", "utilities-volume", "utilities-brightness", "utilities-toggles",
+    for _, id in ipairs { "utilities-sliders", "utilities-volume", "utilities-scale", "utilities-toggles",
       "utilities-toggle-battery", "utilities-toggle-focus" } do
       test.truthy(test.find { id = id, visible = true }, id .. " not shown")
     end

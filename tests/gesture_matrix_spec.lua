@@ -10,9 +10,9 @@ local SOURCE = [[
   local workspace = require("services").workspace
   local go = workspace.go
   workspace.go = function(id) switches[#switches + 1] = id go(id) end
-  local brightness_sets, osd = 0, require("osd")
-  local set_brightness = osd.set_brightness
-  osd.set_brightness = function(...) brightness_sets = brightness_sets + 1 return set_brightness(...) end
+  local volume_sets, osd = 0, require("osd")
+  local set_volume = osd.set_volume
+  osd.set_volume = function(...) volume_sets = volume_sets + 1 return set_volume(...) end
   require("init")
   morf.ipc.matrix_bar = function(side) require("bar").set_on(true) require("bar").set_side(side) end
   morf.ipc.matrix_state = function()
@@ -21,7 +21,7 @@ local SOURCE = [[
     return { open = open, switches = switches, keyboard = require("keyboard").active(),
       menu = require("menus").source:get(), sidebar_tab = require("sidebar").tab:get(),
       leftbar_tab = require("leftbar").panel.tab:get(), insets = require("bar").insets(),
-      brightness_sets = brightness_sets, touch = require("models.touchscreens").attached() }
+      volume_sets = volume_sets, touch = require("models.touchscreens").attached() }
   end
 ]]
 
@@ -254,11 +254,11 @@ across_it("upright, quick settings pull shut from a slider, which stays put", fu
   load(W, H)
   drag(W * .75, 2, W * .75, 600)
   test.truthy(state().open.sidebar)
-  local slider = test.get("utilities-brightness")
+  local slider = test.get("utilities-volume")
   local x, y = slider.x + slider.width * .8, slider.y + slider.height / 2
   drag(x, y, x, y - 420)
   test.falsy(state().open.sidebar, "pulled from the slider")
-  test.eq(state().brightness_sets, 0)
+  test.eq(state().volume_sets, 0)
 end)
 
 -- How it feels: a quick short flick toward its edge shuts a panel, and the

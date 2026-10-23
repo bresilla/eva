@@ -25,6 +25,7 @@ function M.build(model, w, h)
     ui.Item { width = inner, height = 96,
       kit.icon(function()
         local b = first()
+        if not model.present() then return "power" end
         if b.status == "Charging" then return "battery_charging_full" end
         local pct = b.capacity or 0
         if pct > 90 then return "battery_full" end
@@ -34,12 +35,15 @@ function M.build(model, w, h)
       end, 40, kit.ink("accent"), { x = 0, y = 8, fill = true }),
       kit.text {
         id = "power-percent", x = 52, y = 0, font_size = theme.size.extra, font_weight = 700,
-        text = function() return ("%d%%"):format(math.floor((first().capacity or 0) + 0.5)) end,
+        text = function()
+          if not model.present() then return "Mains power" end
+          return ("%d%%"):format(math.floor((first().capacity or 0) + 0.5))
+        end,
       },
       kit.subtitle { x = 52, y = 44, width = inner - 52, elide = "right", color = kit.ink("lo"),
         text = model.summary },
       ui.Item {
-        y = 80, width = inner, height = 12,
+        y = 80, width = inner, height = 12, visible = model.present,
         kit.fill { width = inner, height = 12, color = kit.signal("accent"),
           value = function() return math.max(0, math.min(1, (first().capacity or 0) / 100)) end },
         kit.surface {
@@ -56,7 +60,8 @@ function M.build(model, w, h)
   local choices = { width = inner }
   for _, p in ipairs(model.PROFILES) do
     choices[#choices + 1] = { id = "power-profile-" .. p.id, icon = p.icon, label = p.name, group = "power-profile",
-      selected = function() return active() == p.id end, on_clicked = function() model.select(p.id) end }
+      selected = function() return active() == p.id end, on_clicked = function() model.select(p.id) end,
+      enabled = function() return model.supports(p.id) end }
   end
   local function hint()
     for _, p in ipairs(model.PROFILES) do if p.id == active() then return p.hint end end
@@ -81,6 +86,7 @@ function M.build(model, w, h)
   local rows = {}
   for _, entry in ipairs(model.FACTS) do rows[#rows + 1] = { entry.name, entry.value } end
   local health = P.section { id = "power-health", caption_id = "power-heading-battery", width = w, title = "Battery",
+    visible = model.present,
     kit.facts(rows, inner, 30),
     P.buttons { width = inner,
       { id = "power-open-battery", icon = "monitoring", label = "Battery graphs and details",
