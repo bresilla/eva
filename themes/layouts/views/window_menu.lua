@@ -171,34 +171,76 @@ function V.build(model)
     on_key_pressed = model.key }
   local function rect() return model.rect() or { x = 0, y = 0, width = 0, height = 0 } end
   local box_children = { id = "window-menu", width = W, height = total_h,
-    accessible_role = "dialog", accessible_name = "Window menu",
-    behavior = { x = GLIDE, y = GLIDE } }
+    accessible_role = "dialog", accessible_name = "Window menu" }
   for _, n in ipairs(arrows) do box_children[#box_children + 1] = n end
   for _, key in ipairs { "top", "left", "right", "bottom", "center" } do box_children[#box_children + 1] = cards[key] end
   box_children[#box_children + 1] = keys
-  box_children.x = function()
-    local r, sw = rect(), model.screen()
-    return math.floor(math.max(MARGIN, math.min(sw - W - MARGIN, r.x + r.width / 2 - W / 2)))
-  end
-  box_children.y = function()
-    local r, _, sh = rect(), model.screen()
-    local h = total_h()
-    return math.floor(math.max(MARGIN, math.min(sh - h - MARGIN, r.y + r.height / 2 - h / 2)))
-  end
   local box = ui.Item(box_children)
+  local function box_at()
+    local r, sw, sh = rect(), model.screen()
+    local h = total_h()
+    return math.floor(math.max(MARGIN, math.min(sw - W - MARGIN, r.x + r.width / 2 - W / 2))),
+      math.floor(math.max(MARGIN, math.min(sh - h - MARGIN, r.y + r.height / 2 - h / 2)))
+  end
 
-  -- The window itself, framed on the desk under the menu.
+  -- The window itself, framed on the desk under the menu and taped over:
+  -- the tape cut to the window's own rounded corners and running along it
+  -- while the menu is open, a band's width wider than the window so it
+  -- never shows a bare edge; the frame on the window's border.
+  local TAPE = 64
+  -- Drawn a band past every edge, so where its strokes end (square to
+  -- the stroke, slanted to the edge) is outside, and the window's own
+  -- corners cut it.
+  local function tape_w() return rect().width + TAPE * 3 end
+  local function tape_h() return math.max(1, rect().height) + TAPE * 2 end
+  local tape = ui.Item { id = "window-menu-tape", x = -TAPE * 2, y = -TAPE, width = tape_w, height = tape_h,
+    loop = function()
+      if not opened:get() then return nil end
+      return { translate_x = { from = 0, to = TAPE, duration = 1600, easing = "linear" } }
+    end,
+    L.decor_box("tape", { width = tape_w, height = tape_h, spacing = TAPE, weight = TAPE * 0.45,
+      color = function() return kit.signal("accent")():alpha(0.08) end }) }
+  local outline = kit.surface { id = "window-menu-outline", anchors = { fill = true }, color = "transparent",
+    border_width = 2, radius = function() return model.rounding() + model.border() end,
+    border_color = kit.stroke("hot") }
+  morf.effect("material.window_menu.outline", function()
+    outline.anchors = { fill = true, margins = -model.border() }
+  end, { owner = outline })
   local frame = ui.Item { id = "window-menu-frame",
-    x = function() return rect().x end, y = function() return rect().y end,
-    width = function() return rect().width end, height = function() return rect().height end,
-    opacity = function() return opened:get() and 1 or 0 end,
-    behavior = { opacity = FADE, x = GLIDE, y = GLIDE, width = GLIDE, height = GLIDE },
-    kit.surface { anchors = { fill = true }, color = "transparent", border_width = 2, radius = theme.ROUNDING,
-      border_color = kit.stroke("hot") },
+    opacity = function() return opened:get() and 1 or 0 end, behavior = { opacity = FADE },
+    ui.ClipRect { anchors = { fill = true }, radius = model.rounding, color = "transparent", tape },
+    outline,
     L.decor_box("corners", { length = 18, weight = 2, inset = -6, color = kit.stroke("hot") }),
   }
+
+  -- Where it opens it is put at once; while open on the same window it
+  -- follows that window as it moves or changes size. Shut, it stays where
+  -- it folded away.
+  local shown_at, follow = nil, nil
+  morf.effect("material.window_menu.place", function()
+    local open, address = opened:get(), model.address:get()
+    local r = rect()
+    local bx, by = box_at()
+    if not open then shown_at = nil return end
+    if follow then follow:stop() follow = nil end
+    if shown_at ~= address then
+      shown_at = address
+      box.x, box.y = bx, by
+      frame.x, frame.y, frame.width, frame.height = r.x, r.y, r.width, r.height
+      return
+    end
+    follow = morf.animation.play { { parallel = {
+      { node = box, property = "x", to = bx, duration = GLIDE.duration, easing = GLIDE.easing },
+      { node = box, property = "y", to = by, duration = GLIDE.duration, easing = GLIDE.easing },
+      { node = frame, property = "x", to = r.x, duration = GLIDE.duration, easing = GLIDE.easing },
+      { node = frame, property = "y", to = r.y, duration = GLIDE.duration, easing = GLIDE.easing },
+      { node = frame, property = "width", to = r.width, duration = GLIDE.duration, easing = GLIDE.easing },
+      { node = frame, property = "height", to = r.height, duration = GLIDE.duration, easing = GLIDE.easing },
+    } } }
+  end)
+
   local dim = kit.surface { id = "window-menu-dim", anchors = { fill = true },
-    color = function() return C.surface:alpha(opened:get() and .4 or 0) end,
+    color = function() return C.surface:alpha(opened:get() and .6 or 0) end,
     behavior = { color = { duration = theme.duration.normal, easing = theme.ease.standard } } }
 
   -- Shown while open, and for the fade after.

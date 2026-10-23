@@ -3,11 +3,16 @@ local SOURCE=[[
   local hypr=require("lib.integrations.hyprland")
   local evals={}
   hypr.eval=function(chunk,cb) evals[#evals+1]=chunk if cb then cb("ok") end return true end
+  hypr.options=function(_,cb) cb({["decoration:rounding"]={int=20},["general:border_size"]={int=3}}) return true end
   local focused={address="0xabc"}
   hypr.json=function(command,cb) if command=="j/activewindow" then cb(focused) end return true end
   package.loaded["lib.integrations.hyprland_config"]={flavour=function(cb) cb("lua") end}
   hypr.state.clients={{address="0xabc",class="kitty",title="~/code",workspace=2,workspace_name="2",monitor=0,
-    x=400,y=200,width=800,height=500,floating=false,pinned=false,fullscreen=0,pid=4242,xwayland=false}}
+    x=400,y=200,width=800,height=500,floating=false,pinned=false,fullscreen=0,pid=4242,xwayland=false},
+    {address="0xdef",class="firefox",title="news",workspace=2,workspace_name="2",monitor=0,
+    x=1000,y=500,width=500,height=400,floating=true,pinned=false,fullscreen=0,pid=77,xwayland=false}}
+  morf.ipc.focus_other=function() hypr.state.active_window.address="0xdef" focused={address="0xdef"} end
+  morf.ipc.address=function() return require("window_menu").address:get() end
   hypr.state.active_window.address="0xabc" hypr.state.active_window.class="kitty"
   require("init")
   morf.ipc.menu_state=function()
@@ -31,6 +36,10 @@ for _,style in ipairs {"material","tsugumori"} do
     load(style) open()
     local box=test.get("window-menu")
     test.near(box.x+box.width/2,800,2,"not over the window")
+    local outline=test.get("window-menu-outline")
+    test.near(outline.x,397,1,"the frame is not on the window's border") test.near(outline.width,806,1)
+    local a=test.get("window-menu-tape").x test.advance(400)
+    test.truthy(math.abs(test.get("window-menu-tape").x-a)>1,"the tape stands still")
     shot(style.."-window-menu")
     test.key("3") test.advance(100)
     test.truthy(last():find('hl.dsp.window.move({ follow = true, window = "address:0xabc", workspace = "3" })',1,true),last())
@@ -69,4 +78,15 @@ test.it("a press off the cards shuts it, and without a window it does not open",
   test.ipc("no_window") test.advance(16)
   test.eq(test.ipc("window_menu","open"),nil) test.advance(100)
   test.falsy(state().open)
+end)
+test.it("over another window it folds away first, then opens there at once",function()
+  load("tsugumori") open()
+  test.ipc("focus_other")
+  test.ipc("window_menu","close") test.ipc("window_menu","open") test.advance(16)
+  test.falsy(state().open,"opened before the fold")
+  test.advance(300)
+  test.truthy(state().open) test.eq(test.ipc("address"),"0xdef")
+  local box=test.get("window-menu")
+  test.eq(box.x,1600-1040-16,"glided instead of opening in place")
+  test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
 end)

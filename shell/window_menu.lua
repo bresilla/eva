@@ -298,9 +298,20 @@ end
 
 --- Opens over the focused window: true when it did, false when there is
 --- none, nothing while it asks the compositor which window that is.
+local FOLD_MS, closed_at, waiting = 280, -1e9, nil
 function M.open()
-  local function show(address)
+  local function show(address, folded)
     if not client(address) then return false end
+    if waiting then waiting:cancel() waiting = nil end
+    -- Over another window: the menu folds away where it was first, then
+    -- opens there.
+    local other = address ~= M.address:get()
+    if other and M.opened:get() then M.close() end
+    local left = FOLD_MS - (morf.time.now_ms() - closed_at)
+    if other and left > 0 and not folded then
+      waiting = morf.timer(left, function() waiting = nil show(address, true) end, false)
+      return true
+    end
     M.address:set(address)
     M.focus:set("")
     M.opened:set(true)
@@ -319,13 +330,46 @@ function M.open()
   if asked then return nil end
   return false
 end
-function M.close() M.opened:set(false) end
+function M.close()
+  if waiting then waiting:cancel() waiting = nil end
+  if M.opened:get() then closed_at = morf.time.now_ms() end
+  M.opened:set(false)
+end
 function M.toggle() if M.opened:get() then M.close() return false end return M.open() end
 
 -- The window gone (closed, killed), the menu goes with it.
 morf.effect("eva.window_menu.gone", function()
   if M.opened:get() and M.window() == nil then M.close() end
 end)
+
+-- How the compositor draws windows: their corner rounding and border width.
+M.style = morf.state { rounding = 0, border = 0 }
+local function read_style()
+  if not hyprland.options then return end
+  hyprland.options({ "decoration:rounding", "general:border_size" }, function(options)
+    if not options then return end
+    M.style.rounding = math.max(0, tonumber((options["decoration:rounding"] or {}).int) or 0)
+    M.style.border = math.max(0, tonumber((options["general:border_size"] or {}).int) or 0)
+  end)
+end
+morf.effect("eva.window_menu.style", function() if M.opened:get() then morf.timer(1, read_style, false) end end)
+
+local function ratio()
+  local s = morf.screens and morf.screens[1] or {}
+  return (s.width and s.logical_width and s.logical_width > 0) and s.width / s.logical_width or 1
+end
+--- The window's corner radius and border, in the shell's pixels: none
+--- while it is fullscreen or maximized.
+function M.rounding()
+  local w = M.window()
+  if not w or (w.fullscreen or 0) ~= 0 then return 0 end
+  return M.style.rounding * ratio()
+end
+function M.border()
+  local w = M.window()
+  if not w or (w.fullscreen or 0) ~= 0 then return 0 end
+  return M.style.border * ratio()
+end
 
 --- This screen's size, and the window's box on it, in the shell's pixels
 --- (the compositor's are logical ones, from its layout's origin).
