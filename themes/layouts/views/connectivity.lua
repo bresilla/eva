@@ -52,7 +52,80 @@ local function status(id, model, w)
   return node
 end
 
+--- A one-line text field the card's width, its text kept in `draft`;
+--- `keys` are its Enter and Escape handlers.
+local function field(id, w, placeholder, draft, kind, keys)
+  local C = theme.color
+  keys = keys or {}
+  local node, handle = kit.text_field(kind or "entry", { id = id, x = 10, y = 3, width = w - 20, height = 30,
+    font_family = theme.font, font_size = 12, placeholder = placeholder, reveal = kind == "password" and false or nil,
+    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
+    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
+    on_text_changed = function(value) draft:set(value) end, on_accepted = keys.accept, on_escape = keys.escape })
+  morf.effect("eva.mobile.field." .. id, function() handle.text = draft:get() end)
+  return kit.surface { width = w, height = 36, radius = kit.round(10),
+    color = function() return C.surfaceContainerHighest end, node }, handle
+end
+
 -- ----------------------------------------------------------------- network --
+
+--- A small round button at a row's right that opens what can be done to it.
+local function manage_button(id, visible, on_clicked)
+  local button = kit.action { id = id, accessible_name = "Manage", width = 36, height = 36, cursor = "pointer",
+    visible = visible, on_clicked = on_clicked,
+    kit.icon("settings", 20, kit.ink("lo"), { anchors = { center_in = true } }) }
+  kit.hover(button, function(hovered) return hovered and kit.ink("hi")():alpha(0.12) or kit.ink("hi")():alpha(0) end, 18)
+  return button
+end
+
+--- Under the list: the password (and for 802.1X the user name) a network
+--- asks for, or what can be done to a saved one.
+local function network_prompt(model, w)
+  local inner = P.inner(w)
+  local identity = morf.signal("eva.network.identity", "")
+  local password = morf.signal("eva.network.password", "")
+  local function mode(m) return function() return model.mode() == m end end
+  local function asking() local m = model.mode() return m == "password" or m == "enterprise" end
+  local function row() return model.asked() or {} end
+  local function clear() identity:set("") password:set("") end
+  local function join() local i, p = identity:get(), password:get() clear() model.join(p, i) end
+  local function cancel() clear() model.dismiss() end
+  local pass_box, pass = field("network-password", inner, "Password", password, "password",
+    { accept = join, escape = cancel })
+  local user_box, user = field("network-identity", inner, "User name", identity, "entry",
+    { accept = function() pass.focus = true end, escape = cancel })
+  user_box.visible, pass_box.visible = mode("enterprise"), asking
+  local answer = P.buttons { width = inner,
+    { id = "network-password-cancel", label = "Cancel", on_clicked = cancel },
+    { id = "network-password-join", label = "Connect", tone = "primary", on_clicked = join,
+      enabled = function() return password:get() ~= "" and (model.mode() ~= "enterprise" or identity:get() ~= "") end } }
+  local manage = P.buttons { width = inner,
+    { id = "network-disconnect", label = "Disconnect", on_clicked = model.disconnect,
+      visible = function() return row().in_use == true end },
+    { id = "network-change-password", label = "Password", on_clicked = model.change_password,
+      visible = function() return row().secure == true end },
+    { id = "network-forget", label = "Forget", on_clicked = model.forget,
+      visible = function() return row().known == true end },
+    { id = "network-manage-close", label = "Close", on_clicked = cancel } }
+  answer.visible, manage.visible = asking, mode("manage")
+  morf.effect("eva.network.prompt.focus", function()
+    local m = model.mode()
+    if m ~= "password" and m ~= "enterprise" then clear() end
+    user.focus = m == "enterprise"
+    pass.focus = m == "password"
+  end)
+  return ui.Column { id = "network-password-prompt", width = inner, gap = 8,
+    visible = function() return model.asked() ~= nil end,
+    kit.subtitle { id = "network-password-title", width = inner, elide = "right", font_size = P.SUB,
+      text = function()
+        local m, ssid = model.mode(), row().ssid or ""
+        if m == "enterprise" then return "Sign in to " .. ssid end
+        if m == "manage" then return ssid .. (row().in_use and " · Connected" or " · Saved") end
+        return "Password for " .. ssid
+      end },
+    user_box, pass_box, answer, manage,
+  }
+end
 
 local function network_page(model, w, h)
   local available = model.available
@@ -69,9 +142,15 @@ local function network_page(model, w, h)
           if a.in_use then return "Connected" end
           return a.secure and "Secured" or "Open"
         end,
-        trailing = kit.icon(function() return ap().secure and "lock" or "" end, 16, kit.ink("lo")),
+        trailing = ui.Row { gap = 4, align = "center",
+          visible = function() local a = ap() return a.secure == true or a.known == true or a.in_use == true end,
+          kit.icon("lock", 16, kit.ink("lo"),
+            { visible = function() local a = ap() return a.secure == true and not (a.known or a.in_use) end }),
+          manage_button("network-manage-" .. i, function() return ap().known == true or ap().in_use == true end,
+            function() model.manage(ap()) end) },
         on_clicked = function() model.choose(ap()) end }
     end, function() return model.enabled() and "No networks found" or "Turn on Wi-Fi to find networks." end),
+    network_prompt(model, w),
     status("network-status", model, w),
     action(w, { id = "network-rescan", icon = "wifi_find", label = "Rescan networks",
       on_clicked = function() model.scan() end }),
@@ -94,6 +173,67 @@ end
 
 -- --------------------------------------------------------------- bluetooth --
 
+--- What a pairing device asks: a code to compare, a PIN or a passkey to
+--- type, leave to pair, or a code to type on the device itself.
+local function pairing_prompt(model, w)
+  local inner = P.inner(w)
+  local typed = morf.signal("eva.bluetooth.pairing.code", "")
+  local function asked() return model.pairing() or {} end
+  local function kind() return asked().kind or "" end
+  local function entry() local k = kind() return k == "pin" or k == "passkey" end
+  local function accept()
+    if not entry() then return model.answer_pairing(true) end
+    local value = typed:get()
+    typed:set("")
+    model.answer_pairing(value ~= "" and value or nil)
+  end
+  local function refuse() typed:set("") model.answer_pairing(nil) end
+  local box, handle = field("bluetooth-pairing-code", inner, "PIN", typed, "entry", { accept = accept, escape = refuse })
+  box.visible = entry
+  morf.effect("eva.bluetooth.pairing.focus", function()
+    local on = entry()
+    if not on then typed:set("") end
+    handle.focus = on
+  end)
+  local buttons = P.buttons { width = inner,
+    { id = "bluetooth-pairing-refuse", label = "Cancel", on_clicked = refuse },
+    { id = "bluetooth-pairing-accept", label = "Pair", tone = "primary", on_clicked = accept,
+      visible = function() return kind() ~= "display" end } }
+  local TITLE = {
+    confirm = "Pair with %s? Check it shows this code:",
+    authorize = "%s asks to pair",
+    pin = "Type the PIN for %s",
+    passkey = "Type the passkey %s shows",
+    display = "Type this code on %s, then Enter:",
+  }
+  return ui.Column { id = "bluetooth-pairing-prompt", width = inner, gap = 8,
+    visible = function() return model.pairing() ~= nil end,
+    kit.subtitle { id = "bluetooth-pairing-title", width = inner, wrap = true, font_size = P.SUB,
+      text = function() return (TITLE[kind()] or "%s"):format(model.pairing_name()) end },
+    kit.text { id = "bluetooth-pairing-code-shown", font_size = theme.size.extra, font_weight = 700,
+      visible = function() return asked().code ~= nil end,
+      text = function() return asked().code or "" end },
+    box, buttons,
+  }
+end
+
+--- Under the list: what can be done to a paired device.
+local function device_prompt(model, w)
+  local inner = P.inner(w)
+  local function dev() return model.asked() or {} end
+  local buttons = P.buttons { width = inner,
+    { id = "bluetooth-disconnect", label = "Disconnect", on_clicked = model.disconnect,
+      visible = function() return dev().connected == true end },
+    { id = "bluetooth-forget", label = "Forget", on_clicked = model.forget },
+    { id = "bluetooth-manage-close", label = "Close", on_clicked = model.dismiss } }
+  return ui.Column { id = "bluetooth-manage-prompt", width = inner, gap = 8,
+    visible = function() return model.mode() == "manage" and model.asked() ~= nil end,
+    kit.subtitle { id = "bluetooth-manage-title", width = inner, elide = "right", font_size = P.SUB,
+      text = function() local d = dev() return (d.alias or d.name or d.address or "") .. " · Paired" end },
+    buttons,
+  }
+end
+
 local function bluetooth_page(model, w, h)
   local available = model.available
   local inner = P.inner(w)
@@ -107,11 +247,15 @@ local function bluetooth_page(model, w, h)
         title = function() local d = dev() return d.alias or d.name or d.address or "" end,
         subtitle = function()
           local d = dev()
-          if d.connected then return "Connected" end
+          if d.connected then return d.has_battery and d.battery and ("Connected · %d%%"):format(d.battery) or "Connected" end
           return d.paired and "Paired" or "Not paired"
         end,
+        trailing = manage_button("bluetooth-manage-" .. i, function() return dev().paired == true end,
+          function() model.manage(dev()) end),
         on_clicked = function() model.choose(dev()) end }
     end, function() return model.enabled() and "No devices" or "Turn on Bluetooth to find devices." end),
+    pairing_prompt(model, w),
+    device_prompt(model, w),
     status("bluetooth-status", model, w),
     action(w, { id = "bluetooth-settings", icon = "settings", label = "Open settings",
       on_clicked = function() model.open_settings() end }),
@@ -134,19 +278,6 @@ local function bluetooth_page(model, w, h)
     devices,
     missing(w, "bluetooth_disabled", "No Bluetooth adapter", "There is no Bluetooth adapter to use.", available),
   } }
-end
-
---- A one-line text field the card's width, its text kept in `draft`.
-local function field(id, w, placeholder, draft, kind)
-  local C = theme.color
-  local node, handle = kit.text_field(kind or "entry", { id = id, x = 10, y = 3, width = w - 20, height = 30,
-    font_family = theme.font, font_size = 12, placeholder = placeholder, reveal = kind == "password" and false or nil,
-    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
-    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
-    on_text_changed = function(value) draft:set(value) end })
-  morf.effect("eva.mobile.field." .. id, function() handle.text = draft:get() end)
-  return kit.surface { width = w, height = 36, radius = kit.round(10),
-    color = function() return C.surfaceContainerHighest end, node }
 end
 
 local function mobile_page(model,w,h)

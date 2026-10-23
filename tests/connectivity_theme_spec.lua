@@ -13,6 +13,7 @@ local HOST=[[
     {key="Cafe",ssid="Cafe",path="/ap/2",device="wlan0",security="open",known=false,in_use=false,strength=90,secure=false},
     {key="Quiet",ssid="Quiet",path="/ap/3",device="wlan0",security="wpa2",known=true,in_use=false,strength=20,secure=true},
     {key="Locked",ssid="Locked",path="/ap/4",device="wlan0",security="wpa2",known=false,in_use=false,strength=80,secure=true},
+    {key="Eduroam",ssid="Eduroam",path="/ap/5",device="wlan0",security="enterprise",known=false,in_use=false,strength=10,secure=true},
   }
   local devices={
     {path="/bt/1",address="AA:01",alias="Speakers",name="Speakers",named=true,connected=true,paired=true,in_range=true,has_battery=true,battery=82},
@@ -43,18 +44,48 @@ local HOST=[[
     net={state=service_state,
       set_wifi=function(on,done) record("wifi",on) data.enabled=on update() return reply(done) end,
       request_scan=function(_,done) record("scan",true) return reply(done) end,
-      connect=function(ap,_,_,done)
-        record("connect-network",{ssid=ap.ssid,path=ap.path})
-        if ap.ssid=="Locked" then return nil,"a password is needed" end
+      connect=function(ap,password,_,done)
+        record("connect-network",{ssid=ap.ssid,path=ap.path,password=password})
+        if ap.ssid=="Locked" and password~="right" then return nil,"the password was not accepted" end
         for _,row in ipairs(aps) do row.in_use=row.key==ap.key end update() return reply(done)
+      end,
+      disconnect=function(which,done)
+        record("disconnect-network",which)
+        for _,row in ipairs(aps) do row.in_use=false end update() return reply(done)
+      end,
+      forget=function(ssid,done)
+        record("forget-network",ssid)
+        for _,row in ipairs(aps) do if row.ssid==ssid then row.known=false end end update() return reply(done)
       end},
     bt={state=service_state,
+      remove=function(row,done)
+        record("remove-device",row.path)
+        for i,d in ipairs(devices) do if d.path==row.path then table.remove(devices,i) break end end
+        update() return reply(done)
+      end,
       set_powered=function(on,_,done) record("power",on) data.enabled=on update() return reply(done) end,
       start_discovery=function(_,done) record("discovery",true) data.discovering=true update() return reply(done) end,
       stop_discovery=function(_,done) record("discovery",false) data.discovering=false update() return reply(done) end,
+      pair=function(row,done)
+        record("pair-device",row.path)
+        for _,d in ipairs(devices) do if d.path==row.path then d.paired=true end end
+        update() return reply(done)
+      end,
+      trust=function(row,on) record("trust-device",row.path) return true end,
       connect=function(row,done) return device_action("connect-device",row,done) end,
       disconnect=function(row,done) return device_action("disconnect-device",row,done) end},
   }
+  package.loaded.wifi_enterprise={join=function(_,ap,identity,password,done)
+    record("join-enterprise",{ssid=ap.ssid,identity=identity,password=password})
+    for _,row in ipairs(aps) do row.in_use=row.key==ap.key end update() return reply(done)
+  end}
+  local agent_request,agent_on=morf.signal("fixture.agent",nil),false
+  package.loaded.bluetooth_agent={request=agent_request,
+    start=function() agent_on=true return true end,
+    stop=function() agent_on=false agent_request:set(nil) end,
+    answer=function(value) record("pairing-answer",value) agent_request:set(nil) end}
+  morf.ipc.pairing=function(kind,code) agent_request:set({kind=kind,device="/bt/3",code=code}) end
+  morf.ipc.agent=function() return agent_on end
   morf.spawn=function(spec) record("spawn",spec.command) return true end
   update()
   local models=require("connectivity_model")
@@ -143,6 +174,11 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("bluetooth-discover") test.advance(100) test.eq(last().value,false)
     choose("Speakers") test.eq(last().name,"disconnect-device") test.eq(last().value,"/bt/1")
     choose("Keyboard") test.eq(last().name,"connect-device") test.eq(last().value,"/bt/2")
+    local count=#test.ipc("state").calls
+    choose("Mouse")
+    local calls=test.ipc("state").calls
+    test.eq(calls[count+1].name,"pair-device") test.eq(calls[count+2].name,"trust-device")
+    test.eq(calls[count+3].name,"connect-device") test.eq(calls[count+3].value,"/bt/3")
     test.click("bluetooth-settings") test.advance(100) test.eq(last().name,"spawn")
     test.truthy(#last().value>0)
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
@@ -172,9 +208,9 @@ for _,style in ipairs {"material","tsugumori"} do
 end
 test.it("radio actions report errors and ignore obsolete or hidden replies",function()
   load("tsugumori","network") open()
-  choose("Locked")
+  choose("Locked") test.type("wrong\n") test.advance(100)
   test.truthy(test.ipc("state").failed)
-  test.eq(test.get("network-status").text,"a password is needed")
+  test.eq(test.get("network-status").text,"the password was not accepted")
   test.ipc("delay","yes")
   choose("Cafe")
   test.click("network-rescan") test.advance(100)
@@ -213,6 +249,91 @@ for _,kind in ipairs {"network","bluetooth"} do
     test.falsy(test.ipc("stale"))
     test.ipc("change","empty") test.ipc("change","disabled") test.advance(100)
     test.truthy(test.find{text=kind=="network" and "Turn on Wi-Fi to find networks." or "Turn on Bluetooth to find devices.",visible=true})
+    test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
+  end)
+end
+for _,style in ipairs {"material","tsugumori"} do
+  test.it(style.." a new secured network asks for its password before it joins",function()
+    load(style,"network") open()
+    local count=#test.ipc("state").calls
+    choose("Locked")
+    test.eq(#test.ipc("state").calls,count)
+    test.truthy(test.find{text="Password for Locked",visible=true})
+    test.click("network-password-cancel") test.advance(100)
+    test.falsy(test.find{text="Password for Locked",visible=true})
+    choose("Locked") test.type("right") test.click("network-password-join") test.advance(100)
+    test.eq(last().name,"connect-network") test.eq(last().value.password,"right")
+    test.eq(test.ipc("state").rows[1].ssid,"Locked")
+    test.falsy(test.find{id="network-password-prompt",visible=true})
+    choose("Quiet") test.eq(last().value.ssid,"Quiet") test.eq(last().value.password,nil)
+    test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
+  end)
+end
+local function index(label) return test.ipc("entry",label):match("(%d+)$") end
+local function calls_named(name)
+  local out={}
+  for _,c in ipairs(test.ipc("state").calls) do if c.name==name then out[#out+1]=c end end
+  return out
+end
+for _,style in ipairs {"material","tsugumori"} do
+  test.it(style.." an 802.1X network signs in with a user name and a password",function()
+    load(style,"network") open()
+    choose("Eduroam")
+    test.truthy(test.find{text="Sign in to Eduroam",visible=true})
+    test.type("me@uni.example\n") test.type("secret\n") test.advance(100)
+    test.eq(last().name,"join-enterprise")
+    test.eq(last().value,{ssid="Eduroam",identity="me@uni.example",password="secret"})
+    test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
+  end)
+  test.it(style.." the connected and saved networks disconnect and forget",function()
+    load(style,"network") open()
+    test.eq(#calls_named("scan"),1)
+    choose("Campus")
+    test.truthy(test.find{text="Campus · Connected",visible=true})
+    test.click("network-disconnect") test.advance(100)
+    test.eq(last().name,"disconnect-network")
+    test.click("network-manage-"..index("Quiet")) test.advance(100)
+    test.truthy(test.find{text="Quiet · Saved",visible=true})
+    test.falsy(test.find{id="network-disconnect",visible=true})
+    test.click("network-forget") test.advance(100)
+    test.eq(last().name,"forget-network") test.eq(last().value,"Quiet")
+    test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
+  end)
+  test.it(style.." a paired device is forgotten, and discovery stops as the page shuts",function()
+    load(style,"bluetooth") open()
+    test.truthy(test.find{text="Connected · 82%",visible=true})
+    test.click("bluetooth-manage-"..index("Keyboard")) test.advance(100)
+    test.truthy(test.find{text="Keyboard · Paired",visible=true})
+    test.click("bluetooth-forget") test.advance(100)
+    test.eq(last().name,"remove-device") test.eq(last().value,"/bt/2")
+    test.click("bluetooth-discover") test.advance(100) test.eq(last().value,true)
+    test.ipc("show","no") test.advance(100)
+    test.eq(last().name,"discovery") test.eq(last().value,false)
+    test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
+  end)
+end
+for _,style in ipairs {"material","tsugumori"} do
+  test.it(style.." a pairing device is answered from the page while it is open",function()
+    load(style,"bluetooth") open()
+    test.truthy(test.ipc("agent"),"no agent while the page is open")
+    test.ipc("pairing","confirm","012345") test.advance(100)
+    test.truthy(test.find{text="Pair with Mouse? Check it shows this code:",visible=true})
+    test.truthy(test.find{text="012345",visible=true})
+    test.click("bluetooth-pairing-accept") test.advance(100)
+    test.eq(last().name,"pairing-answer") test.eq(last().value,true)
+    test.falsy(test.find{id="bluetooth-pairing-prompt",visible=true})
+    test.ipc("pairing","pin") test.advance(100)
+    test.truthy(test.find{text="Type the PIN for Mouse",visible=true})
+    test.type("0000\n") test.advance(100)
+    test.eq(last().value,"0000")
+    test.ipc("pairing","authorize") test.advance(100)
+    test.click("bluetooth-pairing-refuse") test.advance(100)
+    test.eq(last().name,"pairing-answer") test.eq(last().value,nil)
+    test.ipc("pairing","display","654321") test.advance(100)
+    test.truthy(test.find{text="654321",visible=true})
+    test.falsy(test.find{id="bluetooth-pairing-accept",visible=true})
+    test.ipc("show","no") test.advance(100)
+    test.falsy(test.ipc("agent"),"the agent outlived the page")
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
   end)
 end
