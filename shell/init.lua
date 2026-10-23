@@ -288,8 +288,8 @@ ipc["dashboard-history"] = function(output)
 end
 ipc.session = verb(session.drawer)
 -- `window_menu [open|close|toggle|state]`: the menu of the focused window,
--- over it on the screen it is on. Opening answers false when no window has
--- the focus.
+-- over it on the screen it is on. Opening answers true, false when no window
+-- has the focus, or nothing while it asks the compositor.
 ipc.window_menu = function(how)
   how = how or "toggle"
   local mine = window_menu.here()

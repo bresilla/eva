@@ -1,14 +1,12 @@
 -- The window menu: a cross of cards over the focused window -- the window
--- itself in the middle, and on each side what can be done to it. A side
--- opens into its branch: its pages down the left, the chosen page's
--- actions beside them. Opened over IPC (`window_menu toggle`), which a
--- compositor key calls; everything it does is a Hyprland dispatcher sent
--- to that one window by its address.
+-- itself in the middle, and on each side a card of buttons for one kind of
+-- thing to do to it, each a single press. Opened over IPC (`window_menu
+-- toggle`), which a compositor key calls; everything it does is a
+-- Hyprland dispatcher sent to that one window by its address.
 --
--- Keys: arrows choose a side and Enter (or the same arrow again) opens it;
--- in a branch, Up and Down move, Right and Left cross between the pages
--- and their actions, Enter runs one; Escape goes back, then shuts.
--- EVA_DRY_RUN=1 logs what would be dispatched instead.
+-- Keys: the arrows move between the buttons, across cards too, and Enter
+-- or Space presses one; 1 to 9 and 0 send the window to that workspace;
+-- Escape shuts it. EVA_DRY_RUN=1 logs what would be dispatched instead.
 local morf = require("morf")
 local services = require("services")
 local hyprland = services.hyprland
@@ -16,12 +14,10 @@ local M = {}
 
 M.opened = morf.signal("eva.window_menu.opened", false)
 M.address = morf.signal("eva.window_menu.address", "")
-M.slot = morf.signal("eva.window_menu.slot", "center")
-M.branch = morf.signal("eva.window_menu.branch", false)
-M.sub = morf.signal("eva.window_menu.sub", 1)
-M.column = morf.signal("eva.window_menu.column", "subs")
-M.action = morf.signal("eva.window_menu.action", 1)
-M.message = morf.signal("eva.window_menu.message", "")
+-- The button the keys are on ("" for none): "<card>:<button>".
+M.focus = morf.signal("eva.window_menu.focus", "")
+-- Whether moving the window to a workspace goes there with it.
+M.follow = require("themes.session").keep("eva.window_menu.follow", true)
 
 local function dry_run()
   local v = morf.env and morf.env("EVA_DRY_RUN")
@@ -110,137 +106,99 @@ end
 
 local function S(lua, conf) return { lua = lua, conf = conf } end
 local function toggle(name, conf) return S({ "window." .. name, { action = "toggle" } }, conf) end
+local function G(lua, conf) return { global = true, lua = lua, conf = conf } end
 
--- --------------------------------------------------------------- pages --
+-- --------------------------------------------------------------- cards --
 
 local function yes(v) return v == true end
+local function monitor_of(w)
+  local model = hyprland.state.monitors
+  for i = 1, model:len() do
+    local m = model:get(i)
+    if m.id == w.monitor then return m end
+  end
+end
 --- A floating window `fraction` of its screen, centred there.
 local function sized(fraction)
-  local w = M.window()
-  local monitor = w and hyprland.monitor(w.monitor)
-  local mw = monitor and monitor.width / (monitor.scale or 1) or 1920
-  local mh = monitor and monitor.height / (monitor.scale or 1) or 1080
-  local x, y = math.floor(mw * fraction), math.floor(mh * fraction)
+  local w = M.window() or {}
+  local m = monitor_of(w) or {}
+  local x = math.floor((m.width or 1920) / (m.scale or 1) * fraction)
+  local y = math.floor((m.height or 1080) / (m.scale or 1) * fraction)
   return {
     S({ "window.float", { action = "on" } }, { "setfloating", "$W" }),
     S({ "window.resize", { x = x, y = y } }, { "resizewindowpixel", ("exact %d %d,$W"):format(x, y) }),
     S({ "window.center", {} }, { "centerwindow", nil }),
   }
 end
+local function to_workspace(id)
+  local follow = M.follow:get()
+  return { S({ "window.move", { workspace = tostring(id), follow = follow } },
+    { follow and "movetoworkspace" or "movetoworkspacesilent", id .. ",$W" }) }
+end
 
-local function workspace_actions(follow)
-  return function()
+--- Each card: `key` (where it sits), `number`, `title`, and its buttons --
+--- `key`, `label`, `on` (lit: what the window is now), `primary`, `span`
+--- (grid cells), `stay` (the menu stays open after it), and `steps` (sent to
+--- the compositor) or `press` (done here).
+M.CARDS = {
+  { key = "center", number = "00", title = "Window", buttons = function() return {} end },
+  { key = "top", number = "01", title = "Layout", buttons = function()
+    local w = M.window() or {}
+    local fs = w.fullscreen or 0
+    return {
+      { key = "float", label = w.floating and "Tile" or "Float", on = yes(w.floating), stay = true,
+        steps = { toggle("float", { "togglefloating", "$W" }) } },
+      { key = "fullscreen", label = "Fullscreen", on = fs == 2, stay = true,
+        steps = { S({ "window.fullscreen", { mode = "fullscreen" } }, { "fullscreen", "0" }) } },
+      { key = "maximize", label = "Maximize", on = fs == 1, stay = true,
+        steps = { S({ "window.fullscreen", { mode = "maximized" } }, { "fullscreen", "1" }) } },
+      { key = "pin", label = "Pin", on = yes(w.pinned), stay = true, steps = { toggle("pin", { "pin", "$W" }) } },
+      { key = "center", label = "Center", stay = true, steps = { S({ "window.center", {} }, { "centerwindow", nil }) } },
+      { key = "front", label = "To front", stay = true,
+        steps = { S({ "window.bring_to_top", {} }, { "bringactivetotop", nil }) } },
+      { key = "half", label = "50%", stay = true, steps = sized(0.5) },
+      { key = "two_thirds", label = "66%", stay = true, steps = sized(0.66) },
+      { key = "most", label = "85%", stay = true, steps = sized(0.85) },
+    }
+  end },
+  { key = "left", number = "02", title = "Workspace", buttons = function()
     local w = M.window() or {}
     local out = {}
-    local count = math.max(5, tonumber(require("config").get("bar.workspaces.shown")) or 5)
-    for id = 1, math.max(count, 10) do
-      local occupied = services.workspace.occupied(id)
-      out[#out + 1] = { key = "ws" .. id, label = "Workspace " .. id,
-        meta = w.workspace == id and "HERE" or occupied and "IN USE" or "",
-        selected = w.workspace == id,
-        steps = { S({ "window.move", { workspace = tostring(id), follow = follow } },
-          { follow and "movetoworkspace" or "movetoworkspacesilent", id .. ",$W" }) } }
+    for id = 1, 10 do
+      out[#out + 1] = { key = "ws" .. id, label = tostring(id), on = w.workspace == id, steps = to_workspace(id) }
     end
+    out[#out + 1] = { key = "follow", label = "Follow", on = M.follow:get(), stay = true, span = 2,
+      press = function() M.follow:set(not M.follow:get()) end }
+    out[#out + 1] = { key = "stash", label = "Stash away", span = 3,
+      steps = { S({ "window.move", { workspace = "special:eva", follow = false } }, { "movetoworkspacesilent", "special:eva,$W" }) } }
     return out
-  end
-end
-
-local function monitor_actions()
-  local w = M.window() or {}
-  local out = {}
-  local model = hyprland.state.monitors
-  for i = 1, model:len() do
-    local m = model:get(i)
-    out[#out + 1] = { key = "mon:" .. m.name, label = m.name,
-      meta = ("%dx%d"):format(m.width, m.height), selected = w.monitor == m.id,
-      steps = { S({ "window.move", { monitor = m.name } }, { "movewindow", "mon:" .. m.name }) } }
-  end
-  return out
-end
-
-M.SLOTS = {
-  { key = "center", number = "00", title = "Window" },
-  { key = "top", number = "01", title = "Layout", subs = {
-    { key = "state", label = "State", actions = function()
-      local w = M.window() or {}
-      return {
-        { key = "float", label = w.floating and "Tile" or "Float", stay = true, selected = yes(w.floating),
-          meta = w.floating and "FLOATING" or "TILED", steps = { toggle("float", { "togglefloating", "$W" }) } },
-        { key = "fullscreen", label = "Fullscreen", stay = true, selected = (w.fullscreen or 0) == 2,
-          steps = { S({ "window.fullscreen", { mode = "fullscreen" } }, { "fullscreen", "0" }) } },
-        { key = "maximize", label = "Maximize", stay = true, selected = (w.fullscreen or 0) == 1,
-          steps = { S({ "window.fullscreen", { mode = "maximized" } }, { "fullscreen", "1" }) } },
-        { key = "pin", label = "Pin on every workspace", stay = true, selected = yes(w.pinned),
-          meta = w.floating and "" or "FLOATS", steps = { toggle("pin", { "pin", "$W" }) } },
-      }
-    end },
-    { key = "size", label = "Size", actions = function()
-      return {
-        { key = "center", label = "Center", steps = { S({ "window.center", {} }, { "centerwindow", nil }) } },
-        { key = "half", label = "Half the screen", meta = "50%", steps = sized(0.5) },
-        { key = "two_thirds", label = "Two thirds", meta = "66%", steps = sized(0.66) },
-        { key = "most", label = "Most of it", meta = "85%", steps = sized(0.85) },
-      }
-    end },
-    { key = "order", label = "Order", actions = function()
-      local out = { { key = "top", label = "Bring to front", steps = { S({ "window.bring_to_top", {} }, { "bringactivetotop", nil }) } } }
-      for _, d in ipairs { { "left", "l" }, { "right", "r" }, { "up", "u" }, { "down", "d" } } do
-        out[#out + 1] = { key = "swap_" .. d[1], label = "Swap " .. d[1], meta = "TILED",
-          steps = { S({ "window.swap", { direction = d[1] } }, { "swapwindow", d[2] }) } }
-      end
-      return out
-    end },
-  } },
-  { key = "left", number = "02", title = "Workspace", subs = {
-    { key = "move", label = "Move", actions = workspace_actions(true) },
-    { key = "send", label = "Send", actions = workspace_actions(false) },
-    { key = "special", label = "Scratchpad", actions = function()
-      return {
-        { key = "stash", label = "Stash away", meta = "SPECIAL",
-          steps = { S({ "window.move", { workspace = "special:eva", follow = false } }, { "movetoworkspacesilent", "special:eva,$W" }) } },
-        { key = "show", label = "Show the scratchpad", stay = true,
-          steps = { { global = true, lua = { "workspace.toggle_special", "eva" }, conf = { "togglespecialworkspace", "eva" } } } },
-      }
-    end },
-  } },
-  { key = "right", number = "03", title = "Screen", subs = {
-    { key = "monitor", label = "Monitor", actions = monitor_actions },
-    { key = "group", label = "Group", actions = function()
-      return {
-        { key = "group", label = "Group or ungroup", stay = true, steps = { { global = true, lua = { "group.toggle", {} }, conf = { "togglegroup", nil } } } },
-        { key = "lock", label = "Lock the group", stay = true, steps = { { global = true, lua = { "group.lock_active", { action = "toggle" } }, conf = { "lockactivegroup", "toggle" } } } },
-        { key = "next", label = "Next in group", stay = true, steps = { { global = true, lua = { "group.next", {} }, conf = { "changegroupactive", "f" } } } },
-      }
-    end },
-  } },
-  { key = "bottom", number = "04", title = "Close", subs = {
-    { key = "close", label = "Close", actions = function()
-      return {
-        { key = "close", label = "Close window", primary = true, steps = { S({ "window.close", {} }, { "closewindow", "$W" }) } },
-        { key = "kill", label = "Force quit", meta = "SIGKILL", steps = { S({ "window.kill", {} }, { "killwindow", "$W" }) } },
-      }
-    end },
-    { key = "info", label = "Details", actions = function()
-      local w = M.window() or {}
-      return {
-        { key = "class", label = "Class", meta = w.class or "", info = true },
-        { key = "title", label = "Title", meta = w.title or "", info = true },
-        { key = "pid", label = "Process", meta = ("%d"):format(w.pid or 0), info = true },
-        { key = "size", label = "Size", meta = ("%d × %d"):format(w.width or 0, w.height or 0), info = true },
-        { key = "place", label = "Position", meta = ("%d, %d"):format(w.x or 0, w.y or 0), info = true },
-        { key = "client", label = "Client", meta = w.xwayland and "XWayland" or "Wayland", info = true },
-      }
-    end },
-  } },
+  end },
+  { key = "right", number = "03", title = "Screen", buttons = function()
+    local w = M.window() or {}
+    local out = {}
+    local model = hyprland.state.monitors
+    for i = 1, math.min(model:len(), 4) do
+      local m = model:get(i)
+      out[#out + 1] = { key = "mon:" .. m.name, label = m.name, on = w.monitor == m.id,
+        steps = { S({ "window.move", { monitor = m.name } }, { "movewindow", "mon:" .. m.name }) } }
+    end
+    if #out % 2 == 1 then out[#out].span = 2 end
+    out[#out + 1] = { key = "group", label = "Group", stay = true, steps = { G({ "group.toggle", {} }, { "togglegroup", nil }) } }
+    out[#out + 1] = { key = "lock", label = "Lock group", stay = true,
+      steps = { G({ "group.lock_active", { action = "toggle" } }, { "lockactivegroup", "toggle" }) } }
+    return out
+  end },
+  { key = "bottom", number = "04", title = "Close", buttons = function()
+    return {
+      { key = "close", label = "Close", primary = true, steps = { S({ "window.close", {} }, { "closewindow", "$W" }) } },
+      { key = "kill", label = "Force quit", steps = { S({ "window.kill", {} }, { "killwindow", "$W" }) } },
+    }
+  end },
 }
 local BY_KEY = {}
-for _, s in ipairs(M.SLOTS) do BY_KEY[s.key] = s end
-function M.slot_spec(key) return BY_KEY[key or M.slot:get()] end
-function M.subs() local s = M.slot_spec() return s and s.subs or {} end
-function M.actions()
-  local sub = M.subs()[M.sub:get()]
-  return sub and sub.actions() or {}
-end
+for _, c in ipairs(M.CARDS) do BY_KEY[c.key] = c end
+function M.card(key) return BY_KEY[key] end
+function M.buttons(key) local c = BY_KEY[key] return c and c.buttons() or {} end
 
 --- The cards' readings: a line and two corner words.
 function M.summary(key)
@@ -249,89 +207,80 @@ function M.summary(key)
   if key == "center" then return { w.class ~= "" and w.class or "Window", w.title or "", "" } end
   if key == "top" then
     local state = w.fullscreen == 2 and "Fullscreen" or w.fullscreen == 1 and "Maximized" or w.floating and "Floating" or "Tiled"
-    return { ("%s · %d × %d"):format(state, w.width, w.height), w.floating and "FLOAT ON" or "FLOAT OFF",
-      w.pinned and "PIN ON" or "PIN OFF" }
+    return { ("%s · %d × %d"):format(state, w.width, w.height), "", "" }
   elseif key == "left" then
     local n, model = 0, hyprland.state.clients
     for i = 1, model:len() do if model:get(i).workspace == w.workspace then n = n + 1 end end
-    return { "Workspace " .. (w.workspace_name ~= "" and w.workspace_name or tostring(w.workspace)),
-      ("%d WINDOW%s"):format(n, n == 1 and "" or "S"), "MOVE · SEND" }
+    return { ("On %s · %d window%s"):format(w.workspace_name ~= "" and w.workspace_name or tostring(w.workspace),
+      n, n == 1 and "" or "s"), "", "" }
   elseif key == "right" then
-    local m = hyprland.monitor(w.monitor) or {}
-    return { m.name or "Screen", m.width and ("%dx%d"):format(m.width, m.height) or "", m.scale and ("×%.2g"):format(m.scale) or "" }
+    local m = monitor_of(w) or {}
+    return { m.name and ("%s · %dx%d"):format(m.name, m.width, m.height) or "Screen", "", "" }
   elseif key == "bottom" then
-    return { w.title ~= "" and w.title or w.class, ("PID %d"):format(w.pid or 0), w.xwayland and "XWAYLAND" or "WAYLAND" }
+    return { ("%s · PID %d"):format(w.class ~= "" and w.class or "window", w.pid or 0), "", "" }
   end
   return { "", "", "" }
 end
 
--- ---------------------------------------------------------- navigation --
+-- -------------------------------------------------------------- presses --
 
-local OPPOSITE = { top = "bottom", bottom = "top", left = "right", right = "left" }
-local DIRECTION = { Up = "top", Down = "bottom", Left = "left", Right = "right" }
-
-function M.select(key) if not M.branch:get() then M.slot:set(key) end end
-function M.open_slot(key)
-  key = key or M.slot:get()
-  if key == "center" or not BY_KEY[key] then return false end
-  M.slot:set(key) M.sub:set(1) M.column:set("subs") M.action:set(1) M.message:set("")
-  M.branch:set(true)
-  return true
+local function find(id)
+  local card, key = tostring(id or ""):match("^([^:]+):(.+)$")
+  if not card then return nil end
+  for _, b in ipairs(M.buttons(card)) do if b.key == key then return b end end
 end
-function M.back()
-  if M.branch:get() then
-    if M.column:get() == "actions" then M.column:set("subs") return end
-    M.branch:set(false)
-    return
-  end
-  M.close()
-end
-function M.choose_sub(i) if M.subs()[i] then M.sub:set(i) M.action:set(1) M.message:set("") end end
 
---- Runs action `i` of the page on show.
-function M.run(i)
-  local a = M.actions()[i or M.action:get()]
-  if not a or a.info or not a.steps then return false end
-  M.action:set(i or M.action:get())
-  local ok = run(a.steps)
-  if ok and not a.stay then M.close() end
+--- Presses button `id` ("<card>:<button>").
+function M.press(id)
+  local b = find(id)
+  if not b then return false end
+  M.focus:set(id)
+  local ok = true
+  if b.press then b.press() elseif b.steps then ok = run(b.steps) end
+  if ok and not b.stay then M.close() end
   return ok
 end
 
-function M.key(_, _, _, _, name)
-  if name == "Return" or name == "KP_Enter" or name == "space" then M.accept() return true end
-  if name == "Escape" then M.back() return true end
-  local branch = M.branch:get()
-  if not branch then
-    local dir = DIRECTION[name]
-    if dir then
-      local slot = M.slot:get()
-      if slot == dir then M.open_slot(dir)
-      elseif slot == OPPOSITE[dir] then M.slot:set("center")
-      else M.slot:set(dir) end
-    elseif name and name:match("^[1-4]$") then
-      M.open_slot(M.SLOTS[tonumber(name) + 1].key)
+-- The buttons' boxes, as the view lays them out: `{ id, x, y, width, height }`.
+local boxes = function() return {} end
+function M.attach(fn) boxes = fn end
+
+--- The nearest button from the focused one (the middle card's centre when
+--- none) in direction `dx, dy`.
+local function step(dx, dy)
+  local list = boxes()
+  local from
+  for _, b in ipairs(list) do if b.id == M.focus:get() then from = b end end
+  local fx, fy
+  if from then fx, fy = from.x + from.width / 2, from.y + from.height / 2
+  else local c = list.center or { x = 0, y = 0, width = 0, height = 0 } fx, fy = c.x + c.width / 2, c.y + c.height / 2 end
+  local best, score
+  for _, b in ipairs(list) do
+    local bx, by = b.x + b.width / 2 - fx, b.y + b.height / 2 - fy
+    local along, across = bx * dx + by * dy, math.abs(bx * dy - by * dx)
+    if b.id ~= M.focus:get() and along > 4 then
+      local s = along + across * 2.5
+      if not score or s < score then best, score = b, s end
     end
-    return true
   end
-  local list = M.column:get() == "subs" and M.subs() or M.actions()
-  local signal = M.column:get() == "subs" and M.sub or M.action
-  local n = #list
-  if name == "Up" and n > 0 then signal:set((signal:get() - 2) % n + 1)
-  elseif name == "Down" and n > 0 then signal:set(signal:get() % n + 1)
-  elseif name == "Right" or name == "Tab" then
-    if M.column:get() == "subs" and #M.actions() > 0 then M.column:set("actions") M.action:set(1) end
-  elseif name == "Left" or name == "ISO_Left_Tab" then M.back() end
-  if M.column:get() == "subs" and (name == "Up" or name == "Down") then M.action:set(1) M.message:set("") end
-  return true
+  if best then M.focus:set(best.id) end
 end
-function M.accept()
-  if not M.branch:get() then return M.open_slot() end
-  if M.column:get() == "subs" then
-    if #M.actions() > 0 then M.column:set("actions") M.action:set(1) end
+
+local DIRECTIONS = { Up = { 0, -1 }, Down = { 0, 1 }, Left = { -1, 0 }, Right = { 1, 0 } }
+function M.key(_, _, _, _, name)
+  if name == "Escape" then M.close() return true end
+  if name == "Return" or name == "KP_Enter" or name == "space" then
+    if M.focus:get() ~= "" then M.press(M.focus:get()) end
     return true
   end
-  return M.run()
+  local d = DIRECTIONS[name]
+  if d then step(d[1], d[2]) return true end
+  if name and name:match("^%d$") then
+    local id = tonumber(name) == 0 and 10 or tonumber(name)
+    M.press("left:ws" .. id)
+    return true
+  end
+  return true
 end
 
 -- ---------------------------------------------------------------- open --
@@ -342,27 +291,35 @@ function M.here()
   local active = hyprland.state.active_window
   local w = client(active and active.address or "")
   local screen = morf.screens and morf.screens[1] and morf.screens[1].name or ""
-  if w then
-    local model = hyprland.state.monitors
-    for i = 1, model:len() do
-      local m = model:get(i)
-      if m.id == w.monitor then return m.name == screen end
-    end
-  end
+  local m = w and monitor_of(w)
+  if m then return m.name == screen end
   return services.here()
 end
 
---- Opens over the focused window; false when there is none.
+--- Opens over the focused window: true when it did, false when there is
+--- none, nothing while it asks the compositor which window that is.
 function M.open()
+  local function show(address)
+    if not client(address) then return false end
+    M.address:set(address)
+    M.focus:set("")
+    M.opened:set(true)
+    return true
+  end
   local active = hyprland.state.active_window
-  local address = active and active.address or ""
-  if not client(address) then return false end
-  M.address:set(address)
-  M.slot:set("center") M.branch:set(false) M.sub:set(1) M.column:set("subs") M.action:set(1) M.message:set("")
-  M.opened:set(true)
-  return true
+  if show(active and active.address or "") then return true end
+  -- Hyprland reports no window while a layer (this menu) has the keyboard,
+  -- and does not always report the window again once the layer lets go:
+  -- ask it which window has the focus now.
+  local asked = hyprland.json("j/activewindow", function(reply)
+    local address = type(reply) == "table" and tostring(reply.address or "") or ""
+    if address ~= "" and address:sub(1, 2) ~= "0x" then address = "0x" .. address end
+    show(address)
+  end)
+  if asked then return nil end
+  return false
 end
-function M.close() M.opened:set(false) M.branch:set(false) end
+function M.close() M.opened:set(false) end
 function M.toggle() if M.opened:get() then M.close() return false end return M.open() end
 
 -- The window gone (closed, killed), the menu goes with it.
@@ -380,7 +337,7 @@ function M.rect()
   local w = M.window()
   if not w then return nil end
   local s = morf.screens and morf.screens[1] or {}
-  local m = hyprland.monitor(w.monitor) or {}
+  local m = monitor_of(w) or {}
   local ratio = (s.width and s.logical_width and s.logical_width > 0) and s.width / s.logical_width or 1
   return { x = (w.x - (m.x or 0)) * ratio, y = (w.y - (m.y or 0)) * ratio,
     width = w.width * ratio, height = w.height * ratio }
@@ -388,7 +345,7 @@ end
 
 local view = require("themes").view("window_menu").build(M)
 M.node = view.node
--- A press anywhere off the cards shuts it; Escape goes back a step first.
+-- A press anywhere off the cards shuts it.
 require("lib.kit.popup").track(view.box, { open = function() return M.opened:get() end,
   close_policy = "outside", modal = true, on_close = function() M.close() end })
 morf.effect("eva.window_menu.shown", function() view.shown(M.opened:get()) end)

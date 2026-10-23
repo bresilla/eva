@@ -1,246 +1,198 @@
 -- The window menu (shell/window_menu.lua): five cards in a cross over the
--- focused window, its frame marked on the desk. They fan out from the
--- middle as it opens; a side card chosen glides to the top left as its
--- branch, its pages fall in under it one after another and the chosen
--- page's actions stand beside them. Only kit calls and theme tokens draw.
+-- focused window, its frame marked on the desk, every side card holding
+-- its own grid of buttons. The cards fan out from the middle as it opens,
+-- their buttons settle in after them, and the whole cross glides along as
+-- the window moves or changes size. Only kit calls and theme tokens draw.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
 local L = require("themes.layouts.parts")
-local P = require("themes.layouts.page")
 local C = theme.color
 local V = {}
 
-local CW, SH, CH = 272, 112, 88
-local GX, GY = 64, 56
+local CW, MID_H = 320, 96
+local GX, GY = 40, 34
 local W = 3 * CW + 2 * GX
-local H = 3 * SH + 2 * GY
-local BW, DW, BG = 256, 400, 36
-local BX, BY = math.floor((W - BW - BG - DW) / 2), 42
-local SUB_H, SUB_GAP, ROW_H, ROW_GAP = 40, 10, 38, 6
-local MAX_SUBS, MAX_ROWS = 3, 10
-local DH_TOP = 96
-local MAXH = math.max(H, BY + DH_TOP + MAX_ROWS * (ROW_H + ROW_GAP) + 16)
+local HEAD, BH, BG, PAD = 72, 30, 6, 14
+local COLUMNS = { top = 3, left = 5, right = 2, bottom = 2 }
+local MAX_BUTTONS = 12
 local MARGIN = 16
-local GLIDE = { duration = 480, easing = "out_cubic" }
-local FADE = { duration = 240, easing = "out_cubic" }
-
-local REST = {
-  center = { CW + GX, SH + GY + (SH - CH) / 2 },
-  top = { CW + GX, 0 }, bottom = { CW + GX, 2 * (SH + GY) },
-  left = { 0, SH + GY }, right = { 2 * (CW + GX), SH + GY },
-}
-local NUDGE = { center = { 0, 0 }, top = { 0, -8 }, bottom = { 0, 8 }, left = { -8, 0 }, right = { 8, 0 } }
-local ARROW = {
-  top = { W / 2 - 18, SH + GY / 2 - 18, "arrow_upward", "arrow_downward" },
-  bottom = { W / 2 - 18, 2 * SH + GY * 1.5 - 18, "arrow_downward", "arrow_upward" },
-  left = { CW + GX / 2 - 18, H / 2 - 18, "arrow_back", "arrow_forward" },
-  right = { W - CW - GX / 2 - 18, H / 2 - 18, "arrow_forward", "arrow_back" },
+local GLIDE = { duration = 420, easing = "out_cubic" }
+local FADE = { duration = 220, easing = "out_cubic" }
+local X = { left = 0, top = CW + GX, center = CW + GX, bottom = CW + GX, right = 2 * (CW + GX) }
+local ARROWS = {
+  top = { "arrow_upward" }, bottom = { "arrow_downward" }, left = { "arrow_back" }, right = { "arrow_forward" },
 }
 
-local function upper(text) return function() return tostring(text() or ""):upper() end end
-
---- A row of the branch: a caps label, a reading at its right, the theme's
---- state ground while `on`, and the corner marks while the keys are on it.
-local function row(spec)
-  local ink = require("themes.layouts.rows").ink(spec.on, true, C.onSurface)
-  local area
-  area = kit.action { id = spec.id, accessible_name = spec.name, width = spec.width, height = spec.height,
-    cursor = "pointer", enabled = spec.enabled, visible = spec.visible,
-    on_clicked = spec.on_clicked, on_entered = spec.on_entered,
-    L.label { x = 14, anchors = { vertical_center = true }, width = spec.width - 28 - (spec.meta_w or 110),
-      elide = "right", font_size = L.SIZE.body, text = upper(spec.label), color = ink },
-    L.label { anchors = { right = true, right_margin = 14, vertical_center = true }, width = spec.meta_w or 110,
-      horizontal_alignment = "right", elide = "left", font_size = L.SIZE.label, text = spec.meta or "",
-      color = function() return ink():alpha(0.75) end },
-    ui.Item { anchors = { fill = true }, visible = spec.focused,
-      L.decor_box("corners", { length = 6, weight = 2, inset = -2, color = kit.stroke("hot") }) },
-  }
-  ui.reparent(kit.state_surface { id = spec.id .. "-shape", area = area, on = spec.on, height = spec.height,
-    tone = "primary", z = -1 }, area)
-  return area
+--- `buttons` placed on a grid of `columns`: each one's column, row and span.
+local function grid(buttons, columns)
+  local out, col, row = {}, 0, 0
+  for i, b in ipairs(buttons) do
+    local span = math.min(b.span or 1, columns)
+    if col + span > columns then col, row = 0, row + 1 end
+    out[i] = { col = col, row = row, span = span }
+    col = col + span
+  end
+  return out, (#buttons > 0) and row + 1 or 0
 end
 
 function V.build(model)
-  local opened, branch = model.opened, model.branch
-  local function selected(key) return model.slot:get() == key end
-  local function in_branch(key) return branch:get() and selected(key) and key ~= "center" end
-  local function shown(key)
-    if not opened:get() then return false end
-    if branch:get() then return in_branch(key) end
-    return true
+  local opened = model.opened
+  local layout = {}
+  for _, card in ipairs(model.CARDS) do
+    local key = card.key
+    layout[key] = function()
+      local buttons = model.buttons(key)
+      local cells, rows = grid(buttons, COLUMNS[key] or 1)
+      return { buttons = buttons, cells = cells, rows = rows }
+    end
   end
+  local function height(key)
+    if key == "center" then return MID_H end
+    local rows = layout[key]().rows
+    return HEAD + rows * BH + math.max(0, rows - 1) * BG + PAD
+  end
+  local function card_y(key)
+    local mid = height("top") + GY
+    if key == "top" then return 0 end
+    if key == "center" then return mid end
+    if key == "bottom" then return mid + MID_H + GY end
+    return mid + MID_H / 2 - height(key) / 2
+  end
+  local function total_h() return height("top") + GY + MID_H + GY + height("bottom") end
 
   -- -------------------------------------------------------------- cards --
-  local cards = {}
-  for _, slot in ipairs(model.SLOTS) do
-    local key, center = slot.key, slot.key == "center"
-    local h = center and CH or SH
+  local cards, boxes = {}, {}
+  for _, card in ipairs(model.CARDS) do
+    local key, mid = card.key, card.key == "center"
     local function summary(i) return function() return model.summary(key)[i] or "" end end
-    local function width() return in_branch(key) and BW or CW end
     local children = {
       kit.card { anchors = { fill = true } },
-      L.label { x = 14, y = 12, width = 22, text = slot.number, font_size = L.SIZE.label, color = kit.ink("lo") },
-      kit.text { x = 42, y = 8, width = function() return width() - 56 end, elide = "right", text = slot.title:upper(),
+      L.label { x = 14, y = 12, width = 22, text = card.number, font_size = L.SIZE.label, color = kit.ink("lo") },
+      kit.text { x = 42, y = 8, width = CW - 56, elide = "right", text = card.title:upper(),
         font_size = theme.size.normal, font_weight = 600, color = kit.ink("hi") },
-      L.rule { x = 12, y = 34, width = function() return width() - 24 end },
+      L.rule { x = 12, y = 34, width = CW - 24 },
     }
-    if center then
+    if mid then
       -- Its header is lit, as the reference's: the window's own card.
-      table.insert(children, 2, kit.surface { x = 6, y = 6, height = 26, width = function() return width() - 12 end,
-        color = kit.signal("accent") })
+      table.insert(children, 2, kit.surface { x = 6, y = 6, height = 26, width = CW - 12, color = kit.signal("accent") })
       children[3].color = function() return C.onPrimary end
       children[4].color = function() return C.onPrimary end
       children[#children + 1] = kit.text { x = 14, y = 44, width = CW - 28, elide = "right", text = summary(1),
         font_size = theme.size.normal, color = kit.ink("hi"), horizontal_alignment = "center" }
-      children[#children + 1] = L.label { x = 14, y = 66, width = CW - 28, elide = "right", text = upper(summary(2)),
+      children[#children + 1] = L.label { x = 14, y = 68, width = CW - 28, elide = "right", text = summary(2),
         horizontal_alignment = "center", color = kit.ink("lo") }
     else
-      children[#children + 1] = kit.text { x = 16, y = 46, width = function() return width() - 32 end, elide = "right",
-        text = summary(1), font_size = theme.size.normal, color = kit.ink("hi") }
-      children[#children + 1] = L.label { x = 16, y = SH - 28, width = function() return width() / 2 - 20 end,
-        elide = "right", text = summary(2), color = kit.ink("lo") }
-      children[#children + 1] = L.label { anchors = { right = true, right_margin = 16 }, y = SH - 28,
-        width = function() return width() / 2 - 20 end, elide = "left", horizontal_alignment = "right",
-        text = summary(3), color = kit.ink("lo") }
+      children[#children + 1] = L.label { x = 16, y = 44, width = CW - 32, elide = "right", font_size = L.SIZE.body,
+        text = summary(1), color = kit.ink("lo") }
+      local cols = COLUMNS[key]
+      local bw = (CW - 2 * PAD - (cols - 1) * BG) / cols
+      for i = 1, MAX_BUTTONS do
+        local function button() return layout[key]().buttons[i] end
+        local function cell() return layout[key]().cells[i] or { col = 0, row = 0, span = 1 } end
+        local function id() local b = button() return b and (key .. ":" .. b.key) or "" end
+        local function lit() local b = button() return b ~= nil and (b.on == true or b.primary == true) end
+        local ink = require("themes.layouts.rows").ink(lit, true, C.onSurface)
+        local area
+        area = kit.action { id = "window-menu-" .. key .. "-" .. i,
+          accessible_name = function() local b = button() return b and b.label or "" end,
+          x = function() return PAD + cell().col * (bw + BG) end,
+          y = function() return HEAD + cell().row * (BH + BG) end,
+          width = function() local s = cell().span return s * bw + (s - 1) * BG end, height = BH,
+          visible = function() return button() ~= nil end,
+          enabled = function() return opened:get() and button() ~= nil end,
+          cursor = "pointer",
+          on_entered = function() if button() then model.focus:set(id()) end end,
+          on_clicked = function() model.press(id()) end,
+          L.label { anchors = { center_in = true }, width = function() local s = cell().span return s * bw + (s - 1) * BG - 8 end,
+            horizontal_alignment = "center", elide = "right", font_size = L.SIZE.body, color = ink,
+            text = function() local b = button() return b and b.label:upper() or "" end },
+          ui.Item { anchors = { fill = true }, visible = function() return model.focus:get() == id() and id() ~= "" end,
+            L.decor_box("corners", { length = 6, weight = 2, inset = -2, color = kit.stroke("hot") }) },
+        }
+        ui.reparent(kit.state_surface { id = "window-menu-" .. key .. "-" .. i .. "-shape", area = area, on = lit,
+          height = BH, tone = "primary", z = -1 }, area)
+        children[#children + 1] = area
+        boxes[#boxes + 1] = { key = key, id = id, area = area }
+      end
     end
+    -- Lit while the keys are on one of its buttons.
     children[#children + 1] = ui.Item { anchors = { fill = true },
-      visible = function() return selected(key) and not branch:get() end,
+      visible = function() return (model.focus:get():match("^([^:]+):") or "") == key end,
       L.decor_box("corners", { length = 10, weight = 2, inset = -4, color = kit.stroke("hot") }) }
-    local area = kit.action { id = "window-menu-card-" .. key, accessible_name = slot.title,
-      width = width, height = h, cursor = center and "default" or "pointer",
-      enabled = function() return shown(key) end,
-      x = function()
-        if in_branch(key) then return BX end
-        if not opened:get() then return REST.center[1] end
-        return REST[key][1] + (selected(key) and not branch:get() and NUDGE[key][1] or 0)
-      end,
-      y = function()
-        if in_branch(key) then return BY end
-        if not opened:get() then return REST.center[2] - (h - CH) / 2 end
-        return REST[key][2] + (selected(key) and not branch:get() and NUDGE[key][2] or 0)
-      end,
-      opacity = function() return shown(key) and 1 or 0 end,
-      z = function() return in_branch(key) and 4 or 2 end,
-      behavior = { x = GLIDE, y = GLIDE, width = GLIDE, opacity = FADE },
-      on_entered = function() model.select(key) end,
-      on_clicked = function() if branch:get() then model.back() else model.open_slot(key) end end,
-      table.unpack(children),
-    }
-    ui.reparent(kit.state_surface { id = "window-menu-card-" .. key .. "-shape", area = area,
-      on = function() return selected(key) end, height = h, tone = "primary", z = -1 }, area)
-    cards[#cards + 1] = area
+    children.id = "window-menu-card-" .. key
+    children.width, children.height = CW, function() return height(key) end
+    children.x = function() return opened:get() and X[key] or X.center end
+    children.y = function()
+      if opened:get() then return card_y(key) end
+      return card_y("center") + MID_H / 2 - height(key) / 2
+    end
+    children.opacity = function() return opened:get() and 1 or 0 end
+    children.behavior = { x = GLIDE, y = GLIDE, height = GLIDE, opacity = FADE }
+    children[#children + 1] = ui.MouseArea { anchors = { fill = true }, z = -2 }
+    cards[key] = ui.Item(children)
   end
+
+  -- What the keys move between: every button on show, and the middle card.
+  model.attach(function()
+    local out = {}
+    for _, b in ipairs(boxes) do
+      local id = b.id()
+      if id ~= "" then
+        local a = b.area
+        out[#out + 1] = { id = id, x = X[b.key] + (a.x or 0), y = card_y(b.key) + (a.y or 0),
+          width = a.width or 0, height = BH }
+      end
+    end
+    out.center = { x = X.center, y = card_y("center"), width = CW, height = MID_H }
+    return out
+  end)
 
   -- ------------------------------------------------------------- arrows --
   local arrows = {}
-  for _, key in ipairs { "top", "left", "right", "bottom" } do
-    local a = ARROW[key]
-    arrows[#arrows + 1] = ui.Item { id = "window-menu-arrow-" .. key, x = a[1], y = a[2], width = 36, height = 36,
-      opacity = function()
-        if not opened:get() or branch:get() then return 0 end
-        return selected(key) and 1 or 0.6
-      end,
-      behavior = { opacity = FADE },
-      L.decor_box("corners", { width = 36, height = 36, length = 6, color = kit.stroke("mark") }),
-      kit.icon(function() return selected(key) and a[4] or a[3] end, 20,
-        function() return selected(key) and kit.signal("accent")() or kit.ink("hi")() end,
-        { anchors = { center_in = true } }),
-    }
+  for key, a in pairs(ARROWS) do
+    local function place()
+      local mid = card_y("center")
+      if key == "top" then return W / 2 - 14, mid - GY / 2 - 14 end
+      if key == "bottom" then return W / 2 - 14, mid + MID_H + GY / 2 - 14 end
+      if key == "left" then return CW + GX / 2 - 14, mid + MID_H / 2 - 14 end
+      return W - CW - GX / 2 - 14, mid + MID_H / 2 - 14
+    end
+    arrows[#arrows + 1] = ui.Item { id = "window-menu-arrow-" .. key, width = 28, height = 28,
+      x = function() return (place()) end, y = function() return select(2, place()) end,
+      opacity = function() return opened:get() and 0.55 or 0 end, behavior = { opacity = FADE, y = GLIDE },
+      L.decor_box("corners", { width = 28, height = 28, length = 5, color = kit.stroke("mark") }),
+      kit.icon(a[1], 16, kit.ink("hi"), { anchors = { center_in = true } }) }
   end
-
-  -- ------------------------------------------------------------- branch --
-  local function branch_shown() return opened:get() and branch:get() end
-  local back = ui.Item { x = BX, y = 0, width = BW, height = 30,
-    opacity = function() return branch_shown() and 1 or 0 end, behavior = { opacity = FADE },
-    P.button { id = "window-menu-back", label = "Menu", icon = "arrow_back", width = BW, height = 30,
-      on_clicked = model.back, enabled = branch_shown } }
-  local stem = L.rule { x = BX + BW / 2, y = BY + SH, width = 1, height = 24, strength = "mark",
-    opacity = function() return branch_shown() and 1 or 0 end, behavior = { opacity = FADE } }
-
-  local subs = {}
-  for i = 1, MAX_SUBS do
-    local function sub() return model.subs()[i] end
-    subs[i] = row { id = "window-menu-sub-" .. i, width = BW, height = SUB_H,
-      name = function() return sub() and sub().label or "" end,
-      label = function() return sub() and sub().label or "" end,
-      meta = "", meta_w = 20,
-      visible = function() return sub() ~= nil end, enabled = branch_shown,
-      on = function() return model.sub:get() == i end,
-      focused = function() return model.column:get() == "subs" and model.sub:get() == i end,
-      on_clicked = function() model.column:set("subs") model.choose_sub(i) end,
-      on_entered = function() model.choose_sub(i) end }
-    subs[i].x, subs[i].y = BX, BY + SH + 24 + (i - 1) * (SUB_H + SUB_GAP)
-  end
-
-  local rows = {}
-  for i = 1, MAX_ROWS do
-    local function action() return model.actions()[i] end
-    rows[i] = row { id = "window-menu-action-" .. i, width = DW - 32, height = ROW_H,
-      name = function() return action() and action().label or "" end,
-      label = function() return action() and action().label or "" end,
-      meta = function() return action() and action().meta or "" end,
-      meta_w = 150,
-      visible = function() return action() ~= nil end,
-      enabled = function() return branch_shown() and action() ~= nil and not action().info end,
-      on = function() local a = action() return a ~= nil and (a.selected == true or a.primary == true) end,
-      focused = function() return model.column:get() == "actions" and model.action:get() == i end,
-      on_clicked = function() model.column:set("actions") model.run(i) end,
-      on_entered = function() if model.column:get() == "actions" then model.action:set(i) end end }
-  end
-  local function slot() return model.slot_spec() or {} end
-  local function detail_h() return DH_TOP + #model.actions() * (ROW_H + ROW_GAP) + 10 end
-  local details = ui.Item { id = "window-menu-details", x = BX + BW + BG, y = BY, width = DW, height = detail_h,
-    opacity = function() return branch_shown() and 1 or 0 end, behavior = { opacity = FADE, height = GLIDE },
-    kit.card { anchors = { fill = true } },
-    L.label { x = 14, y = 12, width = 22, text = function() return slot().number or "" end, color = kit.ink("lo") },
-    kit.text { x = 42, y = 8, width = DW - 100, elide = "right", text = function() return (slot().title or ""):upper() end,
-      font_size = theme.size.normal, font_weight = 600, color = kit.ink("hi") },
-    L.icon_button { id = "window-menu-close", x = DW - 40, y = 4, width = 32, height = 30, icon = "close", size = 18,
-      name = "Back", on_clicked = model.back },
-    L.rule { x = 12, y = 36, width = DW - 24 },
-    L.label { x = 16, y = 46, width = DW - 32, elide = "right", font_size = L.SIZE.body,
-      text = function() local s = model.subs()[model.sub:get()] return s and s.label:upper() or "" end,
-      color = kit.ink("lo") },
-    L.rule { x = 16, y = 66, width = 34, strength = "mark" },
-    kit.text { x = 16, y = 72, width = DW - 32, elide = "right", font_size = L.SIZE.body, color = kit.ink("hi"),
-      text = function()
-        local m = model.message:get()
-        if m ~= "" then return m end
-        return model.summary(model.slot:get())[1] or ""
-      end },
-    ui.Column { x = 16, y = DH_TOP, gap = ROW_GAP, table.unpack(rows) },
-  }
 
   -- ------------------------------------------------------------ the box --
   local keys = ui.Item { id = "window-menu-keys", width = 1, height = 1, tab_navigation = false,
     on_key_pressed = model.key }
   local function rect() return model.rect() or { x = 0, y = 0, width = 0, height = 0 } end
-  local box_children = { back, stem }
+  local box_children = { id = "window-menu", width = W, height = total_h,
+    accessible_role = "dialog", accessible_name = "Window menu",
+    behavior = { x = GLIDE, y = GLIDE } }
   for _, n in ipairs(arrows) do box_children[#box_children + 1] = n end
-  for _, n in ipairs(cards) do box_children[#box_children + 1] = n end
-  for _, n in ipairs(subs) do box_children[#box_children + 1] = n end
-  box_children[#box_children + 1] = details
+  for _, key in ipairs { "top", "left", "right", "bottom", "center" } do box_children[#box_children + 1] = cards[key] end
   box_children[#box_children + 1] = keys
-  box_children.id = "window-menu"
-  box_children.width, box_children.height = W, function() return math.max(H, branch:get() and detail_h() + BY or H) end
   box_children.x = function()
     local r, sw = rect(), model.screen()
     return math.floor(math.max(MARGIN, math.min(sw - W - MARGIN, r.x + r.width / 2 - W / 2)))
   end
   box_children.y = function()
     local r, _, sh = rect(), model.screen()
-    return math.floor(math.max(MARGIN, math.min(sh - MAXH - MARGIN, r.y + r.height / 2 - H / 2)))
+    local h = total_h()
+    return math.floor(math.max(MARGIN, math.min(sh - h - MARGIN, r.y + r.height / 2 - h / 2)))
   end
-  box_children.accessible_role, box_children.accessible_name = "dialog", "Window menu"
   local box = ui.Item(box_children)
 
   -- The window itself, framed on the desk under the menu.
   local frame = ui.Item { id = "window-menu-frame",
     x = function() return rect().x end, y = function() return rect().y end,
     width = function() return rect().width end, height = function() return rect().height end,
-    opacity = function() return opened:get() and 1 or 0 end, behavior = { opacity = FADE },
+    opacity = function() return opened:get() and 1 or 0 end,
+    behavior = { opacity = FADE, x = GLIDE, y = GLIDE, width = GLIDE, height = GLIDE },
     kit.surface { anchors = { fill = true }, color = "transparent", border_width = 2, radius = theme.ROUNDING,
       border_color = kit.stroke("hot") },
     L.decor_box("corners", { length = 18, weight = 2, inset = -6, color = kit.stroke("hot") }),
@@ -256,28 +208,29 @@ function V.build(model)
     local open = opened:get()
     if fade then fade:cancel() fade = nil end
     if open then lingering:set(true) return end
-    fade = morf.timer(FADE.duration + 80, function() fade = nil lingering:set(false) end, false)
+    fade = morf.timer(GLIDE.duration + 60, function() fade = nil lingering:set(false) end, false)
   end)
   local root = ui.Item { id = "window-menu-root", anchors = { fill = true },
     visible = function() return opened:get() or lingering:get() end,
     dim, frame, box }
 
-  -- The pages of a branch fall in one after another, and its actions settle.
+  -- Opening, each card's buttons settle in after the card, one after another.
   local running = {}
-  morf.effect("material.window_menu.branch", function()
-    local open, key = branch_shown(), model.slot:get()
+  morf.effect("material.window_menu.open", function()
+    local open = opened:get()
     for _, h in ipairs(running) do h:stop() end
     running = {}
-    if not open or key == "center" then return end
-    for i, node in ipairs(subs) do
+    if not open then return end
+    local order = { top = 0, left = 1, right = 2, bottom = 3 }
+    local seen = {}
+    for _, b in ipairs(boxes) do
+      seen[b.key] = (seen[b.key] or 0) + 1
+      local delay = 140 + order[b.key] * 40 + (seen[b.key] - 1) * 18
       running[#running + 1] = morf.animation.play { { parallel = {
-        { node = node, property = "translate_x", from = -12, to = 0, duration = 380, easing = "out_cubic", delay = 280 + (i - 1) * 80 },
-        { node = node, property = "translate_y", from = -8, to = 0, duration = 380, easing = "out_cubic", delay = 280 + (i - 1) * 80 },
-        { node = node, property = "opacity", from = 0, to = 1, duration = 380, easing = "out_cubic", delay = 280 + (i - 1) * 80 },
+        { node = b.area, property = "opacity", from = 0, to = 1, duration = 260, easing = "out_cubic", delay = delay },
+        { node = b.area, property = "translate_y", from = 6, to = 0, duration = 320, easing = "out_cubic", delay = delay },
       } } }
     end
-    running[#running + 1] = morf.animation.play { { node = details, property = "translate_y", from = -8, to = 0,
-      duration = 380, easing = "out_cubic", delay = 280 } }
   end)
 
   return { node = root, box = box, shown = function(open) keys.focus = open end }
