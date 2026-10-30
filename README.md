@@ -293,8 +293,10 @@ lua tools/test-auth.lua                     # the greeter's login conversation
 ```
 
 `tools/films/` records frame-by-frame films of the drawers and the motion,
-and `tools/keyring_test_ui.py` runs the keyring dialog against a real GCR
-prompt; neither runs in CI.
+`tools/keyring_test_ui.py` runs the keyring dialog against a real GCR
+prompt, and `tools/sandbox/` holds the scenarios for morf's nested sandbox,
+caelestia as a reference beside eva, and a phone-sized bench
+([how to run them](tools/sandbox/README.md)); none of them runs in CI.
 
 The specs stub external commands and never change the user's tasks or
 record the desktop. eva's own library, `lib/` (Lule, Taskwarrior, the
