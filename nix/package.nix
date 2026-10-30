@@ -49,6 +49,9 @@ runCommand "eva-${version}"
       fi
       rm -rf "$out/$part/fonts"
       ln -s ../fonts "$out/$part/fonts"
+      cat > "$out/$part/appearance-default.json" <<'EOF'
+    { "theme": "tsugumori", "font": "" }
+    EOF
     done
     ${lib.concatMapStringsSep "\n" (font: ''
       found=$(find ${font.package}/share/fonts -name ${lib.escapeShellArg font.name} | sort | head -n 1)
