@@ -2,14 +2,8 @@
   description = "eva: a desktop shell, lock screen and greeter for morf";
 
   nixConfig = {
-    extra-substituters = [
-      "https://cache.bresilla.com/bresilla"
-      "https://paneworks.cachix.org"
-    ];
-    extra-trusted-public-keys = [
-      "bresilla:zsecaZYIrjCJQS4AuGPmEVU5PRkiMmB/Mds3KaCzTvE="
-      "paneworks.cachix.org-1:5XAOHaQHgDEM4dL1Cpu56zcKZxUWYP7zmv8GD3Siy0Q="
-    ];
+    extra-substituters = [ "https://cache.bresilla.com/bresilla" ];
+    extra-trusted-public-keys = [ "bresilla:zsecaZYIrjCJQS4AuGPmEVU5PRkiMmB/Mds3KaCzTvE=" ];
   };
 
   inputs = {
