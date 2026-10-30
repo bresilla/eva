@@ -8,16 +8,26 @@ its source, with two visual themes: Material and Tsugumori.
 
 ## Install on NixOS
 
-The NixOS module that installs eva lives in
-[bresilla/nixos](https://github.com/bresilla/nixos), under
-`shared/programs/eva/`. A host turns it on with:
-
 ```nix
-programs.eva = {
-  enable = true;
-  user = "you";
-  lulePackage = lule; # the colour tool behind the wallpaper
-};
+{
+  inputs.eva.url = "github:bresilla/eva";
+
+  outputs = { nixpkgs, eva, ... }: {
+    nixosConfigurations.host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        eva.nixosModules.default
+        {
+          programs.eva = {
+            enable = true;
+            user = "you";
+            lulePackage = lule; # the colour tool behind the wallpaper
+          };
+        }
+      ];
+    };
+  };
+}
 ```
 
 The module runs the shell as the `morf` user service, the greeter under
@@ -25,7 +35,7 @@ greetd and the lock screen from Hyprland's idle daemon. It also handles the UI
 scale shared with the greeter, the wallpaper bridge, PAM, and, optionally,
 phone gestures and pattern unlock. Its options live under `programs.eva`:
 `uiScale`, `idle.*`, `phone.*`, `pattern.enable`, `hyprland.extraConfig`,
-`greeter.*` and `wallpaperLogo`.
+`greeter.*`, `wallpaperLogo`, `usePackagedShell` and `keyringPackage`.
 
 On a phone, `phone.enable` adds continuous touch gestures, a hidden pointer and
 deliberate double-tap or power-button wake. `phone.idleTimeout = 0` disables
@@ -41,11 +51,26 @@ faster releases coast farther, touching stops the coast, and slow frames do not
 change the travel distance. `phone.gestureDriver = "lisgd"` selects the
 completed-swipe fallback; the default is `"native"`.
 
-Home Manager links this directory as `~/.config/eva`, and the shell, lock and
-greeter run `~/.config/eva/<role>/init.lua` from it, so edits here need no
-rebuild. eva is only these configs: nothing copies it into the Nix store. The
-morf engine and its Lua library come prebuilt from cache.bresilla.com, pinned
-at the same release.
+eva pins the morf release it is written against in `flake.nix`, and the engine
+comes prebuilt from the binary cache. The engine and its Lua library always
+come from that same release. The packaged shell is installed as
+`/etc/xdg/morf/eva`. A checkout linked as `~/.config/eva` runs in its place,
+so edits need no rebuild; each start runs `morf check` on it first and falls
+back to the packaged one when it fails. `programs.eva.usePackagedShell` always
+runs the packaged one.
+
+## Helpers
+
+The native pieces the shell talks to live in `helpers/`, and the flake builds
+them:
+
+- `helpers/keyring`: the GNOME Keyring prompt bridge, `.#morf-keyring`
+  ([build and tests](helpers/keyring/README.md)).
+- `helpers/pam`: `morf-auth-step`, the PAM markers that tell the shell which
+  step sudo is on (face, finger, password, done), and installers for the
+  markers and the lock's finger and face stacks on non-NixOS systems.
+- `helpers/pattern`: unlock patterns, `.#morf-pattern`
+  ([how they work](helpers/pattern/README.md)).
 
 ## Which morf
 
@@ -62,10 +87,12 @@ the theme with the same reason.
 ## Run and develop
 
 ```sh
+nix develop                          # morf, at the pinned release, on PATH
 morf shell/init.lua                  # the shell
 morf lock/init.lua -- window preview # the lock screen, without authenticating
-sh tools/test.sh                     # every spec
-sh tools/check.sh                    # the shell, lock and greeter load cleanly
+make test                            # every spec (tools/test.sh)
+make check                           # the shell, lock and greeter load cleanly
+make build                           # the Nix package, into ./result
 ```
 
 ## Using it
@@ -257,9 +284,12 @@ installing.
 ## Checks
 
 ```sh
-sh tools/test.sh                         # every spec, in parallel shards
-sh tools/test.sh tests/panels_spec.lua   # some of them
-MORF=path/to/morf sh tools/test.sh       # against another engine build
+make test                                   # every spec, in parallel shards
+sh tools/test.sh tests/panels_spec.lua      # some of them
+MORF=path/to/morf sh tools/test.sh          # against another engine build
+nix flake check                             # the package, the helpers and the NixOS module
+python3 -m unittest discover -s nix/tests   # the NixOS module's screen and wallpaper helpers
+lua tools/test-auth.lua                     # the greeter's login conversation
 ```
 
 `tools/films/` records frame-by-frame films of the drawers and the motion,
@@ -271,7 +301,7 @@ record the desktop. eva's own library, `lib/` (Lule, Taskwarrior, the
 modem, settings, capture and the rest), is tested by `tests/lib_*_spec.lua`.
 
 Keyring prompts use morf when the optional `morf-keyring` helper is installed
-on PATH. See [the bridge build and test instructions](https://github.com/paneworks/morf/blob/main/tools/keyring/README.md).
+on PATH. See [the bridge build and test instructions](helpers/keyring/README.md).
 The bridge keeps GNOME Keyring as the secret store and displays unlock,
 new-password and confirmation dialogs using the current theme. It starts on
 the primary output, waits for existing GNOME prompts to finish, and leaves
