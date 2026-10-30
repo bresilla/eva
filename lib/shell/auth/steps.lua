@@ -11,7 +11,7 @@
 --   steps.state.failures    -- wrong tries in this run, for a shake
 --
 -- The steps come from markers in the PAM stacks themselves
--- (tools/pam/morf-auth-step, one `pam_exec` line before each step), because
+-- (helpers/pam/morf-auth-step, one `pam_exec` line before each step), because
 -- a program like sudo talks to its own terminal and nothing else can see
 -- its conversation. A stack that starts over at its first step after the
 -- password -- sudo asking again -- was a wrong password. A step that is

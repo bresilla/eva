@@ -61,7 +61,7 @@ local SW = geometry.sheet_width
 local AV = s(52)
 local FIELD_W, FIELD_H = SW-s(48), geometry.field_height
 
--- The pattern (tools/pattern): offered where the stack takes one and one
+-- The pattern (helpers/pattern): offered where the stack takes one and one
 -- is set for this account. Anywhere else a drawn pattern would only be a
 -- wrong password, and a failed login counted.
 local function look()

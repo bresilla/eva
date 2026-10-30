@@ -26,7 +26,7 @@ local auth = require("lib.shell.auth")
 require("themes.ui_scale").apply()
 
 local HELD = morf.operands[1] ~= "window"
--- A fingerprint stack to listen on (tools/pam/readers.sh), said in the hint.
+-- A fingerprint stack to listen on (helpers/pam/readers.sh), said in the hint.
 local FINGER = morf.fs.exists("/etc/pam.d/morf-lock-finger")
 -- `-- window preview`: never asks PAM -- any password but "wrong" opens it.
 -- For pictures and tests: a lock that asked PAM and was killed mid-way
@@ -213,7 +213,7 @@ morf.time.timer(1000, function()
 end, true)
 
 -- The pattern, and the sources every screen's tree shares.
--- The pattern (tools/pattern): offered where the stack takes one and one
+-- The pattern (helpers/pattern): offered where the stack takes one and one
 -- is set for this account. Anywhere else a drawn pattern would only be a
 -- wrong password, and a failed login counted.
 local PATTERN_STACK = (function()
@@ -368,7 +368,7 @@ else
   end,{owner=root})
 end
 
--- The readers (tools/pam): a finger from the start, even at rest -- touch
+-- The readers (helpers/pam): a finger from the start, even at rest -- touch
 -- the sensor while the clock shows and the lock goes -- and a face only
 -- while the sheet is up, so the camera is not kept on for a glance at the
 -- time. With the sheet up they race, and the first yes opens the door.

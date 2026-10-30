@@ -324,7 +324,7 @@ ipc.polkit = function(how, ...)
   return { agent = true, open = polkit.drawer.open:get(), phase = polkit.phase:get(), action = r and r.action or "" }
 end
 
--- `auth-step STEP [SERVICE]`: the markers in a PAM stack (tools/pam)
+-- `auth-step STEP [SERVICE]`: the markers in a PAM stack (helpers/pam)
 -- saying where sudo has got to: face, finger, password, ok.
 ipc["auth-step"] = function(step, service) return authsteps.steps.mark(step, service) end
 
