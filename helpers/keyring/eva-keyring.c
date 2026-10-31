@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT
- * GCR system prompter with a morf UI over private stdin/stdout pipes.
+ * GCR system prompter with an eva UI over private stdin/stdout pipes.
  * GCR handles D-Bus ownership of requests and encrypted secret exchange.
  */
 #define GCR_API_SUBJECT_TO_CHANGE
@@ -34,13 +34,13 @@ typedef struct {
     guint id;
     gulong cancel_id;
     gboolean password;
-} MorfPrompt;
-typedef struct { GObjectClass parent; } MorfPromptClass;
+} EvaPrompt;
+typedef struct { GObjectClass parent; } EvaPromptClass;
 static void prompt_iface_init(GcrPromptInterface *iface);
-G_DEFINE_TYPE_WITH_CODE(MorfPrompt, morf_prompt, G_TYPE_OBJECT,
+G_DEFINE_TYPE_WITH_CODE(EvaPrompt, eva_prompt, G_TYPE_OBJECT,
                        G_IMPLEMENT_INTERFACE(GCR_TYPE_PROMPT, prompt_iface_init))
 
-static void clear_secret(MorfPrompt *self) {
+static void clear_secret(EvaPrompt *self) {
     if (self->secret) { explicit_bzero(self->secret, strlen(self->secret)); g_free(self->secret); self->secret=NULL; }
 }
 static void emit(JsonBuilder *builder) {
@@ -60,7 +60,7 @@ static JsonBuilder *event(const char *kind, guint id) {
     if (id) { json_builder_set_member_name(b,"id"); json_builder_add_int_value(b,id); }
     return b;
 }
-static void complete(MorfPrompt *self, gboolean accepted, const char *secret, gboolean choice) {
+static void complete(EvaPrompt *self, gboolean accepted, const char *secret, gboolean choice) {
     if (!self->task) return;
     GTask *task=g_steal_pointer(&self->task);
     GCancellable *cancel=g_task_get_cancellable(task);
@@ -82,7 +82,7 @@ static void cancelled(GCancellable *cancel, gpointer data) {
     (void)cancel;
     g_idle_add_full(G_PRIORITY_DEFAULT,cancel_later,g_object_ref(data),g_object_unref);
 }
-static void begin(MorfPrompt *self, gboolean password, GCancellable *cancel, GAsyncReadyCallback callback, gpointer data) {
+static void begin(EvaPrompt *self, gboolean password, GCancellable *cancel, GAsyncReadyCallback callback, gpointer data) {
     g_return_if_fail(self->task==NULL);
     clear_secret(self);
     self->id=++serial; self->password=password;
@@ -103,23 +103,23 @@ static void begin(MorfPrompt *self, gboolean password, GCancellable *cancel, GAs
     json_builder_end_object(b); json_builder_end_object(b); emit(b);
 }
 static void password_async(GcrPrompt *prompt,GCancellable *cancel,GAsyncReadyCallback cb,gpointer data) {
-    begin((MorfPrompt *)prompt,TRUE,cancel,cb,data);
+    begin((EvaPrompt *)prompt,TRUE,cancel,cb,data);
 }
 static const char *password_finish(GcrPrompt *prompt,GAsyncResult *result,GError **error) {
-    MorfPrompt *self=(MorfPrompt *)prompt;
+    EvaPrompt *self=(EvaPrompt *)prompt;
     /* GCR borrows this pointer while encrypting it; keep it until next use. */
     return g_task_propagate_boolean(G_TASK(result),error) ? self->secret : NULL;
 }
 static void confirm_async(GcrPrompt *prompt,GCancellable *cancel,GAsyncReadyCallback cb,gpointer data) {
-    begin((MorfPrompt *)prompt,FALSE,cancel,cb,data);
+    begin((EvaPrompt *)prompt,FALSE,cancel,cb,data);
 }
 static GcrPromptReply confirm_finish(GcrPrompt *prompt,GAsyncResult *result,GError **error) {
     (void)prompt;
     return g_task_propagate_boolean(G_TASK(result),error) ? GCR_PROMPT_REPLY_CONTINUE : GCR_PROMPT_REPLY_CANCEL;
 }
 static void prompt_close(GcrPrompt *prompt) {
-    complete((MorfPrompt *)prompt,FALSE,NULL,FALSE);
-    clear_secret((MorfPrompt *)prompt);
+    complete((EvaPrompt *)prompt,FALSE,NULL,FALSE);
+    clear_secret((EvaPrompt *)prompt);
 }
 static void prompt_iface_init(GcrPromptInterface *iface) {
     iface->prompt_password_async=password_async; iface->prompt_password_finish=password_finish;
@@ -127,24 +127,24 @@ static void prompt_iface_init(GcrPromptInterface *iface) {
     iface->prompt_close=prompt_close;
 }
 static void get_property(GObject *object,guint id,GValue *value,GParamSpec *spec) {
-    if (id>0 && id<N_PROPS) g_value_copy(&((MorfPrompt *)object)->values[id],value);
+    if (id>0 && id<N_PROPS) g_value_copy(&((EvaPrompt *)object)->values[id],value);
     else G_OBJECT_WARN_INVALID_PROPERTY_ID(object,id,spec);
 }
 static void set_property(GObject *object,guint id,const GValue *value,GParamSpec *spec) {
-    if (id>0 && id<N_PROPS) g_value_copy(value,&((MorfPrompt *)object)->values[id]);
+    if (id>0 && id<N_PROPS) g_value_copy(value,&((EvaPrompt *)object)->values[id]);
     else G_OBJECT_WARN_INVALID_PROPERTY_ID(object,id,spec);
 }
 static void finalize(GObject *object) {
-    MorfPrompt *self=(MorfPrompt *)object; clear_secret(self);
+    EvaPrompt *self=(EvaPrompt *)object; clear_secret(self);
     for (guint i=1;i<N_PROPS;i++) g_value_unset(&self->values[i]);
-    G_OBJECT_CLASS(morf_prompt_parent_class)->finalize(object);
+    G_OBJECT_CLASS(eva_prompt_parent_class)->finalize(object);
 }
-static void morf_prompt_class_init(MorfPromptClass *klass) {
+static void eva_prompt_class_init(EvaPromptClass *klass) {
     GObjectClass *object=G_OBJECT_CLASS(klass);
     object->get_property=get_property; object->set_property=set_property; object->finalize=finalize;
     for (guint i=1;i<N_PROPS;i++) g_object_class_override_property(object,i,names[i]);
 }
-static void morf_prompt_init(MorfPrompt *self) {
+static void eva_prompt_init(EvaPrompt *self) {
     for (guint i=1;i<N_PROPS;i++) {
         GParamSpec *spec=g_object_class_find_property(G_OBJECT_GET_CLASS(self),names[i]);
         g_value_init(&self->values[i],G_PARAM_SPEC_VALUE_TYPE(spec)); g_param_value_set_default(spec,&self->values[i]);
@@ -171,7 +171,7 @@ static gboolean handle_line(const char *line,gsize length,gboolean secrets) {
     if (!id || !JSON_NODE_HOLDS_VALUE(id) || json_node_get_value_type(id)!=G_TYPE_INT64) goto invalid;
     gint64 value=json_node_get_int(id);
     if (value<=0 || value>G_MAXUINT) goto invalid;
-    MorfPrompt *prompt=g_hash_table_lookup(pending,GUINT_TO_POINTER((guint)value));
+    EvaPrompt *prompt=g_hash_table_lookup(pending,GUINT_TO_POINTER((guint)value));
     const char *action=string_member(object,"action"), *secret=string_member(object,"password");
     gboolean valid=action && (!strcmp(action,"continue") || !strcmp(action,"cancel")) && (!secret || secrets);
     if (valid && prompt) {
@@ -263,7 +263,7 @@ static gboolean answer_incoming(GSocketService *service,GSocketConnection *conne
     return TRUE;
 }
 static GSocketService *answer_listen(char **directory) {
-    char *template=g_build_filename(g_get_user_runtime_dir(),"morf-keyring-XXXXXX",NULL);
+    char *template=g_build_filename(g_get_user_runtime_dir(),"eva-keyring-XXXXXX",NULL);
     if (!g_mkdtemp_full(template,0700)) { g_free(template); return NULL; }
     *directory=template; answer_path=g_build_filename(template,"answer",NULL);
     GSocketService *service=g_socket_service_new();
@@ -294,11 +294,11 @@ int main(void) {
     struct stat in;
     stdin_secrets=fstat(STDIN_FILENO,&in)==0 && S_ISFIFO(in.st_mode);
     GError *error=NULL; GDBusConnection *connection=g_bus_get_sync(G_BUS_TYPE_SESSION,NULL,&error);
-    if (!connection) { fputs("morf-keyring: session bus unavailable\n",stderr); g_clear_error(&error); return 1; }
+    if (!connection) { fputs("eva-keyring: session bus unavailable\n",stderr); g_clear_error(&error); return 1; }
     char *answer_directory=NULL;
     GSocketService *answers=answer_listen(&answer_directory);
-    if (!answers) { fputs("morf-keyring: private answer socket unavailable\n",stderr); return 1; }
-    GcrSystemPrompter *prompter=gcr_system_prompter_new(GCR_SYSTEM_PROMPTER_SINGLE,morf_prompt_get_type());
+    if (!answers) { fputs("eva-keyring: private answer socket unavailable\n",stderr); return 1; }
+    GcrSystemPrompter *prompter=gcr_system_prompter_new(GCR_SYSTEM_PROMPTER_SINGLE,eva_prompt_get_type());
     gcr_system_prompter_register(prompter,connection);
     guint owners[2];
     const char *bus_names[]={"org.gnome.keyring.SystemPrompter","org.gnome.keyring.PrivatePrompter"};

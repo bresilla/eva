@@ -18,7 +18,7 @@
 -- and kept, and a secret wants none of that.
 --
 -- A lock has two stacks. The password goes to the password stack --
--- `morf-lock` when the machine has one, else `system-auth`, else `login` --
+-- `eva-lock` when the machine has one, else `system-auth`, else `login` --
 -- and gets its verdict in the time a hash takes. The interactive stack,
 -- `login`, is where a machine puts a fingerprint reader or a face: that one is
 -- listened to the whole time the lock is up, in a conversation of its own, and
@@ -43,7 +43,7 @@ end
 --- The PAM services a lock uses: the password's, and the reader's (or nil).
 ---
 --- The reader -- a fingerprint, a face -- is listened to on a stack of its
---- own, `/etc/pam.d/morf-lock-reader`, and only when there is one. A stack
+--- own, `/etc/pam.d/eva-lock-reader`, and only when there is one. A stack
 --- that goes on to a password after the reader (`login`, `system-auth`)
 --- cannot be listened to: when the reader gives up it asks for the password,
 --- the listener has none to give, and pam_faillock counts that as a failed
@@ -55,12 +55,12 @@ end
 ---     auth  required    pam_deny.so
 ---     account include   system-auth
 --- The readers a lock can listen to, those this machine has a stack for,
---- in order: `morf-lock-finger` (pam_fprintd), `morf-lock-face` (pam_gaze,
---- pam_howdy) and `morf-lock-reader` (anything else). Each is the module
+--- in order: `eva-lock-finger` (pam_fprintd), `eva-lock-face` (pam_gaze,
+--- pam_howdy) and `eva-lock-reader` (anything else). Each is the module
 --- and `pam_deny` after it, as above, so a miss is never a failed login.
 function auth.lock_readers()
   local out = {}
-  for _, service in ipairs { "morf-lock-finger", "morf-lock-face", "morf-lock-reader" } do
+  for _, service in ipairs { "eva-lock-finger", "eva-lock-face", "eva-lock-reader" } do
     if morf.fs.exists("/etc/pam.d/" .. service) then out[#out + 1] = service end
   end
   return out
@@ -68,13 +68,13 @@ end
 
 function auth.lock_services()
   local password = "login"
-  for _, service in ipairs { "morf-lock", "system-auth" } do
+  for _, service in ipairs { "eva-lock", "system-auth" } do
     if morf.fs.exists("/etc/pam.d/" .. service) then
       password = service
       break
     end
   end
-  local reader = morf.fs.exists("/etc/pam.d/morf-lock-reader") and "morf-lock-reader" or nil
+  local reader = morf.fs.exists("/etc/pam.d/eva-lock-reader") and "eva-lock-reader" or nil
   return password, reader
 end
 

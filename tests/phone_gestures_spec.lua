@@ -317,7 +317,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.near(half,hidden-500,1)
     test.advance(1200)
     test.near(state().dashboard_y,half,1)
-    if morf.env("MORF_GESTURE_SNAPSHOTS")=="1" then
+    if morf.env("EVA_GESTURE_SNAPSHOTS")=="1" then
       test.truthy(test.snapshot(style.."-bottom-partial.png"))
     end
     test.touch("move",0,558,2180)
@@ -361,7 +361,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(state().dashboard_tab,1)
     test.advance(1000)
     test.near(test.get("dashboard-page-track").x,track.x-240,1)
-    if morf.env("MORF_GESTURE_SNAPSHOTS")=="1" then
+    if morf.env("EVA_GESTURE_SNAPSHOTS")=="1" then
       test.truthy(test.snapshot(style.."-pages-partial.png"))
     end
     test.touch("move",0,x-100,y)

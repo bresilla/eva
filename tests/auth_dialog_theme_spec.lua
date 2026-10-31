@@ -31,7 +31,7 @@ local function load(style,w,h)
     EVA_DRY_RUN="1",TEST_WIDTH=tostring(w or 1000),TEST_HEIGHT=tostring(h or 700)}})
 end
 local function snapshot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." polkit retries, clears submitted input and finishes a simulated request",function()

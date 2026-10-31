@@ -9,7 +9,7 @@ let
     hl.config({ cursor = { invisible = true } })
   '';
   workspaceConfig = ''
-    -- Morf owns bottom-edge contact sequences, including workspace previews.
+    -- eva owns bottom-edge contact sequences, including workspace previews.
     hl.config({ gestures = {
       workspace_swipe_touch = false,
     } })
@@ -97,7 +97,7 @@ let
 in
 {
   options.programs.eva.phone.enable =
-    lib.mkEnableOption "Morf phone screen power and touch gestures";
+    lib.mkEnableOption "eva phone screen power and touch gestures";
   options.programs.eva.phone.idleTimeout = lib.mkOption {
     type = lib.types.ints.unsigned;
     default = 60;
@@ -122,7 +122,7 @@ in
         environment.systemPackages = [ screen ]
           ++ lib.optional (config.programs.eva.phone.gestureDriver == "lisgd") pkgs.lisgd;
         # Shared by the user's lockscreen and the separate greeter process.
-        environment.etc."morf/phone-screen.json".text = builtins.toJSON {
+        environment.etc."eva/phone-screen.json".text = builtins.toJSON {
           command = "${screen}/bin/phone-screen";
           doubleTap = true;
         };
@@ -130,7 +130,7 @@ in
         environment.etc."xdg/hypr/hypridle.conf".text = lib.mkForce null;
         programs.eva.hyprland.extraConfig = deliberateWakeConfig + pointerConfig + workspaceConfig;
         programs.eva.greeter = {
-          environment.MORF_PHONE_GREETER = "1";
+          environment.EVA_PHONE_GREETER = "1";
           sessionSetup = ''
             ${config.services.hypridle.package}/bin/hypridle --config ${greeterIdleConfig} &
             idle=$!
@@ -144,13 +144,13 @@ in
               hl.bind("XF86PowerOff", hl.dsp.exec_cmd("${screen}/bin/phone-screen toggle"), { locked = true })
             '';
         };
-        systemd.user.services.morf.environment.EVA_GESTURE_DRIVER = config.programs.eva.phone.gestureDriver;
+        systemd.user.services.eva.environment.EVA_GESTURE_DRIVER = config.programs.eva.phone.gestureDriver;
         systemd.user.services.phone-gestures = lib.mkIf (config.programs.eva.phone.gestureDriver == "lisgd") {
           description = "Phone edge swipes through lisgd";
           wantedBy = [ "graphical-session.target" ];
           after = [
             "graphical-session.target"
-            "morf.service"
+            "eva.service"
           ];
           partOf = [ "graphical-session.target" ];
           serviceConfig = {
@@ -163,7 +163,7 @@ in
         # Keep phone preferences writable and stable when the theme path changes.
         # Seed the visible bar once, or carry over the file from before the
         # rename; eva can save other preferences normally.
-        systemd.user.services.morf = {
+        systemd.user.services.eva = {
           environment.EVA_SETTINGS = "%h/.local/state/eva/phone.json";
           preStart = ''
             ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname "$EVA_SETTINGS")"

@@ -32,21 +32,21 @@ if [[ "$action" == toggle ]]; then
   sleep 0.25
 fi
 
-if [[ "${MORF_PHONE_GREETER:-0}" != 1 ]]; then
+if [[ "${EVA_PHONE_GREETER:-0}" != 1 ]]; then
   locked() { hyprctl -j locked | jq -e '.locked == true' >/dev/null; }
   if ! locked; then
-    systemctl --user start morf-idle-lock.service
+    systemctl --user start eva-idle-lock.service
     # A started process is not proof of a lock. Wait for the compositor to
     # confirm it before blanking; a failed locker leaves the display visible.
     for ((attempt = 0; attempt < 150; attempt++)); do
       locked && break
-      systemctl --user is-active --quiet morf-idle-lock.service || exit 1
+      systemctl --user is-active --quiet eva-idle-lock.service || exit 1
       sleep 0.2
     done
-    locked || { echo 'Morf did not acquire the session lock' >&2; exit 1; }
+    locked || { echo 'eva did not acquire the session lock' >&2; exit 1; }
   fi
 fi
-# Morf shields the sleeping authentication surface before the panel blanks.
+# eva shields the sleeping authentication surface before the panel blanks.
 # Its file watch also works while Wayland frame callbacks are stopped.
 publish off
 if ! phone-dpms off; then

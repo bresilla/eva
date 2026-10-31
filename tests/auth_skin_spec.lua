@@ -40,7 +40,7 @@ local function load(part,w,h,touch,style)
   test.advance(1200)
 end
 local function shot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 local function clean()
   test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)

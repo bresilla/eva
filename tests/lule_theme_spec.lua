@@ -53,7 +53,7 @@ local function load(style,w,h)
 end
 local function state() return test.ipc("state") end
 local function open() test.ipc("show","yes") test.advance(2400) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 local function reach(id)
   local scroll=test.find {id="lule-scroll"}
   if not scroll then return end

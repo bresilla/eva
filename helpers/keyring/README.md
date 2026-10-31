@@ -4,16 +4,16 @@ The keyring dialog in eva uses GCR's `GcrSystemPrompter` and `GcrPrompt`
 interfaces. GCR implements the encrypted secret exchange with GNOME Keyring.
 This is independent of polkit and does not modify PAM or stored keyrings.
 
-The flake builds this bridge as `.#morf-keyring`, and the NixOS module hands it
-to the shell through `MORF_KEYRING_HELPER` (`programs.eva.keyringPackage`).
+The flake builds this bridge as `.#eva-keyring`, and the NixOS module hands it
+to the shell through `EVA_KEYRING_HELPER` (`programs.eva.keyringPackage`).
 `programs.eva.enable` keeps GNOME Keyring as secret storage, unlocks it through
 greetd/lock PAM, and adds sudo progress markers. eva supplies the keyring and
 Polkit dialogs; do not start a second Polkit agent in that session.
 
 Build with `sh helpers/keyring/build.sh`. Native development dependencies are
 GCR 4, GLib/GIO (including gio-unix), json-glib and a C compiler. The result
-is `target/dist/morf-keyring`; install it on PATH, for example in
-`~/.local/bin/morf-keyring`. `MORF_KEYRING_HELPER` can name an explicit path.
+is `target/dist/eva-keyring`; install it on PATH, for example in
+`~/.local/bin/eva-keyring`. `EVA_KEYRING_HELPER` can name an explicit path.
 The runtime needs the corresponding shared libraries, not GTK or Python.
 
 eva starts one bridge on its primary output. Request metadata is routed
@@ -34,7 +34,7 @@ active authentication request; incoming real keyring requests take priority.
 
 The bridge queues for the SystemPrompter and PrivatePrompter D-Bus names.
 It does not replace an existing prompt or kill GNOME's prompter. Once the
-existing prompter exits, morf takes over. On shell shutdown/reload, the
+existing prompter exits, eva takes over. On shell shutdown/reload, the
 private input pipe closes and the bridge exits, so the system's original
 D-Bus activation service is available as a fallback. No service files change.
 

@@ -109,6 +109,6 @@ test.it("mobile page fits a narrow phone and scrolls to connections",function()
   end
   test.click("mobile-connect-2") test.advance(50)
   test.eq(state().calls[1].value,"/profile/2")
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("mobile-compact.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("mobile-compact.png") end
   clean()
 end)

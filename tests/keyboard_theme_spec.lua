@@ -46,7 +46,7 @@ local function load(style,w,h,dry,session)
     HYPRLAND_INSTANCE_SIGNATURE=session or ("theme-spec-"..loads)}})
 end
 local function key(name,mode,page) return "eva.osk.key."..(mode or "full").."."..(page or "letters").."."..name end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." keyboard remembers manual hiding per application, not per window",function()
     load(style)

@@ -97,7 +97,7 @@ local HOST=[[
 test.it("sleeping shield consumes touches and releases normal input after waking",function()
   local function advance(ms) test.ipc("tick",tostring(ms)) test.advance(ms) end
   test.load("../lock/init.lua",{source=HOST,size={400,900},env={
-    MORF_PHONE_SCREEN_CONFIG="/fixture-phone-screen.json",XDG_RUNTIME_DIR="/tmp",
+    EVA_PHONE_SCREEN_CONFIG="/fixture-phone-screen.json",XDG_RUNTIME_DIR="/tmp",
     HYPRLAND_INSTANCE_SIGNATURE="fixture",EVA_DRY_RUN="0"}})
   advance(100)
   test.click(200,450) test.eq(test.ipc("audit").clicks,1)
@@ -134,7 +134,7 @@ for _,role in ipairs {"lock","greet"} do
     ]]
     test.load("../"..role.."/init.lua",{source=source,size={400,900},args={"window","preview"},env={
       TEST_ROLE=role,EVA_STYLE="tsugumori",EVA_DRY_RUN="0",
-      MORF_PHONE_SCREEN_CONFIG="/fixture-phone-screen.json",XDG_RUNTIME_DIR="/tmp",
+      EVA_PHONE_SCREEN_CONFIG="/fixture-phone-screen.json",XDG_RUNTIME_DIR="/tmp",
       HYPRLAND_INSTANCE_SIGNATURE="fixture"}})
     test.advance(900)
     test.ipc("draft") test.advance(700)
@@ -173,17 +173,17 @@ test.it("a blanked lock stops every reader and listens for a finger again on wak
   ]]
   test.load("../lock/init.lua",{source=source,size={400,900},args={"window"},env={
     EVA_STYLE="tsugumori",EVA_DRY_RUN="0",
-    MORF_PHONE_SCREEN_CONFIG="/fixture-phone-screen.json",XDG_RUNTIME_DIR="/tmp",
+    EVA_PHONE_SCREEN_CONFIG="/fixture-phone-screen.json",XDG_RUNTIME_DIR="/tmp",
     HYPRLAND_INSTANCE_SIGNATURE="fixture"}})
   test.advance(900)
   local calls=test.ipc("calls")
-  test.eq(calls[#calls],"listen morf-lock-finger")
+  test.eq(calls[#calls],"listen eva-lock-finger")
   test.ipc("power","off") test.advance(700)
   test.eq(test.ipc("calls"),{"stop nil"})
   test.advance(30000)
   test.eq(test.ipc("calls"),{})
   test.ipc("power","on") test.advance(700)
   calls=test.ipc("calls")
-  test.eq(calls[#calls],"listen morf-lock-finger")
+  test.eq(calls[#calls],"listen eva-lock-finger")
   test.eq(test.logs("error"),{})
 end)

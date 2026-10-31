@@ -12,11 +12,11 @@
 #   tools/sandbox/phone.sh ctl quit
 #
 # Screenshots and logs land in $WORK/out/morf-phone (WORK defaults to
-# ~/.cache/morf-phone). Everything inside stays sealed off from the
+# ~/.cache/eva-phone). Everything inside stays sealed off from the
 # person's session, as nested.sh keeps it.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
-export WORK=${WORK:-$HOME/.cache/morf-phone}
+export WORK=${WORK:-$HOME/.cache/eva-phone}
 CTL=$WORK/ctl
 if [ "${1:-}" = ctl ]; then
   [ -p "$CTL" ] || { echo "no bench running (no $CTL)" >&2; exit 1; }
@@ -34,7 +34,7 @@ BW=${BENCH_W:-868}; BH=${BENCH_H:-1932}
 # resizing its own new window once it is there (the rule would catch both).
 if command -v hyprctl > /dev/null && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
   if [ "$BW" = 868 ] && [ "$BH" = 1932 ]; then
-    hyprctl eval 'hl.window_rule({ name = "morf-phone-bench", match = { class = "^(aquamarine)$" }, float = true, size = { "868", "1932" } })' > /dev/null 2>&1 || true
+    hyprctl eval 'hl.window_rule({ name = "eva-phone-bench", match = { class = "^(aquamarine)$" }, float = true, size = { "868", "1932" } })' > /dev/null 2>&1 || true
   else
     before=$(hyprctl clients -j | jq -r '.[] | select(.class=="aquamarine") | .address' | sort)
     ( i=0; while [ $i -lt 60 ]; do

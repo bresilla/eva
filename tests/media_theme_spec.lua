@@ -50,7 +50,7 @@ end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." retains transport, seek, volume, lyrics and player selection",function()
     load(style)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-media-register.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-media-register.png") end
     test.eq(test.get(style=="tsugumori" and "media-tab-title-text" or "media-tab-title").text,
       style=="tsugumori" and "GLASS SIGNALS" or "Glass signals")
     test.eq(test.get("media-tab-artist").text,"First artist, Second artist")

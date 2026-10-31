@@ -2,7 +2,7 @@
 -- cache; NixOS supplies a shared image and an unprivileged copy helper.
 local morf=require("morf")
 local M={}
-local ok,raw=pcall(morf.fs.read,morf.env("MORF_WALLPAPER_CONFIG") or "/etc/morf/wallpaper.json")
+local ok,raw=pcall(morf.fs.read,morf.env("EVA_WALLPAPER_CONFIG") or "/etc/eva/wallpaper.json")
 local cfg
 if ok and type(raw)=="string" then
   local valid,value=pcall(morf.json.decode,raw)

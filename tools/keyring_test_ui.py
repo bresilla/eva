@@ -33,4 +33,4 @@ if child.poll() is None:child.kill()
 out,err=child.communicate(timeout=3)
 print(out,err)
 assert child.returncode==0 and result==['Disposable-only-bridge-test'],'UI-to-keyring exchange failed'
-print('PASS complete GCR -> native bridge -> morf UI -> GCR encrypted response')
+print('PASS complete GCR -> native bridge -> eva UI -> GCR encrypted response')

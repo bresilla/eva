@@ -135,7 +135,7 @@ for _,style in ipairs {"material","tsugumori"} do
         end
       end
     end
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-compact-buttons.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-compact-buttons.png") end
   end)
   test.it(style.." page buttons honor disabled state and become usable when enabled",function()
     load(style,[[

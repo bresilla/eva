@@ -52,7 +52,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.falsy(test.get("capture-editor-toolbar").visible)
     test.falsy(test.get("capture-tools-palette").visible)
     test.eq(test.get("capture-editor-canvas").width,1200)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-select-first.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-select-first.png") end
     test.press(200,150) test.move(850,500)
     test.falsy(test.get("capture-editor-toolbar").visible)
     test.release(850,500) test.advance(300)
@@ -61,14 +61,14 @@ for _,style in ipairs {"material","tsugumori"} do
     test.falsy(test.get("capture-tools-palette").visible)
     test.truthy(test.get("capture-editor-toolbar").width<400)
     test.eq(test.get("capture-editor-canvas").width,1200)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-floating-menu.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-floating-menu.png") end
     more("reselect") test.advance(250)
     test.eq(test.ipc("state").phase,"selecting") test.falsy(test.get("capture-editor-toolbar").visible)
     test.click(120,120) test.advance(300)
     test.eq(test.ipc("state").crop.w,600) test.eq(test.ipc("state").crop.h,400)
     test.eq(test.ipc("state").phase,"editing")
     test.click("capture-editor-draw") test.advance(250)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-tools-popup.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-tools-popup.png") end
     test.key("Escape") test.advance(100)
     test.click(20,20) test.falsy(test.ipc("state").active)
     test.eq(#test.logs("error"),0)
@@ -88,7 +88,7 @@ for _,style in ipairs {"material","tsugumori"} do
     tool("arrow") test.ipc("begin",100,100) test.ipc("move",400,200)
     local draft=test.get("capture-editor-draft")
     test.truthy(draft.width<500 and draft.height<200,"the stroke allocated a fullscreen preview")
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-editor.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-editor.png") end
     test.ipc("finish",400,200)
     test.advance(150) test.eq(test.ipc("state").items,1)
     test.click("capture-editor-undo") test.advance(150) test.eq(test.ipc("state").items,0)
@@ -140,7 +140,7 @@ for _,style in ipairs {"material","tsugumori"} do
       local b=test.get(id)
       test.truthy(b.x>=0 and b.x+b.width<=360 and b.y>=0 and b.y+b.height<=560,id.." outside screen")
     end
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-compact.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-capture-compact.png") end
     test.click("capture-editor-draw") test.advance(220)
     more("settings") test.click("capture-setting-rebind")
     test.key("Print","ctrl+shift") test.advance(80)

@@ -144,7 +144,7 @@ local function load(style,kind,w,h,dry)
   test.advance(100)
 end
 local function open() test.ipc("show","yes") test.advance(2500) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 local function choose(label)
   local id=test.ipc("entry",label)
   test.truthy(id,"missing row: "..label) test.click(id) test.advance(100)

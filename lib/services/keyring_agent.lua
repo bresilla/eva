@@ -6,8 +6,8 @@ local morf = require("morf")
 local M = {}
 function M.serve(options)
   options = options or {}
-  local helper = options.helper or require("lib.util.poll").which("morf-keyring")
-  if not helper then return nil, "morf-keyring is not installed" end
+  local helper = options.helper or require("lib.util.poll").which("eva-keyring")
+  if not helper then return nil, "eva-keyring is not installed" end
   local agent = { current = nil, names = {}, stopped = false }
   local child
   local function closed()

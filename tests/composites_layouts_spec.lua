@@ -47,7 +47,7 @@ local function load(style)
   test.settle(800)
 end
 local function got(name) return test.ipc("got", name) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS") == "1" then test.snapshot(name .. ".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS") == "1" then test.snapshot(name .. ".png") end end
 -- The node of that id that shows (a kept page's twin may be hidden).
 local function shown(id)
   for _, node in ipairs(test.find_all(id)) do if node.visible then return node end end

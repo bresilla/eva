@@ -44,7 +44,7 @@ local function load(style,part,w,h,dry)
       EVA_DRY_RUN=dry and "1" or "0",TEST_AUTH_PART=part,GREETD_SOCK=false,LULE_A="/nonexistent/lule"}})
   test.advance(2600)
 end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." lock weather and media share controller data and playback actions",function()
     load(style,"lock")

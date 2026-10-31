@@ -534,9 +534,9 @@ checks do not establish completion of the other theme boundaries above.
   images are byte-identical to `/tmp/morf-auth-desktop-baseline/`. Captures are
   in `/tmp/morf-auth-desktop-films/` and `/tmp/morf-auth-desktop-baseline-films/`.
   Private 500x720 Cage runs verify lock playback/data updates and sheet return
-  in `/tmp/morf-lock-desktop-cage/out/morf-lock/`, and greeter host identity,
+  in `/tmp/eva-lock-desktop-cage/out/eva-lock/`, and greeter host identity,
   sheet transitions and F2 session selection in
-  `/tmp/morf-greeter-desktop-cage/out/morf-greet/`. They use fake desktop readers,
+  `/tmp/eva-greeter-desktop-cage/out/morf-greet/`. They use fake desktop readers,
   window/preview lock mode, and no greetd socket. Full authentication,
   account/session and multi-output behavior still need broader coverage.
 - The six original Material suite failures were stale assertions, independently

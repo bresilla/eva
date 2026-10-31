@@ -37,7 +37,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.ipc("show","yes") test.advance(200)
     test.near(test.get("vpn-tunnel-network-title").y,top,1,"reopened register should begin at the top")
     test.advance(2200)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-vpn-section.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-vpn-section.png") end
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
   end)
 end

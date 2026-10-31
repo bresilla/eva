@@ -46,7 +46,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(last.y+last.height<=panel.y+panel.height,"rows leave the panel")
     if style=="material" then test.eq(test.get("session-title").text,"Session")
     else test.eq(test.get("session-title-text").text,"SESSION") end
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-session.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-session.png") end
     test.key("Up") test.eq(test.ipc("state").focus,4)
     test.key("Tab") test.eq(test.ipc("state").focus,1)
     test.key("Down") test.eq(test.ipc("state").focus,2)
@@ -90,7 +90,7 @@ test.it("Tsugumori session fits compact outputs and survives interrupted reopeni
   end
   test.eq(test.get("session-title-text").text,"SESSION")
   test.ipc("color","#9955ee") test.advance(500)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-session-compact.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-session-compact.png") end
   test.eq(#test.logs("error"),0)
   test.eq(#test.logs("warn"),0)
 end)

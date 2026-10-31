@@ -102,7 +102,7 @@ local function load(style,w,h,dry)
   test.advance(100)
 end
 local function open() test.ipc("open","yes") test.advance(2500) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 local function called(name)
   for _,entry in ipairs(test.ipc("state").calls) do if entry.name==name then return entry.value end end
 end
@@ -119,7 +119,7 @@ for _,style in ipairs {"material","tsugumori"} do
       local wifi,bluetooth=test.get("utilities-toggle-wifi"),test.get("utilities-toggle-bluetooth")
       test.truthy(wifi.width>=168,"Quick-settings labels have too little room")
       if width==360 then test.truthy(bluetooth.y>wifi.y,"Narrow tiles should stack") end
-      if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-settings-fit-"..width..".png") end
+      if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-settings-fit-"..width..".png") end
       test.eq(#test.logs("error"),0)
       test.eq(#test.logs("warn"),0)
     end

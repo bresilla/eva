@@ -32,7 +32,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(test.ipc("state").rows,{"Goku"})
     test.truthy(test.get("lule-font-preview-1").visible)
     test.falsy(test.get("lule-font-option-2").visible)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-font-picker.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-font-picker.png") end
     test.click("lule-font-option-1") test.advance(100)
     test.eq(test.ipc("state").chosen,"Goku") test.falsy(test.ipc("state").opened)
     test.click("open-fonts") test.advance(100)

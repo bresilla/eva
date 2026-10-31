@@ -7,7 +7,7 @@ local material = require("lib.theme.material")
 local shared_watches={}
 return function(name)
   local accent = "#9ccbfb"
-  local ok, words = pcall(morf.fs.read, "/etc/morf/eva-accent")
+  local ok, words = pcall(morf.fs.read, "/etc/eva/accent")
   local wanted = ok and type(words) == "string" and words:match("#%x%x%x%x%x%x")
   if wanted then accent = wanted end
   local shared=require("themes.wallpaper_handoff").palette(name)

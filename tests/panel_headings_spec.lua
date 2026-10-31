@@ -53,7 +53,7 @@ test.it("every main panel uses the shared title and replays it on entry",functio
     test.ipc("close") test.advance(900)
     if case[3] then test.ipc(case[1],case[2],case[3]) else test.ipc(case[1],case[2]) end
     decoded(case[4],case[5])
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(case[4]..".png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(case[4]..".png") end
   end
   test.eq(#test.logs("error"),0)
   test.eq(#test.logs("warn"),0)
@@ -80,7 +80,7 @@ test.it("settings detail titles and editor titles begin when their own page appe
   } do
     test.ipc("settings",case[1])
     decoded(case[2],case[3])
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("headings-settings-"..case[1]..".png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("headings-settings-"..case[1]..".png") end
   end
   test.ipc("close") test.advance(900)
   test.ipc("tasks","open") test.advance(2400)

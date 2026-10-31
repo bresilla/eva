@@ -42,7 +42,7 @@ test.it("headphones connect in a centered transient popup and dismiss without ta
     test.near(panel.x+panel.width/2,400,1) test.near(panel.y+panel.height/2,325,1)
     test.eq(test.ipc("state").kind,"headphones")
     test.eq(test.ipc("state").focus,"none")
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-headphones.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-headphones.png") end
     test.advance(3200) test.falsy(test.ipc("state").open)
     test.eq(#test.logs("error"),0)
   end

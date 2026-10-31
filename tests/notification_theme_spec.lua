@@ -51,7 +51,7 @@ local function load(style,w,h)
     EVA_STYLE=style,TEST_WIDTH=tostring(w or 1100),TEST_HEIGHT=tostring(h or 750)}})
 end
 local function snapshot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." popups preserve expansion, identity during dismissal, and history",function()

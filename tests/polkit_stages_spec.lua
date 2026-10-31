@@ -38,14 +38,14 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(test.ipc("state").answers,0)
     test.ipc("info","Please look at the camera") test.advance(100)
     test.eq(test.get("polkit-status-text").text,"Looking for your face…")
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-gaze-waiting.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-gaze-waiting.png") end
     test.ipc("done") test.advance(1200)
     test.truthy(test.ipc("state").opened)
     test.eq(test.ipc("state").phase,"done")
     test.eq(test.ipc("state").info,"Face verified · Access granted")
     test.eq(test.get("polkit-status-text").text,"Authentication successful")
     test.falsy(test.get("polkit-field").visible)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-gaze-success.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-gaze-success.png") end
     test.advance(1200) test.truthy(test.ipc("state").opened)
     test.advance(200) test.falsy(test.ipc("state").opened)
     test.eq(#test.runs(),0)

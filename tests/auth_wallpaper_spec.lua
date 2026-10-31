@@ -5,7 +5,7 @@ morf.fs.write(image,'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="
 local palette={wallpaper=image,theme="dark",colors={"#111111","#ff8844"}}
 morf.fs.write(root.."/shared/colors.json",morf.json.encode(palette))
 morf.fs.write(root.."/user/colors.json",morf.json.encode(palette))
-morf.fs.write(root.."/config.json",morf.json.encode {directory=root.."/shared",user="akari",command="morf-wallpaper-test"})
+morf.fs.write(root.."/config.json",morf.json.encode {directory=root.."/shared",user="akari",command="eva-wallpaper-test"})
 for _,role in ipairs {"greet","lock"} do
   for _,style in ipairs {"material","tsugumori"} do
     test.it(style.." "..role.." displays the shared blurred image",function()
@@ -25,7 +25,7 @@ for _,role in ipairs {"greet","lock"} do
       ]],
         args=role=="lock" and {"window","preview"} or {"preview"},
         env={EVA_DRY_RUN="1",EVA_STYLE=style,EVA_SCALE_MODE="compositor",
-          MORF_WALLPAPER_CONFIG=root.."/config.json",LULE_A=root..(role=="greet" and "/unreadable-user-cache" or "/user"),GREETD_SOCK=false}})
+          EVA_WALLPAPER_CONFIG=root.."/config.json",LULE_A=root..(role=="greet" and "/unreadable-user-cache" or "/user"),GREETD_SOCK=false}})
       test.advance(700)
       local background=test.get(role.."-wallpaper")
       test.eq(test.ipc("wallpaper_test"),image)
@@ -38,14 +38,14 @@ for _,role in ipairs {"greet","lock"} do
 end
 test.it("wallpaper handoff runs only for the configured user and outside previews",function()
   local function load(dry)
-    test.stub_run("morf-wallpaper-test",{code=0})
+    test.stub_run("eva-wallpaper-test",{code=0})
     test.load("../shell/init.lua",{source=[[
       require("morf.ui").Item {width=10,height=10}
       local handoff=require("themes.wallpaper_handoff")
       morf.ipc.publish=function() handoff.publish("/an image with spaces.png","/cache/colors.json") end
-    ]],env={USER="akari",EVA_DRY_RUN=dry and "1" or "0",MORF_WALLPAPER_CONFIG=root.."/config.json"}})
+    ]],env={USER="akari",EVA_DRY_RUN=dry and "1" or "0",EVA_WALLPAPER_CONFIG=root.."/config.json"}})
   end
   load(false) test.ipc("publish") test.advance(40)
-  test.eq(test.runs()[1],{"morf-wallpaper-test","publish","--image=/an image with spaces.png","--palette=/cache/colors.json"})
+  test.eq(test.runs()[1],{"eva-wallpaper-test","publish","--image=/an image with spaces.png","--palette=/cache/colors.json"})
   load(true) test.ipc("publish") test.advance(40) test.eq(#test.runs(),0)
 end)

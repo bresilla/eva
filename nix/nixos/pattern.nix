@@ -2,8 +2,8 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.programs.eva.pattern;
-  package = flake.packages.${pkgs.stdenv.hostPlatform.system}.morf-pattern;
-  helper = "/run/wrappers/bin/morf-pattern-check";
+  package = flake.packages.${pkgs.stdenv.hostPlatform.system}.eva-pattern;
+  helper = "/run/wrappers/bin/eva-pattern-check";
   pamExec = "${pkgs.pam}/lib/security/pam_exec.so";
   rule = {
     order = 11600;
@@ -22,25 +22,25 @@ in {
     type = lib.types.bool;
     default = false;
     description = ''
-      Allow locally enrolled unlock patterns for Morf lock and greetd.
+      Allow locally enrolled unlock patterns for the eva lock and greetd.
       A 4-9 dot pattern has far less entropy than a password and installs a
       setuid verifier that PAM accepts as sufficient, so enable it only where
       that trade-off is acceptable. Failed attempts earn growing cooldowns
       (30 s, 1 min, 5 min, 15 min); after 25 failures patterns stay disabled
-      until a password login through greetd or `sudo morf-pattern reset`.
-      Enroll with `sudo morf-pattern setup`; credentials stay outside the Nix store.
+      until a password login through greetd or `sudo eva-pattern reset`.
+      Enroll with `sudo eva-pattern setup`; credentials stay outside the Nix store.
     '';
   };
   config = lib.mkIf (config.programs.eva.enable && cfg.enable) {
     environment.systemPackages = [ package ];
-    security.wrappers.morf-pattern-check = {
-      source = "${package}/libexec/morf-pattern-check";
+    security.wrappers.eva-pattern-check = {
+      source = "${package}/libexec/eva-pattern-check";
       owner = "root";
       group = "root";
       setuid = true;
     };
-    security.pam.services.morf-lock.rules.auth.morf-pattern = rule;
-    security.pam.services.greetd.rules.auth.morf-pattern = rule;
-    security.pam.services.greetd.rules.account.morf-pattern-reset = reset;
+    security.pam.services.eva-lock.rules.auth.eva-pattern = rule;
+    security.pam.services.greetd.rules.auth.eva-pattern = rule;
+    security.pam.services.greetd.rules.account.eva-pattern-reset = reset;
   };
 }

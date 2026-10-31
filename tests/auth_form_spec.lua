@@ -51,7 +51,7 @@ for _,style in ipairs {"material","tsugumori"} do
         test.ipc("form","numbers")
         for _,ms in ipairs {1,80,400} do test.advance(ms) separated(role) end
         test.ipc("form","dev") test.advance(450) separated(role)
-        if morf.env("MORF_THEME_SNAPSHOTS")=="1" and (size[1]==744 or size[1]==406) then
+        if morf.env("EVA_THEME_SNAPSHOTS")=="1" and (size[1]==744 or size[1]==406) then
           test.snapshot(style.."-"..role.."-"..size[1].."-password.png")
         end
         test.ipc("form","hide")

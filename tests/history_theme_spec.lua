@@ -41,7 +41,7 @@ local function load(style,w,h)
     TEST_WIDTH=tostring(w or 440),TEST_HEIGHT=tostring(h or 800)}})
 end
 local function shot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." history groups, expands, copies and dismisses by identity",function()

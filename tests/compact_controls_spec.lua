@@ -39,7 +39,7 @@ for _,style in ipairs {"material","tsugumori"} do
     end
     test.ipc("label") test.advance(500)
     test.truthy(test.find {text=caption(style,"An updated label"),visible=true})
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-compact-field.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-compact-field.png") end
     test.eq(test.logs("error"),{}) test.eq(test.logs("warn"),{})
   end)
   test.it(style.." menu captions fit beside checkmarks and follow their bindings",function()
@@ -61,7 +61,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("menu") test.falsy(test.ipc("checked"))
     test.ipc("title") test.advance(200)
     test.truthy(test.find {text=caption(style,"Renamed preference"),visible=true})
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-compact-menu.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-compact-menu.png") end
     test.eq(test.logs("error"),{}) test.eq(test.logs("warn"),{})
   end)
   test.it(style.." horizontal scrollbars show the visible fraction and move across their rail",function()
@@ -160,7 +160,7 @@ test.it("material compact slider readings never cross the icon or their control"
     test.click(track.x+track.width*.75,track.y+track.height/2) test.advance(500)
     local handle=test.get("scale-handle")
     test.near(handle.x+handle.width/2,track.x+track.width*.75,1)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("material-compact-slider-"..width..".png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("material-compact-slider-"..width..".png") end
   end
   test.eq(test.logs("error"),{}) test.eq(test.logs("warn"),{})
 end)

@@ -1,6 +1,6 @@
 #!/bin/sh
-# morf-auth-step STEP -- a marker in a PAM stack (pam_exec, `optional`):
-# tells the person's morf shell which step an authentication has reached --
+# eva-auth-step STEP -- a marker in a PAM stack (pam_exec, `optional`):
+# tells the person's eva shell which step an authentication has reached --
 # face, finger, password, ok -- so it can show it (lib.authsteps).
 #
 # It runs as root inside sudo and must not hold it up: it writes one line
@@ -16,18 +16,18 @@ case "$step" in face|finger|password|ok) ;; *) exit 0 ;; esac
 uid=$(id -u "$user" 2>/dev/null) || exit 0
 [ "$uid" != 0 ] || exit 0
 service=${PAM_SERVICE:-}
-parent=${MORF_AUTH_PID:-$PPID}
+parent=${EVA_AUTH_PID:-$PPID}
 # Never open a user-controlled path as root. Re-enter as that user before
 # touching their runtime directory, without invoking another PAM stack.
 if [ "$(id -u)" = 0 ]; then
     gid=$(id -g "$user" 2>/dev/null) || exit 0
     setpriv --reuid="$uid" --regid="$gid" --clear-groups --no-new-privs \
         env -i PATH="$PATH" PAM_USER="$user" PAM_SERVICE="$service" \
-        MORF_AUTH_PID="$parent" "$0" "$step" || :
+        EVA_AUTH_PID="$parent" "$0" "$step" || :
     exit 0
 fi
 [ "$(id -u)" = "$uid" ] || exit 0
-dir=/run/user/$uid/morf
+dir=/run/user/$uid/eva
 [ -d "$dir" ] || exit 0
 # One line in the person's runtime directory, which their shell watches
 # (lib.authsteps). Written aside and moved into place, so it is never read

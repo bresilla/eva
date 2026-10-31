@@ -210,12 +210,12 @@ end, true)
 
 local PATTERN_STACK = (function()
   local ok, t = pcall(morf.fs.read, "/etc/pam.d/greetd")
-  return ok and type(t) == "string" and t:find("morf-pattern-check", 1, true) ~= nil
+  return ok and type(t) == "string" and t:find("eva-pattern-check", 1, true) ~= nil
 end)()
 function has_pattern()
   if PREVIEW then return true end
   local name = person().name
-  return PATTERN_STACK and name ~= nil and name ~= "" and morf.fs.exists("/etc/morf/pattern/" .. name)
+  return PATTERN_STACK and name ~= nil and name ~= "" and morf.fs.exists("/etc/eva/pattern/" .. name)
 end
 local function pattern(dots)
   if busy:get() then return end

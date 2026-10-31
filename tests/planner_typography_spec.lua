@@ -23,12 +23,12 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(test.get("planner-empty-title").text,"Nothing planned yet")
     test.eq(test.get("planner-empty-subtitle").text,"Tasks due or scheduled that day show here.")
     local top=test.get("planner-month").y
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-planner-title.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-planner-title.png") end
     test.wheel(0,3000,{x=400,y=300}) test.advance(200)
     local work=test.get("planner-work-title")
     test.truthy(work.y>=10 and work.y+work.height<430,"final section is not reachable")
     test.truthy(test.find {text=style=="material" and "Work calendar" or "WORK CALENDAR",visible=true})
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-planner-work.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-planner-work.png") end
     test.ipc("show","no") test.advance(100)
     test.ipc("show","yes") test.advance(200)
     test.near(test.get("planner-month").y,top,1,"reopened calendar did not reset to the top")
@@ -39,7 +39,7 @@ for _,style in ipairs {"material","tsugumori"} do
     local note="Add a task, or choose another view."
     test.truthy(test.get("tasks-empty").visible)
     test.truthy(test.find {text=note,visible=true})
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-tasks-title.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-tasks-title.png") end
     test.click("tasks-add") test.advance(2400)
     test.truthy(test.get("task-editor-title").visible)
     test.click("task-cancel") test.advance(2400)

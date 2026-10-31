@@ -15,7 +15,7 @@ gi.require_version('Gcr', os.environ.get('TEST_GCR_VERSION', '4'))
 from gi.repository import Gcr, Gio, GLib
 
 root = Path(__file__).resolve().parents[2]
-bridge = root / 'target/dist/morf-keyring'
+bridge = root / 'target/dist/eva-keyring'
 child = subprocess.Popen([str(bridge)], stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
 events = queue.Queue()

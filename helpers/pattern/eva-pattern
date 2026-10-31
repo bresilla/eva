@@ -45,13 +45,13 @@ def main():
         parser.error("run with sudo to manage an unlock pattern")
     if args.stdin and args.action != "set":
         parser.error("--stdin is only valid with set")
-    candidates = (Path(__file__).resolve().parent.parent / "libexec/morf-pattern-check",
-                  Path("/run/wrappers/bin/morf-pattern-check"), Path("/usr/local/libexec/morf-pattern-check"))
+    candidates = (Path(__file__).resolve().parent.parent / "libexec/eva-pattern-check",
+                  Path("/run/wrappers/bin/eva-pattern-check"), Path("/usr/local/libexec/eva-pattern-check"))
     helper = next((str(p) for p in candidates if p.is_file()), None)
     if not helper:
-        parser.error("morf-pattern-check is not installed")
+        parser.error("eva-pattern-check is not installed")
     if args.action == "status":
-        present = Path("/etc/morf/pattern", user.pw_name).is_file()
+        present = Path("/etc/eva/pattern", user.pw_name).is_file()
         print("Pattern enabled." if present else "No pattern enrolled.")
         return
     if args.action == "clear":

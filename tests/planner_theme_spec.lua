@@ -83,7 +83,7 @@ local function load(style,w,h,dry)
     TEST_WIDTH=tostring(w),TEST_HEIGHT=tostring(h),EVA_DRY_RUN=dry and "1" or "0"}})
 end
 local function page(name) test.ipc("page",name) test.advance(2500) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 local function scroll_to(id,viewport_id)
   local node,viewport=test.get(id),test.get(viewport_id)
   if node.y<viewport.y or node.y+node.height>viewport.y+viewport.height then

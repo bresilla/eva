@@ -43,7 +43,7 @@ in
     # dotfiles symlink, and switching compositors drops this entire block.
     environment.etc."xdg/hypr/hypridle.conf".text = ''
       general {
-        lock_cmd = ${pkgs.systemd}/bin/systemctl --user start morf-idle-lock.service
+        lock_cmd = ${pkgs.systemd}/bin/systemctl --user start eva-idle-lock.service
         before_sleep_cmd = ${pkgs.systemd}/bin/loginctl lock-session
         after_sleep_cmd = ${config.system.build.hyprlandIdleDpms} on
         inhibit_sleep = 3
@@ -80,8 +80,8 @@ in
       restartTriggers = [ config.environment.etc."xdg/hypr/hypridle.conf".source ];
     };
     # Repeated idle/sleep requests reuse the same running lock process.
-    systemd.user.services.morf-idle-lock = {
-      description = "Morf lock screen requested by Hyprland idle management";
+    systemd.user.services.eva-idle-lock = {
+      description = "eva lock screen requested by Hyprland idle management";
       partOf = [ "graphical-session.target" ];
       path = [ "/run/current-system/sw" ];
       serviceConfig = {

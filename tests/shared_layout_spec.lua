@@ -17,7 +17,7 @@ local function load(style)
   test.advance(1800)
 end
 local function shot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 
 test.it("both themes select the same content builders; approved edge skins stay independent",function()

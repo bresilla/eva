@@ -120,7 +120,7 @@ def adopt(state, cache, home):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=("logo", "greet", "adopt", "publish"))
-    parser.add_argument("--config", default="/etc/morf/wallpaper.json")
+    parser.add_argument("--config", default="/etc/eva/wallpaper.json")
     parser.add_argument("--image")
     parser.add_argument("--palette")
     args = parser.parse_args()
@@ -150,5 +150,5 @@ if __name__ == "__main__":
     try:
         main()
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
-        print("Morf wallpaper: " + str(error), file=sys.stderr)
+        print("eva wallpaper: " + str(error), file=sys.stderr)
         sys.exit(1)

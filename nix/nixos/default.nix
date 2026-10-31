@@ -21,7 +21,7 @@ let
     export MORF_RUNTIME_PATH="${
       lib.concatMapStringsSep ":" toString config.programs.eva.runtimePaths
     }''${MORF_RUNTIME_PATH:+:$MORF_RUNTIME_PATH}"
-    export MORF_KEYRING_HELPER="''${MORF_KEYRING_HELPER:-${keyring}/bin/morf-keyring}"
+    export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${keyring}/bin/eva-keyring}"
     export EVA_SCALE_MODE=compositor
     export EVA_SCALE_FILE="''${EVA_SCALE_FILE:-${config.programs.eva.uiScaleFile}}"
     export EVA_SCALE_DEFAULT="''${EVA_SCALE_DEFAULT:-${toString config.programs.eva.uiScale}}"
@@ -39,20 +39,23 @@ let
       exec ${morf}/bin/morf "$@"
     fi
     root="''${XDG_CONFIG_HOME:-$HOME/.config}"
-    if [ "$role" = greet ] && [ -n "''${MORF_GREETER_CONFIG_HOME:-}" ]; then
-      root="$MORF_GREETER_CONFIG_HOME"
+    if [ "$role" = greet ] && [ -n "''${EVA_GREETER_CONFIG_HOME:-}" ]; then
+      root="$EVA_GREETER_CONFIG_HOME"
     fi
     candidate="$root/eva/$role/init.lua"
     fallback="/etc/xdg/morf/default/$role/init.lua"
     # The chosen appearance lives in state, so read-only configs keep it and the
-    # greeter can follow it. An older file beside the theme moves there once.
+    # greeter can follow it. An older file, under morf's state or beside the
+    # theme, moves there once.
     if [ -z "''${EVA_APPEARANCE:-}" ]; then
-      if [ "$role" = greet ] && [ -n "''${MORF_GREETER_CONFIG_HOME:-}" ]; then
-        appearance="''${MORF_GREETER_APPEARANCE:-}"
+      if [ "$role" = greet ] && [ -n "''${EVA_GREETER_CONFIG_HOME:-}" ]; then
+        appearance="''${EVA_GREETER_APPEARANCE:-}"
         if [ -n "$appearance" ] && [ -r "$appearance" ]; then export EVA_APPEARANCE="$appearance"; fi
       else
-        appearance="''${XDG_STATE_HOME:-$HOME/.local/state}/morf/appearance/appearance.json"
+        appearance="''${XDG_STATE_HOME:-$HOME/.local/state}/eva/appearance/appearance.json"
         ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname "$appearance")"
+        old="''${XDG_STATE_HOME:-$HOME/.local/state}/morf/appearance/appearance.json"
+        if [ ! -e "$appearance" ] && [ -r "$old" ]; then ${pkgs.coreutils}/bin/install -m 644 "$old" "$appearance"; fi
         if [ ! -e "$appearance" ] && [ -r "$candidate" ]; then
           legacy="$(${pkgs.coreutils}/bin/dirname "$(${pkgs.coreutils}/bin/dirname "$(${pkgs.coreutils}/bin/readlink -f "$candidate")")")/appearance.json"
           if [ -r "$legacy" ]; then ${pkgs.coreutils}/bin/install -m 644 "$legacy" "$appearance"; fi
@@ -71,7 +74,7 @@ let
       exec ${morf}/bin/morf "$fallback"
     ''}
     if [ -r "$candidate" ]; then
-      if [ "$role" = greet ] && [ -n "''${MORF_GREETER_CONFIG_HOME:-}" ]; then
+      if [ "$role" = greet ] && [ -n "''${EVA_GREETER_CONFIG_HOME:-}" ]; then
         theme=$(${pkgs.coreutils}/bin/dirname "$(${pkgs.coreutils}/bin/dirname "$(${pkgs.coreutils}/bin/readlink -f "$candidate")")")
         if [ -r "$theme/appearance.json" ]; then export EVA_APPEARANCE="$theme/appearance.json"; fi
       fi
@@ -82,22 +85,22 @@ let
         ${morf}/bin/morf "$candidate"
         status=$?
         if [ "$status" -eq 0 ]; then exit 0; fi
-        echo "Morf $role exited with $status; using $fallback" >&2
+        echo "eva $role exited with $status; using $fallback" >&2
       else
-        echo "Morf $role configuration failed validation; using $fallback" >&2
+        echo "eva $role configuration failed validation; using $fallback" >&2
       fi
     fi
-    if [ "$role" = greet ] && [ -n "''${MORF_GREETER_CONFIG_HOME:-}" ]; then unset EVA_APPEARANCE; fi
+    if [ "$role" = greet ] && [ -n "''${EVA_GREETER_CONFIG_HOME:-}" ]; then unset EVA_APPEARANCE; fi
     export XDG_CONFIG_DIRS=/etc/xdg
     exec ${morf}/bin/morf "$fallback"
   '';
-  greeterAccess = pkgs.writeShellScript "morf-greeter-access" ''
-    # No write access, and no directory listing outside the Morf tree.
+  greeterAccess = pkgs.writeShellScript "eva-greeter-access" ''
+    # No write access, and no directory listing outside the eva tree.
     home=$(${pkgs.coreutils}/bin/readlink -e ${lib.escapeShellArg userHome}) || exit 0
     # The chosen appearance is the one state folder the greeter may read.
-    appearance="$home/.local/state/morf/appearance"
+    appearance="$home/.local/state/eva/appearance"
     if [ -d "$appearance" ] && [ ! -L "$appearance" ]; then
-      for parent in "$home" "$home/.local" "$home/.local/state" "$home/.local/state/morf"; do
+      for parent in "$home" "$home/.local" "$home/.local/state" "$home/.local/state/eva"; do
         ${pkgs.acl}/bin/setfacl -m u:greeter:--x "$parent" || echo "Cannot grant greeter traversal on $parent" >&2
       done
       ${pkgs.acl}/bin/setfacl -R -P -m u:greeter:rX,d:u:greeter:rX "$appearance" \
@@ -122,7 +125,7 @@ let
     esac
     exit 0
   '';
-  greeter = pkgs.writeShellScript "morf-greeter" ''
+  greeter = pkgs.writeShellScript "eva-greeter" ''
     export PATH=${
       lib.makeBinPath [
         pkgs.systemd
@@ -130,16 +133,16 @@ let
       ]
     }:/run/current-system/sw/bin
     export XDG_CONFIG_HOME=/var/lib/greetd/.config
-    export MORF_GREETER_CONFIG_HOME=${lib.escapeShellArg "${userHome}/.config"}
-    export MORF_GREETER_APPEARANCE=${lib.escapeShellArg "${userHome}/.local/state/morf/appearance/appearance.json"}
+    export EVA_GREETER_CONFIG_HOME=${lib.escapeShellArg "${userHome}/.config"}
+    export EVA_GREETER_APPEARANCE=${lib.escapeShellArg "${userHome}/.local/state/eva/appearance/appearance.json"}
     export XDG_CONFIG_DIRS=${lib.escapeShellArg "${userHome}/.config:/etc/xdg"}
     export XDG_DATA_DIRS=${config.services.displayManager.sessionData.desktops}/share:/run/current-system/sw/share
-    exec ${config.system.build.morfGreeterCompositor}
+    exec ${config.system.build.evaGreeterCompositor}
   '';
-  scaleDirectory = "/var/lib/morf/ui-scale/${user}";
-  directory = "/var/lib/morf/wallpaper/${user}";
+  scaleDirectory = "/var/lib/eva/ui-scale/${user}";
+  directory = "/var/lib/eva/wallpaper/${user}";
   lule = config.programs.eva.lulePackage;
-  bridge = pkgs.writeShellScriptBin "morf-wallpaper" ''
+  bridge = pkgs.writeShellScriptBin "eva-wallpaper" ''
     exec ${pkgs.python3}/bin/python3 ${./scripts/wallpaper.py} "$@"
   '';
   # A minimal greeter-only palette config: user hooks belong to their session.
@@ -148,7 +151,7 @@ let
     lule.theme = "dark"
     lule.palette = "pigment"
   '';
-  fallbackLogo = pkgs.writeText "morf-wallpaper-logo.svg" ''
+  fallbackLogo = pkgs.writeText "eva-wallpaper-logo.svg" ''
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
       <path fill="#ffffff" d="M15 75V25h14l21 25 21-25h14v50H70V48L50 71 30 48v27z"/>
     </svg>
@@ -188,7 +191,7 @@ in
     };
     keyringPackage = lib.mkOption {
       type = lib.types.package;
-      default = flake.packages.${system}.morf-keyring;
+      default = flake.packages.${system}.eva-keyring;
       description = "The bridge that shows GNOME Keyring prompts in eva's dialog.";
     };
     lulePackage = lib.mkOption {
@@ -197,7 +200,7 @@ in
     };
     wallpaperLogo = lib.mkOption {
       type = lib.types.str;
-      default = "${userHome}/.config/morf/logo.svg";
+      default = "${userHome}/.config/eva/logo.svg";
       description = "Optional logo for generated wallpapers.";
     };
   };
@@ -238,16 +241,39 @@ in
         (lib.hiPrio morfDefault)
         bridge
       ];
-      system.build.morfLauncher = morfDefault;
-      system.build.morfGreeter = greeter;
-      system.build.morfGreeterAccess = greeterAccess;
+      system.build.evaLauncher = morfDefault;
+      system.build.evaGreeter = greeter;
+      system.build.evaGreeterAccess = greeterAccess;
       # Account activation reapplies the private home mode, which clears the ACL
       # mask. Regrant traversal even when the Home Manager package did not change.
-      system.activationScripts.morfGreeterAccess = {
+      system.activationScripts.evaGreeterAccess = {
         deps = [ "users" ];
         text = "${greeterAccess}";
       };
-      systemd.services.morf-greeter-access = {
+      # State kept under morf's names before eva had its own, moved once.
+      system.activationScripts.evaState = {
+        deps = [ "users" "groups" ];
+        text = ''
+          moved=""
+          move() {
+            if [ -e "$1" ] && [ ! -e "$2" ]; then
+              ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname "$2")"
+              ${pkgs.coreutils}/bin/mv "$1" "$2" && moved="$moved $2"
+            fi
+          }
+          move /var/lib/morf/ui-scale /var/lib/eva/ui-scale
+          move /var/lib/morf/wallpaper /var/lib/eva/wallpaper
+          move /var/lib/morf/pattern /var/lib/eva/pattern
+          move /etc/morf/pattern /etc/eva/pattern
+          move /etc/morf/eva-accent /etc/eva/accent
+          # The shared wallpaper's files carry the old group, which is gone.
+          case "$moved" in
+            *" /var/lib/eva/wallpaper"*) ${pkgs.coreutils}/bin/chgrp -R eva-wallpaper /var/lib/eva/wallpaper || true ;;
+          esac
+          ${pkgs.coreutils}/bin/rmdir /var/lib/morf 2>/dev/null || true
+        '';
+      };
+      systemd.services.eva-greeter-access = {
         description = "Allow the greeter to read the primary user's eva shell";
         wantedBy = [ "multi-user.target" ];
         after = [ "home-manager-${user}.service" ];
@@ -261,7 +287,7 @@ in
           ExecStart = greeterAccess;
         };
       };
-      systemd.services.greetd.wants = [ "morf-greeter-access.service" ];
+      systemd.services.greetd.wants = [ "eva-greeter-access.service" ];
 
       environment.etc."xdg/morf/eva".source = shell;
       environment.etc."xdg/morf/default".source = shell;
@@ -270,7 +296,7 @@ in
       };
       programs.hyprland.withUWSM = lib.mkIf config.programs.hyprland.enable (lib.mkDefault true);
 
-      systemd.user.services.morf = {
+      systemd.user.services.eva = {
         description = "eva desktop shell on morf";
         wantedBy = [ "graphical-session.target" ];
         after = [ "graphical-session.target" ];
@@ -280,58 +306,58 @@ in
           lib.concatMapStringsSep ":" toString
             config.programs.eva.runtimePaths;
         serviceConfig = {
-          ExecStartPre = "-${bridge}/bin/morf-wallpaper adopt";
+          ExecStartPre = "-${bridge}/bin/eva-wallpaper adopt";
           ExecStart = "${morfDefault}/bin/morf shell";
-          ExecStopPost = "-${bridge}/bin/morf-wallpaper publish";
+          ExecStopPost = "-${bridge}/bin/eva-wallpaper publish";
           Restart = "on-failure";
           RestartSec = 2;
         };
       };
       fonts.packages = greeterFonts;
 
-      system.build.morfWallpaper = bridge;
-      environment.etc."morf/wallpaper.json".text = builtins.toJSON {
+      system.build.evaWallpaper = bridge;
+      environment.etc."eva/wallpaper.json".text = builtins.toJSON {
         inherit user directory;
         logo = config.programs.eva.wallpaperLogo;
         fallback_logo = toString fallbackLogo;
         lule = "${lule}/bin/lule";
         lule_config = toString luleConfig;
-        command = "${bridge}/bin/morf-wallpaper";
+        command = "${bridge}/bin/eva-wallpaper";
       };
-      users.groups.morf-wallpaper.members = [
+      users.groups.eva-wallpaper.members = [
         user
         "greeter"
       ];
       systemd.tmpfiles.rules = [
-        "d /var/lib/morf 0755 root root -"
-        "d /var/lib/morf/ui-scale 0755 root root -"
+        "d /var/lib/eva 0755 root root -"
+        "d /var/lib/eva/ui-scale 0755 root root -"
         "d ${scaleDirectory} 0755 ${user} ${config.users.users.${user}.group} -"
-        "d /var/lib/morf/wallpaper 0755 root root -"
-        "d ${directory} 2770 ${user} morf-wallpaper -"
-        "f ${directory}/.lock 0666 ${user} morf-wallpaper -"
+        "d /var/lib/eva/wallpaper 0755 root root -"
+        "d ${directory} 2770 ${user} eva-wallpaper -"
+        "f ${directory}/.lock 0666 ${user} eva-wallpaper -"
       ];
-      systemd.services.morf-wallpaper-logo = {
+      systemd.services.eva-wallpaper-logo = {
         description = "Share the wallpaper logo with the greeter";
         wantedBy = [ "multi-user.target" ];
         after = [
           "systemd-tmpfiles-setup.service"
           "home-manager-${user}.service"
         ];
-        before = [ "morf-wallpaper-boot.service" ];
+        before = [ "eva-wallpaper-boot.service" ];
         serviceConfig = {
           Type = "oneshot";
           User = user;
-          ExecStart = "${bridge}/bin/morf-wallpaper logo";
+          ExecStart = "${bridge}/bin/eva-wallpaper logo";
           RemainAfterExit = true;
         };
       };
-      systemd.services.morf-wallpaper-boot = {
+      systemd.services.eva-wallpaper-boot = {
         description = "Generate the shared Lule wallpaper once per boot";
         wantedBy = [ "multi-user.target" ];
-        wants = [ "morf-wallpaper-logo.service" ];
+        wants = [ "eva-wallpaper-logo.service" ];
         after = [
           "systemd-tmpfiles-setup.service"
-          "morf-wallpaper-logo.service"
+          "eva-wallpaper-logo.service"
         ];
         before = [ "greetd.service" ];
         serviceConfig = {
@@ -340,7 +366,7 @@ in
           # Lule's palette extractor uses /tmp/lule_palette. Keep the greeter's
           # scratch file separate from the one owned by the logged-in user.
           PrivateTmp = true;
-          ExecStart = "${bridge}/bin/morf-wallpaper greet";
+          ExecStart = "${bridge}/bin/eva-wallpaper greet";
           RemainAfterExit = true;
           TimeoutStartSec = 250;
         };
@@ -348,9 +374,9 @@ in
     }
     // lib.optionalAttrs (options ? home-manager) {
       home-manager.users.${user} = { lib, ... }: {
-        home.activation.restartMorf = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
-          if ${pkgs.systemd}/bin/systemctl --user is-active --quiet morf.service 2>/dev/null; then
-            run ${pkgs.systemd}/bin/systemctl --user restart morf.service
+        home.activation.restartEva = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
+          if ${pkgs.systemd}/bin/systemctl --user is-active --quiet eva.service 2>/dev/null; then
+            run ${pkgs.systemd}/bin/systemctl --user restart eva.service
           fi
         '';
       };

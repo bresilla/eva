@@ -131,7 +131,7 @@ for _,style in ipairs {"material","tsugumori"} do
       test.truthy(math.abs(weather.x+weather.width/2-w/2)<=1,"weather drifted away from center")
       test.truthy(weather.y+weather.height<=clock.y,"weather overlaps the clock")
       test.truthy(clock.y+clock.height<=date.y,"date overlaps the clock")
-      if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-lock-glance-"..w..".png") end
+      if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-lock-glance-"..w..".png") end
       test.ipc("audit","no-weather") test.advance(100)
       test.falsy(test.get("lock-weather").visible)
       test.truthy(test.get("lock-clock").visible)

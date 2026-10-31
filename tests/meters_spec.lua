@@ -64,7 +64,7 @@ test.it("readings ease together and compact sliders keep their labels clear",fun
     test.near(test.get("media-progress-fill").width,416*v,.1)
   end
   test.ipc("value",".42") test.advance(250)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then
     test.snapshot("meters-rest.png")
     test.move("brightness") test.advance(200)
     test.snapshot("meters-hover.png")

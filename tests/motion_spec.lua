@@ -117,7 +117,7 @@ test.describe("theme motion", function()
     test.truthy(cover.width > 0 and cover.width < 320, "cover never retracted")
     test.truthy(cover.visible)
     test.truthy(test.get("drawer-sample-reveal-flash").opacity>0)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-drawer-flash.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-drawer-flash.png") end
     test.advance(300)
     test.falsy(test.get("drawer-sample-curtain").visible)
     test.falsy(test.get("drawer-sample-reveal-flash").visible)

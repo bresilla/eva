@@ -53,7 +53,7 @@ test.it("meaningful readout changes flash once, throttle bursts and stop reading
   test.near(test.get("metric-change-flash").opacity,0,.001)
   test.ipc("value",65) test.advance(90)
   test.truthy(test.get("metric-change-flash").opacity>0)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-value-cue.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-value-cue.png") end
   test.advance(500) test.ipc("value",95) test.advance(90)
   test.near(test.get("metric-change-flash").opacity,0,.001)
   test.ipc("active",false) test.advance(1)
@@ -74,13 +74,13 @@ test.it("authentication results distinguish success from retries and cancel on d
   test.ipc("phase","failed",1) test.advance(50)
   test.truthy(math.abs(test.get("identity-register-1").x-original_x)>0)
   test.near(test.get("identity-result-edge").opacity,0,.001)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-auth-failure.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-auth-failure.png") end
   test.advance(400)
   test.ipc("phase","failed",2) test.advance(50)
   test.truthy(test.get("identity-register-1").opacity>0)
   test.ipc("phase","done",2) test.advance(50)
   test.truthy(test.get("identity-result-edge").opacity>0)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-auth-success.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-auth-success.png") end
   test.advance(500) test.near(test.get("identity-result-edge").opacity,0,.001)
   test.ipc("phase","failed",3) test.advance(50)
   test.ipc("active",false) test.advance(1)
@@ -94,7 +94,7 @@ test.it("notification acquisition follows new identities without replaying reflo
   test.ipc("notifications",{1,2}) test.advance(80)
   test.truthy(test.get("notification-1-register-1").opacity>0)
   test.near(test.get("notification-2-register-1").opacity,0,.001)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-notification-acquire.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-notification-acquire.png") end
   test.advance(600) test.ipc("notifications",{1}) test.advance(80)
   test.near(test.get("notification-1-register-1").opacity,0,.001)
   test.ipc("dnd",true) test.ipc("notifications",{1,3}) test.advance(1)

@@ -28,7 +28,7 @@ test.it("Tsugumori buttons and sliders share reversible hover feedback",function
  local middle=test.get("control-wash")
  test.truthy(middle.opacity>0 and middle.opacity<=0.055)
  test.truthy(test.get("control-glint").opacity>0)
- if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-control-glint.png") end
+ if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-control-glint.png") end
  test.near(test.get("control").x,before.x,0.01)
  test.near(test.get("control").width,before.width,0.01)
  test.click("control")
@@ -50,7 +50,7 @@ test.it("rapid tab changes reveal only the latest page and release the cover",fu
  test.truthy(test.get("sample-page-one").visible)
  test.advance(90) test.advance(25)
  test.truthy(test.get("sample-page-flash").opacity>0)
- if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-page-flash.png") end
+ if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-page-flash.png") end
  test.ipc("select","three") test.advance(700)
  test.truthy(test.get("sample-page-three").visible)
  test.falsy(test.get("sample-page-two").visible)

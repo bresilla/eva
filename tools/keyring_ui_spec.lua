@@ -1,7 +1,7 @@
 local test=morf.test
 test.it("keyring client receives the answer entered in morf",function()
   test.load("../shell/init.lua",{
-    env={EVA_STYLE="material",EVA_DRY_RUN="0",MORF_KEYRING_HELPER=morf.env("MORF_KEYRING_HELPER"),
+    env={EVA_STYLE="material",EVA_DRY_RUN="0",EVA_KEYRING_HELPER=morf.env("EVA_KEYRING_HELPER"),
       DBUS_SESSION_BUS_ADDRESS=morf.env("KEYRING_TEST_BUS")},source=[[
       require("init")
       local keyring=require("keyring")

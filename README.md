@@ -64,12 +64,12 @@ runs the packaged one.
 The native pieces the shell talks to live in `helpers/`, and the flake builds
 them:
 
-- `helpers/keyring`: the GNOME Keyring prompt bridge, `.#morf-keyring`
+- `helpers/keyring`: the GNOME Keyring prompt bridge, `.#eva-keyring`
   ([build and tests](helpers/keyring/README.md)).
-- `helpers/pam`: `morf-auth-step`, the PAM markers that tell the shell which
+- `helpers/pam`: `eva-auth-step`, the PAM markers that tell the shell which
   step sudo is on (face, finger, password, done), and installers for the
   markers and the lock's finger and face stacks on non-NixOS systems.
-- `helpers/pattern`: unlock patterns, `.#morf-pattern`
+- `helpers/pattern`: unlock patterns, `.#eva-pattern`
   ([how they work](helpers/pattern/README.md)).
 
 ## Which morf
@@ -263,7 +263,7 @@ to inspect that monitor. The counters should increase with the drawer closed.
 
 The shell, lock and greeter select a visual package with
 `EVA_STYLE=material` or `EVA_STYLE=tsugumori`. Without that override,
-selection comes from `theme` in `$XDG_CONFIG_HOME/morf/eva/appearance.json`
+selection comes from `theme` in `$XDG_CONFIG_HOME/eva/appearance.json`
 (or the file named by `EVA_APPEARANCE`); Material is the default.
 Changing the selection currently requires restarting the preview. Wallpaper
 and Lule colors remain independent of that selection.
@@ -302,7 +302,7 @@ The specs stub external commands and never change the user's tasks or
 record the desktop. eva's own library, `lib/` (Lule, Taskwarrior, the
 modem, settings, capture and the rest), is tested by `tests/lib_*_spec.lua`.
 
-Keyring prompts use morf when the optional `morf-keyring` helper is installed
+Keyring prompts use morf when the optional `eva-keyring` helper is installed
 on PATH. See [the bridge build and test instructions](helpers/keyring/README.md).
 The bridge keeps GNOME Keyring as the secret store and displays unlock,
 new-password and confirmation dialogs using the current theme. It starts on
@@ -315,7 +315,7 @@ Tsugumori without restarting the process. Open drawers use a feathered wipe whil
 the frame stays visible and its corners and seams morph between styles. Restored
 cards start settled so their entrance animations do not compete with the reveal.
 Font-only changes use a dissolve. The selected theme is saved in
-`$XDG_CONFIG_HOME/morf/eva/appearance.json` (`EVA_APPEARANCE` overrides
+`$XDG_CONFIG_HOME/eva/appearance.json` (`EVA_APPEARANCE` overrides
 that path); `EVA_STYLE` remains a startup override for previews.
 
 The switch retains open drawers, selected tabs, Taskwarrior editor drafts,

@@ -96,7 +96,7 @@ local function load(style,kind,w,h,dry,missing)
     TEST_WIDTH=tostring(w),TEST_HEIGHT=tostring(h),EVA_DRY_RUN=dry and "1" or "0",TEST_MISSING=missing and "1" or "0"}})
 end
 local function open() test.ipc("show","yes") test.advance(2500) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." Wired reads ports and dispatches by current interface",function()
     load(style,"wired") open() shot(style.."-wired")

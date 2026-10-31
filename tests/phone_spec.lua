@@ -1,10 +1,10 @@
 -- A phone: every surface at a Fairphone 6's logical size at the scale the
 -- shell is meant for there (868 x 1932), in both themes. Nothing a person touches may fall off
--- the screen; MORF_PHONE_SNAPSHOTS=1 keeps a picture of each step in
+-- the screen; EVA_PHONE_SNAPSHOTS=1 keeps a picture of each step in
 -- snapshots/phone/.
 local test=morf.test
 local W,H=tonumber(morf.env("PHONE_W") or "") or 868,tonumber(morf.env("PHONE_H") or "") or 1932
-local SHOTS=morf.env("MORF_PHONE_SNAPSHOTS")=="1"
+local SHOTS=morf.env("EVA_PHONE_SNAPSHOTS")=="1"
 local function shot(name) if SHOTS then test.snapshot("phone/"..name..".png") end end
 local source=[[
   local morf=require("morf")

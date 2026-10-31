@@ -7,16 +7,17 @@ import shutil
 import sys
 import tempfile
 
-BEGIN = "# morf-pattern begin"
-END = "# morf-pattern end"
-HELPER = "/usr/local/libexec/morf-pattern-check"
+BEGIN = "# eva-pattern begin"
+END = "# eva-pattern end"
+HELPER = "/usr/local/libexec/eva-pattern-check"
 
 
 def pam_with_pattern(text, helper=HELPER, reset=False):
-    # Remove only our own previous insertion, preserving required checks.
-    text = re.sub(r"(?m)^# morf-pattern begin\n.*?^# morf-pattern end\n", "", text, flags=re.S)
+    # Remove only our own previous insertion (under either name), preserving required checks.
+    text = re.sub(r"(?m)^# (morf|eva)-pattern begin\n.*?^# \1-pattern end\n", "", text, flags=re.S)
     lines = [line for line in text.splitlines(keepends=True)
-             if not (re.match(r"^\s*(?:auth|account)\s+", line) and "morf-pattern-check" in line)]
+             if not (re.match(r"^\s*(?:auth|account)\s+", line)
+                     and re.search(r"(?:morf|eva)-pattern-check", line))]
     # A login that passed the account stack clears pattern lockouts.
     if reset:
         if lines and not lines[-1].endswith("\n"): lines[-1] += "\n"
@@ -32,7 +33,7 @@ def pam_with_pattern(text, helper=HELPER, reset=False):
 
 def replace(path, data, mode):
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(prefix=".morf-pattern-", dir=path.parent)
+    fd, temporary = tempfile.mkstemp(prefix=".eva-pattern-", dir=path.parent)
     try:
         with os.fdopen(fd, "wb") as stream:
             stream.write(data)
@@ -49,7 +50,7 @@ def main():
         raise SystemExit("This installer requires root on a non-NixOS system")
     here = Path(__file__).resolve().parent
     pam = Path("/etc/pam.d")
-    lock = pam / "morf-lock"
+    lock = pam / "eva-lock"
     original = {}
     if lock.exists():
         lock_text = lock.read_text()
@@ -68,7 +69,7 @@ def main():
     if not binary.startswith(b"\x7fELF"):
         raise SystemExit("Expected a compiled verifier")
     replace(Path(HELPER), binary, 0o4755)
-    replace(Path("/usr/local/bin/morf-pattern"), (here / "morf-pattern").read_bytes(), 0o755)
+    replace(Path("/usr/local/bin/eva-pattern"), (here / "eva-pattern").read_bytes(), 0o755)
     for path in updates:
         original[path] = path.read_bytes() if path.exists() else None
         if path.exists(): shutil.copy2(path, path.with_name(path.name + ".bak-pattern"))
@@ -79,7 +80,7 @@ def main():
             if data is None: path.unlink(missing_ok=True)
             else: replace(path, data, 0o644)
         raise
-    print("Pattern authentication installed for Morf lock and greetd.")
+    print("Pattern authentication installed for the eva lock and greetd.")
 
 
 if __name__ == "__main__":

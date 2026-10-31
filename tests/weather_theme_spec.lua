@@ -48,7 +48,7 @@ local function load(style,w,h)
   test.advance(100)
 end
 local function shot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." weather preserves units, forecast, daylight and hidden service gating",function()

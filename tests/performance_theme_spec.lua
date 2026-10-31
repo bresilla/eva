@@ -83,7 +83,7 @@ local function load(style,w,h)
   test.advance(100)
 end
 local function shot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 local function select(key) test.ipc("select",key) test.advance(2500) end
 test.it("Tsugumori CPU and memory threshold changes flash and hiding cancels the cues",function()

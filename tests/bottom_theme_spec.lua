@@ -31,7 +31,7 @@ local function load(style,w,h)
   test.advance(100)
 end
 local function open() test.ipc("open","yes") test.advance(2400) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." bottom preserves navigation and geometry without starting integrations",function()
     load(style) open()

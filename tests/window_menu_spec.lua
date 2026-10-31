@@ -30,7 +30,7 @@ end
 local function state() return test.ipc("menu_state") end
 local function last() local e=state().evals return e[#e] or "" end
 local function open() test.eq(test.ipc("window_menu","open"),true) test.advance(800) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." the window menu's buttons each act in one press",function()
     load(style) open()

@@ -18,13 +18,13 @@
 #include <unistd.h>
 
 #ifndef PATTERN_PARENT
-#define PATTERN_PARENT "/var/lib/morf"
+#define PATTERN_PARENT "/var/lib/eva"
 #endif
 #ifndef PATTERN_STATE
 #define PATTERN_STATE PATTERN_PARENT "/pattern"
 #endif
 #ifndef PATTERN_PUBLIC_PARENT
-#define PATTERN_PUBLIC_PARENT "/etc/morf"
+#define PATTERN_PUBLIC_PARENT "/etc/eva"
 #endif
 #ifndef PATTERN_PUBLIC
 #define PATTERN_PUBLIC PATTERN_PUBLIC_PARENT "/pattern"

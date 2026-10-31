@@ -27,7 +27,7 @@ require("themes.ui_scale").apply()
 
 local HELD = morf.operands[1] ~= "window"
 -- A fingerprint stack to listen on (helpers/pam/readers.sh), said in the hint.
-local FINGER = morf.fs.exists("/etc/pam.d/morf-lock-finger")
+local FINGER = morf.fs.exists("/etc/pam.d/eva-lock-finger")
 -- `-- window preview`: never asks PAM -- any password but "wrong" opens it.
 -- For pictures and tests: a lock that asked PAM and was killed mid-way
 -- would count as a failed login.
@@ -217,13 +217,13 @@ end, true)
 -- is set for this account. Anywhere else a drawn pattern would only be a
 -- wrong password, and a failed login counted.
 local PATTERN_STACK = (function()
-  local ok, t = pcall(morf.fs.read, "/etc/pam.d/morf-lock")
-  return ok and type(t) == "string" and t:find("morf-pattern-check", 1, true) ~= nil
+  local ok, t = pcall(morf.fs.read, "/etc/pam.d/eva-lock")
+  return ok and type(t) == "string" and t:find("eva-pattern-check", 1, true) ~= nil
 end)()
 function has_pattern()
   if PREVIEW then return true end
   local name = me.name
-  return PATTERN_STACK and name ~= nil and name ~= "" and morf.fs.exists("/etc/morf/pattern/" .. name)
+  return PATTERN_STACK and name ~= nil and name ~= "" and morf.fs.exists("/etc/eva/pattern/" .. name)
 end
 local function look()
   return {
@@ -382,9 +382,9 @@ morf.effect("lock.listen", function()
   elseif st == "sheet" then
     door:listen()
   elseif st == "rest" then
-    door:stop("morf-lock-face")
-    door:stop("morf-lock-reader")
-    door:listen("morf-lock-finger")
+    door:stop("eva-lock-face")
+    door:stop("eva-lock-reader")
+    door:listen("eva-lock-finger")
   else
     door:stop()
   end

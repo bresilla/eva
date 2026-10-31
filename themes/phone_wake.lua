@@ -4,7 +4,7 @@ local morf=require("morf")
 local ui=require("morf.ui")
 local M={}
 local cfg,runtime,instance
-local ok,raw=pcall(morf.fs.read,morf.env("MORF_PHONE_SCREEN_CONFIG") or "/etc/morf/phone-screen.json")
+local ok,raw=pcall(morf.fs.read,morf.env("EVA_PHONE_SCREEN_CONFIG") or "/etc/eva/phone-screen.json")
 if ok and type(raw)=="string" then
   local valid,value=pcall(morf.json.decode,raw)
   if valid and type(value)=="table" and type(value.command)=="string" then cfg=value end

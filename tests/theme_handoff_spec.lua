@@ -81,6 +81,6 @@ for _,pair in ipairs {{"material","tsugumori"},{"tsugumori","material"},{"tsugum
     test.eq({state.history[1],state.history[2],state.history[3]},{11,22,33})
     test.truthy(test.get("lule-theme-"..pair[2]).visible)
     test.eq(#test.logs("error"),0)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("handoff-"..(pair[3] or pair[2])..".png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("handoff-"..(pair[3] or pair[2])..".png") end
   end)
 end

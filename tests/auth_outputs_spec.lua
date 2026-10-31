@@ -34,7 +34,7 @@ test.it("one lock conversation follows the pointer between differently sized out
     end
   ]]})
   test.advance(800) test.ipc("fixture","sheet") test.advance(800)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("lock-mixed-outputs.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("lock-mixed-outputs.png") end
   test.move(200,100) test.type("disposable")
   test.eq(test.ipc("fixture").typed,10)
   test.move(1100,100) test.advance(800)

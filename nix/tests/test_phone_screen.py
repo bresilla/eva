@@ -58,7 +58,7 @@ class ScreenTests(unittest.TestCase):
         self.state.write_text(json.dumps({"powered": True, "locked": False, "calls": []}))
         self.env = dict(os.environ, PATH=str(binary) + os.pathsep + os.environ["PATH"],
                         XDG_RUNTIME_DIR=str(root), HYPRLAND_INSTANCE_SIGNATURE="test",
-                        TEST_SCREEN_STATE=str(self.state), MORF_PHONE_GREETER="0")
+                        TEST_SCREEN_STATE=str(self.state), EVA_PHONE_GREETER="0")
 
     def update(self, **values):
         s = self.read()
@@ -79,7 +79,7 @@ class ScreenTests(unittest.TestCase):
         self.assertTrue(s["locked"])
         self.assertFalse(s["powered"])
         self.assertTrue(s["shield_before_blank"])
-        lock = s["calls"].index(["systemctl", "--user", "start", "morf-idle-lock.service"])
+        lock = s["calls"].index(["systemctl", "--user", "start", "eva-idle-lock.service"])
         blank = s["calls"].index(["phone-dpms", "off"])
         self.assertLess(lock, blank)
 
@@ -90,7 +90,7 @@ class ScreenTests(unittest.TestCase):
         self.assertNotIn(["phone-dpms", "off"], s["calls"])
 
     def test_greeter_blanks_without_starting_a_locker(self):
-        self.env["MORF_PHONE_GREETER"] = "1"
+        self.env["EVA_PHONE_GREETER"] = "1"
         s = self.run_action("off")
         self.assertFalse(s["powered"])
         self.assertFalse(any(c[0] == "systemctl" for c in s["calls"]))

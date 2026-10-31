@@ -143,7 +143,7 @@ morf.effect("eva.keyring.agent",function()
   if dry() then return end
   if primary and not agent then
     local ok, result, why=pcall(require("lib.services.keyring_agent").serve,{
-      helper=morf.env("MORF_KEYRING_HELPER"),
+      helper=morf.env("EVA_KEYRING_HELPER"),
       on_request=function(request)
         if request.endpoint then
           publish("prompt",{id=request.id,endpoint=request.endpoint,kind=request.kind,properties=request.properties,

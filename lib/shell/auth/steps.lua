@@ -11,7 +11,7 @@
 --   steps.state.failures    -- wrong tries in this run, for a shake
 --
 -- The steps come from markers in the PAM stacks themselves
--- (helpers/pam/morf-auth-step, one `pam_exec` line before each step), because
+-- (helpers/pam/eva-auth-step, one `pam_exec` line before each step), because
 -- a program like sudo talks to its own terminal and nothing else can see
 -- its conversation. A stack that starts over at its first step after the
 -- password -- sudo asking again -- was a wrong password. A step that is
@@ -83,12 +83,14 @@ function authsteps.new()
     return nil
   end
 
-  --- Watches `dir` (the runtime directory's `morf`) for the markers'
+  --- Watches `dir` (the runtime directory's `eva`, made here) for the markers'
   --- line: `authstep`, "STEP SERVICE". A marker runs as root inside sudo and
   --- cannot wait on anything, so it writes and leaves; this hears it.
   function steps.watch(dir)
-    dir = dir or ((morf.env("XDG_RUNTIME_DIR") or "") .. "/morf")
-    if dir == "/morf" or not morf.fs.exists(dir) then return nil end
+    dir = dir or ((morf.env("XDG_RUNTIME_DIR") or "") .. "/eva")
+    if dir == "/eva" then return nil end
+    if not morf.fs.exists(dir) then pcall(morf.fs.mkdir, dir) end
+    if not morf.fs.exists(dir) then return nil end
     local ok, handle = pcall(morf.fs.watch, dir, function(event)
       if event.name ~= "authstep" or event.kind == "deleted" then return end
       local okr, text = pcall(morf.fs.read, dir .. "/authstep")

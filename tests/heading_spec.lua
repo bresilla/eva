@@ -30,11 +30,11 @@ test.it("headings center their light and flash occasionally while the decoded la
   test.ipc("show","yes") test.advance(80)
   test.truthy(test.get("heading-text").text~="SIGNAL REGISTER")
   test.truthy(test.get("heading-ghost-a").opacity>0)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("mara-heading-decoding.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("mara-heading-decoding.png") end
   test.near(test.get("heading-text").x,x,0.01)
   test.advance(700)
   test.eq(test.get("heading-text").text,"SIGNAL REGISTER")
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("mara-heading-settled.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("mara-heading-settled.png") end
   test.near(test.get("heading-ghost-a").opacity,0,0.001)
   local centered=test.get("heading-centered-text")
   local centered_dot=test.get("heading-centered-light")
@@ -42,7 +42,7 @@ test.it("headings center their light and flash occasionally while the decoded la
   local word_start=centered.x+(centered.width-word.width)/2
   test.near(word_start-(centered_dot.x+centered_dot.width),11,.01,
     "centered title light is separated from the word")
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("heading-centered-light.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("heading-centered-light.png") end
   local text,dot=test.get("heading-text"),test.get("heading-light")
   local lift=text.y+text.height/2-(dot.y+dot.height/2)
   test.truthy(lift>=1 and lift<=3,"the dot needs an optical lift to align with uppercase letter ink")

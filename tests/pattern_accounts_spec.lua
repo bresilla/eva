@@ -11,11 +11,11 @@ test.it("greeter offers a pattern only for the selected enrolled account",functi
     package.loaded["lib.services.keyboards"]={attached=function() return false end}
     local read,exists=morf.fs.read,morf.fs.exists
     morf.fs.read=function(path)
-      if path=="/etc/pam.d/greetd" then return "auth sufficient pam_exec.so morf-pattern-check --check" end
+      if path=="/etc/pam.d/greetd" then return "auth sufficient pam_exec.so eva-pattern-check --check" end
       return read(path)
     end
     morf.fs.exists=function(path)
-      if path:find("/etc/morf/pattern/",1,true)==1 then return path=="/etc/morf/pattern/owner" end
+      if path:find("/etc/eva/pattern/",1,true)==1 then return path=="/etc/eva/pattern/owner" end
       return exists(path)
     end
     local ctx

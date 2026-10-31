@@ -49,7 +49,7 @@ end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." launcher lists its rows without headings and opens nested actions",function()
     load(style)
-    if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-launcher-register.png") end
+    if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-launcher-register.png") end
     test.eq(test.ipc("state").selected,1)
     test.falsy(test.find {text="Suggestions",visible=true})
     test.key("Down") test.advance(300)
@@ -104,7 +104,7 @@ test.it("Tsugumori launcher fits a compact output and reaches the end of large w
   test.truthy(test.find {text="Wallpaper 90",visible=true})
   panel=test.get("drawer-launcher")
   test.truthy(panel.x>=0 and panel.x+panel.width<=800)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-launcher-compact.png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("tsugumori-launcher-compact.png") end
   test.key("Return") test.advance(900)
   test.eq(test.ipc("state").activated[1],"Wallpaper 90")
   test.eq(#test.logs("warn"),0)

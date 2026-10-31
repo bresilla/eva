@@ -72,7 +72,7 @@ local function load_phone()
   test.load("../shell/dashboard_state.lua", { source = PHONE .. HOST, env = {
     EVA_DRY_RUN = "0", EVA_WALLPAPER = "", EVA_FONT_FILE = "",
     LULE_A = "/nonexistent/lule", HOME = morf.env("XDG_CACHE_HOME"),
-    MORF_PHONE_SCREEN_CONFIG = "/fixture-phone-screen.json",
+    EVA_PHONE_SCREEN_CONFIG = "/fixture-phone-screen.json",
     XDG_RUNTIME_DIR = "/tmp", HYPRLAND_INSTANCE_SIGNATURE = "fixture",
   } })
 end

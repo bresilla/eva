@@ -52,15 +52,15 @@ let
           --replace-fail '${hyprland}/bin/start-hyprland' '${desktop}/bin/hyprland-session'
       '';
   cfg = config.programs.eva.greeter;
-  session = pkgs.writeShellScript "morf-greeter-session" ''
+  session = pkgs.writeShellScript "eva-greeter-session" ''
     ${cfg.sessionSetup}
-    ${config.system.build.morfLauncher}/bin/morf greet
+    ${config.system.build.evaLauncher}/bin/morf greet
     status=$?
     ${hyprland}/bin/hyprctl dispatch 'hl.dsp.exit()' >/dev/null 2>&1 \
       || ${hyprland}/bin/hyprctl dispatch exit >/dev/null 2>&1
     exit "$status"
   '';
-  greeterConfig = pkgs.writeText "morf-greeter.lua" ''
+  greeterConfig = pkgs.writeText "eva-greeter.lua" ''
     local apply_scale = dofile("${./scripts/hyprland-scale.lua}")(
       ${builtins.toJSON config.programs.eva.uiScaleFile}, ${toString config.programs.eva.uiScale})
     hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
@@ -104,7 +104,7 @@ in
     sessionSetup = lib.mkOption {
       type = lib.types.lines;
       default = "";
-      description = "Shell setup before launching Morf in the greeter.";
+      description = "Shell setup before starting the eva greeter.";
     };
     environment = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
@@ -124,13 +124,13 @@ in
       system.build.hyprlandSessionConfig = desktopConfig;
     })
     (lib.mkIf config.programs.eva.enable {
-      system.build.morfGreeterConfig = greeterConfig;
-      system.build.morfGreeterCompositor = pkgs.writeShellScript "morf-greeter-compositor" ''
+      system.build.evaGreeterConfig = greeterConfig;
+      system.build.evaGreeterCompositor = pkgs.writeShellScript "eva-greeter-compositor" ''
         ${lib.concatStringsSep "\n" (
           lib.mapAttrsToList (name: value: "export ${name}=${lib.escapeShellArg value}") cfg.environment
         )}
         # Capture even early startup messages, while retaining journal diagnostics.
-        exec ${pkgs.systemd}/bin/systemd-cat --identifier=morf-greeter -- \
+        exec ${pkgs.systemd}/bin/systemd-cat --identifier=eva-greeter -- \
           ${hyprland}/bin/Hyprland --config ${greeterConfig}
       '';
     })

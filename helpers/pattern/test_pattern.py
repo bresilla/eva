@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 class Pattern(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory(prefix="morf-pattern-test-")
+        cls.tmp = tempfile.TemporaryDirectory(prefix="eva-pattern-test-")
         cls.base = Path(cls.tmp.name)
         cls.private = cls.base / "private"
         cls.public = cls.base / "public"
@@ -34,7 +34,7 @@ class Pattern(unittest.TestCase):
         subprocess.run(["/usr/bin/cc", "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror",
             str(HERE / "pam-test.c"), "-lpam", "-o", cls.pam_test], check=True, env=env)
         cls.account = pwd.getpwnam(os.environ["PATTERN_TEST_USER"])
-        loader = importlib.machinery.SourceFileLoader("pattern_cli", str(HERE / "morf-pattern"))
+        loader = importlib.machinery.SourceFileLoader("pattern_cli", str(HERE / "eva-pattern"))
         spec = importlib.util.spec_from_loader(loader.name, loader)
         cls.cli = importlib.util.module_from_spec(spec)
         loader.exec_module(cls.cli)

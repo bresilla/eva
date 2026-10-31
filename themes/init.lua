@@ -15,7 +15,7 @@ do
   end
 end
 local preferences = settings.open {
-  path = morf.env("EVA_APPEARANCE") or (root .. "/morf/eva/appearance.json"),
+  path = morf.env("EVA_APPEARANCE") or (root .. "/eva/appearance.json"),
   name = "eva.appearance", defaults = defaults,
 }
 local M = { preferences = preferences }

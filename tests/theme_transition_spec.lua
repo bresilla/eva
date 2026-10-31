@@ -44,7 +44,7 @@ local function load(style,seed)
     EVA_APPEARANCE=morf.env("XDG_CACHE_HOME").."/transition-appearance.json"}})
 end
 local function shot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 for _,pair in ipairs {{"material","tsugumori"},{"tsugumori","material"}} do
   test.it(pair[1].." keeps the frame visible and morphs into "..pair[2],function()

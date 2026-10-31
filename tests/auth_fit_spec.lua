@@ -71,7 +71,7 @@ for _,part in ipairs {"lock","greet"} do
           test.truthy(clock.y+clock.height<=people.y+1,"clock overlaps accounts on a short output")
           test.truthy(people.y+people.height<=power.y+1,"accounts overlap power controls")
         end
-        if morf.env("MORF_THEME_SNAPSHOTS")=="1" and style=="tsugumori" and size[1]<=800 then
+        if morf.env("EVA_THEME_SNAPSHOTS")=="1" and style=="tsugumori" and size[1]<=800 then
           test.snapshot(part.."-"..size[1].."x"..size[2].."-rest.png")
         end
         for _,method in ipairs {"password","pattern"} do
@@ -101,7 +101,7 @@ for _,part in ipairs {"lock","greet"} do
           if method=="password" then
             test.truthy(submit.y>=viewport.y and submit.y+submit.height<=viewport.y+viewport.height+1,"submit clipped")
           end
-          if morf.env("MORF_THEME_SNAPSHOTS")=="1" and style=="tsugumori" and method=="password" then
+          if morf.env("EVA_THEME_SNAPSHOTS")=="1" and style=="tsugumori" and method=="password" then
             test.snapshot(part.."-"..size[1].."x"..size[2]..".png")
           end
           if method=="password" and size[2]<375 then
@@ -112,7 +112,7 @@ for _,part in ipairs {"lock","greet"} do
             end
             test.truthy(enter,"scrolling never revealed the keyboard's final row")
             test.truthy(enter.y>=viewport.y and enter.y+enter.height<=viewport.y+viewport.height+1,"keyboard's final row cannot be reached")
-            if morf.env("MORF_THEME_SNAPSHOTS")=="1" and style=="tsugumori" then
+            if morf.env("EVA_THEME_SNAPSHOTS")=="1" and style=="tsugumori" then
               test.snapshot(part.."-"..size[1].."x"..size[2].."-keyboard.png")
             end
           end

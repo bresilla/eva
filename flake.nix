@@ -61,13 +61,13 @@
         packages = {
           default = eva;
           inherit eva;
-          morf-keyring = keyring;
-          morf-pattern = pattern;
+          eva-keyring = keyring;
+          eva-pattern = pattern;
         };
         checks = {
           inherit eva;
-          morf-keyring = keyring;
-          morf-pattern = pattern;
+          eva-keyring = keyring;
+          eva-pattern = pattern;
           module = pkgs.writeText "eva-module-eval"
             (builtins.unsafeDiscardStringContext machine.config.system.build.toplevel.drvPath);
         };
@@ -76,7 +76,7 @@
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.
           MORF_FONT_PATH = pkgs.lib.makeSearchPath "share/fonts" eva.fontPackages;
-          MORF_KEYRING_HELPER = "${keyring}/bin/morf-keyring";
+          EVA_KEYRING_HELPER = "${keyring}/bin/eva-keyring";
         };
       }
     )

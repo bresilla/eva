@@ -38,7 +38,7 @@ local function load(style,w,h)
   test.advance(400)
 end
 local function snapshot(name)
-  if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
 for _,style in ipairs {"material","tsugumori"} do
   local hold=2200

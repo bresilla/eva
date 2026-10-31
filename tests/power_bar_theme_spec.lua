@@ -70,7 +70,7 @@ local function load(style,page,w,h,dry)
     TEST_PAGE=page,TEST_WIDTH=tostring(w),TEST_HEIGHT=tostring(h),EVA_DRY_RUN=dry and "1" or "0"}})
 end
 local function open() test.ipc("show","yes") test.advance(2500) end
-local function shot(name) if morf.env("MORF_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." Power preserves readings, profiles and graph handoff",function()
     load(style,"power") open()
