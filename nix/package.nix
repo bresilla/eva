@@ -7,7 +7,7 @@
   nerd-fonts,
   src,
   version,
-  library,
+  morf,
 }:
 let
   # Found by name: where a font package puts its files moves between
@@ -41,7 +41,7 @@ runCommand "eva-${version}"
     cp ${src}/morf.lua "$out/morf.lua"
     chmod -R u+w "$out"
     mkdir -p "$out/library"
-    cp -R ${library}/share/morf/library/lib "$out/library/"
+    cp -R ${morf}/share/morf/library/lib "$out/library/"
     mkdir -p "$out/fonts"
     for part in shell lock greet; do
       if [ -d "$out/$part/fonts" ] && [ ! -L "$out/$part/fonts" ]; then

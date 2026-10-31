@@ -174,15 +174,10 @@ in
       default = engine.packages.${system}.morf;
       description = "The morf engine; a cached package can be supplied independently of the shell.";
     };
-    libraryPackage = lib.mkOption {
-      type = lib.types.package;
-      default = config.programs.eva.package.library or engine.packages.${system}.morf-library;
-      description = "Installed Lua library matching the selected engine.";
-    };
     shellPackage = lib.mkOption {
       type = lib.types.package;
       default = flake.packages.${system}.eva.override {
-        library = config.programs.eva.libraryPackage;
+        morf = config.programs.eva.package;
       };
       description = "The eva shell, lock screen and greeter, installed as /etc/xdg/morf/eva.";
     };
@@ -219,7 +214,7 @@ in
   };
   options.programs.eva.runtimePaths = lib.mkOption {
     type = lib.types.listOf lib.types.path;
-    default = [ "${config.programs.eva.libraryPackage}/share/morf/library" ];
+    default = [ "${config.programs.eva.package}/share/morf/library" ];
     description = "Additional Morf desktop modules and startup plugins.";
   };
 
@@ -241,7 +236,6 @@ in
 
       environment.systemPackages = [
         (lib.hiPrio morfDefault)
-        config.programs.eva.libraryPackage
         bridge
       ];
       system.build.morfLauncher = morfDefault;

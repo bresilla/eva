@@ -28,7 +28,7 @@
         eva = pkgs.callPackage ./nix/package.nix {
           inherit version;
           src = self;
-          library = morf.packages.${system}.morf-library;
+          morf = engine;
         };
         keyring = pkgs.callPackage ./nix/keyring.nix {
           inherit version;
