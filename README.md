@@ -30,7 +30,7 @@ its source, with two visual themes: Material and Tsugumori.
 }
 ```
 
-The module runs the shell as the `morf` user service, the greeter under
+The module runs the shell as the `eva` user service, the greeter under
 greetd and the lock screen from Hyprland's idle daemon. It also handles the UI
 scale shared with the greeter, the wallpaper bridge, PAM, and, optionally,
 phone gestures and pattern unlock. Its options live under `programs.eva`:
@@ -59,10 +59,29 @@ so edits need no rebuild; each start runs `morf check` on it first and falls
 back to the packaged one when it fails. `programs.eva.usePackagedShell` always
 runs the packaged one.
 
+### From the binary cache
+
+Each push to `main` publishes `.#eva` to `cache.bresilla.com/bresilla` under
+the pins `eva-x86_64-linux` and `eva-aarch64-linux`, beside morf's
+`morf-<system>` pins. That one output holds everything eva installs: the shell,
+lock screen and greeter in `share/eva`, their fonts in `share/fonts`,
+`eva-keyring` and `eva-pattern` in `bin` and `libexec`, and the NixOS module in
+`nixos`. A configuration that takes both as cached store paths, without eva's
+flake, imports the module from the output and hands it the two packages:
+
+```nix
+imports = [
+  (import "${eva}/nixos" { packages = _: { inherit eva morf; }; })
+];
+```
+
+`nix/detached.nix` evaluates the test machine that way, from a downloaded
+output; the cache workflow runs it after each publish.
+
 ## Helpers
 
-The native pieces the shell talks to live in `helpers/`, and the flake builds
-them:
+The native pieces the shell talks to live in `helpers/`. The flake builds them
+on their own and into `.#eva`:
 
 - `helpers/keyring`: the GNOME Keyring prompt bridge, `.#eva-keyring`
   ([build and tests](helpers/keyring/README.md)).
