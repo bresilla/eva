@@ -32,10 +32,12 @@ let
       dofile("${hyprland}/share/hypr/hyprland.lua")
     end
     ${quietConfig}
+    -- A lock screen that dies leaves the session locked; a new one may take over.
+    hl.config({ misc = { allow_session_lock_restore = true } })
     ${config.programs.eva.hyprland.extraConfig}
     apply_scale()
   '';
-  desktop = pkgs.writeShellScriptBin "hyprland-session" ''
+  desktop =pkgs.writeShellScriptBin "hyprland-session" ''
     exec ${pkgs.systemd}/bin/systemd-cat --identifier=hyprland -- \
       ${hyprland}/bin/start-hyprland -- --config /etc/xdg/hypr/session.lua "$@"
   '';
