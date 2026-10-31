@@ -4,7 +4,7 @@ let
   authStep = pkgs.writeShellScript "eva-auth-step" (builtins.replaceStrings
     [ "PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" ]
     [ "PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.util-linux ]}" ]
-    (builtins.readFile ../../helpers/pam/eva-auth-step));
+    (builtins.readFile ./eva-auth-step));
   marker = order: step: {
     inherit order;
     control = "optional";

@@ -1,4 +1,6 @@
-{ flake, engine }:
+# `packages` gives, for a system, the eva output and the morf it runs on:
+# built from eva's flake, or store paths taken from a binary cache.
+{ packages }:
 {
   config,
   lib,
@@ -8,13 +10,12 @@
 }:
 let
   system = pkgs.stdenv.hostPlatform.system;
+  given = packages system;
   morf = config.programs.eva.package;
   shell = config.programs.eva.shellPackage;
   keyring = config.programs.eva.keyringPackage;
   user = config.programs.eva.user;
   userHome = config.users.users.${user}.home;
-  # The faces the packaged shell draws with, for the greeter too.
-  greeterFonts = shell.fontPackages;
   # Keep advanced CLI invocations unchanged; protect the default entry points.
   morfDefault = pkgs.writeShellScriptBin "morf" ''
     set -u
@@ -163,7 +164,7 @@ in
     ./compositor.nix
     ./idle.nix
     ./phone.nix
-    (import ./pattern.nix { inherit flake; })
+    ./pattern.nix
   ];
 
   options.programs.eva = {
@@ -174,15 +175,18 @@ in
     };
     package = lib.mkOption {
       type = lib.types.package;
-      default = engine.packages.${system}.morf;
+      default = given.morf;
       description = "The morf engine; a cached package can be supplied independently of the shell.";
     };
     shellPackage = lib.mkOption {
       type = lib.types.package;
-      default = flake.packages.${system}.eva.override {
-        morf = config.programs.eva.package;
-      };
-      description = "The eva shell, lock screen and greeter, installed as /etc/xdg/morf/eva.";
+      # A cached output is used as it is; one from the flake follows `package`.
+      default =
+        if given.eva ? override then
+          given.eva.override { morf = config.programs.eva.package; }
+        else
+          given.eva;
+      description = "The eva output; its share/eva is installed as /etc/xdg/morf/eva.";
     };
     usePackagedShell = lib.mkOption {
       type = lib.types.bool;
@@ -191,7 +195,7 @@ in
     };
     keyringPackage = lib.mkOption {
       type = lib.types.package;
-      default = flake.packages.${system}.eva-keyring;
+      default = config.programs.eva.shellPackage;
       description = "The bridge that shows GNOME Keyring prompts in eva's dialog.";
     };
     lulePackage = lib.mkOption {
@@ -289,8 +293,8 @@ in
       };
       systemd.services.greetd.wants = [ "eva-greeter-access.service" ];
 
-      environment.etc."xdg/morf/eva".source = shell;
-      environment.etc."xdg/morf/default".source = shell;
+      environment.etc."xdg/morf/eva".source = "${shell}/share/eva";
+      environment.etc."xdg/morf/default".source = "${shell}/share/eva";
       environment.etc."greetd/default-session" = lib.mkIf config.programs.hyprland.enable {
         text = if config.programs.hyprland.withUWSM then "hyprland-uwsm\n" else "hyprland\n";
       };
@@ -313,7 +317,8 @@ in
           RestartSec = 2;
         };
       };
-      fonts.packages = greeterFonts;
+      # The faces the packaged shell draws with, for the greeter too.
+      fonts.packages = [ "${shell}/share/fonts" ];
 
       system.build.evaWallpaper = bridge;
       environment.etc."eva/wallpaper.json".text = builtins.toJSON {

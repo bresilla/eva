@@ -26,7 +26,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         engine = morf.packages.${system}.morf;
         eva = pkgs.callPackage ./nix/package.nix {
-          inherit version;
+          inherit version keyring pattern;
           src = self;
           morf = engine;
         };
@@ -39,22 +39,7 @@
         # options and wiring hold together.
         machine = nixpkgs.lib.nixosSystem {
           inherit system;
-          modules = [
-            self.nixosModules.default
-            {
-              programs.eva = {
-                enable = true;
-                user = "eva";
-                lulePackage = pkgs.hello;
-                pattern.enable = true;
-                phone.enable = true;
-              };
-              users.users.eva.isNormalUser = true;
-              boot.loader.grub.enable = false;
-              fileSystems."/" = { device = "none"; fsType = "tmpfs"; };
-              system.stateVersion = "25.05";
-            }
-          ];
+          modules = [ self.nixosModules.default ./nix/machine.nix ];
         };
       in
       {
@@ -81,7 +66,12 @@
       }
     )
     // {
-      nixosModules.default = import ./nix/nixos { flake = self; engine = morf; };
+      nixosModules.default = import ./nix/nixos {
+        packages = system: {
+          inherit (self.packages.${system}) eva;
+          morf = morf.packages.${system}.morf;
+        };
+      };
       nixosModules.eva = self.nixosModules.default;
     };
 }

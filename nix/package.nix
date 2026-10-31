@@ -8,6 +8,8 @@
   src,
   version,
   morf,
+  keyring,
+  pattern,
 }:
 let
   # Found by name: where a font package puts its files moves between
@@ -20,8 +22,12 @@ let
     { package = nerd-fonts.caskaydia-cove; name = "CaskaydiaCoveNerdFont-Regular.ttf"; }
   ];
 in
-# The shell, lock screen and greeter as one tree, with the Lua library of the
-# morf it is built against and the fonts it draws with.
+# Everything eva installs, in one output:
+#   share/eva     the shell, lock screen and greeter, with the Lua library of
+#                 the morf it is built against and the faces it draws with
+#   share/fonts   the whole families of those faces, for the system's fonts
+#   bin, libexec  the keyring bridge and the pattern unlock helpers
+#   nixos         the NixOS module, importable without eva's flake
 runCommand "eva-${version}"
   {
     inherit version;
@@ -34,24 +40,25 @@ runCommand "eva-${version}"
     };
   }
   ''
-    mkdir -p "$out"
+    tree="$out/share/eva"
+    mkdir -p "$tree"
     for part in shell lock greet themes models lib; do
-      cp -R ${src}/$part "$out/"
+      cp -R ${src}/$part "$tree/"
     done
-    cp ${src}/morf.lua "$out/morf.lua"
+    cp ${src}/morf.lua "$tree/morf.lua"
     chmod -R u+w "$out"
-    mkdir -p "$out/library"
-    cp -R ${morf}/share/morf/library/lib "$out/library/"
-    mkdir -p "$out/fonts"
+    mkdir -p "$tree/library"
+    cp -R ${morf}/share/morf/library/lib "$tree/library/"
+    mkdir -p "$tree/fonts" "$out/share/fonts"
     for part in shell lock greet; do
-      if [ -d "$out/$part/fonts" ] && [ ! -L "$out/$part/fonts" ]; then
-        cp -R "$out/$part/fonts/." "$out/fonts/"
+      if [ -d "$tree/$part/fonts" ] && [ ! -L "$tree/$part/fonts" ]; then
+        cp -R "$tree/$part/fonts/." "$tree/fonts/"
       fi
-      rm -rf "$out/$part/fonts"
-      ln -s ../fonts "$out/$part/fonts"
-      cat > "$out/$part/appearance-default.json" <<'EOF'
+      rm -rf "$tree/$part/fonts"
+      ln -s ../fonts "$tree/$part/fonts"
+      cat > "$tree/$part/appearance-default.json" <<'JSON'
     { "theme": "tsugumori", "font": "" }
-    EOF
+    JSON
     done
     ${lib.concatMapStringsSep "\n" (font: ''
       found=$(find ${font.package}/share/fonts -name ${lib.escapeShellArg font.name} | sort | head -n 1)
@@ -59,6 +66,13 @@ runCommand "eva-${version}"
         echo "no ${font.name} in ${font.package}" >&2
         exit 1
       fi
-      ln -s "$found" "$out/fonts/"
+      ln -s "$found" "$tree/fonts/"
+      mkdir -p "$out/share/fonts/${font.package.pname or font.package.name}"
+      cp -rs ${font.package}/share/fonts/. "$out/share/fonts/${font.package.pname or font.package.name}/"
     '') fonts}
+    mkdir -p "$out/bin" "$out/libexec"
+    ln -s ${keyring}/bin/eva-keyring "$out/bin/"
+    ln -s ${pattern}/bin/eva-pattern "$out/bin/"
+    ln -s ${pattern}/libexec/eva-pattern-check "$out/libexec/"
+    cp -RL ${src}/nix/nixos "$out/nixos"
   ''

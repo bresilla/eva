@@ -1,8 +1,7 @@
-{ flake }:
 { config, lib, pkgs, ... }:
 let
   cfg = config.programs.eva.pattern;
-  package = flake.packages.${pkgs.stdenv.hostPlatform.system}.eva-pattern;
+  package = config.programs.eva.shellPackage;
   helper = "/run/wrappers/bin/eva-pattern-check";
   pamExec = "${pkgs.pam}/lib/security/pam_exec.so";
   rule = {
