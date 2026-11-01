@@ -67,6 +67,7 @@
             import ./nix/tests/windows.nix {
               module = self.nixosModules.default;
               wallpaper = ./tests/fixtures/wallpaper.png;
+              only = builtins.getEnv "EVA_VM_ONLY";
             }
           );
         };

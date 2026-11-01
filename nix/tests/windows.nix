@@ -5,7 +5,10 @@
 # so the nixpkgs under the test needs that Hyprland:
 #
 #   nix build .#windows-test --override-input nixpkgs github:NixOS/nixpkgs/nixos-unstable
-{ module, wallpaper }:
+#
+# `only` names sections of windows.py to run alone; through the flake,
+# EVA_VM_ONLY="keys rules" with --impure.
+{ module, wallpaper, only ? "" }:
 let
   password = "correct horse battery staple";
   software = {
@@ -72,6 +75,6 @@ in
 
   testScript = builtins.readFile ./windows.py + ''
 
-    run("${password}")
+    run("${password}", "${only}")
   '';
 }

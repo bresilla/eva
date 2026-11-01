@@ -119,7 +119,106 @@ def warp(x, y):
     print("CURSOR", (x, y), hyprctl("cursorpos"))
 
 
-def run(password):
+def tool_open(name, pattern):
+    # A tool started by the compositor, and its own socket's instance name.
+    hyprctl("eval", f'hl.dispatch(hl.dsp.exec_cmd("{name}"))')
+    machine.wait_until_succeeds(f"pgrep -u alice -f '{pattern}'", timeout=60)
+    machine.sleep(6)
+    pid = machine.succeed(f"pgrep -n -u alice -f '{pattern}'").strip()
+    return f"wayland-1-app-{pid}"
+
+
+def tool(instance, *words):
+    quoted = " ".join(shlex.quote(word) for word in words)
+    out = machine.execute(session(f"morf -i {instance} ipc call {quoted}"))[1].strip()
+    print(f"TOOL {quoted} => {out[:300]}")
+    try:
+        reply = json.loads(out)
+        return (reply.get("result") or [None])[0] if reply.get("ok") else None
+    except ValueError:
+        return None
+
+
+def bound():
+    return {(b.get("modmask"), b.get("key")): b for b in json.loads(hyprctl("-j", "binds")) if not b.get("submap")}
+
+
+def keys_section():
+    with subtest("keybind editor"):
+        keys = tool_open("eva-keys", "apps/keys")
+        check("eva-keys answers", eventually(lambda: (tool(keys, "state") or {}).get("rows")), keys)
+        verb = "verb:window_menu toggle"
+
+        check("a row can listen", tool(keys, "record", verb) is True)
+        check("recording holds the compositor's keys back", hyprctl("submap").strip() == "eva-keys-record", hyprctl("submap"))
+        machine.send_key("meta_l-y")
+        machine.sleep(2)
+        check("the real chord reaches the window, and ends the recording", (tool(keys, "state") or {}).get("recording") == "", str(tool(keys, "state")))
+        check("the compositor's keys are back", hyprctl("submap").strip() == "default", hyprctl("submap"))
+        moved = eventually(lambda: (64, "Y") in bound())
+        check("the new chord is bound", moved, str(sorted(bound()))[:400])
+        check("the old chord is gone", (64, "W") not in bound())
+        check("it keeps its words", bound().get((64, "Y"), {}).get("description") == "Open the window menu")
+
+        machine.send_key("meta_l-w")
+        machine.sleep(2)
+        check("the old chord does nothing", ask("window_menu", "state") in (False, None), str(ask("window_menu", "state")))
+        machine.send_key("meta_l-y")
+        machine.sleep(3)
+        check("the new chord does what the old did", ask("window_menu", "state") is True, str(ask("window_menu", "state")))
+        ask("window_menu", "toggle")
+
+        hyprctl("reload")
+        machine.sleep(4)
+        check("a reload keeps the new chord", (64, "Y") in bound() and (64, "W") not in bound(), str(sorted(bound()))[:300])
+
+        foreign = next(((k, b) for k, b in bound().items() if b.get("dispatcher") == "__lua" and k == (64, "Q")), None)
+        check("Hyprland's own default is there to move", foreign is not None, str(sorted(bound()))[:300])
+        tool(keys, "reload")
+        machine.sleep(2)
+        row = tool(keys, "row", "SUPER + Q") or {}
+        check("its row is editable", row.get("editable") is True, str(row))
+        tool(keys, "record", row.get("id", ""))
+        machine.send_key("meta_l-u")
+        machine.sleep(2)
+        check("a key of the configuration moves too", eventually(lambda: (64, "U") in bound() and (64, "Q") not in bound()), str(sorted(bound()))[:300])
+        machine.execute("rm -f /tmp/fired")
+        check("the moved key still has its action", bound().get((64, "U"), {}).get("dispatcher") == "__lua")
+        hyprctl("reload")
+        machine.sleep(4)
+        check("and stays moved after a reload", (64, "U") in bound() and (64, "Q") not in bound(), str(sorted(bound()))[:300])
+
+        tool(keys, "reload")
+        machine.sleep(2)
+        tool(keys, "record", "verb:kill_mode")
+        machine.send_key("meta_l-tab")
+        machine.sleep(2)
+        state = tool(keys, "state") or {}
+        check("a taken chord waits and names its owner", "already does" in str(state.get("pending")), str(state))
+        check("Super+Tab did not open the overview while listening", ask("overview", "state") is False, str(ask("overview", "state")))
+
+        tool(keys, "reset", verb)
+        tool(keys, "reset", row.get("id", ""))
+        check("reset gives the default back", eventually(lambda: (64, "W") in bound() and (64, "Y") not in bound() and (64, "Q") in bound()), str(sorted(bound()))[:300])
+        machine.execute("pkill -u alice -f apps/keys")
+
+
+def sections(names):
+    table = {"keys": keys_section}
+    for name in names or table:
+        table[name]()
+
+
+def report():
+    print("SHELL ALIVE", ask("overview", "state"))
+    print("JOURNAL", machine.execute("journalctl -b --user-unit eva.service --machine=alice@.host -n 12 --no-pager")[1][-1200:])
+    failed = [label for label, ok in results if not ok]
+    print(f"SUMMARY {len(results) - len(failed)} of {len(results)} passed")
+    print("FAILED", failed)
+    assert not failed, failed
+
+
+def run(password, only=""):
     login(password)
     machine.succeed("ydotoold --socket-path=/tmp/ydotool --socket-perm=0666 >/tmp/ydotoold.log 2>&1 &")
     machine.sleep(1)
@@ -134,6 +233,11 @@ def run(password):
     machine.sleep(2)
     listed = eventually(lambda: [w for w in (ask("windows") or []) if w.get("class") == "foot"])
     check("the shell lists the real windows", len(listed or []) == 3, str(listed)[:200])
+
+    if only:
+        sections(only.split())
+        report()
+        return
 
     with subtest("overview"):
         machine.send_key("meta_l-tab")
@@ -408,8 +512,5 @@ def run(password):
         print("SENT", (ask("windows", "sent") or [])[:2])
         check("kill mode force-quits the window pressed", client("one") is None, str(client("one")))
 
-    print("SHELL ALIVE", ask("overview", "state"))
-    print("JOURNAL", machine.execute("journalctl -b --user-unit eva.service --machine=alice@.host -n 12 --no-pager")[1][-1200:])
-    failed = [label for label, ok in results if not ok]
-    print(f"SUMMARY {len(results) - len(failed)} of {len(results)} passed")
-    print("FAILED", failed)
+    sections(None)
+    report()
