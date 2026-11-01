@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Disk usage
+Comment=What takes the room under a folder
+Exec=eva-disk %f
+Icon=baobab
+Terminal=false
+Categories=System;Filesystem;
+MimeType=inode/directory;
+StartupWMClass=eva.disk

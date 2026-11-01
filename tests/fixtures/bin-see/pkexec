@@ -1,0 +1,8 @@
+#!/bin/sh
+# Stands in for pkexec: says what it was asked and a short log, and never runs it.
+# $STUB_PKEXEC_CODE is its exit status.
+printf 'would run: %s\n' "$*"
+printf 'building the system configuration...\n'
+sleep "${STUB_PKEXEC_WAIT:-0}"
+printf 'warning: a line on stderr\n' >&2
+exit "${STUB_PKEXEC_CODE:-0}"

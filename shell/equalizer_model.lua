@@ -3,8 +3,14 @@ local backend=require("lib.shell.audio.equalizer")
 local presentation=require("presentation")
 local M={frequencies=backend.frequencies}
 local zeros={0,0,0,0,0,0,0,0}
-local cfg=require("lib.shell.settings").open {name="eva.equalizer",path=morf.paths.state("eva-equalizer.json"),
-  write_when=function() return not morf.window.primary or morf.window.primary() end,
+-- A tool's window: it edits the shell's file and the shell keeps the filter.
+local guest=morf.env("MORF_APP")~=nil
+local function saved_at()
+  local folder=guest and (morf.env("EVA_SETTINGS") or ""):match("^(.*)/[^/]+$")
+  return folder and folder.."/eva-equalizer.json" or morf.paths.state("eva-equalizer.json")
+end
+local cfg=require("lib.shell.settings").open {name="eva.equalizer",path=saved_at(),
+  write_when=function() return guest or not morf.window.primary or morf.window.primary() end,
   defaults={enabled=false,mode="auto",compensation=false,
     profile={label="My audiogram",left=zeros,right=zeros},
     headphones={strength=30,per_ear=true,bands=zeros,trim=0},
@@ -25,7 +31,7 @@ local function dry()
   local value=morf.env("EVA_DRY_RUN")
   return value~=nil and value~="" and value~="0"
 end
-local function primary() return not morf.window.primary or morf.window.primary() end
+local function primary() return not guest and (not morf.window.primary or morf.window.primary()) end
 local function number(v,lo,hi) return type(v)=="number" and v==v and v>=lo and v<=hi end
 local function valid_list(values,lo,hi)
   if type(values)~="table" or #values~=8 then return false end
@@ -47,7 +53,7 @@ function M.set(key,value)
   cfg.set(key,value)
   -- Send edits to the single DSP owner immediately; the watched settings
   -- file also restores them after reload and synchronizes other outputs.
-  if not primary() and morf.broadcast then morf.broadcast("equalizer-setting",key,morf.json.encode(value)) end
+  if not guest and not primary() and morf.broadcast then morf.broadcast("equalizer-setting",key,morf.json.encode(value)) end
   return true
 end
 function M.set_current(key,value) return M.set(M.preset().."."..key,value) end
@@ -58,6 +64,7 @@ function M.set_band(i,value)
 end
 function M.reset_bands() M.set_current("bands",zeros) M.set_current("trim",0) end
 function M.open_editor() require("utilities").request("sound/equalizer/audiogram") end
+function M.leave_editor() require("utilities").back() end
 function M.edit(ear,i,value)
   local draft=M.draft:get()
   local next={label=draft.label,left={table.unpack(draft.left)},right={table.unpack(draft.right)}}
@@ -71,7 +78,7 @@ function M.save_profile()
     M.editor_error:set("Enter a name and eight values per ear between −10 and 120 dB HL.") return false
   end
   M.set("profile.label",draft.label) M.set("profile.left",left) M.set("profile.right",right)
-  cfg.flush() require("utilities").back() return true
+  cfg.flush() M.leave_editor() return true
 end
 morf.ipc["equalizer-setting"]=function(key,payload)
   if not primary() then return end
@@ -81,16 +88,21 @@ end
 morf.ipc["equalizer-status"]=function(payload)
   if primary() then return end
   local ok,state=pcall(morf.json.decode,payload or "")
-  if ok and type(state)=="table" then
-    M.status:set(state.status or "off") M.error:set(state.error or "")
-    if state.auto=="headphones" or state.auto=="speakers" then auto:set(state.auto) end
-  end
+  if ok then M.follow(state) end
 end
 local function publish()
   if morf.broadcast then morf.broadcast("equalizer-status",morf.json.encode {
     status=M.status:get(),error=M.error:get(),auto=auto:get()}) end
 end
 morf.ipc["equalizer-status-request"]=function() if primary() then publish() end end
+--- What a tool's window shows of the filter the shell runs.
+function M.state() return {status=M.status:get(),error=M.error:get(),auto=auto:get()} end
+--- The same from the shell, for that window.
+function M.follow(state)
+  if type(state)~="table" then return end
+  M.status:set(state.status or "off") M.error:set(state.error or "")
+  if state.auto=="headphones" or state.auto=="speakers" then auto:set(state.auto) end
+end
 local service=backend.new {name="eva.equalizer.backend"}
 local mode_query,mode_timer,mode_token=nil,nil,0
 -- Never in a dry run (the shell reaches no audio stack then) and never
@@ -139,7 +151,7 @@ morf.effect("eva.equalizer.feedback",function()
   if M.curve:get() then M.error:set(service.error:get()) end
   publish()
 end)
-if not primary() and morf.broadcast then
+if not guest and not primary() and morf.broadcast then
   morf.time.timer(1,function() morf.broadcast("equalizer-status-request") end,false)
 end
 morf.effect("eva.equalizer.detect",function()

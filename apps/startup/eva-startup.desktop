@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Startup
+Comment=What starts with the session, and scheduled jobs
+Exec=eva-startup
+Icon=preferences-system-startup
+Terminal=false
+Categories=Settings;
+StartupWMClass=eva.startup

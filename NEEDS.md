@@ -64,6 +64,23 @@ Nothing open. The idle inhibitor reads back: `morf.idle.inhibited()` is
 what the shell last asked for, and `morf.capabilities.idle_inhibit` says
 whether the compositor can hold one (docs/IO.md, "Idle").
 
+## Tools: open
+
+- A surface ending inside its own event. `win:destroy()` on a layer surface,
+  reached from a key handler on that surface or from an effect the handler
+  flushes, logs `scene layout error: stale scene node handle` and the runtime is
+  gone. `frame.dismiss` in `apps/common/frame.lua` closes the surface and destroys
+  it on the next turn. `destroy` deferring itself past the running event would
+  cover it.
+- A key sent to a surface in `morf test`. `test.click` takes a `surface`;
+  `test.key` goes to the focused surface alone, so Escape on an overlay is proven
+  with a real key in `tools/see/` and has no spec.
+- ICO images. A favicon holding only BMP frames cannot be decoded: `eva-webapp`
+  takes the PNG frames out of an `.ico` in Lua and otherwise draws a letter.
+- `xdg_toplevel`'s suspended state. A window cannot hear that nothing shows it:
+  `eva-monitor` stops sampling when minimised, paused or away, and keeps sampling
+  on a hidden workspace.
+
 ## Seamless login: open
 
 - Custom shaders on a held lock. Every renderer calls `register_shaders` except

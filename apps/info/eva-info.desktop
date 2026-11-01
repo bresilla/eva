@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=About this machine
+Comment=Hardware, system, Nix generation and session
+Exec=eva-info
+Icon=computer
+Terminal=false
+Categories=System;Monitor;
+StartupWMClass=eva.info

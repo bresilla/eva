@@ -1,0 +1,33 @@
+# eva-audio on the sealed session, against the stand-in for morf.audio: the
+# shell's own sound pages in a window, recording streams with their routing,
+# input channels, the equalizer and its audiogram.
+unset EVA_DRY_RUN
+export EVA_FAKE_AUDIO=1
+
+note sh apps/audio/cli list
+note sh apps/audio/cli next
+
+BOOT=4 start app audio
+shot output
+appipc mute output 31 > /dev/null
+appipc route output 30 12 > /dev/null
+pause 0.4
+shot routed
+appipc tab input > /dev/null
+pause 0.8
+appipc channel input 2 0.3 > /dev/null
+pause 0.4
+shot input
+appipc route input 40 21 > /dev/null
+appipc mute input 40 > /dev/null
+pause 0.4
+note appipc state
+appipc tab equalizer > /dev/null
+pause 0.8
+appipc equalizer on > /dev/null
+appipc band 3 6 > /dev/null
+pause 1.2
+shot equalizer
+appipc editor open > /dev/null
+pause 0.6
+shot audiogram

@@ -79,10 +79,11 @@ function M.entry(spec)
   })
 end
 
---- A line of news under a tool's controls: `id`, `width`, `text` (fn).
+--- A line of news under a tool's controls: `id`, `x`, `y`, `width`, `text` (fn).
 function M.note(spec)
   return kit.text {
-    id = spec.id, width = spec.width, height = L.lh(theme.size.small), font_size = theme.size.small,
+    id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = L.lh(theme.size.small),
+    font_size = theme.size.small,
     color = kit.ink("lo"), elide = "right", text = spec.text,
   }
 end

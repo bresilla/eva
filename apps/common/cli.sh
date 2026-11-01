@@ -20,11 +20,11 @@ eva_answer() {
   sed -e 's/.*"result":\[*//' -e 's/\]*}[[:space:]]*$//' -e 's/^"//' -e 's/"$//'
 }
 
-# A command of the shell's own code with no shell running (apps/common/job):
+# Runs a job, which answers in the file EVA_JOB_OUT names (lib/util/job.lua):
 # prints its words and returns its status.
-eva_job() {
+eva_relay() {
   out=$(eva_private_file job)
-  EVA_JOB_OUT=$out "${MORF:-morf}" app "$apps/common/job/app.lua" -- "$@" > /dev/null 2>&1 || true
+  EVA_JOB_OUT=$out "$@" > /dev/null 2>&1 || true
   code=$(head -n 1 "$out" 2>/dev/null || true)
   words=$(tail -n +2 "$out" 2>/dev/null || true)
   rm -f "$out"
@@ -34,6 +34,18 @@ eva_job() {
   fi
   eva_say "${words:-the job did not finish}"
   return 1
+}
+
+# A command of the shell's own code with no shell running (apps/common/job).
+eva_job() {
+  eva_relay "${MORF:-morf}" app "$apps/common/job/app.lua" -- "$@"
+}
+
+# A tool's own job with no window, `eva_tool_job TOOL ARGS`.
+eva_tool_job() {
+  tool=$1
+  shift
+  eva_relay sh "$apps/launch" "$tool" "$@"
 }
 
 eva_dry() {

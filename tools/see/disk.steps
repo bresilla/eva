@@ -1,0 +1,22 @@
+# eva-disk on the sealed session: the real `du` over a tree of this repository's
+# own folders, drilling in on the theme's springs and back up, then the machine's
+# real mounts.
+BOOT=10 start app disk "$SEE_EVA"
+pause 5
+shot folder
+note echo "state: $(appipc state | cut -c1-240)"
+appipc open "$SEE_EVA/themes" > /dev/null
+pause 0.2
+shot drilling
+pause 3
+shot themes
+appipc press 1 > /dev/null
+pause 3
+shot deeper
+appipc up > /dev/null
+appipc up > /dev/null
+pause 2
+appipc tab mounts > /dev/null
+pause 3
+shot mounts
+note echo "reveal: $(appipc reveal)"

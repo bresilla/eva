@@ -123,6 +123,16 @@ Launching one a second time raises the window it has open; an overlay shuts.
 | `eva-clipboard [--watch]` | a history of text and pictures with pins, skipping what a password manager marks; on NixOS `--watch` runs as a user service |
 | `eva-battery status`, `eva-battery limit on\|off` | the charge limit, the same code as the Power page's switch |
 | `eva-clock`, `eva-clock timer 12 min pasta`, `eva-clock at 6pm`, `eva-clock every weekday 7:30 gym`, `eva-clock list\|cancel\|snooze\|sync` | alarms, timers, a stopwatch and world clocks, said in plain words; each alarm is a systemd user timer, so it rings with no shell running, through the notifications server with sound, Stop and Snooze |
+| `eva-monitor` | processes with search, sort and kill, per-core load, memory, GPU, disks, network and sensors |
+| `eva-info [--text\|--json\|--copy]` | about this machine, in a window or as words: hardware, Nix generation, USB, session |
+| `eva-update [--check]` | flake input ages, package counts and a rebuild with its live log; `update.flake` names the flake |
+| `eva-logs [UNIT]` | the journal, live, by priority, boot, unit and words |
+| `eva-disk [FOLDER]` | what takes the room under a folder, as a treemap |
+| `eva-audio [next [input]\|list]` | a full mixer on the shell's own sound pages: apps, recording, routing, channels, equalizer |
+| `eva-awake [30m\|on\|off\|status\|--pid N]` | keep awake for a time, or while a process runs, on the shell's own inhibitor |
+| `eva-webapp add NAME URL [--icon FILE]\|list\|remove NAME` | turn a site into an app with its own desktop entry and icon |
+| `eva-startup list\|enable NAME\|disable NAME\|remove NAME\|timers` | startup apps and scheduled jobs |
+| `eva-breaks [--watch\|status\|pause MINUTES\|resume]` | break reminders that count idle time as rest, and screen time; on NixOS `--watch` runs as a user service |
 
 `make app displays` runs one from a checkout.
 

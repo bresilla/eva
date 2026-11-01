@@ -68,6 +68,9 @@ local HOST=[[
     elseif what=="missing" then devices={} streams={}
     elseif what=="offline" then available=false
     elseif what=="equalized" then streams[1].device=12
+    elseif what=="second-input" then
+      devices[#devices+1]={id=23,name="headset",description="Headset microphone",kind="source",default=false,volume=.5,volumes={.5},channels=1,muted=false}
+    elseif what=="stereo-input" then devices[4].channels=2 devices[4].volumes={.7,.6}
     elseif what=="broken" then broken=true
     elseif what=="many" then
       for i=3,12 do devices[#devices+1]={id=100+i,name="sink"..i,description="Output "..i,kind="sink",volume=.3,volumes={.3},channels=1,default=false,muted=false} end
@@ -141,6 +144,23 @@ for _,style in ipairs {"material","tsugumori"} do
     test.falsy(test.find{id="sound-source-21"})
     test.click("sound-input-mute") test.advance(100) test.eq(last().id,20) test.eq(last().value,true)
     slider("sound-input-volume",.4) test.eq(last().name,"volume") test.eq(last().id,20) test.near(last().value,.4,.06)
+    test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
+  end)
+  test.it(style.." Microphone lists what records, mutes it and moves it to another input",function()
+    load(style,"input",408,1500) open()
+    test.truthy(test.get("sound-app-31-volume").visible)
+    test.click("sound-app-31-mute") test.advance(100) test.eq(last().name,"mute") test.eq(last().id,31)
+    test.ipc("change","second-input") test.advance(100)
+    test.click("sound-app-31-to-23") test.advance(100) test.eq(last().name,"route") test.eq(last().value,23)
+    test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
+  end)
+  test.it(style.." Microphone shows each channel of a device that has several",function()
+    load(style,"input",408,1500) open()
+    test.falsy(test.get("sound-input-channel-1").visible)
+    test.ipc("change","stereo-input") test.advance(100)
+    test.truthy(test.get("sound-input-channel-2").visible)
+    slider("sound-input-channel-2",.4)
+    test.eq(last().name,"channels") test.near(last().value[2],.4,.06)
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
   end)
   test.it(style.." Sound stops reading when hidden and honors dry run",function()
