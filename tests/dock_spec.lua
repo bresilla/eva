@@ -82,6 +82,8 @@ test.it("a tablet has a taskbar along its edge, keeping windows clear of it", fu
   local plate = test.get("dock-plate")
   test.eq(plate.width, 1280.0, "it does not span the edge")
   test.eq(test.ipc("dock_reserve"), 64)
+  test.truthy(plate.y + plate.height < 800, "it covers the workspace rail along the edge")
+  test.falsy(test.find({ id = "dock-bubble-1", visible = true }), "its flat edge ripples over the icons")
 end)
 
 test.it("a phone has none", function()

@@ -54,7 +54,7 @@ function M.build(model, style)
   local function plate_box()
     local w, h = screen()
     local d = depth()
-    if taskbar() then return { x = 0, y = h - d, width = w, height = d } end
+    if taskbar() then return { x = 0, y = h - d - theme.BORDER, width = w, height = d } end
     if model.edge() == "bottom" then return { x = start() - S.s, y = h - d - margin(), width = length(), height = d } end
     if model.edge() == "left" then return { x = margin(), y = start() - S.s, width = d, height = length() } end
     return { x = w - d - margin(), y = start() - S.s, width = d, height = length() }
@@ -99,7 +99,7 @@ function M.build(model, style)
     local holder = ui.Item { id = "dock-bubble-" .. i,
       x = function() return icon_box(i).x end, y = function() return icon_box(i).y end,
       width = function() return icon_box(i).width end, height = function() return icon_box(i).height end,
-      visible = function() return i <= count() end,
+      visible = function() return i <= count() and not taskbar() end,
       behavior = { x = quick, y = quick, width = quick, height = quick } }
     bubbles[i] = holder
     field[#field + 1] = ui.SdfShape { id = "dock-bubble-shape-" .. i, shape = style.bubble, operation = "smooth_union",

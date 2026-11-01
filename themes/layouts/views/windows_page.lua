@@ -42,7 +42,7 @@ function M.build_windows(model, w, h)
   end
   if not model.phone then
     sections[#sections + 1] = P.section { id = "windows-snap", caption_id = "windows-snap-caption", width = w, title = "Snapping",
-      toggle(w, "windows-assist", "dashboard", "Offer windows for the room left", model.get("windows.snap_assist"),
+      toggle(w, "windows-assist", "dashboard", "Offer the room left", model.get("windows.snap_assist"),
         model.set("windows.snap_assist")) }
   else
     sections[#sections + 1] = choices(w, { group = "windows-scrub", title = "The bottom edge walks",

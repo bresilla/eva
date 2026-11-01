@@ -75,6 +75,12 @@ like the dashboard.
   around a close and on `closewindow`, which narrows the race and does not end
   it; the unit restarts the shell. It needs a guard in `capture_window`, or a
   capture that fails on its own without the connection.
+- `hyprland.state.active_window` can stay empty after a panel shuts. On Hyprland
+  0.55.4 `activewindowv2` empties it while a layer holds the keys, and in a VM
+  run nothing refilled it after the sidebar closed, so every "focused window"
+  verb found none until the next click. That cause is read from the trace, not
+  proven. `windows.active()` falls back to the last focused window on the
+  workspace; `hyprland.refresh()` could re-read `j/activewindow` instead.
 - D-Bus signals from any sender. `proxy:subscribe` needs a destination and a
   path, and `com.canonical.Unity.LauncherEntry.Update` is a broadcast from an
   application's own path, so dock badges cannot hear unread counts or progress
