@@ -315,11 +315,21 @@ function M.rect()
     width = w.width * ratio, height = w.height * ratio }
 end
 
-local view = require("themes").view("window_menu").build(M)
-M.node = view.node
--- A press anywhere off the cards shuts it.
-require("themes.kit.popup").track(view.box, { open = function() return M.opened:get() end,
-  close_policy = "outside", modal = true, on_close = function() M.close() end })
-morf.effect("eva.window_menu.shown", function() view.shown(M.opened:get()) end)
+-- Built the first time it opens, and kept.
+local ui = require("morf.ui")
+local wanted = morf.signal("eva.window_menu.built", M.opened:get())
+morf.effect("eva.window_menu.build", function()
+  if M.opened:get() and not wanted:get() then wanted:set(true) end
+end)
+M.node = ui.Item { anchors = { fill = true },
+  ui.Loader { anchors = { fill = true }, keep = true, active = function() return wanted:get() end,
+    source = function()
+      local view = require("themes").view("window_menu").build(M)
+      -- A press anywhere off the cards shuts it.
+      require("themes.kit.popup").track(view.box, { open = function() return M.opened:get() end,
+        close_policy = "outside", modal = true, on_close = function() M.close() end })
+      morf.effect("eva.window_menu.shown", function() view.shown(M.opened:get()) end, { owner = view.node })
+      return ui.Item { anchors = { fill = true }, view.node }
+    end } }
 
 return M
