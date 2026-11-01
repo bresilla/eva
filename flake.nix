@@ -128,7 +128,6 @@
           # the specs measure text in them.
           MORF_FONT_PATH = pkgs.lib.makeSearchPath "share/fonts" eva.fontPackages;
           EVA_KEYRING_HELPER = "${eva}/bin/eva-keyring";
-          MORF_LIMITS = "frame=64m";
         };
       }
     )
