@@ -77,6 +77,33 @@ imports = [
 `nix/detached.nix` evaluates the test machine that way, from a downloaded
 output; the cache workflow runs it after each publish.
 
+## Tools
+
+Quick controls stay in the shell; heavier work has a tool of its own, in
+`apps/`. A tool is a real window that draws with the shell's theme, kit and
+palette, follows lule's colours and the chosen appearance live, and works when
+the shell is not running. On NixOS they are on `PATH`, each with a desktop entry.
+
+| Command | What it does |
+|---------|--------------|
+| `eva VERB`, `eva open settings/power`, `eva commands --json` | the shell from a command line, the front door for keybindings |
+| `eva-displays` | a canvas to arrange monitors with edge snapping; mode, scale, rotation, VRR and mirroring; a countdown that reverts; profiles matched on make, model and serial that apply on hotplug |
+| `eva-screenshot region\|window\|screen [--edit\|--copy\|--save] [--delay N] [--last]` | through the shell's editor, alone when it is down; `ocr` and `qr` copy what they read |
+| `eva-record region\|window\|monitor [--audio KIND]`, `eva-record stop` | `gpu-screen-recorder` with a stop indicator |
+| `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
+| `eva-keys` | a searchable sheet of the live bindings and the shell's own |
+
+`make app displays` runs one from a checkout.
+
+`eva-displays` writes what you keep to `$XDG_STATE_HOME/eva/displays/`. eva's
+Hyprland session loads `monitors.lua` from there; on sway, add
+`include $XDG_STATE_HOME/eva/displays/outputs.sway` to your configuration.
+
+A tool's folder holds `app.lua` and three links: `lua -> ../../shell`, which is
+how it reaches `theme`, `kit`, `palette` and `config`, `common -> ../common`, and
+`fonts -> ../../shell/fonts`. `apps/launch` finds the shell's appearance and
+settings files, which the shell names in `$XDG_STATE_HOME/eva/settings-path`.
+
 ## Helpers
 
 The native pieces the shell talks to live in `helpers/`, and `.#eva` builds
