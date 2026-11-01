@@ -9,7 +9,10 @@
 --
 -- The cards are layers of one field: a new one slides in from the edge,
 -- grows from a line and its seams melt into the stack, then settle crisp.
--- With the sidebar open beside them the stack moves out of its way.
+-- With the sidebar open beside them a stack on the right moves out of its way.
+--
+-- The stack stands at any top or bottom anchor (M.position), the newest card
+-- nearest its edge. A card goes sideways, or away from that edge, when swiped.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
@@ -23,11 +26,26 @@ V.kind, V.progress = text_of.kind, text_of.progress
 
 function V.build(M)
   local WIDTH, CARD_W, GAP = 430, 408, 8
-  local TOP, BOTTOM, LEFT, MAX = 6, 16, 15, 5
+  local TOP, BOTTOM, MAX = 6, 16, 5
   local TEXT_X, EMBLEM = 66, 40
   local plain, progress_of, kind_of = text_of.plain, text_of.progress, text_of.kind
   local function shown() return M.shown(MAX) end
   local is_open = M.expanded
+
+  -- Which edge it hangs from is settled as it is built; where along it is not.
+  local at_bottom = M.position():match("^bottom") ~= nil
+  local STACK_Y = at_bottom and BOTTOM or TOP
+  local AWAY = at_bottom and "up" or "down"
+  local function along()
+    local column = M.position():match("_(%a+)$")
+    return column == "left" and -1 or column == "right" and 1 or 0
+  end
+  -- Where a new card comes from, and where one goes when nothing says.
+  local function outward()
+    local side = along()
+    if side ~= 0 then return side * 64, 0 end
+    return 0, at_bottom and 64 or -64
+  end
 
   local LABEL_H = L.lh(L.role_size("label"))
   local SUM = math.floor(L.role_size("title") * 1.2)
@@ -66,7 +84,7 @@ function V.build(M)
   local function height() return math.min(total(), room()) + TOP + BOTTOM end
 
   local dripping = morf.signal("eva.notifications.dripping", false)
-  local cards, shapes, parts = {}, {}, {}
+  local cards, slots, shapes, parts = {}, {}, {}, {}
   local layers = {
     id = "notifications-field", anchors = { fill = true },
     blend = function() return theme.motion.liquid_cards ~= false and dripping:get() and 14 or 0 end,
@@ -178,23 +196,48 @@ function V.build(M)
     }
     kit.hover(expand_area, function(hovered) return signal():alpha(hovered and .2 or .06) end, L.control_round(EXPAND))
 
-    -- Swiped sideways a card follows the finger and goes past its distance
-    -- or speed, and springs back short of them (a kit Drag).
-    local swiped = false
-    local swipe = require("lib.kit.control").headless("Drag", { mode = "swipe", axis = "x",
-      on_swiped = function() swiped = true M.dismiss_at(i) end })
+    -- Swiped sideways, or away from the stack's edge, a card follows the
+    -- finger and goes past its distance or speed, and springs back short of
+    -- them (kit Drags). The first move picks the axis; a stack that scrolls
+    -- keeps the vertical one for itself.
+    local swiped, axis, start_x, start_y = false, nil, 0, 0
+    local function swipe_with(on_axis, go)
+      return require("lib.kit.control").headless("Drag", { mode = "swipe", axis = on_axis,
+        on_swiped = function(direction) if go(direction) then swiped = true M.dismiss_at(i, direction) end end })
+    end
+    local across = swipe_with("x", function() return true end)
+    local away = swipe_with("y", function(direction) return direction == AWAY end)
+    local function held() return axis == "y" and away or across end
     card = kit.action {
       id = "notification-" .. i,
       width = CARD_W, cursor = "pointer",
       height = function() return card_height(n()) end,
-      visible = function() return n() ~= nil end,
-      translate_x = function() return swipe.t.delta_x end,
-      behavior = { height = motion, translate_x = { duration = 160, easing = "out_cubic" } },
+      translate_x = function() return across.t.delta_x end,
+      translate_y = function()
+        local moved = away.t.delta_y
+        return at_bottom and math.min(0, moved) or math.max(0, moved)
+      end,
+      behavior = { height = motion, translate_x = { duration = 160, easing = "out_cubic" },
+        translate_y = { duration = 160, easing = "out_cubic" } },
       clip = true,
-      on_pressed = function(sx, sy) swiped = false swipe.send("pressed", sx, sy) end,
-      on_dragged = function(sx, sy) swipe.send("dragged", sx, sy) end,
-      on_released = function() swipe.send("released", 0, 0) end,
-      on_swiped = function(_, vx, vy) swipe.send("fling", vx, vy) end,
+      on_pressed = function(sx, sy)
+        swiped, axis, start_x, start_y = false, nil, sx, sy
+        across.send("pressed", sx, sy)
+        away.send("pressed", sx, sy)
+      end,
+      on_dragged = function(sx, sy)
+        if not axis then
+          local dx, dy = math.abs(sx - start_x), math.abs(sy - start_y)
+          if math.max(dx, dy) < theme.space.s then return end
+          axis = dy > dx and total() <= room() and "y" or "x"
+        end
+        held().send("dragged", sx, sy)
+      end,
+      on_released = function()
+        across.send("released", 0, 0)
+        away.send("released", 0, 0)
+      end,
+      on_swiped = function(_, vx, vy) held().send("fling", vx, vy) end,
       -- A click dismisses too -- unless it ended a swipe that already did.
       on_clicked = function() if swiped then swiped = false return end M.dismiss_at(i) end,
       L.decor_box("corners", { length = 9, color = function()
@@ -211,6 +254,9 @@ function V.build(M)
       expand_area,
     }
     card.stretch = kit.STRETCH
+    -- The slot slides it in and out; the card itself is the finger's.
+    slots[i] = ui.Item { width = CARD_W, height = function() return card_height(n()) end,
+      visible = function() return n() ~= nil end, behavior = { height = motion }, card }
 
     -- The card's ground is a layer of the popups' field, in the theme's
     -- corners; seams soften only while a card comes or goes.
@@ -228,18 +274,22 @@ function V.build(M)
     cards[i] = card
   end
 
+  local GONE = { left = { -48, 0 }, right = { 48, 0 }, up = { 0, -48 }, down = { 0, 48 } }
+
   -- A new card slides in from the edge, grows from a line and fades in;
   -- its emblem pops and the trailing emphasis sweeps in after it.
-  -- Dismissed, it collapses to a line and slides away.
-  local function drip(i, coming, done)
-    local node, shape, part = cards[i], shapes[i], parts[i]
+  -- Dismissed, it collapses to a line and slides away, the way it was sent.
+  local function drip(i, coming, direction, done)
+    local node, slot, shape, part = cards[i], slots[i], shapes[i], parts[i]
     dripping:set(true)
     if dry then dry:cancel() end
     dry = morf.time.timer(coming and 560 or 260, function() dry = nil dripping:set(false) end, false)
     local steps
     if coming then
+      local from_x, from_y = outward()
       steps = {
-        { node = node, property = "translate_x", from = 64, to = 0, duration = 460, easing = theme.ease.spatial },
+        { node = slot, property = "translate_x", from = from_x, to = 0, duration = 460, easing = theme.ease.spatial },
+        { node = slot, property = "translate_y", from = from_y, to = 0, duration = 460, easing = theme.ease.spatial },
         { node = node, property = "scale_y", from = 0.08, to = 1, duration = 380, easing = theme.ease.spatial },
         { node = node, property = "opacity", from = 0, to = 1, duration = 160 },
         { node = shape, property = "opacity", from = 0, to = 1, duration = 160 },
@@ -250,8 +300,16 @@ function V.build(M)
         { node = part.stripes, property = "opacity", from = 0, to = 1, duration = 260, delay = 140 },
       }
     else
+      local to = GONE[direction]
+      local to_x, to_y = 0, 0
+      if to then to_x, to_y = to[1], to[2]
+      else
+        to_x, to_y = outward()
+        to_x, to_y = to_x * .75, to_y * .75
+      end
       steps = {
-        { node = node, property = "translate_x", to = 48, duration = 200, easing = theme.ease.emphasized_accel },
+        { node = slot, property = "translate_x", to = to_x, duration = 200, easing = theme.ease.emphasized_accel },
+        { node = slot, property = "translate_y", to = to_y, duration = 200, easing = theme.ease.emphasized_accel },
         { node = node, property = "scale_y", to = 0.1, duration = 200, easing = theme.ease.emphasized_accel },
         { node = node, property = "opacity", to = 0, duration = 180 },
         { node = shape, property = "opacity", to = 0, duration = 180 },
@@ -261,7 +319,7 @@ function V.build(M)
       { parallel = steps },
       on_finished = function(reason)
         if not coming then
-          node.translate_x, node.scale_y, node.opacity, shape.opacity = 0, 1, 1, 1
+          slot.translate_x, slot.translate_y, node.scale_y, node.opacity, shape.opacity = 0, 0, 1, 1, 1
         else
           part.emblem.scale, part.stripes.translate_x, part.stripes.opacity = 1, 0, 1
         end
@@ -277,18 +335,25 @@ function V.build(M)
     count = now
   end)
 
-  local function dismiss(i)
-    if cards[i] then drip(i, false) return 200 end
+  local function dismiss(i, direction)
+    if cards[i] then drip(i, false, direction) return 200 end
     return 0
   end
 
+  -- The newest nearest the edge the stack hangs from.
+  local order = {}
+  for i, slot in ipairs(slots) do order[at_bottom and #slots - i + 1 or i] = slot end
   local stack_node, stack, stack_t, stack_ctl = kit.scroll({
-    id = "notification-stack", x = LEFT, y = TOP, width = CARD_W,
+    id = "notification-stack", y = STACK_Y, width = CARD_W,
+    x = function()
+      local side = along()
+      return side > 0 and 15 or side < 0 and WIDTH - CARD_W - 15 or (WIDTH - CARD_W) // 2
+    end,
     height = function() return height() - TOP - BOTTOM end, clip = true,
   })
   local stacked = ui.Item { width = CARD_W, height = total,
     ui.Sdf(layers),
-    ui.Column { gap = GAP, table.unpack(cards) },
+    ui.Column { gap = GAP, table.unpack(order) },
   }
   ui.reparent(stacked, stack)
   stack_ctl.set_content(stacked)
@@ -297,12 +362,19 @@ function V.build(M)
   if theme.motion.notification_acquire then
     theme.motion.notification_acquire(content, cards, M, shown)
   end
-  -- The sidebar opens over the same corner: while it is out the stack
+  -- The sidebar opens over the right corner: while it is out a stack there
   -- stands beside it rather than over it.
   local aside = require("presentation").active("sidebar")
-  return { content = content, width = WIDTH, height = height, edge = "top", dismiss = dismiss,
-    props = { anchors = { top = true, right = true },
-      translate_x = function() return aside() and -(theme.SIDE_W + theme.STRIP + theme.GAP) or 0 end,
-      behavior = { translate_x = { duration = theme.duration.normal, easing = theme.ease.spatial } } } }
+  return { content = content, width = WIDTH, height = height, edge = at_bottom and "bottom" or "top", dismiss = dismiss,
+    props = { anchors = { [at_bottom and "bottom" or "top"] = true },
+      x = function()
+        local _, _, w = require("bar").desk()
+        local room_w = w - theme.LEFT - theme.BORDER
+        local side = along()
+        return side < 0 and 0 or side > 0 and room_w - WIDTH or (room_w - WIDTH) // 2
+      end,
+      translate_x = function() return aside() and along() > 0 and -(theme.SIDE_W + theme.STRIP + theme.GAP) or 0 end,
+      behavior = { x = theme.spring.spatial,
+        translate_x = { duration = theme.duration.normal, easing = theme.ease.spatial } } } }
 end
 return V
