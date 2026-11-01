@@ -1,0 +1,8 @@
+# A phone's sheet: every page, the way a finger reaches it.
+start shell
+ipc sidebar open settings; pause 1.2; shot sheet-settings
+ipc sidebar open notifications; pause 1.2; shot sheet-notifications
+ipc sidebar open tasks; pause 1.2; shot sheet-tasks
+ipc sidebar open calendar; pause 1.2; shot sheet-calendar
+ipc sidebar open assistant; pause 1.2; shot sheet-assistant
+ipc sidebar open drop; pause 1.2; shot sheet-drop

@@ -1,0 +1,16 @@
+# Every panel and every page it holds.
+start shell
+ipc sidebar open settings; pause 1.2; shot right-settings
+ipc sidebar open notifications; pause 1.2; shot right-notifications
+ipc close; pause 0.6
+ipc leftbar open tasks; pause 1.2; shot left-tasks
+ipc leftbar open calendar; pause 1.2; shot left-calendar
+ipc close; pause 0.6
+ipc dashboard open; pause 1.4; shot top-dashboard
+ipc close; pause 0.6
+ipc bottom open assistant; pause 1.2; shot bottom-assistant
+ipc bottom open drop; pause 1.2; shot bottom-drop
+ipc close; pause 0.6
+ipc sidebar open settings; pause 0.4
+ipc bottom open assistant; pause 1.2; shot right-and-bottom
+ipc leftbar open tasks; pause 1.2; shot three-open
