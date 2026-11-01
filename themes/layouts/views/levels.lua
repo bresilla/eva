@@ -26,10 +26,10 @@ local INSTANT = { duration = 0 }
 local EXIT_MS, FADE_MS = 260, 180
 local LEAVE = { duration = EXIT_MS, easing = theme.ease.emphasized_accel }
 local FADE = { duration = FADE_MS }
--- Along its run where the theme stretches at all; well damped, for a small bud.
+-- The stretch along its run, where the theme stretches.
 local STRETCH = kit.STRETCH and { stiffness = 360, damping = 30, scale = .1, max = .2 } or nil
 
--- How far a bud reaches under the frame, so its spring never lifts it off.
+-- How far a bud reaches under the frame.
 local BLEED = S.s
 local CORNERS = { top_left_radius = { "top", "left" }, top_right_radius = { "top", "right" },
   bottom_left_radius = { "bottom", "left" }, bottom_right_radius = { "bottom", "right" } }
@@ -37,7 +37,7 @@ local CORNERS = { top_left_radius = { "top", "left" }, top_right_radius = { "top
 function V.build(model)
   local TALL_W, TALL_H = 118, 322
   local avail = model.rail_geometry().w - theme.LEFT - theme.BORDER - 2 * S.m
-  local WIDE_W, WIDE_H = math.min(340, avail), 92
+  local WIDE_W, WIDE_H = math.min(340, avail), 76
   local PILL_W, PILL_H = math.min(264, avail), 64
   local MEDIA_W, MEDIA_H = math.min(368, avail), 96
   local INSET = theme.ROUNDING + theme.SEAM + S.m
@@ -99,13 +99,19 @@ function V.build(model)
   local VALUE = P.role_size("hero")
   local VALUE_H = P.lh(VALUE)
 
-  -- A level's reading: its digits or, turned off, its icon.
+  -- A level's reading: its digits and their sign or, turned off, its icon.
   local function reading(ctx, spec)
     local percent = function() return model.percent(ctx.kind()) end
+    local SIGN = math.floor(VALUE * .5)
+    local DIGIT = math.floor(VALUE * .62 + .5)
     return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = VALUE_H,
       ui.Item { anchors = { fill = true }, visible = percent,
-        kit.morph_number { id = spec.id, anchors = { center_in = true }, digits = 4, size = VALUE, color = ctx.ink,
-          weight = 300, value = ctx.percent_text } },
+        kit.morph_number { id = spec.id, anchors = { center_in = true }, digits = 3, size = VALUE, color = ctx.ink,
+          weight = 300, value = ctx.digits },
+        kit.text { id = spec.id .. "-sign", text = "%", font_size = SIGN, font_weight = 300, color = ctx.ink,
+          y = math.floor((VALUE_H - P.lh(SIGN)) / 2) + S.xxs, height = P.lh(SIGN),
+          x = function() return math.floor(spec.width / 2 + #ctx.digits() * DIGIT / 2) + S.xxs end },
+      },
       kit.icon(ctx.icon, VALUE, ctx.ink, { anchors = { center_in = true },
         visible = function() return not percent() end }),
     }
@@ -127,7 +133,7 @@ function V.build(model)
     local node = ui.Item { width = W, height = H, visible = function() return ctx.face() == "tall" end,
       P.decor_box("corners", { length = S.s, color = ctx.ink }),
       kit.heading { id = "levels-title" .. tag, x = S.m, y = S.xs + S.xxs, width = W - 2 * S.m, height = TITLE_H,
-        level = "caption", reveal_delay = 0, active = ctx.out, ink = ctx.ink, text = ctx.title },
+        level = "caption", reveal_delay = 0, active = ctx.on("tall"), ink = ctx.ink, text = ctx.title },
       kit.chip { x = S.m, y = CHIP_Y, width = W - 2 * S.m, filled = true, color = ctx.ink, text = ctx.chip },
       kit.label { x = S.m, y = CODE_Y, width = W - 2 * S.m, elide = "right",
         text = function() return kit.code(ctx.kind(), "SD. ##.#") end },
@@ -151,6 +157,7 @@ function V.build(model)
     local BAR_X = S.m + BLOCK_W + S.s
     local BAR_W = W - BAR_X - READ_W - S.s
     local BAR_H = 20
+    local BLOCK_Y = math.floor((H - (TITLE_H + S.xxs + 13 + LABEL_H)) / 2)
     local meter = ui.Item { x = BAR_X, y = math.floor((H - BAR_H) / 2), width = BAR_W, height = BAR_H,
       transform_origin_x = 0,
       kit.meter { id = "levels-bar" .. tag, width = BAR_W, height = BAR_H, value = ctx.value, color = ctx.ink,
@@ -158,10 +165,10 @@ function V.build(model)
     }
     local node = ui.Item { width = W, height = H, visible = function() return ctx.face() == "wide" end,
       P.decor_box("corners", { length = S.s, color = ctx.ink }),
-      kit.heading { id = "levels-row-title" .. tag, x = S.m, y = S.m, width = BLOCK_W, height = TITLE_H,
-        level = "caption", reveal_delay = 0, active = ctx.out, ink = ctx.ink, text = ctx.title },
-      kit.chip { x = S.m, y = S.m + TITLE_H + S.xs, width = BLOCK_W, filled = true, color = ctx.ink, text = ctx.chip },
-      kit.label { x = S.m, y = S.m + TITLE_H + S.s + 13, width = BLOCK_W, elide = "right",
+      kit.heading { id = "levels-row-title" .. tag, x = S.m, y = BLOCK_Y, width = BLOCK_W, height = TITLE_H,
+        level = "caption", reveal_delay = 0, active = ctx.on("wide"), ink = ctx.ink, text = ctx.title },
+      kit.chip { x = S.m, y = BLOCK_Y + TITLE_H + S.xxs, width = BLOCK_W, filled = true, color = ctx.ink, text = ctx.chip },
+      kit.label { x = S.m, y = BLOCK_Y + TITLE_H + S.xxs + 13, width = BLOCK_W, elide = "right",
         text = function() return kit.code(ctx.kind(), "SD. ##.#") end },
       meter,
       reading(ctx, { id = "levels-row-value" .. tag, x = W - READ_W - S.xs, y = math.floor((H - VALUE_H) / 2),
@@ -188,7 +195,7 @@ function V.build(model)
       badge(ctx, S.m, SIZE),
       ui.Column { x = TEXT_X, anchors = { vertical_center = true }, gap = S.xxs,
         kit.heading { id = "levels-pill-title" .. tag, level = "section", width = TEXT_W, elide = "right",
-          font_weight = 600, reveal_delay = 0, active = ctx.out, ink = ctx.ink,
+          font_weight = 600, reveal_delay = 0, active = ctx.on("pill"), ink = ctx.ink,
           text = function() return ctx.reading().title end },
         kit.subtitle { id = "levels-pill-detail" .. tag, width = TEXT_W, elide = "right", font_size = theme.size.small,
           text = function() return ctx.reading().detail end,
@@ -216,7 +223,7 @@ function V.build(model)
       },
       ui.Column { x = TEXT_X, anchors = { vertical_center = true }, gap = S.xxs,
         kit.heading { id = "levels-media-title" .. tag, level = "section", width = TEXT_W, elide = "right",
-          font_weight = 600, reveal_delay = 0, active = ctx.out, ink = ctx.ink,
+          font_weight = 600, reveal_delay = 0, active = ctx.on("media"), ink = ctx.ink,
           text = function() return ctx.reading().title end },
         kit.subtitle { id = "levels-media-artist" .. tag, width = TEXT_W, elide = "right", font_size = theme.size.small,
           text = function() return ctx.reading().detail end },
@@ -244,7 +251,8 @@ function V.build(model)
     local function floats() return place().edge == nil end
     local function level() return model.family(kind()) == "level" end
 
-    local ctx = { kind = kind, out = out }
+    local ctx = { kind = kind }
+    function ctx.on(wanted) return function() return out() and ctx.face() == wanted end end
     function ctx.value() local read = model.value[kind()] return read and read() or 0 end
     local function muted() return kind() == "volume" and model.muted() end
     function ctx.reading() return model.read(kind()) end
@@ -262,7 +270,7 @@ function V.build(model)
     end
     function ctx.chip() return kind() == "brightness" and "Display" or "Output" end
     function ctx.icon() local read = model.icon[kind()] return read and read() or "tune" end
-    function ctx.percent_text() return ("%d%%"):format(math.floor(ctx.value() * 100 + .5)) end
+    function ctx.digits() return tostring(math.floor(ctx.value() * 100 + .5)) end
     function ctx.face()
       local family = model.family(kind())
       if family == "status" then return "pill" end
@@ -279,7 +287,7 @@ function V.build(model)
     local area = kit.action {
       id = "levels-area" .. tag, anchors = { fill = true }, cursor = "pointer",
       visible = level, drag_axis = function() return place().horizontal and "x" or "y" end,
-      accessible_name = function() return ctx.title() .. " " .. ctx.percent_text() end,
+      accessible_name = function() return ctx.title() .. " " .. ctx.digits() .. " percent" end,
       on_pressed = function(sx, sy) grab = { x = sx, y = sy, value = ctx.value() } end,
       on_dragged = function(sx, sy)
         if not grab then return end
@@ -297,10 +305,23 @@ function V.build(model)
       end,
     }
 
+    local faces = { tall = tall_face, wide = wide_face, pill = pill(ctx, tag), media = cover(ctx, tag) }
     local body = ui.Item { id = "levels-bud" .. tag, clip = true,
-      tall_face, wide_face, pill(ctx, tag), cover(ctx, tag), area }
+      faces.tall, faces.wide, faces.pill, faces.media, area }
     local panel = ui.Item { id = "levels-swell" .. tag, visible = function() return not gone() end,
       stretch = STRETCH, body }
+
+    -- A bud on show that takes another face fades it in.
+    local face_now = ctx.face()
+    morf.effect(name .. ".face", function()
+      local now = ctx.face()
+      if now == face_now then return end
+      face_now = now
+      if not out() then return end
+      local curve = theme.bounce.effects
+      morf.animation.play { { node = faces[now], property = "opacity", from = 0, to = 1,
+        duration = curve.duration, easing = curve.easing } }
+    end)
 
     local function x() return place().x end
     local function y() return place().y end

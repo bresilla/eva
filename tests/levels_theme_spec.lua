@@ -43,8 +43,8 @@ end
 -- Tsugumori's reading, digit by digit.
 local function reading()
   local text={}
-  for i=1,4 do text[i]=test.get("levels-value-digit-"..i).text end
-  return table.concat(text)
+  for i=1,3 do text[i]=test.get("levels-value-digit-"..i).text end
+  return table.concat(text)..test.get("levels-value-sign").text
 end
 for _,style in ipairs {"material","tsugumori"} do
   local hold=2200

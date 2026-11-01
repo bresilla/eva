@@ -7,6 +7,7 @@ local SOURCE=[[
     local config=require("config")
     return {detail=require("utilities").detail:get(),sidebar=require("sidebar").drawer.open:get(),
       shown=require("levels").shown:get(),
+      volume=require("osd").volume(),
       popups=#require("notifs").list:get(),
       position=config.get("osd.kinds.brightness.position"),enabled=config.get("osd.kinds.brightness.enabled"),
       percent=config.get("osd.kinds.brightness.percent"),hold=config.get("osd.kinds.brightness.hold"),
@@ -87,6 +88,31 @@ test.it("flashes every kind over IPC, and refuses one that does not exist",funct
   test.eq(state().shown,"volume")
   test.raises(function() test.ipc("osd","nonsense") end,"no such display")
 end)
+
+for _,style in ipairs {"material","tsugumori"} do
+  test.it(style.." on a real phone a finger along the level sets it, past the edge's gestures",function()
+    load(style,true,868,1932)
+    test.ipc("osd","volume") test.advance(800)
+    local bud=test.get("levels-bud")
+    local before=state().volume
+    local y=bud.y+bud.height/2
+    test.swipe({bud.x+120,y},{bud.x+240,y},{duration=240,steps=8}) test.advance(100)
+    test.truthy(state().volume>before+.15,"a finger along it did not raise it")
+    test.falsy(state().sidebar,"the drag opened the sheet")
+    test.eq(#test.logs("error"),0)
+  end)
+
+  test.it(style.." a bud that takes another face keeps its place and lands on it",function()
+    load(style,true,868,1932)
+    test.ipc("osd","volume") test.advance(800)
+    test.truthy(test.get("levels-bar").visible)
+    test.ipc("osd","mic") test.advance(800)
+    test.eq(state().shown,"mic")
+    test.falsy(test.get("levels-bar").visible,"the old face stayed")
+    test.truthy(test.get("levels-pill-title").visible,"the new face did not land")
+    test.near(test.get("levels-bud").height,64,1)
+  end)
+end
 
 test.it("upright the sheet steps aside for a try and comes back to the page",function()
   load("material",true,868,1932)
