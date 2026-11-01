@@ -54,6 +54,9 @@ local SOURCE = [==[
 local serial = 0
 local function load(style, settings, env, kept)
   serial = serial + 1
+  settings = settings or {}
+  settings.wellbeing = settings.wellbeing or {}
+  if settings.wellbeing.enabled == nil then settings.wellbeing.enabled = true end
   env = env or {}
   env.EVA_INPUT_DEVICES, env.EVA_FAKE_WINDOWS = TOUCH, "1"
   env.TEST_NOW = tostring(NOW)

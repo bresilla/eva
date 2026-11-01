@@ -41,6 +41,12 @@ local SOURCE = [==[
 local function load(size, devices, settings, style)
   settings = settings or {}
   settings.wallpaper = { draw = true, path = WALL }
+  local desktop = settings.desktop or {}
+  settings.desktop = desktop
+  desktop.home = desktop.home or {}
+  if desktop.home.enabled == nil then desktop.home.enabled = true end
+  if desktop.home.dock == nil then desktop.home.dock = true end
+  desktop.widgets = desktop.widgets or { tablet = { "clock", "date" }, phone = { "clock", "date" } }
   host.load { size = size, style = style, settings = settings, source_extra = SOURCE,
     env = { EVA_INPUT_DEVICES = devices, EVA_WALLPAPER = WALL } }
   test.ipc("close") test.settle(500)

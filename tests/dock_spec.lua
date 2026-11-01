@@ -95,15 +95,15 @@ test.it("a tablet's taskbar gives way to the on-screen keyboard", function()
   test.truthy(test.ipc("dock", "state").shown, "it did not come back")
 end)
 
-test.it("a phone has a row of pins on its home, and none without one", function()
+test.it("a phone has no dock unless its home is asked for", function()
   load("material", { 412, 915 }, nil, true)
-  test.eq(test.ipc("dock", "on").mode, "hotseat")
-  test.truthy(test.find({ id = "dock", visible = true }))
-  local settings = morf.env("XDG_CACHE_HOME") .. "/dock-no-home.json"
-  morf.fs.write(settings, morf.json.encode { desktop = { home = { enabled = false } } })
-  load("material", { 412, 915 }, { EVA_SETTINGS = settings }, true)
   test.eq(test.ipc("dock", "on").mode, "off")
   test.falsy(test.find({ id = "dock", visible = true }))
+  local settings = morf.env("XDG_CACHE_HOME") .. "/dock-home.json"
+  morf.fs.write(settings, morf.json.encode { desktop = { home = { enabled = true, dock = true } } })
+  load("material", { 412, 915 }, { EVA_SETTINGS = settings }, true)
+  test.eq(test.ipc("dock", "on").mode, "hotseat")
+  test.truthy(test.find({ id = "dock", visible = true }))
 end)
 
 test.it("a press goes to the window, the wheel walks them, the middle button closes", function()

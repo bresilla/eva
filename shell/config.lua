@@ -192,7 +192,7 @@ local config = settings.open {
     -- each kind of machine, which small, and where a desk or a tablet has
     -- them, as `{ id, x, y }` in fractions of the screen.
     desktop = {
-      widgets = { desk = {}, tablet = { "clock", "date" }, phone = { "clock", "date" } },
+      widgets = { desk = {}, tablet = {}, phone = {} },
       small = { desk = {}, tablet = {}, phone = {} },
       place = { desk = {}, tablet = {}, phone = {} },
       -- The pages past the first on a phone's and a tablet's home: lists of what
@@ -201,7 +201,7 @@ local config = settings.open {
       -- A phone's and a tablet's home: whether it has pages of apps, the phone's
       -- row of pinned apps on it, the names under the icons, how many icons
       -- stand across (0 chooses), and whether a hold is kept from arranging.
-      home = { enabled = true, dock = true, labels = true, columns = 0, locked = false },
+      home = { enabled = false, dock = false, labels = true, columns = 0, locked = false },
       -- What a widget stands on: "glass", "solid", "none", or "stencil", the
       -- clock's digits cut through a veil onto the picture.
       chrome = "glass",
@@ -725,7 +725,7 @@ local config = settings.open {
     -- Screen time (shell/screen_time_model.lua): whether it counts, each app's
     -- daily limit as `{ app, minutes }`, and the hours of downtime and bedtime.
     wellbeing = {
-      enabled = true,
+      enabled = false,
       limits = {},
       downtime = { on = false, from = "22:00", to = "07:00", allowed = {} },
       bedtime = { on = false, from = "22:30", to = "07:00", grayscale = true, quiet = true },
