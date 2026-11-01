@@ -86,6 +86,21 @@ local function window(options)
   return state
 end
 
+test.it("the engine's chooser holds its whole name in either theme", function()
+  for _, style in ipairs { "material", "tsugumori" } do
+    window { style = style }
+    local room = test.get("translate-engine").width
+    local state = fresh("measure")
+    test.load("../apps/translate/app.lua", { env = environment(state, style), source = [[
+      local kit = require("common.frame") and require("kit")
+      require("morf.ui").Item { width = 600, height = 100,
+        kit.text { id = "natural", text = "MyMemory · online", font_size = require("theme").size.normal } }
+    ]] })
+    test.settle(200)
+    test.truthy(test.get("natural").width + 2 * 24 <= room, style .. ": the name and its arrow fit")
+  end
+end)
+
 -- ------------------------------------------------------------- what they say --
 
 test.it("takes translate-shell's words, and its quiet refusals as refusals", function()

@@ -13,7 +13,7 @@ local S = theme.space
 local M = {}
 
 local LANGUAGE_W = S.TARGET * 4
-local ENGINE_W = S.TARGET * 5
+local ENGINE_W = S.TARGET * 6
 
 local function area(spec)
   spec.color, spec.placeholder_color = kit.ink("hi"), kit.ink("lo")
