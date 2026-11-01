@@ -13,7 +13,7 @@ function V.build(M)
   local function crop() local b=M.crop() local a=g() return {x=b.x*a.scale,y=b.y*a.scale,w=b.w*a.scale,h=b.h*a.scale} end
   local function doc() return M.doc() end
   local function text_draft() local d=doc() return d~=nil and d.draft~=nil and d.draft.type=="text" end
-  local function editing() return M.phase:get()=="editing" end
+  local function editing() return M.phase:get()=="editing" and not M.quiet:get() end
   local function button(id,label,icon,action,x,y,w,selected,enabled)
     local area
     local function on() return selected and selected() or false end

@@ -1,9 +1,11 @@
--- Shell lifecycle and preferences around the shared capture/document library.
+-- The tool's lifecycle and preferences around the shared capture/document library.
 local morf=require("morf")
 local annotation=require("lib.shell.capture.annotation")
 local backend=require("lib.shell.capture")
 local config=require("config")
 local M={phase=morf.signal("eva.capture.stage","selecting"),
+  -- A selection whose result goes straight on: no toolbar, nothing to edit.
+  quiet=morf.signal("eva.capture.quiet",false),
   tools_open=morf.signal("eva.capture.tools.open",false),more_open=morf.signal("eva.capture.more.open",false),
   hovered=morf.signal("eva.capture.hovered",false),pending=morf.signal("eva.capture.pending",false),active=morf.signal("eva.capture.editor",false),revision=morf.signal("eva.capture.revision",0),
   preview=morf.signal("eva.capture.preview",""),busy=morf.signal("eva.capture.export",false),
@@ -16,7 +18,7 @@ local M={phase=morf.signal("eva.capture.stage","selecting"),
 local session,source,preview_source,output,finished,watchdog,render_timer,viewport
 local last_hover_window,selection_confirmed,render_dirty,resize_base,render_waiter,draft_cache,mark_cache
 local generation,rendering=0,false
-local picker_done
+local picker_done,after,last_wanted
 function M.running() return M.active:get() or M.pending:get() end
 M.tools=annotation.tools
 M.readers=morf.signal("eva.capture.readers",require("lib.shell.capture.read").available())
@@ -81,7 +83,7 @@ function M.cancel()
   M.phase:set("selecting") M.tools_open:set(false) M.more_open:set(false) M.hovered:set(false)
   M.pending:set(false) M.active:set(false) M.busy:set(false) M.settings:set(false) M.upload_confirm:set(false)
   M.rebinding:set(false) M.picker:set(false) picker_done=nil
-  M.hint:set("")
+  M.hint:set("") M.quiet:set(false) after=nil last_wanted=nil
   M.preview:set("") M.document=nil source=nil preview_source=nil viewport=nil rendering=false
   last_hover_window=nil selection_confirmed=false render_dirty=false resize_base=nil render_waiter=nil draft_cache=nil mark_cache=nil
   if watchdog then watchdog:cancel() watchdog=nil end
@@ -162,10 +164,16 @@ function M.load(path,width,height,screen,done,preview)
   M.preview:set(preview or path) M.status:set("Drag an area · click a window · S screen · Esc cancel")
   M.pending:set(false) M.toolbar:set({x=0,y=0}) M.active:set(true)
 end
-function M.start(target,done)
+--- Takes the screen and opens the selection. `options`: `after`, what follows
+--- a confirmed selection instead of the toolbar (an export's name, or a fn
+--- given this module), and `last`, the region confirmed last chosen for you.
+function M.start(target,done,options)
   if session then M.cancel() end
+  options=options or {}
   generation=generation+1 local current=generation
   finished=done M.target=target or "region"
+  after,last_wanted=options.after,options.last
+  M.quiet:set(after~=nil)
   local screen=(morf.screens or {})[1] or {name="",x=0,y=0,width=1920,height=1080}
   session=backend.session {cursor=config.get("capture.cursor")}
   M.pending:set(true)
@@ -182,6 +190,14 @@ function M.start(target,done)
       if watchdog then watchdog:cancel() watchdog=nil end
       M.load(frame.source,frame.width,frame.height,desktop,done,path)
       M.target=target
+      if last_wanted then
+        if M.restore_last() then return end
+        if after then
+          local cb=finished finished=nil M.cancel()
+          if cb then cb(false,"No region taken yet") end
+          return
+        end
+      end
       if target=="screen" then M.select_screen() end
     end
     if view.x==0 and view.y==0 and view.w==frame.width and view.h==frame.height then ready(frame.source)
@@ -196,14 +212,18 @@ end
 local function last_region_path()
   return (morf.env("XDG_STATE_HOME") or (morf.fs.home().."/.local/state")).."/eva/capture/last-region"
 end
---- The crop saved as "X,Y WxH" in layout pixels, as slurp prints a region.
-local function remember_region()
+--- The crop in layout pixels: `{ x, y, w, h }`.
+function M.region()
   local d,s=M.document,output
-  if not d or not s or not (s.width and s.width>0) then return end
+  if not d or not s or not (s.width and s.width>0) then return nil end
   local factor=d.width/s.width local c=d.crop
   local function whole(value) return math.floor(value+.5) end
-  local line=("%d,%d %dx%d"):format(whole((s.x or 0)+c.x/factor),whole((s.y or 0)+c.y/factor),whole(c.w/factor),whole(c.h/factor))
-  morf.fs.write(last_region_path(),line,{atomic=true,parents=true})
+  return {x=whole((s.x or 0)+c.x/factor),y=whole((s.y or 0)+c.y/factor),w=whole(c.w/factor),h=whole(c.h/factor)}
+end
+--- The crop saved as "X,Y WxH".
+local function remember_region()
+  local r=M.region()
+  if r then morf.fs.write(last_region_path(),("%d,%d %dx%d"):format(r.x,r.y,r.w,r.h),{atomic=true,parents=true}) end
 end
 function M.confirm_selection()
   if not M.document then return end
@@ -214,6 +234,10 @@ function M.confirm_selection()
   M.phase:set("editing") M.hovered:set(false) M.toolbar:set({x=0,y=0})
   M.status:set("") M.tools_open:set(false) M.more_open:set(false)
   M.hint:set("")
+  if after then
+    local next_step=after after=nil
+    if type(next_step)=="function" then next_step(M) else M.export(next_step,true) end
+  end
 end
 function M.select_screen()
   local d=M.document if not d then return end
@@ -419,11 +443,10 @@ end
 function M.pick_folder()
   M.pick_open("folder",config.get("capture.folder"),function(path) if path then config.set("capture.folder",path) end end)
 end
-local live_binding="Print"
+local hotkey=require("lib.shell.capture.hotkey")
 local function apply_binding(binding)
-  if binding==live_binding then return end
-  backend.rebind(binding,live_binding,config.get("capture.keybind_file"),function(ok,why)
-    if ok then live_binding=binding config.set("capture.hotkey",binding) M.status:set("Capture key: "..binding)
+  hotkey.apply(config,binding,function(ok,why)
+    if ok then M.status:set("Capture key: "..binding)
     else M.status:set(tostring(why or "Could not change capture key")) end
   end)
 end
@@ -440,29 +463,17 @@ function M.binding_key(key,text,mods,_,name)
   local binding=table.concat(tokens," + ")
   M.rebinding:set(false) apply_binding(binding)
 end
--- Saved shell preferences also restore the binding after a compositor reload.
-local hypr=require("lib.compositor.hyprland")
-if hypr.on then
-  local function restore()
-    if not morf.window.primary or morf.window.primary() then live_binding="Print" apply_binding(config.get("capture.hotkey")) end
-  end
-  hypr.on("connected",restore) hypr.on("configreloaded",restore)
-end
-morf.effect("eva.capture.hotkey",function()
-  local binding=config.get("capture.hotkey")
-  local primary=not morf.window.primary or morf.window.primary()
-  if primary and hypr.available and hypr.available() then apply_binding(binding)
-  elseif not primary then live_binding=binding end
-end)
 local function output_name()
   return backend.expand(config.get("capture.folder")).."/capture_"..morf.time.format("%Y%m%d_%H-%M-%S").."_"..tostring(morf.time.now_ms())..".png"
 end
-function M.export(action)
+--- Renders the crop and does `action` with it; `direct` skips the save dialog.
+function M.export(action,direct)
   if M.busy:get() or not M.document or not session or M.phase:get()~="editing" then return end
   if action=="upload" and not M.upload_confirm:get() then M.upload_confirm:set(true) return end
   M.upload_confirm:set(false)
   local current=generation local owned=session
   local rendered
+  local quiet=M.quiet:get()
   -- Accept text even if the user clicks Copy instead of pressing Enter.
   if M.document.draft then
     M.document.finish(M.document.draft.type=="text" and M.text_value:get() or nil)
@@ -476,7 +487,11 @@ function M.export(action)
     if rendered then owned.remove(rendered) rendered=nil end
     if ok then
       if M.on_export then M.on_export(action,message) end
-      M.cancel()
+      local cb=finished finished=nil M.cancel()
+      if cb then cb(true,nil,message) end
+    elseif quiet then
+      local cb=finished finished=nil M.cancel()
+      if cb then cb(false,tostring(message or "Export failed")) end
     else M.status:set(tostring(message or "Export failed")) M.redraw() end
   end
   local function render_export()
@@ -497,7 +512,7 @@ function M.export(action)
       if action=="copy" then
         if config.get("capture.copy_to_disk") then save(output_name(),true) else backend.copy(path,copy_done) end
       elseif action=="save" then
-        if config.get("capture.save_dialog") then M.pick_open("save",output_name(),function(target) if current==generation then save(target,config.get("capture.copy_on_save")) end end)
+        if config.get("capture.save_dialog") and not direct then M.pick_open("save",output_name(),function(target) if current==generation then save(target,config.get("capture.copy_on_save")) end end)
         else save(output_name(),config.get("capture.copy_on_save")) end
       elseif action=="upload" then backend.upload(path,config.get("capture.upload_endpoint"),complete)
       elseif action=="ocr" or action=="qr" then require("lib.shell.capture.read").read(action,path,complete)
