@@ -109,6 +109,33 @@ test.it("EVA_FAKE_HAPTICS stands in where there is no feedbackd",function()
   test.truthy(test.ipc("present"))
 end)
 
+test.it("feedback that breaks never costs the press it came with",function()
+  test.load("../shell/init.lua",{source=[[
+    local ui=require("morf.ui")
+    local kit=require("kit")
+    local pressed=0
+    package.loaded.services={ringer={state={feedbackd=true},trigger=function() error("the bus is gone") end}}
+    ui.Item {width=400,height=400,
+      kit.action {id="fixture-press",x=0,y=0,width=100,height=100,on_clicked=function() pressed=pressed+1 end}}
+    morf.ipc.pressed=function() return pressed end
+  ]],size={400,400},env={EVA_DRY_RUN="0"}})
+  test.click("fixture-press")
+  test.advance(20)
+  test.eq(test.ipc("pressed"),1)
+  test.load("../shell/init.lua",{source=[[
+    local ui=require("morf.ui")
+    local kit=require("kit")
+    local pressed=0
+    package.loaded.services={ringer={state={feedbackd=true}}}
+    ui.Item {width=400,height=400,
+      kit.action {id="fixture-press",x=0,y=0,width=100,height=100,on_clicked=function() pressed=pressed+1 end}}
+    morf.ipc.pressed=function() return pressed end
+  ]],size={400,400},env={EVA_DRY_RUN="0"}})
+  test.click("fixture-press")
+  test.advance(20)
+  test.eq(test.ipc("pressed"),1)
+end)
+
 test.it("the Sound page has the switch only where something can buzz",function()
   local function page(env)
     env.EVA_WALLPAPER="" env.EVA_DRY_RUN="1"

@@ -4,9 +4,11 @@
 -- routes the sound; this process watches the same modem and only shows and acts.
 --
 --   local scene = require(visual.lock)(ctx)(width, height, name)
---   return require("themes.phone_lock").host(scene, { C = C, text = ctx.text, icon = ctx.icon,
+--   require("themes.phone_lock").host(scene, { C = C, text = ctx.text, icon = ctx.icon,
 --     visual = visual, width = width, height = height })
+--   return scene
 --
+-- It goes inside `scene`: a held lock's root must stay the theme's opaque Rect.
 -- Nothing here is built until a modem that can call is there, which on a phone
 -- may be after the lock came up. The shell writes what the lock cannot read
 -- itself to `phone/lock.json` in the state folder.
@@ -39,7 +41,7 @@ function M.session()
     folder = morf.env("EVA_CONTACTS") or saved.contacts, country = saved.country,
   }
   M.started = {
-    mobile = mobile, book = book, standin = standin,
+    mobile = mobile, book = book, standin = standin, medical = saved.medical or "",
     phone = require("models.phone_calls").new { mobile = mobile, book = book, owner = false },
     sim = require("models.phone_sim").new { mobile = mobile },
   }
@@ -55,10 +57,10 @@ local function look_of(spec)
   }
 end
 
---- `scene` with the phone's surfaces over it, `spec` as the header says.
+--- Puts the phone's surfaces over `scene`, `spec` as the header says.
 function M.host(scene, spec)
   local session = M.session()
-  if not session then return scene end
+  if not session then return end
   local phone, sim, mobile = session.phone, session.sim, session.mobile
   local look = look_of(spec)
   local function width() return spec.width end
@@ -85,21 +87,21 @@ function M.host(scene, spec)
       ui.Item { id = "lock-emergency-pad", z = 60, width = spec.width, height = spec.height,
         visible = function() return M.open_emergency:get() and not calling() end,
         require("themes.emergency_pad").build { phone = phone, book = session.book, look = look,
-          width = width, height = height, open = M.open_emergency },
+          medical = session.medical, width = width, height = height, open = M.open_emergency },
       },
       ui.Item { id = "lock-call", z = 70, width = spec.width, height = spec.height, visible = calling,
-        require("themes.call_screen").build { phone = phone, look = look, width = width, height = height },
+        require("themes.call_screen").build { phone = phone, look = look, width = width, height = height,
+          held_open = true },
       },
     }
   end
-  local root = ui.Item { id = "lock-phone", width = spec.width, height = spec.height, scene }
   local built = false
   morf.effect("eva.lock.voice", function()
     if mobile.voice.present:get() and not built then
       built = true
-      ui.reparent(surfaces(), root)
+      ui.reparent(surfaces(), scene)
     end
-  end, { owner = root })
+  end, { owner = scene })
   if session.standin then
     morf.ipc.phone = function(what, ...)
       local act = session.standin[what]
@@ -107,7 +109,6 @@ function M.host(scene, spec)
       if what == "state" then return { stage = phone.stage:get(), sim = sim.asking() } end
     end
   end
-  return root
 end
 
 return M

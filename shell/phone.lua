@@ -65,8 +65,9 @@ local function start()
     mobile = mobile, book = M.book(), owner = true, ring = ringer(), audio = M.audio, log = M.history(),
     notify = function(entry) require("notifs").push(entry) end,
     quiet = function(row)
-      if not require("notifs").dnd:get() then return false end
       local person = M.book().person(row.number)
+      if not person and config.get("phone.silence_unknown") == true then return true end
+      if not require("notifs").dnd:get() then return false end
       return not (person and person.favourite)
     end,
   }
@@ -91,18 +92,26 @@ local function start()
   M.ready:set(true)
 end
 
+-- Every output runs the shell once: only the primary one owns calls, or a
+-- docked phone would ring and log each call once a screen.
+local function primary() return not morf.window.primary or morf.window.primary() end
+local is_primary = morf.signal("eva.phone.primary", primary())
+if morf.window.on_primary then morf.window.on_primary(function(now) is_primary:set(now == true) end) end
+
 morf.effect("eva.phone.start", function()
   local mobile = services.modem
-  if M.model or not (mobile and mobile.voice and mobile.voice.present:get()) then return end
+  if M.model or not is_primary:get() then return end
+  if not (mobile and mobile.voice and mobile.voice.present:get()) then return end
   start()
 end)
 
 -- What the lock reads, it having no way to the settings.
 morf.effect("eva.phone.lock-settings", function()
-  local contacts, country = config.get("phone.contacts"), config.get("phone.country")
+  local saved = { contacts = config.get("phone.contacts"), country = config.get("phone.country"),
+    medical = config.get("phone.medical") }
   local state = morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")
-  pcall(morf.fs.write, state .. "/eva/phone/lock.json",
-    morf.json.encode { contacts = contacts, country = country }, { atomic = true, parents = true, mode = 384 })
+  pcall(morf.fs.write, state .. "/eva/phone/lock.json", morf.json.encode(saved),
+    { atomic = true, parents = true, mode = 384 })
 end)
 
 local function need()

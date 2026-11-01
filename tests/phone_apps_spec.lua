@@ -60,6 +60,30 @@ test.it("contacts are searched and starred",function()
   test.truthy(morf.fs.read(dir.."/eva/phone/contacts.json"):find("ben-2",1,true))
 end)
 
+test.it("a recent caller can be blocked from the list, and an emergency contact chosen",function()
+  load("phone",nil,"calls")
+  test.ipc("tab",2)
+  test.advance(20)
+  test.click("phone-block-3")
+  test.advance(20)
+  test.truthy(morf.fs.read(dir.."/eva/phone/contacts.json"):find("+4915112345678",1,true))
+  test.ipc("tab",3)
+  test.advance(20)
+  test.click("phone-ice-1")
+  test.advance(20)
+  test.contains(morf.fs.read(dir.."/eva/phone/contacts.json"),'"emergency":"ann-1"')
+end)
+
+test.it("vCards are imported from a file and exported to one",function()
+  run=run+1
+  dir=morf.env("XDG_CACHE_HOME").."/phone-apps-"..run
+  local out=dir.."/out.vcf"
+  test.load("../apps/phone/app.lua",{size={480,860},args={"export",out},env={EVA_DRY_RUN="1",
+    EVA_CONTACTS="tests/fixtures/contacts",EVA_SETTINGS=dir..".json",XDG_STATE_HOME=dir}})
+  test.advance(20)
+  test.contains(morf.fs.read(out),"FN:Ann Veldman")
+end)
+
 test.it("threads list by who, newest first, with what is unread",function()
   load("messages",nil,"messages")
   local s=test.ipc("state")

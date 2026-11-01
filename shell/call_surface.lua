@@ -1,6 +1,6 @@
 -- The phone's own surface: the compositor's overlay layer, there while a call
--- is or while the SIM asks, on this output only when it is the primary one. A
--- phone or tablet gets the whole screen, a desk a card along the top.
+-- is, or the SIM asks, or a warning stands. A phone or tablet gets the whole
+-- screen, a desk a card along the top, and a call left running a small chip.
 local morf = require("morf")
 local ui = require("morf.ui")
 local M = {}
@@ -33,12 +33,28 @@ end
 function M.start(owner)
   local layer
   local model, sim, alerts = owner.model, owner.sim, owner.alerts
+  local keys = require("hardware_keys")
   local function calling() return model.stage:get() ~= "idle" end
   local function alerting() return alerts ~= nil and alerts.active() end
-  local keys = require("hardware_keys")
   local function counting() return keys.sos:get() > 0 end
-  local function open()
-    local compact = not require("responsive").sheets() and not sim.asking() and not alerting() and not counting()
+  local function asking() return sim.asking() or alerting() or counting() end
+
+  local function surface(root, spec)
+    spec.blend, spec.namespace, spec.layer = "srgb", "eva-call", "overlay"
+    spec.exclusive_zone, spec.keyboard_focus, spec.visible, spec.root = -1, "none", true, root
+    return morf.window.layer(spec)
+  end
+
+  local function open_chip()
+    local screen = require("themes.call_screen")
+    local space = require("theme").space
+    return surface(ui.Item { id = "call-root", anchors = { fill = true },
+      screen.chip { phone = model, look = look() } },
+      { anchors = { top = true }, width = screen.CHIP_W, height = screen.CHIP_H, margin_top = space.xxl + space.s })
+  end
+
+  local function open_full()
+    local compact = not require("responsive").sheets() and not asking()
     local function width() local w = size() return compact and CARD_W or w end
     local function height() local _, h = size() return h end
     local call = require("themes").view("call").build {
@@ -56,21 +72,24 @@ function M.start(owner)
         require("themes.sos_sheet").build { left = keys.sos, cancel = keys.cancel, look = look(),
           width = width, height = height } },
       shield(owner) }
-    layer = morf.window.layer {
-      blend = "srgb", namespace = "eva-call", layer = "overlay", exclusive_zone = -1, keyboard_focus = "none",
-      anchors = compact and { top = true } or { top = true, bottom = true, left = true, right = true },
-      width = compact and CARD_W or 0, height = compact and CARD_H or 0,
-      margin_top = compact and require("theme").space.xl or 0, visible = true, root = root,
-    }
-    M.layer = layer
+    return surface(root, compact
+      and { anchors = { top = true }, width = CARD_W, height = CARD_H, margin_top = require("theme").space.xl }
+      or { anchors = { top = true, bottom = true, left = true, right = true }, width = 0, height = 0 })
   end
+
+  local shown = ""
   morf.effect("eva.phone.surface", function()
-    local up = calling() or sim.asking() or alerting() or counting()
-    local primary = not morf.window.primary or morf.window.primary()
-    if up and primary and not layer then open()
-    elseif not up and layer then
-      layer:destroy()
-      layer, M.layer = nil, nil
+    local mode = ""
+    if asking() or (calling() and not model.minimised:get()) then mode = "full"
+    elseif calling() then mode = "chip" end
+    if not morf.window.primary or morf.window.primary() then
+      if mode ~= shown then
+        if layer then layer:destroy() end
+        layer = nil
+        if mode == "full" then layer = open_full() elseif mode == "chip" then layer = open_chip() end
+        shown = mode
+        M.layer = layer
+      end
     end
   end)
 end

@@ -23,6 +23,43 @@ test.it("a machine with no modem builds none of it",function()
   test.eq(test.ipc("stage"),"rest")
 end)
 
+local HELD=[[
+  package.loaded["lib.services.accounts"]={me=function() return {name="fixture",label="Fixture",initial="F"} end}
+  pcall(function() morf.pam=setmetatable({},{__index=function(_,name) error("the spec reached PAM: "..name) end}) end)
+  %s
+  require("init")
+]]
+local function held(extra,env)
+  env=env or {}
+  env.EVA_STYLE="material" env.EVA_SCALE_MODE="compositor" env.EVA_DRY_RUN="1"
+  test.load("../lock/init.lua",{source=HELD:format(extra or ""),size={868,1932},screens=1,env=env})
+  test.settle(1500)
+end
+local function lock_surfaces()
+  local found=0
+  for _,surface in ipairs(test.surfaces()) do if surface.kind=="lock" then found=found+1 end end
+  return found
+end
+
+test.it("a held lock keeps its surface with a modem, and shows a call on it",function()
+  held(nil,{EVA_FAKE_MODEM="1",EVA_CONTACTS="tests/fixtures/contacts"})
+  test.eq(#test.problems(),0)
+  test.eq(lock_surfaces(),1)
+  test.ipc("phone","ring","+31612345678")
+  test.advance(60)
+  test.eq(test.get("call-name").text,"Ann Veldman")
+end)
+
+test.it("a held lock keeps its surface when the phone's part breaks",function()
+  held([[package.loaded["themes.phone_lock"]={host=function() error("the phone is broken") end}]])
+  test.eq(lock_surfaces(),1)
+end)
+
+test.it("a held lock keeps its surface when the phone's part cannot even be reached",function()
+  held([[package.loaded["themes.phone_lock"]=setmetatable({},{__index=function() error("gone") end})]])
+  test.eq(lock_surfaces(),1)
+end)
+
 test.it("an incoming call shows over the lock, by name",function()
   load(true)
   test.eq(shown("lock-call"),false)

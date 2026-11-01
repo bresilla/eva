@@ -84,6 +84,17 @@ function M.detail(row)
   return when .. " · " .. (row.outcome or "")
 end
 
+local blocked_now = morf.signal("phone.blocked", 0)
+--- Whether calls and texts from `number` are turned away.
+function M.blocked(number)
+  local _ = blocked_now:get()
+  return M.book.blocked(number)
+end
+function M.toggle_block(number)
+  M.book.block(number, not M.book.blocked(number))
+  blocked_now:set(blocked_now:get() + 1)
+end
+
 --- Missed calls seen: the badge goes.
 function M.seen()
   for _, row in ipairs(M.log.rows:get()) do

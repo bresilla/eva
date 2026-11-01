@@ -68,6 +68,8 @@ function M.push(entry)
   local n = {
     id = own, app = entry.app or "eva", summary = entry.summary or "", body = entry.body or "",
     urgency = entry.urgency or 1, icon = entry.icon or "", own = true,
+    -- The number an inline reply goes to: `require("phone").reply(n.reply, text)`.
+    reply = entry.reply,
   }
   local list = {}
   for _, e in ipairs(M.list:get()) do list[#list + 1] = e end

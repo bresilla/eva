@@ -165,6 +165,11 @@ local config = settings.open {
       -- Mobile data in a calendar month, in megabytes, before a warning; 0
       -- for none.
       data_limit = 0,
+      -- Calls from numbers not in the address book do not ring.
+      silence_unknown = false,
+      -- What a stranger should know, shown on the lock's emergency pad: blood
+      -- type, allergies, medication.
+      medical = "",
       -- The power key ends a call that is up.
       power_ends_call = false,
       -- What pressing power twice runs: a command, as a list.

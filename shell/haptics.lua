@@ -2,6 +2,9 @@
 --
 --   require("haptics").fire("commit")
 --
+-- It wraps every press in the shell, so nothing in it may raise: a buzz that
+-- fails is no buzz, and the press still happens.
+--
 -- Every press of a kit control reaches it through `attach`, so a view needs no
 -- line of its own; the keyboard, tiles and gestures name their moments. The
 -- one setting is `haptics.on`. Strength and silence are feedbackd's profile's.
@@ -62,7 +65,9 @@ function M.fire(kind)
   M.count:set(M.count:get() + 1)
   if flag("EVA_DRY_RUN") or flag("EVA_FAKE_HAPTICS") then return true end
   local ring = feedback()
-  return ring ~= nil and ring.trigger(event)
+  if not (ring and ring.trigger) then return false end
+  local ok, sent = pcall(ring.trigger, event)
+  return ok and sent == true
 end
 
 --- Plays every press of a kit control: `control` is lib.kit.control.

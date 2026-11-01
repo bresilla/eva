@@ -182,7 +182,29 @@ local function controls(look, phone, width)
     ui.Row { anchors = { horizontal_center = true }, gap = S.l, table.unpack(buttons) } }
 end
 
---- The screen for `spec.phone`, `spec.width` by `spec.height` (fns).
+M.CHIP_W, M.CHIP_H = 240, S.TOUCH
+
+--- A call left running: who and how long, and a press to go back to it.
+function M.chip(spec)
+  local phone, look = spec.phone, spec.look
+  local C = look.C
+  return look.action {
+    id = "call-chip", accessible_name = "Back to the call", width = M.CHIP_W, height = M.CHIP_H, cursor = "pointer",
+    on_clicked = function() phone.minimised:set(false) end,
+    ui.Rect { anchors = { fill = true }, radius = look.round(M.CHIP_H / 2), color = function() return C.primary end },
+    ui.Row { anchors = { center_in = true }, gap = S.s, align = "center",
+      look.icon("call", S.l + S.xs, function() return C.onPrimary end),
+      look.text { id = "call-chip-text", font_size = S.m + S.xs, color = function() return C.onPrimary end,
+        text = function()
+          local row = phone.current()
+          return (row and row.label or "Call") .. " · " .. M.clock(phone.seconds:get())
+        end },
+    },
+  }
+end
+
+--- The screen for `spec.phone`, `spec.width` by `spec.height` (fns). `held_open`
+--- leaves out the way back to the phone: the lock has none to go to.
 function M.build(spec)
   local phone, look, width, height = spec.phone, spec.look, spec.width, spec.height
   local C = look.C
@@ -252,8 +274,15 @@ function M.build(spec)
       body,
     }
   end
+  local leave = not spec.held_open and look.action {
+    id = "call-minimise", accessible_name = "Back to the phone", width = S.TOUCH, height = S.TOUCH, x = S.m,
+    y = S.xxl + S.l, cursor = "pointer", on_clicked = function() phone.minimised:set(true) end,
+    visible = function() local s = stage() return s == "talking" or s == "dialing" end,
+    look.icon("expand_more", S.xl + S.xs, function() return C.onSurface end, { anchors = { center_in = true } }),
+  } or nil
   return ui.Rect {
     id = "call-screen", width = width, height = height, color = function() return C.surface end,
+    leave,
     ui.Item { width = width, y = function() return math.floor(height() * 0.14) end, height = 1,
       ui.Item { anchors = { horizontal_center = true }, width = 1, height = 1,
         ui.Item { x = function() return -(head.layout_width or 0) / 2 end, width = 1, height = 1, head } } },

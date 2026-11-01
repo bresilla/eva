@@ -49,6 +49,8 @@ function M.build(spec)
         end },
       person and look.text { id = "emergency-contact", font_size = S.m + S.xxs,
         text = "In an emergency: " .. person.name } or nil,
+      (spec.medical or "") ~= "" and look.text { id = "emergency-medical", font_size = S.m + S.xxs,
+        text = spec.medical, wrap = true, width = function() return math.max(1, width() - 2 * S.xl) end } or nil,
       ui.Item { width = pad.width, height = pad.height, pad.node },
       ui.Row { gap = S.xxl, align = "center",
         look.action { id = "emergency-close", accessible_name = "Close", width = S.TOUCH + S.m,

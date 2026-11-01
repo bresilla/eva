@@ -68,7 +68,11 @@ local function recent_row(index, w)
     on = function() local r = row() return r ~= nil and r.outcome == "missed" end,
     title = function() local r = row() return r and r.label or "" end,
     subtitle = function() local r = row() return r and model.detail(r) or "" end,
-    on_clicked = function() local r = row() if r then model.call(r.number) end end }
+    on_clicked = function() local r = row() if r then model.call(r.number) end end,
+    trailing = L.icon_button { id = "phone-block-" .. index, icon = "block", name = "Block this number",
+      width = S.TOUCH, height = S.TOUCH,
+      on = function() local r = row() return r ~= nil and model.blocked(r.number) end,
+      on_clicked = function() local r = row() if r then model.toggle_block(r.number) end end } }
 end
 
 local function recents(w, h)
@@ -91,13 +95,21 @@ local function person_row(index, w)
     title = function() local p = person() return p and p.name or "" end,
     subtitle = function() return model.first_number(person()) end,
     on_clicked = function() model.call(model.first_number(person())) end,
-    trailing = L.icon_button { id = "phone-star-" .. index, icon = "star", name = "Favourite",
-      width = S.TOUCH, height = S.TOUCH,
-      on = function() local p = person() return p ~= nil and p.favourite end,
-      on_clicked = function()
-        local p = person()
-        if p then model.book.set_favourite(p.id, not p.favourite) end
-      end } }
+    trailing = ui.Row { gap = S.xs,
+      L.icon_button { id = "phone-ice-" .. index, icon = "emergency", name = "Emergency contact",
+        width = S.TOUCH, height = S.TOUCH,
+        on = function() local p = person() return p ~= nil and p.emergency end,
+        on_clicked = function()
+          local p = person()
+          if p then model.book.set_emergency(p.id, not p.emergency) end
+        end },
+      L.icon_button { id = "phone-star-" .. index, icon = "star", name = "Favourite",
+        width = S.TOUCH, height = S.TOUCH,
+        on = function() local p = person() return p ~= nil and p.favourite end,
+        on_clicked = function()
+          local p = person()
+          if p then model.book.set_favourite(p.id, not p.favourite) end
+        end } } }
 end
 
 local function people(w, h)

@@ -52,6 +52,7 @@ function M.new(options)
     keypad = morf.signal(name .. "keypad", false),
     ended = morf.signal(name .. "ended", ""),
     message = morf.signal(name .. "message", ""),
+    minimised = morf.signal(name .. "minimised", false),
   }
   local memory = {}
   local ring_id, ringing, clock, ended_timer
@@ -164,6 +165,7 @@ function M.new(options)
       end, false)
     end
     if stage ~= before and not (before == "ended" and stage == "idle") then phone.stage:set(stage) end
+    if stage ~= "talking" and stage ~= "dialing" then phone.minimised:set(false) end
 
     if talking then
       local started

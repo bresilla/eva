@@ -285,8 +285,13 @@ local function build(width, height, name)
   local ctx = setmetatable({output_name=name}, {__index=context})
   ctx.s = require("themes.auth_metrics")(width, height, context.keyboard_attached())
   ctx.text, ctx.icon = require("themes.typography")(visual.tokens, C, ctx.s)
-  return require("themes.phone_lock").host(require(visual.lock)(ctx)(width, height, name),
-    { C = C, text = ctx.text, icon = ctx.icon, visual = visual, width = width, height = height })
+  local scene = require(visual.lock)(ctx)(width, height, name)
+  -- A fault in the phone's part must never cost the lock its surface.
+  pcall(function()
+    require("themes.phone_lock").host(scene,
+      { C = C, text = ctx.text, icon = ctx.icon, visual = visual, width = width, height = height })
+  end)
+  return scene
 end
 
 -- Output removal must never leave the only password controls on a dead screen.

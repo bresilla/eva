@@ -58,6 +58,14 @@ test.it("a reply goes out, marks the thread read and joins it",function()
   test.eq(rows[#rows].state,"sent")
 end)
 
+test.it("the notification keeps the number an inline reply goes to",function()
+  test.load("../shell/init.lua",{source=[[
+    local notifs=require("notifs")
+    morf.ipc.push=function() notifs.push{summary="Ann",body="hi",reply="+3161234"} return notifs.list:get()[1].reply end
+  ]],size={868,1932},env={EVA_DRY_RUN="1"}})
+  test.eq(test.ipc("push"),"+3161234")
+end)
+
 test.it("several senders are several threads, newest first",function()
   load()
   fake("text","+31612345678","one")
