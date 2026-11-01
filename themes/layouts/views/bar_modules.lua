@@ -114,8 +114,33 @@ function V.context(spec)
     end
   end
 
-  -- The module's press area round `content`, with hover, tooltip, right press
-  -- and wheel.
+  --- A finger sliding along the bar turns what the wheel turns, a notch every
+  --- `slide_px`: up or to the right is up.
+  function M.slide(m, vertical)
+    local turned = 0
+    return function(phase, dx, dy)
+      local along, across = dx, dy
+      if vertical then along, across = -dy, dx end
+      if phase == "begin" then
+        if math.abs(along) <= math.abs(across) then return false end
+        turned = 0
+      end
+      if phase == "begin" or phase == "update" then
+        local notches = along / (m.slide_px or S.s)
+        notches = notches >= 0 and math.floor(notches) or math.ceil(notches)
+        if notches ~= turned then
+          m.wheel(turned - notches)
+          turned = notches
+          require("haptics").fire("tap")
+        end
+        return true
+      end
+      if phase == "end" and turned ~= 0 then require("haptics").fire("commit") end
+    end
+  end
+
+  -- The module's press area round `content`, with hover, tooltip, right press,
+  -- long press, wheel and a finger's slide.
   local function chip(m, vertical, content)
     local suffix = vertical and "-v" or ""
     local area
@@ -128,6 +153,7 @@ function V.context(spec)
         if m.press then m.press() else M.open_menu(area, m) end
       end,
       on_long_pressed = function() M.open_menu(area, m) end,
+      on_panned = m.wheel and M.slide(m, vertical) or nil,
       m.wheel and ui.MouseArea { anchors = { fill = true }, z = -1, accepted_buttons = {},
         on_wheel = function(_, _, _, pixels, _, steps)
           m.wheel((steps and steps ~= 0) and steps or (pixels or 0) / NOTCH_PX)
@@ -198,6 +224,7 @@ function V.context(spec)
           local row = rows()[i]
           if row then model.go_workspace(row.id) end
         end,
+        on_long_pressed = function() M.open_menu(nodes[i], m) end,
         kit.text { anchors = { center_in = true }, font_size = theme.size.small, font_weight = 600,
           text = function()
             local row = rows()[i]
@@ -227,7 +254,21 @@ function V.context(spec)
       accepted_buttons = { "right" }, on_pressed = function() M.open_menu(area, m) end }
     holder[#holder + 1] = area
     M.tip(area, m.tooltip, vertical)
-    return { node = ui.Item(holder), across = ITEM, size = function() return count() * CELL end }
+    local node
+    -- A finger along them scrubs through them.
+    holder.on_panned = require("workspace_scrub").pan {
+      vertical = function() return vertical end,
+      slot = function(x, y)
+        local at = vertical and y - (node.layout_y or 0) or x - (node.layout_x or 0)
+        return math.max(1, math.min(count(), math.floor(at / CELL) + 1))
+      end,
+      go = function(slot)
+        local row = rows()[slot]
+        if row then model.go_workspace(row.id) end
+      end,
+    }
+    node = ui.Item(holder)
+    return { node = node, across = ITEM, size = function() return count() * CELL end }
   end
 
   -- What is using the microphone, camera and screen: a mark for each, on a

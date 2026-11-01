@@ -15,7 +15,18 @@ local NOTCH_PX = 15
 --- `edge`, `go`, `turn`); `geometry()`: the theme's, for `top`, `item`, `gap`.
 --- Returns the node to place over the desk, and the targets by workspace slot.
 function M.build(model, geometry)
-  local root = ui.Item { id = "rail-hits", anchors = { fill = true }, visible = model.enabled }
+  local root
+  root = ui.Item { id = "rail-hits", anchors = { fill = true }, visible = model.enabled,
+    -- A finger along the slots scrubs through them.
+    on_panned = require("workspace_scrub").pan {
+      vertical = function() return not model.bottom end,
+      slot = function(x, y)
+        local g = geometry()
+        local along = model.bottom and x - (root.layout_x or 0) or y - (root.layout_y or 0)
+        return math.max(1, math.min(model.count, math.floor((along - g.top + g.gap / 2) / (g.item + g.gap)) + 1))
+      end,
+      go = function(slot) model.go(model.base(model.active()) + slot - 1) end,
+    } }
   local targets = {}
   local function wheel(_, _, _, pixels, _, steps)
     model.turn((steps and steps ~= 0) and steps or (pixels or 0) / NOTCH_PX)
