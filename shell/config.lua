@@ -53,6 +53,36 @@ local config = settings.open {
       -- the compositor has one full-screen layer fewer to blend on every
       -- redraw. The scheme follows the picture either way.
       draw = false,
+      -- Lule's picture when `path` was chosen: the setting holds until Lule
+      -- makes a new one.
+      pin = "",
+      -- How the picture fills the screen: crop, fit or stretch, and pictures
+      -- that keep their own as `{ path, fit }`.
+      fit = "crop",
+      fits = {},
+      -- A colour painted when there is no picture, and under one that does
+      -- not cover the screen ("" for the theme's surface).
+      color = "",
+      -- `{ output, path }` and `{ workspace, path }`: this screen's or this
+      -- workspace's own picture.
+      outputs = {},
+      workspaces = {},
+      -- The pictures for light and for dark ("" for the usual one).
+      day = "",
+      night = "",
+      -- How one picture becomes the next (themes/wallpaper_swap.lua): a kind
+      -- or "random", in ms, and how soft its edge is, in pixels.
+      transition = { kind = "random", duration = 1100, softness = 24, startup = false },
+      -- How far the picture slides across the workspaces, a fraction of the
+      -- screen's width.
+      parallax = 0,
+      -- Pictures taken in turn: seconds between them, "shuffle" or "name",
+      -- the folder ("" for `lule.folder`), and whether Lule colours each one.
+      slideshow = { on = false, interval = 1800, order = "shuffle", folder = "", recursive = false,
+        favourites = false, pause = true, colors = true },
+      favourites = {},
+      -- What runs after a change; `$WALLPAPER` and `$OUTPUT` are filled in.
+      hook = {},
     },
     bar = {
       workspaces = { shown = 5 },

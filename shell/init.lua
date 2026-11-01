@@ -256,7 +256,12 @@ morf.effect("eva.bar.reserve", function()
   morf.surface.reserve = frame_view.insets(bar.insets())
 end)
 
-if config.get("wallpaper.draw") then wallpaper.open_layer() end
+wallpaper.open_layer()
+do
+  local pictures = require("wallpaper_model")
+  pictures.start()
+  pictures.watch_hook()
+end
 
 -- -------------------------------------------------------------------- ipc --
 
@@ -480,6 +485,8 @@ ipc.lule = function(how)
   local tty = require("terminal_colors").tty
   return tty and tty.path or "", theme.lule.accent:hex(), theme.color.primary:hex()
 end
+-- `wallpaper [get|state|set PATH [OUTPUT]|next|previous|random|transition KIND|draw on|off]`.
+ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, ...) end
 -- `osd [KIND]`: shows that display (the volume without one). False when its
 -- service is absent or its setting has it off.
 ipc.osd = function(kind)
