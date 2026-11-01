@@ -39,6 +39,23 @@ local HOST = [[
   morf.ipc.words = function(n)
     return { span = lib.span(tonumber(n)), running = lib.running(tonumber(n)) }
   end
+  -- The job as `eva-clock` runs it, with each command held until it is let go.
+  local held, answer = {}, nil
+  morf.ipc.job = function(...)
+    morf.process.run = function(argv, _, done) held[#held + 1] = { argv = argv, done = done } end
+    lib.job({ ... }, function(text, why) answer = { text = text, why = why } end)
+    return true
+  end
+  morf.ipc.job_state = function()
+    local waiting = {}
+    for index, each in ipairs(held) do waiting[index] = each.argv[1] end
+    return { answered = answer ~= nil, waiting = waiting }
+  end
+  morf.ipc.job_release = function()
+    local each = table.remove(held, 1)
+    each.done { ok = true, code = 0, stdout = "", stderr = "" }
+    return true
+  end
 ]]
 
 local function fresh(name)
@@ -249,6 +266,28 @@ test.it("makes a timer unit of each entry with systemd", function()
   test.contains(argv, "fire " .. item.id .. " gym")
   test.advance(100000)
   test.eq(#test.ipc("state").rang, 0)
+end)
+
+test.it("the job lasts until its unit exists, however long that takes", function()
+  host("slow", { EVA_ALARM_ENGINE = "systemd", EVA_DRY_RUN = "0" })
+  test.ipc("job", "add", "timer", "20", "s", "eggs")
+  test.advance(2000)
+  test.eq(test.ipc("job_state").waiting[1], "systemctl")
+  test.falsy(test.ipc("job_state").answered, "it ended with systemctl running")
+  test.ipc("job_release")
+  test.advance(2000)
+  test.eq(test.ipc("job_state").waiting[1], "systemd-run")
+  test.falsy(test.ipc("job_state").answered, "it ended with systemd-run running")
+  test.ipc("job_release")
+  test.advance(100)
+  test.truthy(test.ipc("job_state").answered, "it never ended")
+end)
+
+test.it("a job with nothing running answers at once", function()
+  host("nothing", { EVA_ALARM_ENGINE = "systemd", EVA_DRY_RUN = "0" })
+  test.ipc("job", "sync")
+  test.advance(16)
+  test.truthy(test.ipc("job_state").answered, "it waited for nothing")
 end)
 
 test.it("a unit carries what it needs of the session", function()

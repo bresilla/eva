@@ -76,6 +76,8 @@ function M.new()
       local function step(index)
         local name = names[index]
         if not name then
+          -- A battery switched by a charge type alone has no numbers: UPower says 0.
+          if now.stop == 0 then now.start, now.stop = nil, nil end
           limit.state:set(now)
           if done then done(now) end
           return
@@ -168,7 +170,7 @@ function M.job(args, done)
       if not state.percentage and not fed then done(nil, "no battery") return end
       if state.supported then
         lines[#lines + 1] = "limit " .. tostring(state.enabled)
-        lines[#lines + 1] = ("between %d and %d"):format(state.start or 0, state.stop or 100)
+        if state.stop then lines[#lines + 1] = ("between %d and %d"):format(state.start or 0, state.stop) end
       end
       done(table.concat(lines, "\n"))
     elseif how == "limit" then

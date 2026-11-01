@@ -1,7 +1,7 @@
 -- Colour filters over the whole screen: Hyprland's `decoration:screen_shader`,
--- one fragment shader written from the filters that are on. They stack, in the
--- order of `M.ORDER`, and the file's name changes with them, so the compositor
--- reads it afresh.
+-- one fragment shader written from the filters that are on, the quick filters'
+-- and the Accessibility page's alike. They stack, in the order of `M.ORDER`, and
+-- the file's name changes with them, so the compositor reads it afresh.
 --
 --   local filter = require("lib.services.screen_filter")
 --   filter.source { grayscale = true, dim = 0.4 }    -- GLSL, or nil for none
@@ -37,6 +37,17 @@ local CONES = {
   tritanopia = "s = -0.395913 * l + 0.801109 * m;",
 }
 M.CORRECTIONS = { "protanopia", "deuteranopia", "tritanopia" }
+
+--- `set` with the Accessibility page's `choice` on: "none", a filter's id, or a
+--- correction by its kind, which wins over the quick filters' kind.
+function M.with(set, choice)
+  if CONES[choice] then
+    set.correction, set.correction_kind = true, choice
+  elseif choice == "grayscale" or choice == "invert" then
+    set[choice] = true
+  end
+  return set
+end
 
 local STEPS = {
   correction = function() return "  c = correct(c);" end,

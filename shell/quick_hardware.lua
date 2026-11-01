@@ -414,7 +414,7 @@ M.filters = lazily(function()
   local function set_now()
     local set = { dim = f.dim(), correction_kind = f.correction() }
     for _, id in ipairs(lib.ORDER) do set[id] = config.get("filters." .. id) == true end
-    return set
+    return lib.with(set, config.get("accessibility.filter"))
   end
   function f.present() return fake() or hyprland.available() end
   function f.on(id) return config.get("filters." .. id) == true end

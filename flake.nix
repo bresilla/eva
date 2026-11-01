@@ -76,6 +76,13 @@
               wallpaper = ./tests/fixtures/wallpaper.png;
             }
           );
+          # The same again.
+          system-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/system.nix {
+              module = self.nixosModules.default;
+              wallpaper = ./tests/fixtures/wallpaper.png;
+            }
+          );
         };
         checks = {
           inherit eva;
@@ -96,6 +103,7 @@
               tabletSwitch = { enable = true; name = "Intel HID switches"; };
               chargeLimit = true;
               usbTether = true;
+              hotspot = true;
             };
           };
           module-fixed = machine {

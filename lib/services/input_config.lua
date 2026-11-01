@@ -58,8 +58,9 @@ function M.layout_words(layouts)
   return table.concat(names, ","), table.concat(variants, ",")
 end
 
---- A device name Hyprland will accept back: lowercase words and dashes.
-local function device_ok(name) return type(name) == "string" and name:match("^[%w_:%.%-]+$") ~= nil end
+--- A device name Hyprland will accept back: words, dashes, and the slash of a
+--- name like `tpps/2-ibm-trackpoint`.
+local function device_ok(name) return type(name) == "string" and name:match("^[%w_:%.%-/]+$") ~= nil end
 
 --- The steps for one device's options, or nil and why.
 function M.device_plan(name, values, how)
@@ -88,7 +89,7 @@ function M.path_step(option, path, how)
   if how == "lua" then
     return { eval = "hl.config(" .. hyprconf.nest(option, '"' .. path .. '"') .. ")" }
   end
-  return { keyword = option, value = path == "" and '""' or path }
+  return { keyword = option, value = path }
 end
 
 --- Everything chosen as one plan. `state`: `chosen` (by OPTIONS name),
@@ -129,16 +130,19 @@ function M.plan(state, how)
 end
 
 --- What `hyprland.options` answered, by OPTIONS name: bools and numbers as
---- themselves.
+--- themselves, an unset string as "". Hyprland answers a toggle as `bool`, and
+--- `drag_lock`, on and off here, as `int`.
 function M.readings(replies)
   local out = {}
   for name, entry in pairs(M.OPTIONS) do
     local reply = replies and replies[entry[3] or entry[1]]
     if type(reply) == "table" then
-      if entry[2] == "bool" then out[name] = (tonumber(reply.int) or 0) ~= 0
+      if entry[2] == "bool" then
+        if reply.bool ~= nil then out[name] = reply.bool == true
+        else out[name] = (tonumber(reply.int) or 0) ~= 0 end
       elseif entry[2] == "int" then out[name] = tonumber(reply.int)
       elseif entry[2] == "float" then out[name] = tonumber(reply.float)
-      else out[name] = reply.str end
+      else out[name] = reply.str ~= "[[EMPTY]]" and reply.str or "" end
     end
   end
   return out

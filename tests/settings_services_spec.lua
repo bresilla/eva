@@ -65,6 +65,26 @@ local HOST = [[
       ["input:sensitivity"] = { float = 0.25 } }
     eq(got.repeat_rate, 30) eq(got.tap_to_click, true) eq(got.sensitivity, 0.25)
   end
+  -- What `hyprctl -j getoption` printed on Hyprland 0.55.4.
+  function tests.readings_of_real_replies()
+    local lib = require("lib.services.input_config")
+    local got = lib.readings { ["input:touchpad:tap-to-click"] = { option = "input:touchpad:tap-to-click", bool = true, set = false },
+      ["input:numlock_by_default"] = { option = "input:numlock_by_default", bool = false, set = false },
+      ["input:touchpad:drag_lock"] = { option = "input:touchpad:drag_lock", int = 2, set = true },
+      ["input:accel_profile"] = { option = "input:accel_profile", str = ("["):rep(2) .. "EMPTY" .. ("]"):rep(2), set = false } }
+    eq(got.tap_to_click, true, "a toggle that is on")
+    eq(got.numlock, false, "a toggle that is off")
+    eq(got.drag_lock, true, "an option Hyprland keeps as a number")
+    eq(got.accel_profile, "", "a string nobody set")
+  end
+  function tests.a_device_with_a_slash()
+    local lib = require("lib.services.input_config")
+    local lua = lib.device_plan("tpps/2-ibm-trackpoint", { sensitivity = 0.5 }, "lua")
+    eq(lua[1].eval, 'hl.device({ name = "tpps/2-ibm-trackpoint", sensitivity = 0.5 })')
+    local plan = lib.plan({ chosen = { repeat_rate = 30 }, devices = { ["tpps/2-ibm-trackpoint"] = { enabled = false } } }, "lua")
+    truthy(plan, "the whole plan, past a device with a slash")
+    eq(#plan, 2, "the options and the device")
+  end
 
   function tests.sticky_keymap()
     local access = require("lib.services.access")
@@ -87,13 +107,24 @@ local HOST = [[
   end
   function tests.filters()
     local access = require("lib.services.access")
+    local screen = require("lib.services.screen_filter")
     for _, row in ipairs(access.FILTERS) do
-      local source = access.shader(row[1])
+      local source = screen.source(screen.with({}, row[1]))
       if row[1] == "none" then falsy(source, "a shader for none")
       else truthy(source:find("fragColor", 1, true), row[1]) end
     end
+    -- A colour blindness filter corrects: it does not show the loss to everyone.
+    for _, kind in ipairs(screen.CORRECTIONS) do
+      truthy(screen.source(screen.with({}, kind)):find("c = correct(c);", 1, true), kind)
+      eq(screen.key(screen.with({}, kind)), "correction-" .. kind, "its name")
+    end
+    local both = screen.with({ extradim = true, dim = 0.5 }, "grayscale")
+    eq(screen.key(both), "grayscale-extradim-50", "the page's filter and a quick one, together")
     local step = require("lib.services.input_config").path_step("decoration:screen_shader", "/a/b.frag", "lua")
     eq(step.eval, 'hl.config({ decoration = { screen_shader = "/a/b.frag" } })')
+    -- Hyprland keeps two quote marks as a path of that name.
+    local cleared = require("lib.services.input_config").path_step("input:kb_file", "", "hyprlang")
+    eq(cleared.value, "", "clearing sends no value at all")
   end
   function tests.mouse_keys()
     local access = require("lib.services.access")
@@ -120,6 +151,43 @@ local HOST = [[
     local refused
     p.add("x", "not a uri", function(ok, why) refused = why end)
     truthy(refused, "a refusal of a bad address")
+  end
+  -- What CUPS 2.4.19 printed for a cups-pdf queue.
+  function tests.printers_as_cups_prints_them()
+    local p = require("lib.services.printers")
+    local idle = p.parse_printers("printer pdf is idle.  enabled since Sun 01 Nov 2026 03:20:22 PM UTC\n")
+    eq(idle[1].state, "idle") eq(idle[1].enabled, true) eq(idle[1].reason, "")
+    local paused = p.parse_printers("printer pdf disabled since Sun 01 Nov 2026 03:55:58 PM UTC -\n\tOut of paper\n")
+    eq(paused[1].state, "stopped") eq(paused[1].enabled, false) eq(paused[1].reason, "Out of paper")
+    local busy = p.parse_printers("printer pdf now printing pdf-3.  enabled since Sun 01 Nov 2026 03:56:03 PM UTC\n"
+      .. "\tcfFilterChain: texttopdf (PID 12304) started.\n")
+    eq(busy[1].name, "pdf")
+    eq(busy[1].state, "printing", "a printer at work")
+    eq(busy[1].enabled, true)
+    eq(busy[1].reason, "", "its filters' progress is no reason")
+    local jobs = p.parse_jobs("pdf-1                   alice             1024   Sun 01 Nov 2026 03:55:59 PM UTC\n"
+      .. "pdf-2                   alice             1024   Sun 01 Nov 2026 03:55:59 PM UTC\n")
+    eq(#jobs, 2) eq(jobs[2].id, "pdf-2") eq(jobs[2].printer, "pdf") eq(jobs[2].user, "alice") eq(jobs[2].size, 1024)
+    eq(p.parse_devices("device for pdf: cups-pdf:/pdf\n").pdf, "cups-pdf:/pdf")
+    eq(p.parse_default("system default destination: pdf\n"), "pdf")
+    eq(#p.parse_printers("lpstat: No destinations added.\n"), 0)
+  end
+  function tests.printers_read()
+    local p = require("lib.services.printers")
+    local host = require("lib.services.host")
+    local installed, run = host.installed, morf.process.run
+    host.installed = function(program) return program == "lpstat" end
+    local locales = {}
+    morf.process.run = function(argv, options, done)
+      locales[#locales + 1] = options.env and options.env.LC_ALL or "the person's"
+      done { ok = false, code = 1, stdout = "", stderr = "lpstat: Scheduler is not running.\n" }
+    end
+    local snapshot
+    p.read(function(got) snapshot = got end)
+    host.installed, morf.process.run = installed, run
+    eq(snapshot.available, false, "a stopped scheduler is no printing here")
+    eq(#locales, 4)
+    for _, locale in ipairs(locales) do eq(locale, "C", "the language lpstat answers in") end
   end
 
   function tests.udisks_parse()

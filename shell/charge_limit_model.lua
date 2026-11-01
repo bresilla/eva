@@ -133,8 +133,11 @@ function M.note()
   local kind = route:get()
   if kind == "upower" then
     local t = threshold:get()
+    if not t.stop then
+      return "UPower turns this on and off; a level of your own needs write access to the kernel's threshold."
+    end
     return ("UPower holds it between %s%% and %s%%; a level of your own needs write access to the kernel's threshold.")
-      :format(tostring(t.start or "?"), tostring(t.stop or "?"))
+      :format(tostring(t.start or "?"), tostring(t.stop))
   end
   if kind == "locked" then
     return "The kernel has a charge limit, but this session may not write it. programs.eva.hardware.chargeLimit grants that."

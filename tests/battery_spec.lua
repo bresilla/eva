@@ -23,7 +23,8 @@ local HOST = [[
   local run = morf.process.run
   morf.process.run = function(argv, options, done)
     local wrapped = { "env", "PATH=" .. morf.env("STUB_PATH"), "STUB_LOG=" .. morf.env("STUB_LOG"),
-      "STUB_LIMIT=" .. (morf.env("STUB_LIMIT") or "true") }
+      "STUB_LIMIT=" .. (morf.env("STUB_LIMIT") or "true"), "STUB_LIMIT_START=" .. (morf.env("STUB_LIMIT_START") or "40"),
+      "STUB_LIMIT_END=" .. (morf.env("STUB_LIMIT_END") or "80") }
     for _, word in ipairs(argv) do wrapped[#wrapped + 1] = word end
     return run(wrapped, options, done)
   end
@@ -51,6 +52,13 @@ test.it("reports the charge and the limit", function()
   test.contains(answer.text, "charge 73%")
   test.contains(answer.text, "limit false")
   test.contains(answer.text, "between 40 and 80")
+end)
+
+-- A kernel battery with charge_types and no thresholds, as UPower 1.91.4 reports it.
+test.it("says no numbers for a battery switched by its charge type", function()
+  local answer = job({ "status" }, { STUB_LIMIT_START = "0", STUB_LIMIT_END = "0" })
+  test.contains(answer.text, "limit false")
+  test.falsy(answer.text:find("between", 1, true), "a limit between nought and nought")
 end)
 
 test.it("leaves the limit out where the battery has none", function()

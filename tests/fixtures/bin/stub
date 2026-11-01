@@ -32,8 +32,8 @@ case "$name" in
       *EnumerateDevices*) printf 'ao 2 "/org/freedesktop/UPower/devices/line_power_AC" "/org/freedesktop/UPower/devices/battery_BAT0"\n' ;;
       *ChargeThresholdSupported*) printf 'b %s\n' "${STUB_LIMIT-true}" ;;
       *ChargeThresholdEnabled*) printf 'b false\n' ;;
-      *ChargeStartThreshold*) printf 'u 40\n' ;;
-      *ChargeEndThreshold*) printf 'u 80\n' ;;
+      *ChargeStartThreshold*) printf "u %s\n" "${STUB_LIMIT_START-40}" ;;
+      *ChargeEndThreshold*) printf "u %s\n" "${STUB_LIMIT_END-80}" ;;
       *Percentage*) printf 'd 73\n' ;;
     esac
     ;;
