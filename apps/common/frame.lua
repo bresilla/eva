@@ -161,6 +161,7 @@ function M.open(spec)
       local opening = M.EDGE
       local body = ui.ClipRect {
         id = spec.id .. "-opening-clip", anchors = { fill = true, margins = opening }, radius = theme.ROUNDING,
+        color = "transparent",
         ui.Item {
           x = M.PAD - opening, y = M.HEADER_H - opening, width = body_w, height = h,
           opacity = 1, translate_y = 0,
@@ -174,8 +175,7 @@ function M.open(spec)
         tabs = { { node = left }, { node = right, right = true } },
       }
       return ui.Rect {
-        id = spec.id .. "-root", anchors = { fill = true },
-        color = function() return C.surface:mix(C.surfaceContainer, 0.45) end,
+        id = spec.id .. "-root", anchors = { fill = true }, color = function() return C.surface end,
         body, area, field, left, right,
       }
     end,

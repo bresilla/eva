@@ -81,6 +81,8 @@
             pkgs.wl-clipboard
             pkgs.tesseract
             pkgs.zbar
+            pkgs.libnotify
+            pkgs.qrencode
           ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.

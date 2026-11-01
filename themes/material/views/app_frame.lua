@@ -9,7 +9,8 @@ local V = {}
 function V.build(spec)
   local round = theme.ROUNDING
   local field = {
-    id = spec.id .. "-frame", anchors = { fill = true }, fill_color = function() return theme.color.surface end,
+    id = spec.id .. "-frame", anchors = { fill = true },
+    fill_color = function() return theme.color.surfaceContainerHigh end,
     blend = theme.SEAM, blend_profile = "circular", shadow_color = "#000000a0", shadow_blur = 6,
     ui.SdfShape { shape = "box", anchors = { fill = true } },
     ui.SdfShape {

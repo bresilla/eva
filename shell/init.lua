@@ -129,6 +129,11 @@ end)
 -- Auto-rotation while the rotation is not locked, and a night light left on.
 require("auto_rotate").start()
 require("quick_hardware").nightlight()
+do
+  local alarm = require("services").alarm
+  alarm.load()
+  morf.time.timer(3000, alarm.sync, false)
+end
 
 -- ---------------------------------------------------------------- drawers --
 

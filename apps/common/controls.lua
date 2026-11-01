@@ -116,7 +116,7 @@ function M.cards(spec, build)
     if index <= 16 then field[#field + 1] = entry.shape end
   end
   return ui.ClipRect {
-    id = spec.id .. "-cards-clip", width = spec.width, height = spec.height,
+    id = spec.id .. "-cards-clip", width = spec.width, height = spec.height, color = "transparent",
     ui.Sdf(field),
     content,
   }

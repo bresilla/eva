@@ -10,7 +10,8 @@ local V = {}
 --- box of the band reaching into the opening). Returns the field.
 function V.build(spec)
   local field = {
-    id = spec.id .. "-frame", anchors = { fill = true }, fill_color = function() return C.surface end, blend = 0,
+    id = spec.id .. "-frame", anchors = { fill = true },
+    fill_color = function() return C.surfaceContainerHigh end, blend = 0,
     ui.SdfShape { shape = "box", anchors = { fill = true } },
     ui.SdfShape {
       id = spec.id .. "-opening", shape = "box", operation = "subtract", radius = 0,
