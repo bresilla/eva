@@ -65,6 +65,11 @@ function M.load()
   local file = decode(M.path()) or {}
   local policy = M.policy()
   local values = merged(merged(defaults, file.lock), policy)
+  -- The Notifications page's level stands, under the system's.
+  local chosen = type(file.notifications) == "table" and file.notifications.lock_previews or nil
+  if chosen ~= nil and not (type(policy.notifications) == "table" and policy.notifications.level) then
+    values.notifications.level = require("models.lock_notifications").level_of(chosen, values.notifications.level)
+  end
   values.notifications.level = one_of(values.notifications.level, M.LEVELS, defaults.notifications.level)
   values.notifications.style = one_of(values.notifications.style, { "list", "dots" }, "list")
   values.keypad = one_of(values.keypad, { "text", "digits" }, "text")

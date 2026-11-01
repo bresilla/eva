@@ -29,6 +29,16 @@ function M.model(active)
     if active() and not model.managed(key) then config.set("lock." .. key, value) end
   end
 
+  -- One level: where the Notifications page keeps it, both pages move it.
+  local bridge = require("lock_bridge")
+  local view = require("models.lock_notifications")
+  function model.level() return bridge.level() end
+  function model.set_level(level)
+    if model.managed("notifications.level") or not active() then return end
+    if bridge.previews() ~= nil then config.set("notifications.lock_previews", view.preview_of(level))
+    else config.set("lock.notifications.level", level) end
+  end
+
   --- Whether a shortcut stands at the corners.
   function model.shortcut_on(id)
     for _, listed in ipairs(model.get("shortcuts") or {}) do if listed == id then return true end end

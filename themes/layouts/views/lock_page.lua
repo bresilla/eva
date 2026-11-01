@@ -23,14 +23,13 @@ function V.build(model, w, h)
   local notifications = P.section { id = "lock-set-notifications", width = w, title = "Notifications",
     F.choices { id = "lock-set-level", width = inner, icon = "notifications", title = "Show on the lock",
       subtitle = function()
-        local level = model.get("notifications.level")
+        local level = model.level()
         if level == "all" then return "What they say, readable by anyone at the screen" end
         if level == "senders" then return "Which apps, and how many" end
         if level == "count" then return "How many, and nothing else" end
         return "Nothing at all"
       end,
-      choices = model.LEVELS, read = function() return model.get("notifications.level") end,
-      set = function(level) model.set("notifications.level", level) end,
+      choices = model.LEVELS, read = model.level, set = model.set_level,
       enabled = model.free("notifications.level") },
     switch("notifications.new_only", "fiber_new", "Only new ones", "What came since the last unlock"),
     switch("notifications.silent", "notifications_paused", "Silent ones too"),

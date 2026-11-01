@@ -13,6 +13,13 @@ local ENTRIES={
 local function rig()
   test.load("../lock/init.lua",{size={40,40},env={EVA_DRY_RUN="1",XDG_RUNTIME_DIR=RUN},source=[[
     local n=require("models.lock_notifications")
+    morf.ipc.names=function()
+      return {level_all=n.level_of("all","none"),level_app=n.level_of("app","none"),
+        level_count=n.level_of("count","all"),level_none=n.level_of("none","all"),
+        level_unknown=n.level_of("everything","all"),level_own=n.level_of(nil,"count"),
+        back_senders=n.preview_of("senders"),back_all=n.preview_of("all"),
+        back_count=n.preview_of("count"),back_none=n.preview_of("none")}
+    end
     morf.ipc.project=function(raw)
       local v=morf.json.decode(raw)
       local rules=v.rules and function(app) return v.rules[app] end or nil
@@ -120,6 +127,34 @@ test.it("the lock will not show what a looser level wrote",function()
   test.eq(out.count,2)
   out=morf.json.decode(test.ipc("reader",morf.json.encode {level="senders",file="not json"}))
   test.eq(out.count,0)
+end)
+
+test.it("an app with `hide` in its notification rule stops at its name",function()
+  test.stub_run("task",{code=0,stdout="[]"})
+  local settings=morf.env("XDG_CACHE_HOME").."/lock-bridge-hide.json"
+  morf.fs.write(settings,morf.json.encode {lock={notifications={level="all",new_only=false}}})
+  test.load("../shell/init.lua",{size={1200,800},env={EVA_DRY_RUN="1",EVA_SETTINGS=settings,EVA_STYLE="material",XDG_RUNTIME_DIR=RUN,
+    EVA_WALLPAPER="",EVA_FONT_FILE="",LULE_A="/nonexistent/lule"},source=[[
+      package.loaded.notification_rules={of=function(app) return {hide=app=="Bank"} end}
+      require("init")
+      morf.ipc.shot=function()
+        return require("lock_bridge").snapshot {
+          {id=1,app="Bank",summary="Card used",body="42.00",urgency=1,time=morf.time.now()},
+          {id=2,app="Signal",summary="Mira",body="hello",urgency=1,time=morf.time.now()}}
+      end
+    ]]})
+  test.settle(800)
+  local text=morf.json.encode(test.ipc("shot"))
+  test.eq(text:find("Card used",1,true),nil)
+  test.eq(text:find("42.00",1,true),nil)
+  test.contains(text,"Bank")
+  test.contains(text,"Mira")
+end)
+
+test.it("the Notifications page's names map to the levels and back",function()
+  rig()
+  test.eq(test.ipc("names"),{level_all="all",level_app="senders",level_count="count",level_none="none",
+    level_unknown="none",level_own="count",back_senders="app",back_all="all",back_count="count",back_none="none"})
 end)
 
 test.it("the shell writes only the chosen level, and honours the rule seam",function()

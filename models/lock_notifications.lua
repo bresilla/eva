@@ -13,6 +13,20 @@
 local morf = require("morf")
 local M = { SUMMARY = 80, BODY = 160, ITEMS = 12, STRICT = { all = 1, senders = 2, count = 3, none = 4 } }
 
+-- `notifications.lock_previews`, the Notifications page's name for each level.
+local PREVIEWS = { all = "all", app = "senders", count = "count", none = "none" }
+local TO_PREVIEWS = { all = "all", senders = "app", count = "count", none = "none" }
+
+--- The level, from the Notifications page's setting where there is one, else
+--- the lock's own.
+function M.level_of(previews, own)
+  if previews ~= nil then return PREVIEWS[previews] or "none" end
+  return own
+end
+
+--- The Notifications page's name for `level`.
+function M.preview_of(level) return TO_PREVIEWS[level] or "none" end
+
 local function plain(value, limit)
   local text = tostring(value or ""):gsub("<[^>]->", ""):gsub("&lt;", "<"):gsub("&gt;", ">"):gsub("&amp;", "&")
   text = text:gsub("[%c]+", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")

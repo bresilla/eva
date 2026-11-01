@@ -13,14 +13,32 @@ local function dry_fake_rules()
   return ok and type(value) == "table" and value or nil
 end
 
---- An app's own level on the lock, or nil. The notifications stream's signal
---- is `notifs.lock_rules`, a table of app name to level; until it lands,
---- EVA_FAKE_LOCK_RULES stands in.
+--- An app's own level on the lock, or nil: `hide` in its notification rule keeps
+--- it to its name. EVA_FAKE_LOCK_RULES, app name to level, stands in.
 function M.rules()
-  local notifs = package.loaded.notifs
-  local signal = notifs and notifs.lock_rules
-  local table_of = signal and signal:get() or dry_fake_rules() or {}
-  return function(app) return table_of[app] end
+  local table_of = dry_fake_rules() or {}
+  local stream = package.loaded.notification_rules
+  return function(app)
+    if table_of[app] then return table_of[app] end
+    if stream and stream.of then
+      local ok, rule = pcall(stream.of, app)
+      if ok and type(rule) == "table" and rule.hide == true then return "senders" end
+    end
+    return nil
+  end
+end
+
+--- The Notifications page's setting, where the shell has one.
+function M.previews()
+  local ok, value = pcall(config.get, "notifications.lock_previews")
+  return ok and value or nil
+end
+
+--- The level in force: the system's, the Notifications page's, the lock's own.
+function M.level()
+  local fixed = require("models.lock_settings").policy().notifications
+  if type(fixed) == "table" and fixed.level then return fixed.level end
+  return view.level_of(M.previews(), config.get("lock.notifications.level"))
 end
 
 local viewed = morf.signal("eva.lock.viewed", morf.time.now())
@@ -34,7 +52,7 @@ end
 
 --- What goes in the file, from what the shell holds now.
 function M.snapshot(history)
-  local level = config.get("lock.notifications.level")
+  local level = M.level()
   local since = config.get("lock.notifications.new_only") and viewed:get() or nil
   local notifications = view.project(history, level, M.rules(),
     { silent = config.get("lock.notifications.silent"), since = since })
