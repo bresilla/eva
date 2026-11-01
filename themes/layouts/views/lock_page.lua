@@ -127,6 +127,9 @@ function V.build(model, w, h)
       subtitle = "The digits change places each time. Only their places: it is checked as before",
       enabled = model.free("scramble"), visible = function() return model.get("keypad") == "digits" end,
       on = function() return model.get("scramble") == true end, set = function(on) model.set("scramble", on == true) end },
+    P.row { id = "lock-set-fingerprints", width = inner, icon = "fingerprint", title = "Fingerprints",
+      subtitle = "Add a finger, or take one away", trailing = P.chevron(),
+      on_clicked = function() require("utilities").request("lock/fingerprint") end },
     P.row { id = "lock-set-readers", width = inner, icon = "fingerprint", title = "Readers", trailing = P.chevron(),
       on_clicked = function() require("utilities").request("lock/more") end },
   }

@@ -358,6 +358,56 @@ bus.object(S, BZ, "/org/bluez/hci0/dev_01", BZ .. ".Battery1", { Percentage = 78
 bus.object(S, BZ, "/org/bluez/hci0/dev_02", BZ .. ".Device1", { Address = "AA:BB:CC:DD:EE:02", Alias = "MX Master 3", Name = "MX Master 3",
   Icon = "input-mouse", Paired = true, Bonded = true, Trusted = false, Connected = false, Adapter = "/org/bluez/hci0" }, { Connect = function() end })
 
+-- A fingerprint reader of five readings. EVA_FAKE_FPRINT is "noreader" for an
+-- fprintd with nothing plugged in, "none" for no fprintd, "busy" for a reader
+-- someone else holds. Each reading lands on its own turn.
+local FP, FP_ROOT = "net.reactivated.Fprint", "/net/reactivated/Fprint"
+local FP_DEVICE, FP_PATH = FP .. ".Device", FP_ROOT .. "/Device/0"
+local fingers = { "right-index-finger" }
+local fingerprint = morf.env("EVA_FAKE_FPRINT") or ""
+local function reading(results, index)
+  morf.time.timer(120, function()
+    if not results[index] then return end
+    bus.emit(S, FP, FP_PATH, FP_DEVICE, "EnrollStatus", { results[index], index == #results })
+    reading(results, index + 1)
+  end, false)
+end
+bus.object(S, FP, FP_ROOT .. "/Manager", FP .. ".Manager", {}, {
+  GetDefaultDevice = function()
+    if fingerprint == "noreader" then error("net.reactivated.Fprint.Error.NoSuchDevice: no reader", 0) end
+    return FP_PATH
+  end })
+bus.object(S, FP, FP_PATH, FP_DEVICE, { name = "Stand-in reader", ["num-enroll-stages"] = 5, ["scan-type"] = "press" }, {
+  ListEnrolledFingers = function()
+    if #fingers == 0 then error("net.reactivated.Fprint.Error.NoEnrolledPrints: none", 0) end
+    return { fingers }
+  end,
+  Claim = function()
+    if fingerprint == "busy" then error("net.reactivated.Fprint.Error.AlreadyInUse: taken", 0) end
+    return nil
+  end,
+  Release = function() return nil end,
+  EnrollStart = function(arguments)
+    local finger = bus.plain(arguments[1])
+    reading({ "enroll-stage-passed", "enroll-finger-not-centered", "enroll-stage-passed", "enroll-stage-passed",
+      "enroll-stage-passed", "enroll-completed" }, 1)
+    M.enrolling = finger
+    return nil
+  end,
+  EnrollStop = function()
+    if M.enrolling then fingers[#fingers + 1] = M.enrolling end
+    M.enrolling = nil
+    return nil
+  end,
+  DeleteEnrolledFinger = function(arguments)
+    local gone, kept = bus.plain(arguments[1]), {}
+    for _, finger in ipairs(fingers) do
+      if finger ~= gone then kept[#kept + 1] = finger end
+    end
+    fingers = kept
+    return nil
+  end })
+
 local STORE, STORE_PATH = "org.freedesktop.impl.portal.PermissionStore", "/org/freedesktop/impl/portal/PermissionStore"
 local answers = {
   ["location/location"] = { ["org.mozilla.firefox"] = { "EXACT", "1793520000" }, ["org.gnome.Maps"] = { "NONE", "0" } },
