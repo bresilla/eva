@@ -13,17 +13,16 @@ local function command(kind, path)
   return { "zbarimg", "--quiet", "--raw", path }
 end
 
---- `cb({ ocr = bool, qr = bool })`: which readers are installed.
-function M.available(cb)
-  local found, waiting = {}, 0
+--- `{ ocr = bool, qr = bool }`: which readers are on PATH.
+function M.available()
+  local found = {}
   for kind, program in pairs(M.TOOLS) do
-    waiting = waiting + 1
-    morf.process.run({ "sh", "-c", 'command -v "$0"', program }, {}, function(result)
-      found[kind] = result ~= nil and result.ok == true
-      waiting = waiting - 1
-      if waiting == 0 then cb(found) end
-    end)
+    found[kind] = false
+    for folder in (morf.env("PATH") or ""):gmatch("[^:]+") do
+      if morf.fs.exists(folder .. "/" .. program) then found[kind] = true break end
+    end
   end
+  return found
 end
 
 --- Reads `path` by `kind`, "ocr" or "qr", and copies what it found:

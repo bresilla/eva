@@ -26,7 +26,7 @@ function M.load()
   local recent = {}
   for i = 1, math.min(M.RECENT, #list) do recent[i] = { name = list[i].name, path = list[i].path } end
   M.recent:set(recent)
-  read.available(function(found) M.readers:set(found) end)
+  M.readers:set(read.available())
 end
 
 local function command(words)

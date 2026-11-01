@@ -19,8 +19,7 @@ local generation,rendering=0,false
 local picker_done
 function M.running() return M.active:get() or M.pending:get() end
 M.tools=annotation.tools
-M.readers=morf.signal("eva.capture.readers",{})
-require("lib.shell.capture.read").available(function(found) M.readers:set(found) end)
+M.readers=morf.signal("eva.capture.readers",require("lib.shell.capture.read").available())
 -- The marker inks a mark may take: document content, not theme chrome, so
 -- they are the same in every theme (the first is the configured default).
 M.COLOURS={"#ef5350","#ff9800","#ffeb3b","#66bb6a","#26c6da","#5c6bc0","#ffffff","#202020"}
