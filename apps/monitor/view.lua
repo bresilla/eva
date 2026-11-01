@@ -6,6 +6,7 @@ local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
+local fit = require("themes.layouts.fit")
 local controls = require("common.controls")
 local model = require("model")
 local S, C = theme.space, theme.color
@@ -35,20 +36,6 @@ local function get(v) if type(v) == "function" then return v() end return v end
 local function percent(value) return ("%.1f%%"):format(tonumber(value) or 0) end
 local function size(value) return model.perf.size(value) end
 local function rate(value) return model.perf.rate(value) end
-
--- Builds `build(width)` again when `w` changes: the kit's meters and charts take
--- numbers, the window's width moves.
-local function at_width(id, w, h, build)
-  local rows = morf.list_model({})
-  morf.effect("monitor.width." .. id, function()
-    local now = math.floor(get(w))
-    if rows:len() == 0 or rows:get(1).key ~= now then rows:replace({ { key = now } }, "key") end
-  end)
-  return ui.Item {
-    id = id, width = w, height = h,
-    ui.Repeater { model = rows, delegate = function(row) return build(math.floor(row.key)) end },
-  }
-end
 
 -- -------------------------------------------------------------- processes --
 
@@ -522,7 +509,7 @@ local function resources_body(whole, h)
 end
 
 local function resources_page(w, h)
-  return at_width("monitor-resources", w, h, function(width) return resources_body(width, h) end)
+  return fit.width { id = "monitor-resources", width = w, height = h, build = function(width) return resources_body(width, h) end }
 end
 
 -- ---------------------------------------------------------------- sensors --
@@ -612,7 +599,7 @@ local function sensors_body(whole, h)
 end
 
 local function sensors_page(w, h)
-  return at_width("monitor-sensors-page", w, h, function(width) return sensors_body(width, h) end)
+  return fit.width { id = "monitor-sensors-page", width = w, height = h, build = function(width) return sensors_body(width, h) end }
 end
 
 --- The header's pause.

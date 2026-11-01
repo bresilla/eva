@@ -1,0 +1,12 @@
+# eva-info on the sealed session: this machine's own /proc, /sys and Nix links,
+# sway's outputs through lib.shell.displays, then the command line for real.
+BOOT=5 start app info
+pause 3
+for _ in 1 2 3 4 5 6 7 8; do
+  appipc state > /dev/null 2>&1 && break
+  pause 1
+done
+pause 2
+shot top
+note sh apps/info/cli --text
+note sh -c 'sh apps/info/cli --json | jq -r ".system.hostname, .versions.morf, (.nix.generation|tostring), .displays[0].name"'
