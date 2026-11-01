@@ -9,13 +9,19 @@ local hyprland = require("lib.compositor.hyprland")
 
 local M = {}
 
+-- EVA_FAKE_SYSTEM: the same services over the stand-in bus.
+local function bus_options()
+  local fake = morf.env and morf.env("EVA_FAKE_SYSTEM")
+  if fake and fake ~= "" and fake ~= "0" then return { dbus = require("lib.services.host_fake").dbus } end
+end
+
 local function quiet_connect(name)
   local ok, lib = pcall(require, "lib.services." .. name)
   if not ok then
     morf.log("warn", "eva: " .. name .. " missing: " .. tostring(lib))
     return nil
   end
-  local ok2, service = pcall(lib.connect)
+  local ok2, service = pcall(lib.connect, bus_options())
   if ok2 then return service end
   morf.log("warn", "eva: " .. name .. " unavailable: " .. tostring(service))
 end
@@ -308,18 +314,19 @@ end
 
 -- --------------------------------------------------------------- weather --
 
-local weather
+local weather, weather_key
 
 --- The weather where the settings say (or where the address says), read
---- through lib/integrations/weather.lua: `{ available, ... }`.
+--- through lib/integrations/weather.lua: `{ available, ... }`. A change of
+--- place or units starts a new reading.
 function M.weather()
-  if not weather then
-    local config = require("config")
-    local location = config.get("services.weather_location")
-    weather = require("lib.integrations.weather").new {
-      location = location ~= "" and location or nil,
-      units = config.get("services.imperial") and "imperial" or "metric",
-    }
+  local config = require("config")
+  local location = config.get("services.weather_location")
+  local units = config.get("services.imperial") and "imperial" or "metric"
+  if weather_key ~= location .. "|" .. units then
+    weather_key = location .. "|" .. units
+    if weather and weather.source and weather.source.stop then weather.source:stop() end
+    weather = require("lib.integrations.weather").new { location = location ~= "" and location or nil, units = units }
   end
   return weather:get()
 end

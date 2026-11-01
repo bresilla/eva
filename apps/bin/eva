@@ -20,6 +20,8 @@ session|toggle, open or close|The session menu
 sidebar|HOW [TAB]|The right panel: settings or notifications
 utilities|toggle, open or close|The quick settings
 settings|[PAGE]|A page of Settings
+settings-search|[WORDS]|Every Settings page, or those matching WORDS
+power-key|-|What Settings chose for the power button
 leftbar|HOW [TAB]|The left panel: tasks or calendar
 tasks|toggle, open or close|The tasks
 calendar|toggle, open or close|The calendar

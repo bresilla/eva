@@ -35,7 +35,7 @@ function M.list(model, gamemode)
       status = function() return hotspot().status() end,
     },
     {
-      id = "rotation", name = "Rotation lock",
+      id = "rotation", name = "Rotation lock", detail = "displays",
       icon = function() return rotation().on() and "screen_lock_rotation" or "screen_rotation" end,
       present = function() return rotation().present() end,
       on = function() return rotation().on() end,
@@ -64,7 +64,7 @@ function M.list(model, gamemode)
       status = function() return torch().status() end,
     },
     {
-      id = "gamemode", icon = "sports_esports", name = "Game mode",
+      id = "gamemode", icon = "sports_esports", name = "Game mode", detail = "commands",
       present = function() return model.can_run("gamemode_on") end,
       on = function() return gamemode:get() end,
       set = function(now)
@@ -73,13 +73,13 @@ function M.list(model, gamemode)
       end,
     },
     {
-      id = "screenshot", icon = "screenshot_monitor", name = "Screenshot",
+      id = "screenshot", icon = "screenshot_monitor", name = "Screenshot", detail = "capture",
       on = function() return false end,
       set = function() model.shoot() end,
       status = function() return "Region" end,
     },
     {
-      id = "record", name = "Screen record",
+      id = "record", name = "Screen record", detail = "capture",
       icon = function() return recording() and "stop_circle" or "screen_record" end,
       on = recording,
       set = function() model.record() end,
@@ -89,7 +89,7 @@ function M.list(model, gamemode)
       end,
     },
     {
-      id = "keyboard", icon = "keyboard", name = "On-screen keyboard",
+      id = "keyboard", icon = "keyboard", name = "On-screen keyboard", detail = "osk",
       on = keyboard_open,
       set = function(now) model.close_panel() require("keyboard").set(now) end,
     },

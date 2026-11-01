@@ -47,6 +47,9 @@ if config.path then
 end
 
 require("displays_hotplug").start()
+for _, name in ipairs { "input_model", "access_model", "audio_rules", "lid_watch", "privacy_model", "drive_watch" } do
+  require(name).start()
+end
 
 -- ------------------------------------------------------------------ colour --
 
@@ -100,7 +103,10 @@ end)
 -- again in place, as the scale does.
 local motion_first, motion_settle = true, nil
 morf.effect("eva.motion", function()
-  local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion") }
+  local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion"),
+    config.get("appearance.text_scale"), config.get("appearance.high_contrast"), config.get("appearance.font_file"),
+    config.get("wallpaper.draw"), config.get("polkit.agent"), config.get("panels.right"), config.get("panels.left"),
+    config.get("panels.top") }
   if motion_first or not style then motion_first = false return end
   if motion_settle then motion_settle:cancel() end
   motion_settle = morf.time.timer(120, function()
@@ -387,6 +393,13 @@ ipc.settings = function(page)
   sidebar.select("settings")
   sidebar.drawer.set(true)
   return page or ""
+end
+-- `power-key`: the power button, bound here while Settings chose its action.
+ipc["power-key"] = function() require("lid_watch").power_key() return true end
+-- `settings-search`: every page and setting, for the launcher and scripts.
+ipc["settings-search"] = function(query)
+  if query and query ~= "" then return require("settings_registry").search(query) end
+  return require("settings_registry").list()
 end
 -- `quick edit` or `quick done`: the quick settings' tiles being arranged.
 ipc.quick = function(how)

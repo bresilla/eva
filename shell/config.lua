@@ -43,6 +43,57 @@ local config = settings.open {
       motion = "balanced",
       -- Everything lands at once, with no travel.
       reduce_motion = false,
+      -- How much larger every label is set, 1 for as designed.
+      text_scale = 1,
+      -- Stronger contrast: text at full strength, surfaces plainer.
+      high_contrast = false,
+    },
+    -- What the Input pages chose (shell/input_model.lua): only what was
+    -- changed, so everything else stays the compositor's own configuration.
+    input = {
+      -- The Hyprland options chosen, by their name there.
+      chosen = {},
+      -- The layouts, in order, each `{ layout, variant }`; empty keeps the
+      -- compositor's. And what switches between them, an xkb option.
+      layouts = {},
+      switch = "grp:alt_shift_toggle",
+      -- Each device's own options, by device name.
+      devices = {},
+    },
+    -- What the Accessibility page keeps on (shell/access_model.lua).
+    accessibility = {
+      -- none, grayscale, invert, protanopia, deuteranopia or tritanopia.
+      filter = "none",
+      sticky_keys = false,
+      mouse_keys = false,
+      -- The screen's magnification, 1 for none.
+      zoom = 1,
+    },
+    sound = {
+      -- The event sound theme ("" leaves it alone).
+      theme = "",
+      -- The outputs and inputs wanted, most wanted first, by device name.
+      preferred_outputs = {},
+      preferred_inputs = {},
+    },
+    power = {
+      -- What closing the lid and pressing the power button do while the
+      -- shell runs: system (logind decides), or nothing, lock, suspend,
+      -- hibernate, poweroff.
+      lid_battery = "system", lid_ac = "system", button = "system",
+      -- Idle seconds, -1 to keep what the system configuration says, 0 never.
+      idle_lock = -1, idle_screen = -1, idle_suspend = -1,
+    },
+    storage = {
+      -- Warn when a disk has less than this share free, 0 never.
+      low_space = 10,
+      -- A popup when a drive is plugged in.
+      popup = true,
+    },
+    proxy = {
+      -- none, manual or auto.
+      mode = "none",
+      http = "", https = "", socks = "", exclude = "localhost,127.0.0.1", pac = "",
     },
     wallpaper = {
       -- A picture to paint under everything; "" reads the path the
