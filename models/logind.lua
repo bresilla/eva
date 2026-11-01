@@ -70,6 +70,9 @@ local function real()
     return type(answer) == "string" and answer or "na"
   end
 
+  --- Whether the lid is shut, asked now: logind does not announce it.
+  function login.lid_closed() return client.get(NAME, MANAGER_PATH, MANAGER, "LidClosed") == true end
+
   --- Boots into the firmware's own setup screen. `interactive` as for any
   --- power action.
   function login.reboot_to_firmware(interactive, done)
@@ -106,7 +109,10 @@ function M.guard()
   return {
     available = function() return login.available() end,
     preparing = function() return login.state.preparing_for_sleep == true end,
-    lid_closed = function() return login.state.lid_closed == true end,
+    lid_closed = function()
+      if login.lid_closed then return login.lid_closed() end
+      return login.state.lid_closed == true
+    end,
     on_sleep = function(fn) login.on_prepare_for_sleep(function(going) if going then fn() end end) end,
     on_lock = login.on_lock,
   }

@@ -16,6 +16,8 @@ M.ACTIONS = {
     can = "suspend", blocked_by = "sleep", hold = true, tone = "accent", quick = true, signal = "accent" },
   { id = "hibernate", icon = "downloading", name = "Hibernate", detail = "Save the session to disk", key = "h",
     can = "hibernate", blocked_by = "sleep", confirm = true, signal = "accent" },
+  { id = "suspend_hibernate", icon = "hotel", name = "Suspend, then hibernate", detail = "Sleep now, save to disk later",
+    key = "n", can = "suspend_then_hibernate", needs_yes = true, blocked_by = "sleep", signal = "accent" },
   { id = "logout", icon = "logout", name = "Log out", detail = "End this session", key = "o", hold = true,
     quick = true, confirm = true, signal = "info" },
   { id = "switch", icon = "switch_account", name = "Switch user", detail = "Lock, and go to another session", key = "u",
@@ -72,16 +74,34 @@ function M.available(id)
     local bus = login()
     return bus ~= nil and bus.available() and bus.can_firmware() == "yes"
   end
+  if action.custom then return true end
   if not M.has_command(id) then return false end
   if action.can then
     local answer = M.can(action.can)
     if answer == "no" or answer == "na" then return false end
+    if action.needs_yes and answer ~= "yes" then return false end
   end
   return true
 end
 
+-- The person's own entries: `{ id, name, icon, command }`, after the rest.
+local function own_entries()
+  for _, entry in ipairs(config.get("session.custom") or {}) do
+    local listed = type(entry) == "table" and type(entry.id) == "string" and type(entry.command) == "table"
+      and #entry.command > 0 and not M.BY_ID[entry.id]
+    if listed then
+      local action = { id = entry.id, icon = entry.icon or "terminal", name = entry.name or entry.id,
+        detail = entry.detail or "Your command", key = "", custom = true, command = entry.command,
+        confirm = entry.confirm == true, signal = "info" }
+      M.BY_ID[entry.id] = action
+      M.ACTIONS[#M.ACTIONS + 1] = action
+    end
+  end
+end
+
 --- The actions on offer, in order; `quick` keeps the quick settings' row's.
 function M.list(quick)
+  own_entries()
   local out = {}
   for _, action in ipairs(M.ACTIONS) do
     if (not quick or action.quick) and M.available(action.id) then out[#out + 1] = action end

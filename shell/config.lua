@@ -180,6 +180,8 @@ local config = settings.open {
       countdown = 5,
       -- Actions left out of the menu and the quick settings, by id.
       hide = {},
+      -- Entries of your own after the rest: `{ id, name, icon, command }`.
+      custom = {},
       -- What each of the session menu's actions runs (`$USER` is the
       -- user's name).
       commands = {
@@ -188,6 +190,7 @@ local config = settings.open {
         suspend = { "systemctl", "suspend" },
         shutdown = { "systemctl", "poweroff" },
         hibernate = { "systemctl", "hibernate" },
+        suspend_hibernate = { "systemctl", "suspend-then-hibernate" },
         reboot = { "systemctl", "reboot" },
       },
     },

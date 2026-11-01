@@ -44,7 +44,7 @@ function M.new(ctx)
       if math.abs(dy)>48 and math.abs(dy)>math.abs(dx)*1.2 then
         if start=="rest" and dy<0 then ctx.open_sheet() shown:set(true)
         elseif start=="sheet" and dy>0 then ctx.clear() ctx.escape() end
-      end
+      elseif ctx.on_tap and start=="rest" and math.abs(dx)<16 and math.abs(dy)<16 then ctx.on_tap() end
       ctx.pull:set(0)
     elseif phase=="cancel" then ctx.pull:set(0) end
   end

@@ -65,7 +65,7 @@ return function(W, H, NAME)
     prefix="lock",output=NAME,width=W,height=H,border=BORDER,embedded_width=FIELD_W,
     main=main,keyboard_attached=ctx.keyboard_attached,busy=busy,stage=stage,pull=pull,
     claim=function() main_output:set(NAME) end,open_sheet=open_sheet,clear=clear,escape=escape,action=skin.action,
-    on_hide=dismiss,
+    on_hide=dismiss,on_tap=parts.on_tap,
     look=(skin.keyboard_look or function(v) return v end) {
       panel=function() return C.surfaceContainer end,
       key=function() return C.surfaceContainerHighest end,key_dim=function() return C.surfaceContainerHigh end,

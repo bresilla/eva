@@ -34,8 +34,16 @@ The module runs the shell as the `eva` user service, the greeter under
 greetd on a Hyprland of its own and the lock screen from Hyprland's idle
 daemon. It also handles the UI scale shared with the greeter, the wallpaper
 bridge, PAM, and, optionally, phone gestures. Its options live under
-`programs.eva`: `uiScale`, `idle.*`, `phone.*`, `hyprland.extraConfig`,
-`greeter.*`, `seamless.*`, `wallpaperLogo` and `usePackagedShell`.
+`programs.eva`: `uiScale`, `idle.*`, `lock.settings`, `phone.*`,
+`hyprland.extraConfig`, `greeter.*`, `seamless.*`, `wallpaperLogo` and
+`usePackagedShell`.
+
+Idle lives in Settings, under Eva's Idle and sleep page, and runs in the shell.
+An `idle.*` timeout set in Nix wins over that page, which then shows it as set,
+and stays a timer of hypridle's, which runs without the shell. `lock.settings`
+does the same for the Lock screen page: it is written to `/etc/eva/lock.json`,
+with the keys of `models/lock_defaults.lua`, and anything left out stays the
+person's.
 
 `seamless.enable`, on by default, hides the way from boot to the desktop. Two
 compositors cannot share a frame, so greetd's switch between them always has a

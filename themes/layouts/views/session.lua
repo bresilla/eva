@@ -139,7 +139,7 @@ function V.build(M)
         color = function() return counting() and signal() or kit.ink("lo")() end },
       -- Its letter, in the corner.
       kit.label { id = "session-" .. item.id .. "-key", anchors = { right = true, right_margin = 10 }, y = 4 + NAME_H,
-        width = 16, horizontal_alignment = "right", text = item.key:upper(),
+        width = 16, horizontal_alignment = "right", text = (item.key or ""):upper(),
         color = kit.stroke("mark") },
       kit.action { id = "session-" .. item.id .. "-cancel", anchors = { right = true, right_margin = 6 },
         y = 2, width = 76, height = NAME_H + 2, cursor = "pointer", visible = counting,

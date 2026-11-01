@@ -24,6 +24,7 @@ if not cfg or not runtime or not instance or (dry and dry~="" and dry~="0") then
   function M.asleep() return false end
   function M.ambient() return fake end
   function M.allow_ambient() end
+  function M.sleep() if cfg then morf.log("info","phone screen: off (dry run)") end end
   return M
 end
 local path=runtime.."/phone-screen-"..instance..".status"
@@ -43,6 +44,12 @@ function M.ambient() return mode:get()=="ambient" end
 function M.allow_ambient(on)
   if not M.always_on() then return end
   if on then pcall(morf.fs.write,allowed,"",{mode=384}) else pcall(morf.fs.remove,allowed) end
+end
+--- Puts the panel to sleep: a double tap on the lock's empty space.
+function M.sleep()
+  morf.process.run({cfg.command,"off"},{timeout_ms=15000,max_output=2048},function(result)
+    if not result.ok then morf.log("warn","phone sleep: "..(result.stderr or "failed")) end
+  end)
 end
 function M.attach(root,spec)
   local pending=false

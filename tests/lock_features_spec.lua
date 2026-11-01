@@ -146,6 +146,30 @@ test.it("the system's policy can shut the window whatever the person set",functi
   test.eq(test.ipc("audit").state,"locked")
 end)
 
+test.it("the lock is given up in one place, reached only through the door or the window",function()
+  local source=morf.fs.read("lock/init.lua")
+  local _,gives=source:gsub("session_lock%s*=%s*false","")
+  test.eq(gives,1,"one place sets the session free")
+  -- Everything that calls lift: the door's answer, the preview's fake door,
+  -- and the window, which goes through the door when it can.
+  local names={}
+  for line in source:gmatch("[^\n]+") do
+    if line:find("%f[%w_]lift%f[^%w_]") and not line:find("^%s*%-%-") then names[#names+1]=line:match("^%s*(.-)%s*$") end
+  end
+  test.eq(names,{"local function lift()","on_open = lift,",
+    'if pw == "wrong" then handlers.on_failed("Wrong password") else lift() end',
+    "if door.finish then door:finish() else lift() end"})
+end)
+
+test.it("nothing that takes the window but a key or a press",function()
+  local source=morf.fs.read("lock/init.lua")
+  local _,uses=source:gsub("take_grace%(%)","")
+  test.eq(uses,2,"its definition and the key handler")
+  local layout=morf.fs.read("themes/layouts/lock.lua")
+  local _,presses=layout:gsub("parts%.take_grace%(%)","")
+  test.eq(presses,1,"the press on the lock's own surface")
+end)
+
 test.it("a held lock has no verb that moves it",function()
   load()
   local verbs=test.ipc_verbs()
@@ -367,6 +391,46 @@ test.it("a person can hide the name, the face and the readings",function()
   test.falsy(shown("lock-weather"))
   test.key("Return") test.settle(400)
   test.eq(test.find{id="lock-name",visible=true}.text,"Locked")
+end)
+
+test.it("two taps on the empty lock put a phone's panel to sleep, and one does not",function()
+  local screen=dir.."/phone.json"
+  morf.fs.write(screen,morf.json.encode{command="/bin/true",doubleTap=true})
+  local function slept()
+    for _,line in ipairs(test.logs("info")) do
+      if line.message:find("phone screen: off",1,true) then return true end
+    end
+    return false
+  end
+  test.load("../lock/init.lua",{size={406,903},args={"window","preview"},env={EVA_STYLE="material",
+    EVA_SCALE_MODE="compositor",EVA_DRY_RUN="1",EVA_PHONE_SCREEN_CONFIG=screen,EVA_SETTINGS=SETTINGS,
+    EVA_LOCK_POLICY=POLICY,EVA_INPUT_DEVICES=morf.fs.home().."/none"}})
+  test.advance(900)
+  test.touch("down",1,200,500) test.touch("up",1,200,500) test.advance(60)
+  test.falsy(slept())
+  test.touch("down",1,200,500) test.touch("up",1,200,500) test.advance(60)
+  test.truthy(slept())
+  test.eq(test.ipc("stage"),"rest")
+end)
+
+test.it("the ambient face stands on a panel that can, black, with the time and dots",function()
+  local screen=dir.."/phone.json"
+  morf.fs.write(screen,morf.json.encode{command="/bin/true",doubleTap=true,alwaysOn=true})
+  write(SETTINGS,{lock={always_on={enabled=true},notifications={level="senders"}}})
+  write(VIEW,{notifications={level="senders",count=3,items={{app="Signal",count=2,time=1},{app="Mail",count=1,time=1}}}})
+  load{env={EVA_PHONE_SCREEN_CONFIG=screen,EVA_FAKE_AMBIENT="1"},size={868,1932}}
+  test.truthy(shown("lock-ambient"))
+  test.truthy(shown("lock-ambient-clock"))
+  test.truthy(shown("lock-ambient-dots"))
+  test.eq(test.ipc("audit").state,"locked")
+end)
+
+test.it("no ambient face without the system saying the panel can",function()
+  local screen=dir.."/phone.json"
+  morf.fs.write(screen,morf.json.encode{command="/bin/true",doubleTap=true})
+  write(SETTINGS,{lock={always_on={enabled=true}}})
+  load{env={EVA_PHONE_SCREEN_CONFIG=screen,EVA_FAKE_AMBIENT="1"},size={868,1932}}
+  test.falsy(test.find{id="lock-ambient"})
 end)
 
 test.it("the status row says the charge and no names",function()

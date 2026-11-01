@@ -115,7 +115,7 @@ local guard = (REASON == "idle" and prefs.grace_seconds > 0) and require("models
 local grace = require("models.lock_grace").new {
   seconds = prefs.grace_seconds, reason = REASON, guard = guard, phone = phone_screen.present(),
 }
-if prefs.force_layout ~= "" then morf.time.timer(0, function() keyboard.force(prefs.force_layout) end, false) end
+if prefs.force_layout ~= "" then keyboard.force(prefs.force_layout) end
 
 -- A shortcut waiting on the password: its id, handed to the shell once the
 -- door is open. Only the shell opens anything.
@@ -317,6 +317,7 @@ local desktop = require("models.lock_desktop").new {
 }
 
 -- What stands on the lock besides the time.
+local last_tap
 local parts = {
   prefs = prefs, keyboard = keyboard, grace = grace, tries = tries,
   status = require("models.auth_status").new { active = resting, status = prefs.status },
@@ -326,6 +327,17 @@ local parts = {
   power = prefs.power_buttons and require("models.auth_power").new() or nil,
   card_open = card_open, card_said = card_said, open_card = open_card, close_card = close_card,
   take_grace = take_grace,
+  -- On a phone, two taps on the empty lock put the panel to sleep.
+  on_tap = function()
+    if not phone_screen.present() then return end
+    local at = morf.time.now_ms()
+    if last_tap and at - last_tap < 400 then
+      last_tap = nil
+      phone_screen.sleep()
+    else
+      last_tap = at
+    end
+  end,
   shortcuts = require("models.lock_shortcuts").new {
     prefs = prefs,
     media_available = function() return prefs.media and desktop.media_available() end,

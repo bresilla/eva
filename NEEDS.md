@@ -77,3 +77,11 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   GPU. `MORF_PRESENT=swapchain` does it by hand, in `nix/tests/login.nix`.
 - A first-frame hook. `enter` starts on a surface's first frame, but Lua cannot
   hear it. Plymouth's hand-over listens for Hyprland's `layer.opened` instead.
+- A monotonic clock. `morf.time.now_ms` is the wall clock, which a suspend and a
+  changed date both move. The lock's window after an idle lock reads
+  `/proc/uptime` for its deadline and for the gap that says the machine slept;
+  `morf.time.monotonic()` and `morf.time.boottime()` would replace that file.
+- Lock keys with a key event. `modifiers` holds `ctrl`, `shift`, `alt` and
+  `super`, not Caps Lock, so the login screens read the LED under
+  `/sys/class/leds` a moment after each key. A keyboard without the LED gets no
+  warning. xkb's locked modifiers are what the compositor already sends.

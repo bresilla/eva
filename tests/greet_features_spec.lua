@@ -27,7 +27,10 @@ local SOURCE=[[
   morf.ipc.step=function() ctx.step_session(1) end
   morf.ipc.message=function() return ctx.message:get() end
   morf.ipc.unsay=function() ctx.say("") end
-  morf.ipc.power=function(method) return {require("lib.shell.auth").power(method)} end
+  morf.ipc.power=function(method)
+    local ok,why=require("lib.shell.auth").power(method)
+    return {ok=ok==true,why=why}
+  end
 ]]
 local function load(options)
   options=options or {}
@@ -147,8 +150,8 @@ end)
 test.it("asking logind with no bus answers why, and throws nothing",function()
   load()
   local answer=test.ipc("power","Suspend")
-  test.eq(answer[1],nil)
-  test.truthy(type(answer[2])=="string","a reason")
+  test.eq(answer.ok,false)
+  test.truthy(type(answer.why)=="string","a reason")
 end)
 
 test.it("a password goes to no file",function()

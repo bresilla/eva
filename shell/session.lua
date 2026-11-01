@@ -87,7 +87,8 @@ function M.run(id)
   stop_count()
   M.drawer.set(false)
   if SPECIAL[id] then return SPECIAL[id]() end
-  local argv = M.command(id)
+  local action = model.BY_ID[id]
+  local argv = action and action.command or M.command(id)
   if not argv or #argv == 0 then return false end
   if dry_run() then
     morf.log("info", "eva: session " .. id .. " (dry run): " .. table.concat(argv, " "))

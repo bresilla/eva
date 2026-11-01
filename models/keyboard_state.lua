@@ -34,6 +34,7 @@ function M.new(prefix)
           if keyboard.main then
             names:set(words(keyboard.layout))
             active:set((tonumber(keyboard.active_layout_index) or 0) + 1)
+            if self.wanted then self.force(self.wanted) end
             return
           end
         end
@@ -69,10 +70,14 @@ function M.new(prefix)
     return true
   end
 
-  --- The layout called `name`. The one it left is given back by `restore`.
+  --- The layout called `name`, now or as soon as the layouts are known. The one
+  --- it left is given back by `restore`.
   function self.force(name)
+    self.wanted = name
     for index, candidate in ipairs(names:get()) do
-      if candidate == name and index ~= active:get() then
+      if candidate == name then
+        self.wanted = nil
+        if index == active:get() then return false end
         self.saved = active:get()
         apply(index)
         return true
