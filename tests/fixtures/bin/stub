@@ -20,6 +20,7 @@ case "$name" in
   zbarimg) printf '%s\n' "${STUB_READ-https://example.test}" ;;
   wl-copy) printf 'clipboard: %s\n' "$(cat)" >> "${STUB_LOG:-/dev/null}" ;;
   notify-send) exit 0 ;;
+  hyprsunset) exec sleep 30 ;;
   gpu-screen-recorder)
     stopped() {
       printf 'recorder stopped\n' >> "${STUB_LOG:-/dev/null}"
