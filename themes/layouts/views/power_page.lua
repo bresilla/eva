@@ -112,6 +112,8 @@ function M.build(model, w, h)
     visible = model.charging_shown,
     P.row { id = "power-charger", width = inner, icon = model.charger_icon, on = model.charging,
       title = model.charge_title, subtitle = model.charge_detail, trailing = marks },
+    kit.subtitle { id = "power-charger-note", width = inner, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
+      visible = function() return model.charge_hint() ~= "" end, text = model.charge_hint },
     P.row { id = "power-limit-state", width = inner, icon = "battery_saver", on = limit_on, title = "Charge limit",
       visible = function() return by_file() or route("upower")() end,
       subtitle = function()

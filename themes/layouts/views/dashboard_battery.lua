@@ -199,11 +199,13 @@ function M.build(model)
     L.status { width = sw, height = 44, kind = level_kind,
       title = L.term(function() return "battery." .. level_kind() end, function()
         local k = level_kind()
-        return k == "info" and model.charge_title() or k == "alert" and "Very low" or k == "warn" and "Low" or "Good"
+        return k == "info" and "Charging" or k == "alert" and "Very low" or k == "warn" and "Low" or "Good"
       end),
       subtitle = function()
         if not present() then return "No battery" end
-        return charging() and model.charger_name() .. "  ·  " .. num(battery().power, "%.1f W")
+        local feed = model.feed()
+        local kind = feed.fast and "Fast" or feed.wireless and "Wireless" or "Plugged in"
+        return charging() and kind .. "  ·  " .. num(battery().power, "%.1f W")
           or tostring(battery().status or "No battery") .. "  ·  " .. num(battery().energy, "%.1f Wh")
       end },
   }

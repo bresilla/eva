@@ -106,8 +106,11 @@ function M.new(ctx)
       local target=model.target()
       parts[#parts+1]=(target<100 and ("%d%% in "):format(target) or "Full in ")..M.duration(left)
     end
-    if f.slow and model.charging() then parts[#parts+1]="A stronger charger would be faster" end
     return table.concat(parts,"  ·  ")
+  end
+  --- What a weak charger is told, or "".
+  function model.charge_hint()
+    return model.charging() and model.feed().slow and "This charger is weak: a stronger one would be faster." or ""
   end
   function model.limit()
     local b=model.battery()
