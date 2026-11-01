@@ -143,7 +143,17 @@ local function store_path()
   local chosen = morf.env and morf.env("EVA_NOTIFICATION_STORE")
   if chosen and chosen ~= "" then return chosen end
   if morf.capabilities and morf.capabilities.headless then return nil end
-  return morf.paths.state("notifications.json")
+  return morf.paths.state("notifications/history.json")
+end
+
+-- The store's folder, for its owner alone: the file holds what people wrote.
+local function private_folder()
+  local dry = morf.env and morf.env("EVA_DRY_RUN")
+  local chosen = morf.env and morf.env("EVA_NOTIFICATION_STORE")
+  if (chosen and chosen ~= "") or (dry and dry ~= "" and dry ~= "0") or not store_path() then return end
+  local folder = morf.paths.state("notifications")
+  pcall(morf.fs.mkdir, folder)
+  morf.process.run({ "chmod", "700", folder }, {}, function() end)
 end
 
 local function bare(record)
@@ -154,9 +164,14 @@ local function bare(record)
   return out
 end
 
-local function bare_list(list)
+-- What may reach the disk: a one-time code never does.
+local function filed(list)
+  local text = require("themes.notification_text")
   local out = {}
-  for i, record in ipairs(list) do out[i] = bare(record) end
+  for i, record in ipairs(list) do
+    out[i] = bare(record)
+    if text.otp(record) then out[i].summary, out[i].body = "One-time code", "Not kept" end
+  end
   return out
 end
 
@@ -165,8 +180,8 @@ local function save()
   saving = nil
   local path = store_path()
   if not path then return end
-  local text = morf.json.encode { version = 1, read = last_read, history = bare_list(M.history:get()),
-    snoozed = bare_list(M.snoozed:get()), dismissed = bare_list(M.dismissed:get()) }
+  local text = morf.json.encode { version = 1, read = last_read, history = filed(M.history:get()),
+    snoozed = filed(M.snoozed:get()), dismissed = filed(M.dismissed:get()) }
   local ok, err = morf.fs.write(path .. ".new", text)
   if ok then ok, err = pcall(morf.fs.rename, path .. ".new", path) end
   if not ok then morf.log("warn", "eva: notifications not saved: " .. tostring(err)) end
@@ -270,7 +285,7 @@ end
 function M.ongoing(n)
   if n.resident then return true end
   local value = type(n.hints) == "table" and tonumber(n.hints.value) or nil
-  return value ~= nil and value < 100 and live[n.id] ~= nil
+  return value ~= nil and value < 100 and M.answers:get()[tostring(n.id)] == true
 end
 
 -- ------------------------------------------------------------------ sound --
@@ -309,6 +324,12 @@ local function hear(n, m)
     through_silent = m.out.ring == true or (m.urgency >= 2 and (n.category or ""):match("alarm") ~= nil) }
 end
 
+--- A word of a rule's command, with `$APP`, `$SUMMARY` and `$BODY` filled in.
+function M.rule_word(word, n)
+  local words = { APP = n.app or "", SUMMARY = n.summary or "", BODY = n.body or "" }
+  return (tostring(word):gsub("%$(%u+)", function(name) return words[name] end))
+end
+
 local function run(out, n)
   if #(out.run or {}) == 0 then return end
   local dry = morf.env and morf.env("EVA_DRY_RUN")
@@ -317,9 +338,7 @@ local function run(out, n)
     return
   end
   local argv = {}
-  for i, word in ipairs(out.run) do
-    argv[i] = tostring(word):gsub("%$APP", n.app or ""):gsub("%$SUMMARY", n.summary or ""):gsub("%$BODY", n.body or "")
-  end
+  for i, word in ipairs(out.run) do argv[i] = M.rule_word(word, n) end
   morf.process.run(argv, {}, function() end)
 end
 
@@ -1026,6 +1045,7 @@ local function digest_tick()
 end
 
 local function start_primary()
+  private_folder()
   load_store()
   M.list:set({})
   if config.get("notifications.daemon") then serve() end
@@ -1091,7 +1111,7 @@ morf.effect("eva.notifications.shown", function()
   M.drawer.set(#M.on_show() > 0 and not M.covered:get() and on_this_screen())
 end)
 --- The edge light and the flash of an arrival, for the frame to lay over all.
-function M.overlay() return visual.overlay end
+function M.overlay() return visual.overlay() end
 --- What a lock screen may say of the history: `{ count, apps = { names },
 --- entries = { { app, summary, body } } }`, by `notifications.lock_previews`.
 function M.lock_view()

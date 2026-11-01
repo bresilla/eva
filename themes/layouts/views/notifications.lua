@@ -71,8 +71,13 @@ function V.build(M)
   local function masked(n) return n ~= nil and M.redacted(n) and not is_open(n.id) end
   local function replying(n) return n ~= nil and M.replying:get() == n.id end
   local function tooled(n) return n ~= nil and M.tools:get() == n.id end
+  -- A picture stands at full width when opened, or at once where it is the news.
   local function previewing(n)
-    return n ~= nil and not masked(n) and is_open(n.id) and text_of.image_of(n) ~= ""
+    if n == nil or masked(n) or text_of.image_of(n) == "" then return false end
+    return is_open(n.id) or text_of.style(n) == "image"
+  end
+  local function strong(n)
+    return n ~= nil and (kind_of(n) == "alert" or n.highlight == true or text_of.style(n) == "call")
   end
   local function has_transport(n) return n ~= nil and not masked(n) and #text_of.transport(n) > 0 end
   local function has_chips(n) return n ~= nil and not masked(n) and #N.chips_of(n, M) > 0 end
@@ -317,10 +322,7 @@ function V.build(M)
       end,
       on_long_pressed = function() local x = n() if x then M.toggle_tools(x.id) end end,
       ui.Rect { id = "notification-ring-" .. i, anchors = { fill = true }, radius = L.control_round(40), color = "transparent",
-        border_color = signal, border_width = function()
-          local x = n()
-          return (kind() == "alert" or (x and x.highlight)) and 2 or 0
-        end },
+        border_color = signal, border_width = function() return strong(n()) and 2 or 0 end },
       L.decor_box("corners", { length = 9, color = function()
         return card and card.hovered and signal() or kit.stroke("mark")()
       end }),
@@ -358,8 +360,7 @@ function V.build(M)
       operation = i == 1 and "union" or "smooth_union",
       fill_color = function()
         local base = card.hovered and C.surfaceContainerHigh or C.surfaceContainer
-        local x = n()
-        return base:mix(signal(), (kind() == "alert" or (x and x.highlight)) and .12 or .04)
+        return base:mix(signal(), strong(n()) and .12 or .04)
       end,
       behavior = { fill_color = { duration = theme.duration.small } },
     }
@@ -457,27 +458,30 @@ function V.build(M)
   end
   -- An arrival's light: a ring round the screen, a wash over it. Neither takes
   -- the pointer. They rise and fall on one spring's time.
-  local ring = ui.Rect { id = "notification-edge", anchors = { fill = true }, color = "transparent", border_width = 4,
-    border_color = function() return kit.signal("accent")() end, opacity = 0 }
-  local wash = ui.Rect { id = "notification-flash", anchors = { fill = true }, opacity = 0,
-    color = function() return C.onSurface end }
-  local overlay = ui.Item { id = "notification-light", anchors = { fill = true }, ring, wash }
-  local pulsed = M.pulse:get()
-  morf.effect("eva.notifications.light", function()
-    local now = M.pulse:get()
-    if now == pulsed then return end
-    pulsed = now
-    local steps = {}
-    if M.edge_light() then
-      steps[#steps + 1] = { sequence = { { node = ring, property = "opacity", from = 0, to = .9, duration = theme.duration.small },
-        { node = ring, property = "opacity", to = 0, duration = theme.duration.long or 700 } } }
-    end
-    if M.flash() then
-      steps[#steps + 1] = { sequence = { { node = wash, property = "opacity", from = 0, to = .35, duration = 80 },
-        { node = wash, property = "opacity", to = 0, duration = 300 } } }
-    end
-    if #steps > 0 then morf.animation.play { { parallel = steps } } end
-  end, { owner = overlay })
+  local function overlay()
+    local ring = ui.Rect { id = "notification-edge", anchors = { fill = true }, color = "transparent", border_width = 4,
+      border_color = function() return kit.signal("accent")() end, opacity = 0 }
+    local wash = ui.Rect { id = "notification-flash", anchors = { fill = true }, opacity = 0,
+      color = function() return C.onSurface end }
+    local light = ui.Item { id = "notification-light", anchors = { fill = true }, ring, wash }
+    local pulsed = M.pulse:get()
+    morf.effect("eva.notifications.light", function()
+      local now = M.pulse:get()
+      if now == pulsed then return end
+      pulsed = now
+      local steps = {}
+      if M.edge_light() then
+        steps[#steps + 1] = { sequence = { { node = ring, property = "opacity", from = 0, to = .9, duration = theme.duration.small },
+          { node = ring, property = "opacity", to = 0, duration = theme.duration.long or 700 } } }
+      end
+      if M.flash() then
+        steps[#steps + 1] = { sequence = { { node = wash, property = "opacity", from = 0, to = .35, duration = 80 },
+          { node = wash, property = "opacity", to = 0, duration = 300 } } }
+      end
+      if #steps > 0 then morf.animation.play { { parallel = steps } } end
+    end, { owner = light })
+    return light
+  end
 
   -- The sidebar opens over the right corner: while it is out a stack there
   -- stands beside it rather than over it.

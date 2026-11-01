@@ -72,6 +72,7 @@ function V.build(model, w, h)
     flag("stack", "stacks", "Fold by app", "Three or more from one app become one card", "stack"),
     P.row { id = "notif-position", width = inner, icon = "picture_in_picture", title = "Position",
       subtitle = "Where popups stand", trailing = P.chevron(), on_clicked = model.open_position },
+    #morf.screens > 1 and choices(w, "notif-output", "On which screen", model.outputs(), setting("output"), setter("output")) or nil,
   }
 
   local content = P.section { id = "notif-content", width = w, title = "What cards show",

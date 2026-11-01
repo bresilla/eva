@@ -8,7 +8,24 @@ dashboard). Each entry says what is missing, the API that would cover it,
 and why Lua cannot do it well. Work already under way elsewhere is marked
 **in progress** and only left as a TODO in the port.
 
-Nothing open: every entry found so far is in the engine (below).
+Open, found while building notifications and Focus:
+
+- `lib.services.notifications` keeps its service to itself, so a shell cannot
+  emit `NotificationReplied` or answer the `Inhibit` methods. A `server.reply(id,
+  text)` and an `extra_methods` option would cover it. Lua can only do it badly:
+  `lib/services/notification_server.lua` swaps `morf.dbus.serve` for the length of
+  the call to catch the handle.
+- `morf.image.from_dbus` pictures have no way to a file: `morf.image.process`
+  takes a path or inline SVG, not a `memory:` source. A notification's raw
+  `image-data` goes when its sender closes it, so the history shows the app's icon
+  from then on, and a restart keeps no such picture. `morf.image.save(source,
+  path)`, or `process` taking a `memory:` source, would cover it.
+- A signal's `get` copies a table, so a binding that reads a long list pays for
+  the whole list each time, and a table is never `==` to the last one read. eva
+  keeps a revision number beside its lists (`shell/notifs.lua`, `listing`). A
+  `signal:revision()` would save every list doing the same.
+
+Nothing else open: every other entry found so far is in the engine (below).
 
 Phase 2 (the other dashboard tabs, the launcher's pickers, the session
 menu, the bar's popouts, notifications and the OSD) found the entries

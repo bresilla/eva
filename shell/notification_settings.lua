@@ -53,6 +53,12 @@ function M.model()
     utilities.request("notifications/app")
   end
   function model.open_position() require("utilities").request("osd") end
+  --- The screens popups can keep to, and the one in use.
+  function model.outputs()
+    local out = { { "", "In use" } }
+    for _, screen in ipairs(morf.screens or {}) do out[#out + 1] = { screen.name, screen.name } end
+    return out
+  end
   function model.clear_history() notifs.clear() end
   model.content = rules.content
   model.remove_rule = rules.remove_at
