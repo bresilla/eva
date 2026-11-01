@@ -55,7 +55,7 @@ M.SHELL = [==[
   local http_asked = {}
   if morf.env("EVA_TEST_HTTP") then
     local answers = {
-      { "mymemory", { responseData = { translatedText = "hola" } } },
+      { "mymemory", { responseStatus = 200, responseData = { translatedText = "hola" } } },
       { "dictionaryapi", { { meanings = { { partOfSpeech = "noun", definitions = { { definition = "A greeting" } } } } } } },
       { "wikipedia", { title = "Linux", extract = "A family of operating systems.",
         content_urls = { desktop = { page = "https://en.wikipedia.org/wiki/Linux" } } } },

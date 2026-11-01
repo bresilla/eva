@@ -523,7 +523,7 @@ test.describe("words and text", function()
     for _, argv in ipairs(test.runs()) do
       if argv[1] == "trans" then asked = argv end
     end
-    test.contains(asked, ":es")
+    test.eq(asked, { "trans", "-b", "-no-ansi", ":es" }, "eva-translate's engine, the text on stdin")
     test.ipc("activate")
     test.settle(200)
     test.eq(test.ipc("copied"), { "Hola mundo" })
@@ -537,6 +537,20 @@ test.describe("words and text", function()
         end
       end
     end, 2000, "the language name was not read")
+  end)
+
+  test.it("reads the languages of eva-translate's list, and their other names", function()
+    for _, case in ipairs { { "norwegian", ":no" }, { "no", ":no" }, { "español", ":es" }, { "zh", ":zh-CN" } } do
+      host.load { path = { "trans" } }
+      test.stub_run("trans", "Hola\n")
+      host.search("> tr " .. case[1] .. " hello", 500)
+      landed("Hola")
+      local asked
+      for _, argv in ipairs(test.runs()) do
+        if argv[1] == "trans" then asked = argv end
+      end
+      test.eq(asked[4], case[2])
+    end
   end)
 
   test.it("defines a word through dict", function()
