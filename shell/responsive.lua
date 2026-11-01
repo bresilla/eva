@@ -117,11 +117,10 @@ function M.panel_height(h)
 end
 
 --- Where that sheet hangs: from the middle on a phone held upright, else
---- under the status it was pulled from.
+--- in the corner under the status it was pulled from.
 function M.panel_anchors()
   if M.width_class() == "compact" then return { top = true, horizontal_center = true } end
-  local theme = require("theme")
-  return { top = true, right = true, right_margin = theme.ROUNDING + theme.SEAM }
+  return { top = true, right = true }
 end
 
 -- A cutout from EVA_FAKE_CUTOUT ("x,width,height") or the settings, in the

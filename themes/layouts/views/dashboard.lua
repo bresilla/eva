@@ -96,7 +96,7 @@ local REORDER = AXIS or not require("models.touchscreens").attached()
 local function tabs()
   local row = kit.tabs { id = "dashboard", accessible_name = "Dashboard", tabs = TABS, tab = M.tab,
     width = width, height = TABS_H, pad = PAD, ids = "name", growing = true, reorderable = REORDER,
-    icons_only = COMPACT }
+    icons_only = responsive.width_class() == "compact" }
   if not TABS_BELOW then return row end
   return ui.Item { y = function() return panel_height()-TABS_H end, width = PANEL_W, height = TABS_H, row }
 end
