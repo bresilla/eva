@@ -7,6 +7,9 @@ local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local frame = require("common.frame")
+local L = require("themes.layouts.parts")
+local pill = require("themes.layouts.tool_pill")
+local responsive = require("responsive")
 local model = require("model")
 local C, S = theme.color, theme.space
 
@@ -125,7 +128,22 @@ local function ripple()
       anchors = { horizontal_center = true, top = true, top_margin = S.l },
       kit.text {
         anchors = { center_in = true }, color = kit.ink("hi"), font_size = theme.size.normal,
-        text = "Press for rings · Esc to end",
+        text = responsive.sheets() and "Tap for rings" or "Press for rings · Esc to end",
+      },
+    },
+  }
+end
+
+-- Over the press area: what ends the rings for a finger.
+local function finger_end()
+  return ui.Item {
+    id = "find-end-box", anchors = { fill = true }, visible = responsive.sheets(),
+    pill.new {
+      id = "find-controls", cells = {
+        L.icon_button {
+          id = "find-end", name = "End", icon = "close", width = pill.CELL, height = pill.CELL,
+          on_clicked = function() model.finish() end,
+        },
       },
     },
   }
@@ -155,6 +173,7 @@ function M.overlay()
         return true
       end,
     },
+    mode == "ripple" and finger_end() or nil,
   }
   morf.effect("find.shown", function()
     if (root.layout_width or 0) > 0 then model.shown() end

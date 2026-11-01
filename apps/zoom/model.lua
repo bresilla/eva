@@ -63,8 +63,8 @@ local function lua_chunk(value)
   return ("hl.config({ cursor = { zoom_factor = %s } })"):format(spell(value))
 end
 
--- Sets the keyword, reads it back, and on a Lua-configured Hyprland, which
--- refuses keywords, says it the way that takes.
+-- Sets the keyword and reads it back; a value that did not take is said the way
+-- a Lua-configured Hyprland takes it.
 local function write(value, done)
   sys.run({ "hyprctl", "keyword", M.OPTION, spell(value) }, {}, function()
     M.read(function(now)

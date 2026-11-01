@@ -21,7 +21,7 @@ local shown = 0
 
 local function trim(words) return (tostring(words or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
 
--- The theme's two ends, dark modules on the light one, as a scanner wants them.
+-- The theme's dark end and its light end, for the modules and the ground.
 local function qr_colours()
   local C = require("theme").color
   local light, dark = C.onSurface, C.surface

@@ -92,8 +92,10 @@ local function hint()
     behavior = { opacity = theme.spring.effects },
     kit.text {
       anchors = { center_in = true }, color = kit.ink("hi"), font_size = theme.size.normal,
-      text = function() return #model.windows:get() == 0 and "No windows · Esc to leave"
-        or "Press a window to end it · Esc to cancel" end,
+      text = function()
+        if #model.windows:get() == 0 then return "No windows · Esc to leave" end
+        return responsive.sheets() and "Tap a window twice to end it" or "Press a window to end it · Esc to cancel"
+      end,
     },
   }
 end

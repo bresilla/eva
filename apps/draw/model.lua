@@ -66,8 +66,7 @@ function M.begin(x, y)
   M.draft:set(outline(points, pen_width()))
 end
 
---- Takes the stroke on to `x`, `y`. A long one is kept in pieces, so that the
---- piece under way stays cheap to draw.
+--- Takes the stroke on to `x`, `y`, keeping a long one in pieces.
 function M.move(x, y)
   if not points then return end
   local last = points[#points]

@@ -1,8 +1,5 @@
--- Where the pointer stands for a tool that covers the screen. A surface hears
--- the pointer only once it moves, so the first position comes from the
--- compositor where it tells: Hyprland's `hyprctl cursorpos`. Sway's seat cursor
--- is not readable, so there it is the middle of the screen until the first
--- motion.
+-- Where the pointer stands for a tool that covers the screen: `hyprctl cursorpos`
+-- on Hyprland, the middle of the screen elsewhere until the first motion.
 --
 --     pointer.start(function(x, y, known) end)   -- surface pixels
 --     pointer.to_surface(x, y)                   -- a global point on this screen

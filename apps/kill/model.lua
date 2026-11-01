@@ -92,8 +92,7 @@ function M.kill()
   return true
 end
 
---- A press at `x`, `y`: at once with a pointer; `touch` asks for a second tap,
---- as a finger shows no hover first.
+--- A press at `x`, `y`: at once with a pointer; `touch` takes a second tap.
 function M.press(x, y, touch)
   M.point(x, y)
   if not M.hover:get() then return false end

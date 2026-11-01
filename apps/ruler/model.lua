@@ -1,11 +1,9 @@
 -- eva-ruler's state and actions: the frozen picture, the pointer on it, the edges
 -- round it, the box of bounds mode, and what is read out.
 --
--- A file's `morf.image.pixel` decodes the whole picture each call and refuses
--- one over 4 MP, so the walk reads strips instead: the pointer's row and column
--- are cropped off a decoded picture on an image worker, and each is read in
--- memory. The two sessions hold one strip each; a move during a render waits, and
--- only the newest is asked for. No nodes.
+-- The walk reads strips: the pointer's row and column, cropped off a decoded
+-- picture on an image worker and read in memory. Two sessions hold one strip
+-- each; a move during a render waits, and only the newest is asked for. No nodes.
 local morf = require("morf")
 local sys = require("common.sys")
 local scan = require("scan")
