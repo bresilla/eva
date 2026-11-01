@@ -93,17 +93,10 @@ end
 
 -- ------------------------------------------------------------ keep awake --
 
-M.awake = require("themes.session").keep("eva.utilities.awake", false)
+local idle = require("idle_model")
+M.idle = idle
+M.awake = idle.awake
 local awake_since = require("themes.session").keep("eva.utilities.awake_since", "")
-
-morf.effect("eva.utilities.inhibit", function()
-  local on = M.awake:get()
-  if dry_run() then
-    morf.log("info", "eva: keep awake " .. (on and "on" or "off") .. " (dry run)")
-  elseif morf.idle and morf.idle.inhibit then
-    morf.idle.inhibit(on)
-  end
-end)
 
 local function clock(at)
   if config.get("bar.clock.twelve_hour") then
@@ -112,9 +105,10 @@ local function clock(at)
   return (morf.time.format("%H:%M", at))
 end
 
-function M.set_awake(on)
+--- Keeps the session awake, for `seconds` if given.
+function M.set_awake(on, seconds)
   if on and not M.awake:get() then awake_since:set(clock(morf.time.now())) end
-  M.awake:set(on and true or false)
+  idle.set_awake(on, seconds)
 end
 
 local local_state = {
@@ -415,6 +409,8 @@ M.TOGGLES = {
     set = function(now) M.set_awake(now) end,
     status = function()
       if not M.awake:get() then return "Off" end
+      local ends = idle.awake_until()
+      if ends > 0 then return "Until " .. clock(ends) end
       return "Since " .. awake_since:get()
     end,
   },
@@ -535,6 +531,7 @@ M.DETAILS = {
   {key="sound",name="Sound"}, {key="microphone",name="Microphone"},
   {key="power",name="Power"}, {key="eva",name="Eva"}, {key="bar",name="Bar",parent="eva"}, {key="wired",name="Wired"},
   {key="osd",name="On-screen displays",parent="eva"},
+  {key="lock",name="Lock screen",parent="eva"},{key="idle",name="Idle and sleep",parent="eva"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
   {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},

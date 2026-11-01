@@ -1,0 +1,57 @@
+-- Settings rows that edit one value: a row of preset choices, a switch, and a
+-- line of text. Used by the pages whose rows are mostly this. A value the system
+-- fixes shows and does not move.
+local ui = require("morf.ui")
+local theme = require("theme")
+local kit = require("kit")
+local P = require("themes.layouts.page")
+local C = theme.color
+local F = {}
+
+--- Pieces of `text` split on spaces: a command as a list of words.
+function F.words(text)
+  local out = {}
+  for word in tostring(text or ""):gmatch("%S+") do out[#out + 1] = word end
+  return out
+end
+
+--- A title over a row of buttons, one per choice: `id`, `width`, `title`,
+--- `subtitle`, `icon`, `choices` (`{ value, label }`), `read` (fn), `set` (fn),
+--- `enabled` (fn).
+function F.choices(spec)
+  local buttons = { id = spec.id .. "-choices", width = spec.width }
+  for _, choice in ipairs(spec.choices) do
+    buttons[#buttons + 1] = { id = spec.id .. "-" .. tostring(choice[1]), label = choice[2], group = spec.id,
+      enabled = spec.enabled, selected = function() return spec.read() == choice[1] end,
+      on_clicked = function() spec.set(choice[1]) end }
+  end
+  return ui.Column { id = spec.id, width = spec.width, gap = P.ROW_GAP / 2,
+    P.row { id = spec.id .. "-row", width = spec.width, height = 44, icon = spec.icon, title = spec.title,
+      subtitle = spec.subtitle },
+    P.buttons(buttons),
+  }
+end
+
+--- A row with a switch: `id`, `width`, `icon`, `title`, `subtitle`, `on` (fn),
+--- `set` (fn), `enabled` (fn).
+function F.switch(spec)
+  return P.row { id = spec.id, width = spec.width, height = 56, icon = spec.icon, title = spec.title,
+    subtitle = spec.subtitle, on = spec.on, visible = spec.visible,
+    trailing = P.switch { id = spec.id .. "-switch", name = spec.title, on = spec.on, enabled = spec.enabled,
+      on_toggled = spec.set } }
+end
+
+--- A labelled line of text: `id`, `width`, `title`, `value` (fn), `set` (fn), saved
+--- as it is typed.
+function F.text(spec)
+  local node = kit.text_field("entry", { id = spec.id, x = 10, y = 3, width = spec.width - 20, height = 30,
+    font_family = theme.font, font_size = theme.size.small, placeholder = spec.title, text = spec.value(),
+    read_only = spec.enabled and function() return not spec.enabled() end or nil,
+    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
+    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(.25) end,
+    on_text_changed = spec.set })
+  return kit.surface { width = spec.width, height = 36, radius = kit.round(10),
+    color = function() return C.surfaceContainerHighest end, node }
+end
+
+return F

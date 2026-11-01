@@ -238,6 +238,14 @@ local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.si
 require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)
 require("lock_bridge").start()
+require("idle_warning").attach(frame_root)
+do
+  local idle = require("idle_model")
+  idle.start()
+  idle.watch_sleep()
+  idle.watch_lid()
+  idle.lock_at_start()
+end
 -- The shell's window, to a screen reader.
 frame_root.accessible_name = "Eva"
 ui.reparent(capture.editor.node,frame_root)
@@ -306,6 +314,15 @@ ipc.dashboard = verb(dashboard.drawer)
 -- Builds the shell again from its files, in place.
 ipc.reload = function() morf.reload() return true end
 -- The frame, the rail and the bar come in again: a lock lifting.
+-- What the lock asked to open once the password was right: an id, never a command.
+ipc.lock_shortcut = function(id) return require("lock_bridge").open(id) end
+-- `idle warn`: the warning before the lock, to look at; `idle stop` ends it.
+ipc.idle = function(how)
+  local idle = require("idle_model")
+  if how == "warn" then idle.warning_ms:set(8000) idle.phase:set("warning")
+  elseif how == "stop" then idle.phase:set("") end
+  return idle.phase:get()
+end
 ipc.reveal = function()
   require("lock_bridge").seen()
   return require("themes.reveal").replay()

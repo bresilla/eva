@@ -193,6 +193,18 @@ local config = settings.open {
     },
     -- The lock screen: models/lock_defaults.lua.
     lock = require("models.lock_defaults"),
+    -- Idle: seconds to each stage, 0 for never (shell/idle_model.lua). `dim` is
+    -- how long the warning shows before the lock; `battery` overrides a stage
+    -- on battery where it is above 0.
+    idle = {
+      enabled = true,
+      lock = 300, blank = 330, suspend = 1800, dim = 10,
+      battery = { lock = 0, blank = 0, suspend = 0 },
+      -- Window classes that keep the session awake while open.
+      apps = {},
+      fullscreen = true, media = false, charging = false,
+      resume_command = {}, before_sleep = {}, after_sleep = {},
+    },
     -- The quick settings' tiles shown on each kind of machine, in order,
     -- and which of them are drawn small. A tile the machine lacks is skipped.
     quick = {

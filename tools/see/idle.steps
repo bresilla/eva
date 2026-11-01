@@ -1,0 +1,10 @@
+# The idle warning partway through, and the pages it is set on.
+export EVA_FAKE_LOGIND='{"can":{"suspend":"yes"},"inhibitors":[{"what":"sleep:idle","who":"firefox","why":"Playing video","mode":"block","uid":1000,"pid":1}]}'
+export EVA_FAKE_BATTERY=64,discharging
+start shell
+pause 1
+ipc settings; pause 1
+ipc settings idle; pause 2; shot idle-page
+ipc settings lock; pause 2; shot lock-page
+ipc close; pause 1
+ipc idle warn; pause 6; shot warning

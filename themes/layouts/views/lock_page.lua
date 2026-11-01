@@ -1,0 +1,112 @@
+-- The right panel's Lock screen page, behind Eva's row: what it shows, what
+-- stands at its corners, what a stranger may read, and how it opens. In the page
+-- template (themes/layouts/page.lua).
+local kit = require("kit")
+local theme = require("theme")
+local P = require("themes.layouts.page")
+local F = require("themes.layouts.form")
+
+local V = {}
+
+function V.build(model, w, h)
+  local inner = P.inner(w)
+  local function switch(key, icon, title, subtitle)
+    return F.switch { id = "lock-set-" .. key:gsub("%.", "-"), width = inner, icon = icon, title = title,
+      subtitle = subtitle, enabled = model.free(key),
+      on = function() return model.get(key) == true end, set = function(on) model.set(key, on) end }
+  end
+  local function line(key, title)
+    return F.text { id = "lock-set-" .. key:gsub("%.", "-"), width = inner, title = title, enabled = model.free(key),
+      value = function() return model.get(key) or "" end, set = function(text) model.set(key, text) end }
+  end
+
+  local notifications = P.section { id = "lock-set-notifications", width = w, title = "Notifications",
+    F.choices { id = "lock-set-level", width = inner, icon = "notifications", title = "Show on the lock",
+      subtitle = function()
+        local level = model.get("notifications.level")
+        if level == "all" then return "What they say, readable by anyone at the screen" end
+        if level == "senders" then return "Which apps, and how many" end
+        if level == "count" then return "How many, and nothing else" end
+        return "Nothing at all"
+      end,
+      choices = model.LEVELS, read = function() return model.get("notifications.level") end,
+      set = function(level) model.set("notifications.level", level) end,
+      enabled = model.free("notifications.level") },
+    switch("notifications.new_only", "fiber_new", "Only new ones", "What came since the last unlock"),
+    switch("notifications.silent", "notifications_paused", "Silent ones too"),
+    F.switch { id = "lock-set-dots", width = inner, icon = "more_horiz", title = "As dots", enabled = model.free("notifications.style"),
+      on = function() return model.get("notifications.style") == "dots" end,
+      set = function(on) model.set("notifications.style", on and "dots" or "list") end },
+  }
+
+  local shows = P.section { id = "lock-set-shows", width = w, title = "Shows",
+    switch("status.battery", "battery_full", "Battery"),
+    switch("status.network", "wifi", "Network", "Its kind and strength, never its name"),
+    switch("status.bluetooth", "bluetooth", "Bluetooth", "On or connected, never to what"),
+    switch("status.mode", "do_not_disturb_on", "Mode", "Do not disturb, ringer, airplane"),
+    switch("media", "music_note", "What is playing"),
+    switch("weather", "cloud", "Weather"),
+    switch("avatar", "account_circle", "Your picture"),
+    switch("name", "badge", "Your name"),
+    switch("clock.twelve_hour", "schedule", "Twelve-hour clock"),
+    F.choices { id = "lock-set-clock-position", width = inner, icon = "vertical_align_top", title = "Clock",
+      choices = { { "centre", "Centre" }, { "top", "Top" } }, enabled = model.free("clock.position"),
+      read = function() return model.get("clock.position") end,
+      set = function(where) model.set("clock.position", where) end },
+  }
+
+  local corners = { id = "lock-set-corners", width = w, title = "Shortcuts",
+    note = "Camera and commands ask for the password first" }
+  for _, shortcut in ipairs { { "flashlight", "flashlight_on", "Flashlight" }, { "camera", "photo_camera", "Camera" },
+    { "media", "play_pause", "Play or pause" }, { "command", "terminal", "Your command" } } do
+    corners[#corners + 1] = F.switch { id = "lock-set-shortcut-" .. shortcut[1], width = inner, icon = shortcut[2],
+      title = shortcut[3], enabled = model.free("shortcuts"),
+      on = function() return model.shortcut_on(shortcut[1]) end,
+      set = function(on) model.set_shortcut(shortcut[1], on) end }
+  end
+  corners[#corners + 1] = line("command.name", "Name of your command")
+  corners[#corners + 1] = F.text { id = "lock-set-command-argv", width = inner, title = "Your command, words split by spaces",
+    enabled = model.free("command.argv"), value = model.argv, set = model.set_argv }
+  corners[#corners + 1] = switch("command.safe", "gpp_maybe", "Run it without the password",
+    "Anyone at the screen can run it")
+
+  local widgets = { id = "lock-set-widgets", width = w, title = "Widgets",
+    visible = function() return #model.widgets() > 0 end }
+  for index = 1, 6 do
+    local function widget() return model.widgets()[index] end
+    widgets[#widgets + 1] = F.switch { id = "lock-set-widget-" .. index, width = inner, icon = "widgets",
+      title = function() local item = widget() return item and item.name or "" end,
+      visible = function() return widget() ~= nil end, enabled = model.free("widgets"),
+      on = function() local item = widget() return item ~= nil and model.widget_on(item.id) end,
+      set = function(on) local item = widget() if item then model.set_widget(item.id, on) end end }
+  end
+
+  local emergency = P.section { id = "lock-set-emergency", width = w, title = "Emergency",
+    note = "Anyone at the screen can read this",
+    line("emergency.text", "A line under the date"),
+    line("emergency.name", "Name"), line("emergency.blood", "Blood type"),
+    line("emergency.allergies", "Allergies"), line("emergency.medication", "Medication"),
+    line("emergency.contact", "Emergency contact"),
+  }
+
+  local opening = P.section { id = "lock-set-opening", width = w, title = "Opening",
+    F.choices { id = "lock-set-grace", width = inner, icon = "timer", title = "Require password",
+      subtitle = function()
+        local seconds = model.get("grace_seconds")
+        if seconds == 0 then return "As soon as it locks" end
+        return ("Any key opens it for %d s after an idle lock. Never after sleep"):format(seconds)
+      end,
+      choices = model.GRACE, read = function() return model.get("grace_seconds") end,
+      set = function(seconds) model.set("grace_seconds", seconds) end, enabled = model.free("grace_seconds") },
+    switch("readers", "fingerprint", "Fingerprint and face", "Off asks for the password every time"),
+    switch("power_buttons", "power_settings_new", "Power buttons on the lock", "Anyone at the screen can turn it off"),
+    F.switch { id = "lock-set-keypad", width = inner, icon = "dialpad", title = "Number pad", subtitle = "For a numeric password",
+      enabled = model.free("keypad"), on = function() return model.get("keypad") == "digits" end,
+      set = function(on) model.set("keypad", on and "digits" or "text") end },
+  }
+
+  return P.page { id = "settings-lock-scroll", width = w, height = h,
+    notifications, shows, P.section(corners), P.section(widgets), emergency, opening }
+end
+
+return V

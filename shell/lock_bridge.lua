@@ -49,6 +49,20 @@ function M.snapshot(history)
   } }
 end
 
+--- Opens what the lock's shortcut `id` stands for. It comes after the password,
+--- and it is an id: the command is the settings', never the caller's.
+function M.open(id)
+  local argv = id == "camera" and config.get("lock.camera")
+    or id == "command" and config.get("lock.command.argv") or nil
+  if type(argv) ~= "table" or #argv == 0 then return false end
+  local dry = morf.env("EVA_DRY_RUN")
+  if dry and dry ~= "" and dry ~= "0" then
+    morf.log("info", "eva: lock shortcut " .. id .. " (dry run)")
+    return true
+  end
+  return morf.process.spawn { command = argv, detached = true } ~= nil
+end
+
 --- Starts writing, from the runtime that holds the history.
 function M.start()
   local notifs = require("notifs")
