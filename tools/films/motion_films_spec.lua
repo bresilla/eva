@@ -1,4 +1,4 @@
--- The motion work, frame by frame, in virtual time. Through tools/test.sh, which
+-- Motion, frame by frame, in virtual time. Through tools/test.sh, which
 -- keeps the folders sealed, with one shard so the flags reach `morf test`:
 --
 --     JOBS=1 sh tools/test.sh --snapshots DIR tools/films/motion_films_spec.lua

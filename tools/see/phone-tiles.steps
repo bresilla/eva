@@ -1,5 +1,5 @@
 # The phone's board with the hardware standing in, what waits in Available, and
-# the pages the new tiles open.
+# the pages the tiles open.
 BOOT=12
 export EVA_FAKE_HARDWARE=1 EVA_FAKE_MODEM=1 EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging,fast,watts=22}
 start shell

@@ -1,5 +1,5 @@
 # The panel, the selection and the editor at fixed moments, through the shell's
-# own verbs, to hold against a tree from before the tool was split from the shell.
+# own verbs, to hold against the same shots of another tree.
 unset EVA_DRY_RUN
 export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
 export BOOT=0

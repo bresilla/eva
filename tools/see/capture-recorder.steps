@@ -1,4 +1,4 @@
-# The recorder's new verbs against the stand-in, which takes the real one's
+# The recorder's verbs against the stand-in, which takes the real one's
 # signals, and a recording's trim and GIF by the real ffmpeg on a real video.
 unset EVA_DRY_RUN
 export BOOT=0
