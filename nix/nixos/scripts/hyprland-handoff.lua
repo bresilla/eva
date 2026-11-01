@@ -54,7 +54,8 @@ function M.adopt(path)
     file:close()
 end
 
---- Keeps `path` up to date with the outputs, once they have settled.
+--- Keeps `path` up to date with the outputs, once they have settled: later
+--- than hyprland-scale.lua's 400 ms timer.
 function M.record(path)
     local pending
     local function save()
@@ -69,7 +70,6 @@ function M.record(path)
     end
     local function soon()
         if pending and pending:is_enabled() then pending:set_enabled(false) end
-        -- Later than hyprland-scale.lua's 400 ms timer.
         pending = hl.timer(save, { timeout = 800, type = "oneshot" })
     end
     for _, event in ipairs { "hyprland.start", "monitor.added", "monitor.layout_changed" } do

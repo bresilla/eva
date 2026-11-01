@@ -38,7 +38,6 @@ def ipc(*words, tries=1):
 
 
 def ask(*words):
-    # Reads only: this asks again after a timeout.
     return ipc(*words, tries=6)
 
 
@@ -128,7 +127,6 @@ def warp(x, y):
 
 
 def tool_open(name, pattern):
-    # A tool started by the compositor, and its own socket's instance name.
     hyprctl("eval", f'hl.dispatch(hl.dsp.exec_cmd("{name}"))')
     machine.wait_until_succeeds(f"pgrep -u alice -f '{pattern}'", timeout=60)
     machine.sleep(6)
@@ -504,7 +502,6 @@ def remap_section():
             return machine.execute(f"ls /tmp/{name}")[0] == 0
 
         def press(keys, held=100):
-            # The VM's own keyboard: kanata takes it, and not ydotool's device.
             machine.send_monitor_command(f"sendkey {keys} {held}")
             machine.sleep(1)
 

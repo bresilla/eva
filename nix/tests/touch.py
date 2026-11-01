@@ -261,7 +261,7 @@ def run(password):
 
     with subtest("two fingers up from the bottom"):
         check("the keyboard starts down", not keyboard_up())
-        # Neither finger is in the old 20 pixel strip, and one is far above it.
+        # Neither finger is in the bottom 20 pixels, and one is far above them.
         stroke(line([(640, 770), (720, 690)]), line([(640, 470), (720, 390)]))
         machine.sleep(2)
         check("the keyboard comes up, one finger above the old strip", keyboard_comes(True), heard())

@@ -16,7 +16,6 @@ def sh(command):
 
 
 def manager(flags, command):
-    # Under the user manager, as the shell runs: what polkit counts as the session.
     return sh(
         "systemd-run --user --wait --pipe --quiet --setenv=PATH=/run/current-system/sw/bin "
         f"--setenv=WAYLAND_DISPLAY=wayland-1 {flags} {command}"
