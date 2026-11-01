@@ -23,7 +23,7 @@ local HOST = [[
   local rules = require("notification_rules")
   local config = require("config")
   local page = history.build(W, function() return H end)
-  ui.Item { width = W, height = H, page, notifs.overlay() }
+  ui.Item { width = W, height = H, notifs.drawer.panel, page, notifs.overlay() }
   morf.ipc.push = function(text) return notifs.push(morf.json.decode(text)) end
   morf.ipc.shown = function()
     local out = {}
