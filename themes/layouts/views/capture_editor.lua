@@ -46,10 +46,11 @@ function V.build(M)
       x=function() local b=crop() return b.x+b.w*handle[2]-8 end,
       y=function() local b=crop() return b.y+b.h*handle[3]-8 end,
       visible=editing,cursor="crosshair",
-      on_pressed=function(_,_,_,_,button) finger=button==nil pressed=M.resize_begin() end,
+      on_touch_pressed=function() finger=true end,
+      on_pressed=function() pressed=M.resize_begin() end,
       on_position_changed=follow,
       on_dragged=function(sx,sy) if finger then follow(sx,sy) end end,
-      on_released=function() pressed=false M.resize_end() end,
+      on_released=function() pressed,finger=false,false M.resize_end() end,
       kit.surface {anchors={center_in=true},width=9,height=9,radius=3,color=function() return C.primary end,
         border_width=1,border_color=function() return C.onPrimary end},
     }
@@ -65,16 +66,16 @@ function V.build(M)
     width=function() return g().iw end,height=function() return g().ih end,cursor="crosshair",
     focus=function() return M.active:get() and not text_draft() and not M.settings:get() and not M.picker:get() and not M.upload_confirm:get() end,
     on_key_pressed=M.key,
+    on_touch_pressed=function() finger=true end,
     on_pressed=function(sx,sy,_,_,button)
       gesture=false
-      finger=button==nil
       if button=="right" then if not M.dismiss_tools() then M.cancel() end return end
       if button and button~="left" then return end
       gesture=M.begin(picture(sx,sy))
     end,
     on_position_changed=function(sx,sy) if gesture then M.move(picture(sx,sy)) elseif not canvas.pressed then M.hover(picture(sx,sy)) end end,
     on_dragged=function(sx,sy) if gesture and finger then M.move(picture(sx,sy)) end end,
-    on_released=function(sx,sy) if gesture then M.finish(picture(sx,sy)) end gesture=false end,
+    on_released=function(sx,sy) if gesture then M.finish(picture(sx,sy)) end gesture,finger=false,false end,
     on_wheel=function(_,_,_,_,_,steps) if editing() then M.wheel(steps) end end,
     ui.Image {id="capture-editor-image",x=function() return M.preview_geometry().x end,y=function() return M.preview_geometry().y end,
       width=function() return M.preview_geometry().w end,height=function() return M.preview_geometry().h end,source=function() return M.preview:get() end,fill_mode="stretch"},
@@ -184,7 +185,7 @@ function V.build(M)
       color=kit.stroke("faint")},
     ui.Item {x=0,y=function() return palette_height()-82 end,width=palette_width,height=80,table.unpack(styles_items)},
   }
-  local toolbar_drag
+  local toolbar_drag,toolbar_finger
   local function move_toolbar(sx,sy)
     if toolbar_drag then M.toolbar:set({x=toolbar_drag.pos.x+sx-toolbar_drag.x,y=toolbar_drag.pos.y+sy-toolbar_drag.y}) end
   end
@@ -194,10 +195,11 @@ function V.build(M)
 
     shell_surface(20),
     ui.MouseArea {x=12,y=0,width=function() return menu().w-24 end,height=34,cursor="move",
-      on_pressed=function(sx,sy,_,_,button) toolbar_drag={x=sx,y=sy,pos=M.toolbar:get(),finger=button==nil} end,
+      on_touch_pressed=function() toolbar_finger=true end,
+      on_pressed=function(sx,sy) toolbar_drag={x=sx,y=sy,pos=M.toolbar:get()} end,
       on_position_changed=move_toolbar,
-      on_dragged=function(sx,sy) if toolbar_drag and toolbar_drag.finger then move_toolbar(sx,sy) end end,
-      on_released=function() toolbar_drag=nil end,
+      on_dragged=function(sx,sy) if toolbar_finger then move_toolbar(sx,sy) end end,
+      on_released=function() toolbar_drag,toolbar_finger=nil,false end,
       kit.icon(function() return M.tool_info()[4] end,18,function() return C.primary end,{x=2,y=11}),
       kit.heading {id="capture-editor-title",x=28,y=8,width=function() return menu().w-148 end,height=24,
         text=function() local d=doc() return d and d.tool=="select" and not d.selected and "Capture" or M.tool_info()[2] end,

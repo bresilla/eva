@@ -68,20 +68,15 @@ for _, style in ipairs { "material", "tsugumori" } do
     local before = test.ipc("flow").crop
     local handle = test.get("capture-handle-se")
     local x, y = handle.x + handle.width / 2, handle.y + handle.height / 2
-    test.touch("down", 2, x, y) test.advance(16)
-    test.touch("move", 2, x - 60, y - 80) test.advance(16)
-    test.touch("up", 2, x - 60, y - 80) test.advance(200)
+    test.swipe({ x, y }, { x - 60, y - 80 }, { id = 2, steps = 6, duration = 96 }) test.advance(200)
     local after = test.ipc("flow").crop
     test.truthy(after.w < before.w - 20 and after.h < before.h - 20, "the handle stayed where it was")
     test.click("capture-editor-draw") test.advance(220)
     test.click("capture-tool-pen") test.advance(220)
-    local canvas = test.get("capture-editor-canvas")
-    local cx, cy = canvas.x + canvas.width / 2, canvas.y + canvas.height / 2
-    test.touch("down", 3, cx, cy) test.advance(16)
-    test.touch("move", 3, cx + 30, cy + 10) test.advance(16)
-    test.touch("move", 3, cx + 60, cy + 40) test.advance(16)
-    test.touch("up", 3, cx + 60, cy + 40) test.advance(200)
-    test.truthy(test.ipc("flow").moves >= 2, "the pen missed the finger's way")
+    test.touch("down", 3, 80, 160) test.touch("up", 3, 80, 160) test.advance(220)
+    local moved = test.ipc("flow").moves
+    test.swipe({ 80, 160 }, { 150, 220 }, { id = 4, steps = 6, duration = 96 }) test.advance(200)
+    test.truthy(test.ipc("flow").moves - moved >= 3, "the pen missed the finger's way")
     test.eq(#test.logs("error"), 0)
   end)
 
