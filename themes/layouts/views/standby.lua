@@ -108,12 +108,13 @@ function V.build(model, desktop)
 
   local from
   local root = ui.Rect { id = "standby", anchors = { fill = true }, color = "#000000",
+    photo_view,
     ui.Item { id = "standby-drift", anchors = { fill = true },
       loop = function()
         if not model.showing() or config.get("appearance.reduce_motion") == true then return nil end
         return { translate_x = { from = -S.s, to = S.s, duration = 90000, easing = "in_out_sine", alternate = true } }
       end,
-      clock_view(), photo_view, widget_view },
+      clock_view(), widget_view },
     ui.MouseArea { anchors = { fill = true }, z = 1,
       on_pressed = function(x) from = x end,
       on_released = function(x)

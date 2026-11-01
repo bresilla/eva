@@ -1,13 +1,8 @@
--- Glass as a material: an appearance setting that frames, panels and displays of
--- both themes read. What a panel lets through is the plate (themes/glass_plate.lua),
--- the picture blurred and drawn under the frame's field on the shell's own surface,
--- so it looks the same on any compositor; where the compositor can blur what is
--- behind the shell, it does that too.
+-- Glass as a material, read by the frames, cards and displays of both themes.
 local morf = require("morf")
 local config = require("config")
 local M = {}
 
---- Whether panels are glass; tracked in a binding.
 function M.on() return config.get("appearance.glass") == true end
 
 --- How much a surface lets through, 0 to 1.
@@ -19,7 +14,6 @@ function M.fill(color, weight)
   return color:alpha(math.min(1, (1 - M.clarity()) * (weight or 1)))
 end
 
---- How bright a card's edge is lit.
 function M.rim() return M.on() and 0.45 or 0 end
 
 --- Whether the compositor blurs behind the shell's translucent surfaces.
