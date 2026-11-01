@@ -1,0 +1,9 @@
+# Quick settings with every hardware tile standing in: at rest, a session
+# hold, the tile editor and its pages.
+export EVA_FAKE_HARDWARE=1 EVA_FAKE_MODEM=1
+start shell
+ipc settings; pause 1.4; shot overview
+ipc settings hotspot; pause 1.2; shot hotspot
+ipc settings nightlight; pause 1.2; shot nightlight
+ipc quick edit; pause 1.2; shot editing
+ipc quick done; pause 0.8; shot after-editing

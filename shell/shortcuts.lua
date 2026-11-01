@@ -17,6 +17,8 @@ function M.table(ipc)
   local function back()
     local settings = package.loaded["settings_model"]
     local pages = settings and settings.navigation
+    -- The tile editor has Alt with the arrows: the key goes on to it.
+    if settings and settings.tiles and settings.tiles.editing:get() then return false end
     if pages and settings.opened:get() and pages.can_go_back() then pages.back() return end
     close()
   end

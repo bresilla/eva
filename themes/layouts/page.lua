@@ -320,7 +320,8 @@ end
 --- `title_id`, `scope`, `active` (fn: the title is on show), `titled`
 --- (the head shows: the tabs are icons alone), `build(w, h)` -- the body, `h` a fn -- which may
 --- give back a second value with what the header says instead: `title`,
---- `subtitle`, `back`, `can_back`, `actions` (as P.header's).
+--- `subtitle`, `back`, `can_back`, `actions` (as P.header's), `keep` (fn:
+--- the head shows even where the tabs name the page).
 function P.frame(spec)
   local w = spec.width
   local head
@@ -329,9 +330,11 @@ function P.frame(spec)
   -- too, rather than keeping the space calculated during construction.
   local header_space=morf.signal("page.frame.header."..tostring(spec),0)
   -- The head is there where the tabs do not name the page (a phone's, icons
-  -- alone: `titled`), and on a page one level in, for its way back.
+  -- alone: `titled`), on a page one level in, for its way back, and on a
+  -- page that keeps something in it (`head.keep`).
   local function shown()
     if get(spec.titled) then return true end
+    if head ~= nil and head.keep ~= nil and head.keep() == true then return true end
     return head ~= nil and head.can_back ~= nil and head.can_back() == true
   end
   local function top() return header_space:get() end
