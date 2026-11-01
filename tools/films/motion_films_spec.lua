@@ -66,6 +66,28 @@ test.describe("motion films", function()
     film("rail-5-2", 24, 16)
   end)
 
+  take("morph", function()
+    test.load("../../shell/init.lua", { size = { 640, 200 },
+      env = { EVA_STYLE = STYLE, EVA_WALLPAPER = "", EVA_DRY_RUN = "1" }, source = [[
+        local ui = require("morf.ui")
+        local kit = require("kit")
+        local words = morf.signal("film.words", "10:29")
+        morf.surface.width, morf.surface.height = 640, 200
+        ui.Item { width = 640, height = 200,
+          ui.Rect { anchors = { fill = true }, color = function() return require("theme").color.surface end },
+          kit.text { x = 40, y = 30, morph = true, font_size = 110, font_weight = 500,
+            color = function() return require("theme").color.primary end,
+            text = function() return words:get() end } }
+        morf.ipc.say = function(value) words:set(value) end
+      ]] })
+    test.advance(100)
+    test.snapshot("morph-before.png")
+    test.ipc("say", "10:30")
+    film("morph", 10, 24)
+    test.settle(1000)
+    test.snapshot("morph-after.png")
+  end)
+
   take("stretch", function()
     load()
     test.ipc("sidebar", "open")

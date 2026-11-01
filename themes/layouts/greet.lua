@@ -273,7 +273,7 @@ local glance = ui.Column {
   scale = function() return main() and stage:get() == "sheet" and 0.72 or 1 end,
   opacity = function() return showing() and (not main() or stage:get()~="sheet" or content_height()-sheet_h()>s(220)) and 1 or 0 end,
   behavior = { y = GROW, scale = GROW, opacity = { duration = 320 } },
-  (skin.clock or text) { id = "greet-clock", text = function() return clock:get() end,
+  (skin.clock or text) { id = "greet-clock", text = function() return clock:get() end, morph = true,
     font_size = geometry.clock_size, font_weight = skin.clock_weight or 600, color = C.primary },
   text { text = function() return day:get() end,width=math.max(1,W-s(64)),elide="right",horizontal_alignment="center",font_size = s(22), color = C.onSurfaceVariant },
 }

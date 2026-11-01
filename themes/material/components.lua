@@ -85,8 +85,13 @@ function M.icon(name, size, color, props)
   return ui.Text(props)
 end
 
---- Text in Rubik; `props` as a `ui.Text`'s.
+--- Text in Rubik; `props` as a `ui.Text`'s. `morph` turns each new value out of
+--- the last.
 function M.text(props)
+  if props.morph then
+    return require("themes.text_morph").make(M.text, props,
+      { duration = theme.duration.normal, easing = theme.ease.emphasized_decel })
+  end
   props.font_family = props.font_family or theme.font
   if theme.font_file ~= "" and props.font_source == nil then props.font_source = theme.font_file end
   props.font_size = props.font_size or theme.size.normal

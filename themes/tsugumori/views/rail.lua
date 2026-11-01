@@ -99,8 +99,8 @@ function V.build(model)
     function() return center(model.active()) end), root)
 
   -- -------------------------------------------------------------- card --
-  local digits = ui.Text { id = "rail-value", x = 12, y = 26, height = 36, font_size = 32,
-    font_family = theme.font, font_weight = 300,
+  local digits = kit.text { id = "rail-value", x = 12, y = 26, height = 36, font_size = 32,
+    font_family = theme.font, font_weight = 300, morph = true,
     text = function() return ("%02d"):format(model.active()) end, color = function() return C.primary end }
   local meter = ui.Item { id = "rail-meter", x = 12, y = H - 22, width = W - 24, height = 6 }
   local CELL_GAP = 2

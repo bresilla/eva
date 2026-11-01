@@ -116,6 +116,10 @@ return function(theme)
 
   --- Text in the theme's mono face; `props` as a `ui.Text`'s.
   function M.text(props)
+    if props.morph then
+      return require("themes.text_morph").make(M.text, props,
+        { duration = theme.duration.small, easing = theme.ease.standard })
+    end
     props.font_family = props.font_family or theme.font
     if (theme.font_file or "") ~= "" and props.font_source == nil then props.font_source = theme.font_file end
     props.font_size = props.font_size or theme.size.normal

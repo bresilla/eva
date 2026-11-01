@@ -1,13 +1,15 @@
--- A finite mechanical roll on entry and when a digit actually changes.
+-- A finite mechanical roll on entry; a digit that changes after that morphs
+-- crisply into the next.
 -- The clock signal still comes from the controller; no polling, no new timer.
 local morf=require("morf")
 local ui=require("morf.ui")
+local tokens=require("themes.tsugumori.tokens")
 return function(ctx)
   return function(props)
     local id,size,source=props.id,props.font_size,props.text
     local function value() return type(source)=="function" and source() or source end
     local row=ui.Row {id=id,gap=0}
-    local handles,previous={},nil
+    local handles,morphs,previous={},{},nil
     local glyphs,slots={},{}
     for i=1,5 do
       local function glyph(suffix)
@@ -23,6 +25,22 @@ return function(ctx)
       ui.reparent(cell,row)
       glyphs[i]={old,new} slots[i]=strip
     end
+    local function roll(i,letter)
+      if handles[i] then handles[i]:stop() end
+      local old,new=glyphs[i][1],glyphs[i][2]
+      old.text=i==3 and ":" or "/"
+      new.text=letter
+      handles[i]=morf.animation.play {{node=slots[i],property="translate_y",
+        from=new.layout_height or size*1.3,to=0,
+        delay=60+(i-1)*28,duration=230,easing="out_expo"}}
+    end
+    local function turn(i,letter)
+      local new=glyphs[i][2]
+      if morphs[i] then morphs[i]:stop() end
+      new.morph_to,new.morph_progress,new.text=new.text,1,letter
+      morphs[i]=morf.animation.play {{node=new,property="morph_progress",to=0,
+        duration=tokens.duration.small,easing=tokens.ease.standard}}
+    end
     morf.effect(id..".roll."..(ctx.output_name or ""),function()
       local time=value()
       local showing=ctx.stage:get()=="rest" or ctx.stage:get()=="sheet"
@@ -30,15 +48,8 @@ return function(ctx)
       if time==previous then return end
       for i=1,5 do
         local letter=time:sub(i,i)
-        if not previous or letter~=previous:sub(i,i) then
-          if handles[i] then handles[i]:stop() end
-          local old,new=glyphs[i][1],glyphs[i][2]
-          old.text=previous and previous:sub(i,i) or (i==3 and ":" or "/")
-          new.text=letter
-          handles[i]=morf.animation.play {{node=slots[i],property="translate_y",
-            from=new.layout_height or size*1.3,to=0,
-            delay=previous and 0 or 60+(i-1)*28,duration=230,easing="out_expo"}}
-        end
+        if not previous then roll(i,letter)
+        elseif letter~=previous:sub(i,i) then turn(i,letter) end
       end
       previous=time
     end,{owner=row})

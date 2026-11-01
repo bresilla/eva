@@ -201,7 +201,7 @@ function V.build(model)
   local function phone_clock()
     return ui.Item { id = "bar-clock", width = 60, height = ITEM,
       kit.text { anchors = { vertical_center = true }, text = function() return stamp:get()[1] end,
-        font_size = GLYPH, font_weight = 700 } }
+        font_size = GLYPH, font_weight = 700, morph = true } }
   end
   local function clock(vertical)
     local area
@@ -211,15 +211,15 @@ function V.build(model)
       on_clicked = model.toggle_dashboard,
       vertical and ui.Column {
         anchors = { center_in = true }, gap = 0, align = "center",
-        kit.text { text = function() return (stamp:get()[1]:sub(1, 2)) end, font_weight = 700 },
-        kit.text { text = function() return (stamp:get()[1]:sub(4, 5)) end, font_weight = 700 },
+        kit.text { text = function() return (stamp:get()[1]:sub(1, 2)) end, font_weight = 700, morph = true },
+        kit.text { text = function() return (stamp:get()[1]:sub(4, 5)) end, font_weight = 700, morph = true },
         kit.text { text = function() return stamp:get()[3] end,
           font_size = theme.size.small - 3, color = kit.ink("lo") },
       } or ui.Row {
         anchors = { center_in = true }, gap = 8, align = "center",
         kit.text { text = function() return stamp:get()[2] end, font_size = theme.size.small,
           color = kit.ink("lo") },
-        kit.text { text = function() return stamp:get()[1] end, font_weight = 700 },
+        kit.text { text = function() return stamp:get()[1] end, font_weight = 700, morph = true },
       },
     }
     return kit.hover(area, function(hovered)
