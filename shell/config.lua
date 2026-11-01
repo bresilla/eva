@@ -154,6 +154,11 @@ local config = settings.open {
     ringer = { mode = "sound" },
     -- Whether touches and gestures buzz (shell/haptics.lua).
     haptics = { on = true },
+    phone = {
+      -- A folder of vCards, and the code bare numbers get: "+31".
+      contacts = "~/.local/share/contacts",
+      country = "",
+    },
     -- The shell as the session's polkit agent (polkit.lua): "on", or "off"
     -- to leave the job to another (hyprpolkitagent, polkit-gnome).
     polkit = { agent = "on" },

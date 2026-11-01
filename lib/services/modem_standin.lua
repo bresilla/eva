@@ -34,6 +34,8 @@ local OBJECT_MANAGER = "org.freedesktop.DBus.ObjectManager"
 local PROPERTIES = "org.freedesktop.DBus.Properties"
 local NM = "org.freedesktop.NetworkManager"
 local NM_PATH = "/org/freedesktop/NetworkManager"
+local AUDIO = "org.mobian_project.CallAudio"
+local AUDIO_PATH = "/org/mobian_project/CallAudio"
 local PATH = ROOT .. "/Modem/0"
 local SIM_PATH = ROOT .. "/SIM/0"
 local LOCKED, CONNECTED = 2, 11
@@ -123,6 +125,23 @@ local function next_call()
 end
 
 local function fill()
+  fake.object("session", AUDIO, AUDIO_PATH, AUDIO, { AudioMode = 0, SpeakerState = 0, MicState = 1 }, {
+    SelectMode = function(args)
+      fake.emit("session", AUDIO, AUDIO_PATH, PROPERTIES, "PropertiesChanged",
+        { AUDIO, { AudioMode = fake.plain(args[1]) }, {} })
+      return { true }
+    end,
+    EnableSpeaker = function(args)
+      fake.emit("session", AUDIO, AUDIO_PATH, PROPERTIES, "PropertiesChanged",
+        { AUDIO, { SpeakerState = fake.plain(args[1]) and 1 or 0 }, {} })
+      return { true }
+    end,
+    MuteMic = function(args)
+      fake.emit("session", AUDIO, AUDIO_PATH, PROPERTIES, "PropertiesChanged",
+        { AUDIO, { MicState = fake.plain(args[1]) and 0 or 1 }, {} })
+      return { true }
+    end,
+  })
   fake.object("system", NM, NM_PATH, NM, { WwanEnabled = true }, {})
   fake.object("system", MM, ROOT, OBJECT_MANAGER, {}, {})
   fake.object("system", MM, PATH, MODEM, {

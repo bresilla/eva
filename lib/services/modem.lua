@@ -75,6 +75,19 @@ local function tries(retries, lock)
   return tonumber(type(retries) == "table" and retries[lock]) or -1
 end
 
+--- The modem a process should use: the machine's, or with EVA_FAKE_MODEM set
+--- and none there the stand-in's. Returns it and the stand-in, if that is it.
+function modem.session()
+  local ok, mobile = pcall(modem.connect)
+  local real = ok and type(mobile) == "table" and mobile.state and mobile or nil
+  local fake = morf.env and morf.env("EVA_FAKE_MODEM")
+  if fake and fake ~= "" and fake ~= "0" and not (real and real.state.available) then
+    local standin = require("lib.services.modem_standin").start()
+    return modem.connect { dbus = standin.dbus }, standin
+  end
+  return real
+end
+
 function modem.connect(options)
   options = options or {}
   local client = dbus_client.new({ dbus = options.dbus, bus = "system" })

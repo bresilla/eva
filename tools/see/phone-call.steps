@@ -1,0 +1,13 @@
+# A call from ringing to its end, against the modem stand-in: an incoming call
+# from someone in the address book, the call up, the keypad, a second call
+# waiting, and the end of it.
+export EVA_FAKE_MODEM=1 EVA_FAKE_HARDWARE=1 EVA_FAKE_HAPTICS=1 EVA_FAKE_PROXIMITY=1
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging}
+export EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
+start shell
+ipc phone fake ring +31612345678; pause 1.2; shot incoming
+ipc phone answer; pause 1.2; shot talking
+ipc phone mute; ipc phone keypad; pause 0.8; shot keypad
+ipc phone keypad; ipc phone mute; pause 0.4
+ipc phone fake ring +49301234567; pause 1; shot waiting
+ipc phone hangup; pause 0.6; shot ended

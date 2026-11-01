@@ -131,15 +131,14 @@ M.net, M.bt, M.upower = net, bt, power
 -- The ring mode (lib/util/ringer.lua): feedbackd's profile on a phone, the shell's own
 -- setting elsewhere.
 do
-  local ok, modem = pcall(require, "lib.services.modem")
-  local mobile = ok and select(2, pcall(modem.connect)) or nil
-  if type(mobile) == "table" and mobile.state then M.modem = mobile end
   -- EVA_FAKE_MODEM=1: the real service against ModemManager on a made-up bus,
   -- to see a phone's parts on a laptop.
-  local fake = morf.env and morf.env("EVA_FAKE_MODEM")
-  if fake and fake ~= "" and fake ~= "0" and not (M.modem and M.modem.state.available) then
-    M.modem_standin = require("lib.services.modem_standin").start()
-    M.modem = modem.connect { dbus = M.modem_standin.dbus }
+  local ok, modem = pcall(require, "lib.services.modem")
+  if ok and modem.session then
+    M.modem, M.modem_standin = modem.session()
+  elseif ok then
+    local mobile = select(2, pcall(modem.connect))
+    if type(mobile) == "table" and mobile.state then M.modem = mobile end
   end
 end
 do

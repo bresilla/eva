@@ -157,6 +157,7 @@ end
 local keyboard = require("keyboard")
 local bar = require("bar")
 local window_menu = require("window_menu")
+require("phone")
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
@@ -496,6 +497,8 @@ ipc.close = function()
   drawer.close_all()
   return true
 end
+-- `phone VERB ARGS`: calls and what stands in for a modem (shell/phone.lua).
+ipc.phone = function(...) return require("phone").ipc(...) end
 -- `drawers` lists the open drawers; `drawers toggle NAME` (open, close)
 -- acts on one by name, as the reference's IPC does.
 ipc.drawers = function(how, name)

@@ -6,6 +6,7 @@ return {
   lock = "themes.material.lock", greet = "themes.material.greet",
   views = {
     keyboard = "themes.layouts.views.keyboard",
+    call = "themes.layouts.views.call",
     bar = "themes.layouts.views.bar",
     side_panel = "themes.layouts.views.side_panel",
     connectivity = "themes.layouts.views.connectivity",

@@ -1,0 +1,13 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:urn:uuid:ben-2
+FN:Ben de
+  Vries
+TEL;TYPE=home:tel:0201234567
+END:VCARD
+BEGIN:VCARD
+VERSION:2.1
+N:Berisha;Drita;;;
+item1.TEL;CELL:+383 44 123 456
+NOTE:escaped\, text\nhere
+END:VCARD
