@@ -382,7 +382,7 @@ return function(W, H, NAME)
     for index = from, to do
       local item = list[index]
       row[#row + 1] = button.round(view, { id = "lock-shortcut-" .. item.id, name = item.name, icon = item.icon,
-        size = s(56), on = item.on, on_clicked = function() parts.shortcuts.press(item.id) end })
+        size = s(56), on = item.on, visible = item.shown, on_clicked = function() parts.shortcuts.press(item.id) end })
     end
     return ui.Row(row)
   end

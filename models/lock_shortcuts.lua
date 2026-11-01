@@ -39,6 +39,7 @@ function M.new(options)
       on = function() return torch ~= nil and torch.on() end },
     media = { icon = "play_pause", name = "Play or pause", safe = true,
       present = function() return options.media_available() end,
+      shown = options.has_player,
       press = function() options.play_pause() end },
     camera = { icon = "photo_camera", name = "Camera", safe = false,
       present = function()
@@ -61,7 +62,7 @@ function M.new(options)
     for _, id in ipairs(prefs.shortcuts or {}) do
       local kind = KINDS[id]
       if kind and kind.present() then
-        out[#out + 1] = { id = id, icon = kind.icon, name = kind.name, safe = kind.safe, on = kind.on }
+        out[#out + 1] = { id = id, icon = kind.icon, name = kind.name, safe = kind.safe, on = kind.on, shown = kind.shown }
       end
     end
     return out

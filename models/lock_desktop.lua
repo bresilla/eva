@@ -30,6 +30,11 @@ function M.new(options)
     return last_weather
   end
   return {media_available=media_available,
+    --- Whether a player is there to press: tracked.
+    has_player=function()
+      if not options.active() or not media_available() then return false end
+      return ((media.state.active or {}).title or "")~=""
+    end,
     --- Play or pause, from a shortcut: its own press, on no particular output.
     play_pause=function()
       if not options.active() then return false end

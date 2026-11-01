@@ -15,11 +15,11 @@ function M.panel(view, spec)
       id = "greet-access-" .. option.key, width = WIDTH - 2 * s(12), height = s(44), cursor = "pointer",
       accessible_name = option.name, on_clicked = function() access.toggle(option.key) end,
       ui.Rect { id = "greet-access-" .. option.key .. "-surface", anchors = { fill = true }, radius = s(12),
-        color = function() return on() and C.secondaryContainer or C.surfaceContainerHigh end },
+        color = function() return on() and C.primary or C.surfaceContainerHigh end },
       ui.Row { x = s(12), anchors = { vertical_center = true }, gap = s(10), align = "center",
-        view.icon(option.icon, s(20), function() return on() and C.onSecondaryContainer or C.onSurface end),
+        view.icon(option.icon, s(20), function() return on() and C.onPrimary or C.onSurface end),
         view.text { text = option.name, font_size = s(15),
-          color = function() return on() and C.onSecondaryContainer or C.onSurface end },
+          color = function() return on() and C.onPrimary or C.onSurface end },
       },
     }
   end

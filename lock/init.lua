@@ -341,6 +341,7 @@ local parts = {
   shortcuts = require("models.lock_shortcuts").new {
     prefs = prefs,
     media_available = function() return prefs.media and desktop.media_available() end,
+    has_player = function() return desktop.has_player() end,
     play_pause = function() desktop.play_pause() end,
     run = function(argv) morf.process.run(argv, { timeout_ms = 15000, max_output = 256 }, function() end) end,
     ask = function(id, name)

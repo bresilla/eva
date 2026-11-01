@@ -24,7 +24,7 @@ M.ACTIONS = {
     signal = "info" },
   { id = "reboot", icon = "restart_alt", name = "Restart", detail = "Reboot the computer", key = "r", can = "reboot",
     blocked_by = "shutdown", hold = true, quick = true, confirm = true, signal = "warn" },
-  { id = "firmware", icon = "developer_board", name = "Firmware setup", detail = "Restart into the firmware's settings",
+  { id = "firmware", icon = "developer_board", name = "Firmware", detail = "Restart into firmware setup",
     key = "f", blocked_by = "shutdown", confirm = true, signal = "warn" },
   { id = "shutdown", icon = "power_settings_new", name = "Power off", detail = "Shut the computer down", key = "p",
     can = "power_off", blocked_by = "shutdown", hold = true, quick = true, confirm = true, signal = "alert" },
