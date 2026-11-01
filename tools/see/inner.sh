@@ -19,6 +19,7 @@
 #   note COMMAND                   its output, added to $SEE_OUT/notes.txt
 #   appearance THEME               the shell's appearance file changes
 #   pause SECONDS                  waits
+#   window TITLE [APP_ID [COLOUR]] a real window of the sealed compositor
 #
 # tests/fixtures/bin-see is first on PATH: stand-ins for what must not reach a
 # real session.
@@ -101,6 +102,7 @@ click() {
 }
 appipc() { timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-app-$ROLE" ipc call "$@"; }
 note() { "$@" >> "$SEE_OUT/notes.txt" 2>&1; }
+window() { morf app "$SEE_EVA/tools/see/window_app.lua" -- "$@" > "$SEE_OUT/window-$1.log" 2>&1 & }
 
 . "$SEE_STEPS"
 stop

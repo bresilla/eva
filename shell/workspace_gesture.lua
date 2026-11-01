@@ -49,9 +49,8 @@ function M.new(root)
     local _,_,w,h=require("bar").desk()
     return math.max(1,axis=="y" and h or w)
   end
-  local function release(source)
-    if source and source~="" and morf.screencopy then pcall(morf.screencopy.release,source) end
-  end
+  local capture=require("window_shots")
+  local release=capture.release
   local function clear()
     generation=generation+1
     if animation then animation:stop() animation=nil end
@@ -70,16 +69,6 @@ function M.new(root)
     local target=id+delta
     while target>0 and other[target] do target=target+delta end
     return math.floor(math.max(1,target))
-  end
-  local function toplevel(client)
-    local found
-    for _,window in ipairs(morf.windows or {}) do
-      if window.app_id==client.class and window.title==client.title then
-        if found then return nil end -- identical titles must not show the wrong window
-        found=window.identifier
-      end
-    end
-    return found
   end
   local function page(id,position,queue)
     local C=require("theme").color
@@ -135,8 +124,12 @@ function M.new(root)
           },
         }
         ui.reparent(card,node)
-        local identifier=toplevel(c)
-        if identifier then queue[#queue+1]={identifier=identifier,source=source} end
+        local identifier=capture.toplevel(c)
+        if identifier then
+          queue[#queue+1]={identifier=identifier,deliver=function(picture)
+            shots[picture]=true source:set(picture)
+          end}
+        end
       end
     end
   end
@@ -162,22 +155,7 @@ function M.new(root)
     page(state.from,0,queue) page(previous_id,-1,queue) page(next_id,1,queue)
     state.active=true
     local token=generation
-    local index=0
-    local function capture_next()
-      if token~=generation then return end
-      index=index+1
-      local item=queue[index]
-      if not item or not morf.screencopy or not morf.screencopy.capture_window then return end
-      local ok=pcall(morf.screencopy.capture_window,item.identifier,function(frame)
-        if frame and frame.source then
-          if token~=generation then release(frame.source) return end
-          shots[frame.source]=true item.source:set(frame.source)
-        end
-        capture_next()
-      end,{gpu=true})
-      if not ok then capture_next() end
-    end
-    capture_next()
+    capture.take(queue,function() return token==generation end)
     return true
   end
   function g.update(delta)

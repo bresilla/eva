@@ -21,6 +21,9 @@
 local morf = require("morf")
 local ui = require("morf.ui")
 
+-- Before anything asks for the compositor.
+require("windows_stand_in").install()
+
 local config = require("config")
 local theme = require("theme")
 local drawer = require("drawer")
@@ -157,11 +160,13 @@ end
 local keyboard = require("keyboard")
 local bar = require("bar")
 local window_menu = require("window_menu")
+local overview = require("overview")
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
 morf.effect("eva.keyboard.focus", function()
   local exclusive = launcher.drawer.open:get() or session.drawer.open:get() or window_menu.opened:get()
+    or overview.opened:get()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get() or capture.editor.active:get()
   -- Typed into on a click: the planner, the terminal, Lule's page.
   local editor_open = leftbar.drawer.open:get()
@@ -242,6 +247,7 @@ frame_root.accessible_name = "Eva"
 ui.reparent(capture.editor.node,frame_root)
 -- The focused window's menu, over it: in the screen's own coordinates.
 ui.reparent(window_menu.node,frame_root)
+ui.reparent(overview.node,frame_root)
 capture.editor.on_export=function(action,result)
   notifs.push {summary=action=="copy" and "Capture copied" or action=="save" and "Capture saved" or "Capture uploaded",
     body=action=="upload" and tostring(result or "Link copied to clipboard") or action=="save" and tostring(result or "") or "",app="Morf"}
@@ -539,6 +545,8 @@ if require("themes").refused then
   notifs.push { summary = "Theme unavailable", body = require("themes").refused .. "; using Material.",
     urgency = 1, app = "eva" }
 end
+
+require("windows_ipc").register(ipc)
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)

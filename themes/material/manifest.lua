@@ -22,6 +22,7 @@ return {
     osd_page = "themes.layouts.views.osd_page",
     session = "themes.layouts.views.session",
     window_menu = "themes.layouts.views.window_menu",
+    overview = "themes.layouts.views.overview",
     launcher = "themes.layouts.views.launcher",
     assistant = "themes.layouts.views.assistant",
     drop = "themes.layouts.views.drop",
