@@ -324,7 +324,7 @@ M.TOGGLES = {
   {
     -- Tor: the system's tor service, started and stopped -- never enabled,
     -- so it is off again after every boot.
-    id = "tor", icon = "travel_explore", name = "Tor", detail = "tor",
+    id = "tor", icon = "travel_explore", name = "Tor", detail = "tunnel",
     present = function() return services.tor ~= nil end,
     on = function() return services.tor ~= nil and services.tor.on() end,
     set = function(now)
