@@ -253,6 +253,8 @@ function M.list(bar)
       function() bar.notifications.toggle_dnd() end) } end }
   add { id = "dashboard", name = "Dashboard", icon = "dashboard", tier = 2, press = bar.toggle_dashboard,
     tooltip = function() return "Dashboard" end }
+  add { id = "terminal", name = "Terminal", icon = "terminal", tier = 1, press = dashboard_tab("terminal"),
+    tooltip = function() return "The dashboard's terminal" end }
   add { id = "settings", name = "Quick settings", icon = "tune", tier = 2, press = bar.open_settings,
     tooltip = function() return "Quick settings" end }
   add { id = "session", name = "Session", icon = "power_settings_new", tier = 2,

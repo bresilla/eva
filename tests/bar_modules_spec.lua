@@ -131,6 +131,19 @@ test.describe("a right press",function()
     test.truthy(test.ipc("q_run","return require('sidebar').drawer.open:get()"))
     test.eq(test.ipc("q_run","return require('utilities').displayed:get()"),"bar")
   end)
+  test.it("opens again and again at once, whatever the last one was doing",function()
+    load_shell {}
+    add("load")
+    for _=1,4 do
+      test.click("bar-module-load",{button="right"}) test.advance(30)
+      test.key("Escape") test.advance(10)
+    end
+    test.click("bar-module-load",{button="right"}) test.advance(400)
+    test.truthy(test.find {text="Arrange the bar",visible=true}~=nil)
+    test.advance(1500)
+    test.eq(test.logs("error"),{})
+    test.eq(test.logs("warn"),{})
+  end)
   test.it("reaches the clock, the status and the logo too",function()
     load_shell {}
     for _,id in ipairs {"bar-clock","bar-status","bar-logo"} do

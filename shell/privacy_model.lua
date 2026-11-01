@@ -279,7 +279,7 @@ function M.new(opts)
         if interface == IFACE and type(changes) == "table" and changes.InUse ~= nil then located:set(changes.InUse == true) end
       end)
     end
-    -- Only a GeoClue that is running: asking would start one.
+    -- Reads a GeoClue that is running, and one when it starts.
     pcall(client.watch_name, NAME, function(present)
       if present then read() else located:set(false) end
     end)
