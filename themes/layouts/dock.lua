@@ -116,6 +116,7 @@ function M.build(model, style)
       first = row.first_running }
     local function box() return icon_box(index:get()) end
     local dragging
+    local held = false
     local dots = {}
     for d = 1, 3 do
       dots[d] = kit.surface { id = "dock-dot-" .. math.floor(row.index) .. "-" .. d, width = S.xs, height = S.xs, radius = S.xxs,
@@ -141,19 +142,24 @@ function M.build(model, style)
         elseif button == "right" then model.open_menu(key)
         else model.activate(key) end
       end,
+      -- The menu waits for the lift: a lift over one already out reads as a
+      -- tap outside it.
       on_long_pressed = function()
         require("haptics").fire("long")
-        model.open_menu(key)
+        held = true
       end,
       on_wheel = function(_, _, _, _, _, step) model.cycle(key, step) end,
       on_drag_started = function() if state.pinned then dragging = model.pin_index(key) end end,
       on_dragged = function(x, y)
-        if not dragging then return end
+        if not dragging then held = false return end
         local at = vertical() and y or x
         local to = model.pin_at(math.floor((at - start()) / (size() + gap)) + 1)
         if to ~= dragging and model.reorder(dragging, to) then dragging = to end
       end,
-      on_released = function() dragging = nil end }
+      on_released = function()
+        if held and not dragging then model.open_menu(key) end
+        held, dragging = false, nil
+      end }
     local node = L.item { id = "dock-icon-" .. math.floor(row.index),
       x = function() return box().x end, y = function() return box().y end,
       width = function() return box().width end, height = function() return box().height end,

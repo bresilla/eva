@@ -97,14 +97,26 @@ function V.build(model)
         elseif button == "right" then model.menu_for:set(address)
         else model.activate(address) end
       end,
-      on_long_pressed = function() model.menu_for:set(address) end,
+      -- The menu waits for the lift: a lift over one already out reads as a
+      -- tap outside it.
+      on_long_pressed = function()
+        require("haptics").fire("long")
+        if pressed_on then pressed_on.held = true end
+      end,
       on_drag_started = function(x, y)
         if model.layout() == "cards" then return end
         local from = pressed_on or { x = x, y = y }
         model.drag_start(address, from.x, from.y)
       end,
-      on_dragged = function(x, y) model.drag_move(x, y) end,
-      on_released = function() model.drag_end() end,
+      on_dragged = function(x, y)
+        if pressed_on and pressed_on.held then pressed_on.moved = true end
+        model.drag_move(x, y)
+      end,
+      on_released = function()
+        if pressed_on and pressed_on.held and not pressed_on.moved then model.menu_for:set(address) end
+        pressed_on = nil
+        model.drag_end()
+      end,
     }
     local close = kit.action { id = "overview-card-close-" .. row.index, width = S.xl, height = S.xl,
       accessible_name = "Close window", cursor = "pointer",

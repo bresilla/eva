@@ -74,6 +74,16 @@ test.it("recents stretch past their first card and spring back", function()
   test.eq(#test.logs("warn"), 0)
 end)
 
+test.it("a finger held on a card offers its menu, which stays after the lift", function()
+  load()
+  test.ipc("overview", "open") test.settle(3000)
+  local card = test.get("overview-card-area-1")
+  local x, y = card.x + card.width / 2, card.y + card.height / 2
+  test.touch("down", 0, x, y) test.advance(700) test.touch("up", 0, x, y) test.advance(600)
+  test.truthy(test.get("overview-menu").visible)
+  test.eq(#test.logs("warn"), 0)
+end)
+
 test.it("clear all passes over a kept window", function()
   load()
   test.ipc("overview", "open") test.settle(3000)
