@@ -17,9 +17,7 @@ local ROW_H = 56
 local CPU_W = 68
 local MEMORY_W = 88
 local PID_W = 88
-local DETAIL_W = 360
-local SHEET_H = 520
-local WIDE = 860
+local WIDE = fit.WIDE
 local MEDIUM = 600
 local CHART_H = 96
 local CORE_MAX = 16
@@ -218,15 +216,12 @@ end
 
 local function processes_page(w, h)
   local list_node
-  local function wide() return get(w) >= WIDE end
   local function open() return model.selected:get() ~= 0 end
   local function roomy() return get(w) >= MEDIUM end
   local top = function() return (roomy() and S.TARGET or S.TARGET * 2 + S.s) + L.lh(theme.size.small) + S.s end
   local function body_h() return math.max(1, get(h) - top()) end
-  local function list_w() return math.max(1, get(w) - ((wide() and open()) and DETAIL_W + S.m or 0)) end
+  local list_w = fit.beside(w, open)
   local function list_h() return math.max(1, body_h() - L.lh(P.SUB) - S.xs) end
-  local function sheet_h() return wide() and body_h() or math.min(body_h(), SHEET_H) end
-  local function sheet_w() return wide() and DETAIL_W or get(w) end
   local function close()
     if not open() then return false end
     model.select(0)
@@ -302,14 +297,8 @@ local function processes_page(w, h)
       },
     },
     ui.Item {
-      id = "monitor-sheet", width = sheet_w, height = sheet_h,
-      x = function() return wide() and get(w) - DETAIL_W or 0 end,
-      y = function() return get(h) - sheet_h() end,
-      translate_y = function() return open() and 0 or sheet_h() + S.xl end,
-      opacity = function() return open() and 1 or 0 end,
-      visible = open,
-      behavior = { translate_y = theme.spring.spatial, opacity = theme.spring.effects },
-      detail_card(sheet_w, sheet_h),
+      y = top, width = w, height = body_h,
+      fit.sheet { id = "monitor-sheet", width = w, height = body_h, open = open, build = detail_card },
     },
   }
 end
