@@ -108,8 +108,6 @@ function M.build(capture, shown)
     panels,
     indicator.build(capture, shown),
     capture.editor.node,
-    -- The on-screen keyboard's bounds, which a tool has none of.
-    ui.Item { width = 0, height = 0, require("drawer").keyboard_input },
   }
 end
 
