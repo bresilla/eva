@@ -2,6 +2,9 @@ return {
   api = 1, id = "tsugumori", name = "Tsugumori", morf = ">=0.3.0",
   views = {
     keyboard = "themes.layouts.views.keyboard",
+    keyboard_strip = "themes.layouts.views.keyboard_strip",
+    keyboard_emoji = "themes.layouts.views.keyboard_emoji",
+    keyboard_page = "themes.layouts.views.keyboard_page",
     lule_page = "themes.layouts.views.lule_page",
     bar = "themes.layouts.views.bar",
     side_panel = "themes.layouts.views.side_panel",

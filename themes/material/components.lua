@@ -1429,6 +1429,37 @@ function M.keyboard_look(look)
   look.dim = function() return theme.color.onSurfaceVariant end
   look.press = function() return theme.color.primaryContainer end
   if look.radius == 0 then look.radius = nil end
+  function look.key_face(key)
+    local w, h = key.width, key.height
+    local label_size, small = math.floor(h * .42), math.floor(h * .26)
+    local function down() return key.down and key.down() end
+    local function strong() return key.accent or (key.lit and key.lit()) end
+    local function ink() return (strong() and look.on_accent or look.text)() end
+    local face = { anchors = { fill = true },
+      ui.Rect { anchors = { fill = true }, radius = look.radius or math.floor(h * .28),
+        color = function()
+          if down() then return look.press() end
+          if strong() then return look.accent() end
+          return (key.dim and look.key_dim or look.key)()
+        end,
+        behavior = { color = { duration = 90 } } },
+    }
+    if key.icon and look.icons then
+      face[#face + 1] = ui.Text { anchors = { center_in = true }, font_family = look.icons,
+        font_size = math.floor(label_size * 1.15), axes = { FILL = 1 }, scale_x = key.mirror and -1 or 1,
+        text = key.icon, color = ink }
+    else
+      local label = tostring(key.label and key.label() or "")
+      face[#face + 1] = ui.Text { anchors = { center_in = true }, text = key.label, font_family = look.font,
+        font_size = (key.kind == "char" or #label <= 2) and label_size or math.floor(label_size * .72),
+        color = ink }
+    end
+    if key.hint then
+      face[#face + 1] = ui.Text { x = w - small - 4, y = 3, text = key.hint, font_family = look.font,
+        font_size = small, color = look.dim }
+    end
+    return ui.Item(face)
+  end
   return look
 end
 

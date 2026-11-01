@@ -427,15 +427,22 @@ ipc.assistant = function(how)
 end
 -- `keyboard [how]`: the on-screen keyboard, for a key to bind. `how` is
 -- open, close, toggle or state, or a mode to open it in: full, dev,
--- letters, numbers, phone or pattern.
+-- letters, numbers, phone or pattern. `keyboard VERB VALUE` is
+-- shell/keyboard.lua's control: purpose, language, pane, tray, hand, floating,
+-- split, private.
 do
   local open_close = verb {set=keyboard.set,toggle=keyboard.toggle,is_open=keyboard.drawer.is_open}
   local MODES = { full = true, dev = true, letters = true, numbers = true, phone = true, pattern = true }
-  ipc.keyboard = function(how)
+  ipc.keyboard = function(how, value)
     if MODES[how] then
       if not here() then return nil end
       keyboard.show(how)
       return true
+    end
+    if value ~= nil then
+      if not here() then return nil end
+      local done = keyboard.control(how, value)
+      if done ~= nil then return done end
     end
     return open_close(how)
   end

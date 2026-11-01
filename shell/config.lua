@@ -161,6 +161,53 @@ local config = settings.open {
       -- Up by itself when a program asks for text and no real keyboard
       -- is attached (a tablet, a detached keyboard); by hand either way.
       auto = true,
+      -- A permanent row of digits over the letters.
+      number_row = false,
+      -- Language ids from shell/keyboard_layouts.lua, in order; empty takes
+      -- the locale's, then English. `layouts` adds languages of your own.
+      languages = {},
+      language = "",
+      layouts = {},
+      -- The keys' height, as a multiple, and a gap under them, in pixels.
+      height = 1.0,
+      bottom_gap = 0,
+      -- Word prediction, from the offline lists in shell/assets/words.
+      predict = true,
+      -- A capital at the start of a sentence.
+      autocaps = true,
+      -- Two spaces make a full stop.
+      double_space = true,
+      -- A space after a picked word, and punctuation pulled back over it.
+      auto_space = true,
+      -- A prediction that spells an emoji's name offers the emoji.
+      emoji_names = true,
+      -- "today", "now" and "date" offer the date or the time.
+      keywords = true,
+      -- A strip of what eva-clipboard holds.
+      clipboard = true,
+      -- A buzz with each key.
+      haptics = true,
+      -- Replaces a misspelt word on space (README: off by default).
+      autocorrect = false,
+      -- Remembers typed words on disk to predict them (README: off by default).
+      learn = false,
+      -- "both", "left" or "right": squeezed to one side for one thumb.
+      hand = "both",
+      -- Two halves, on a screen wide enough to hold them.
+      split = false,
+      -- Free of the edge, and where it was left, as fractions of the screen.
+      floating = false,
+      float_x = 0.5,
+      float_y = 0.6,
+      -- Shortcuts typed that expand, as { "omw", "on my way" } pairs.
+      replacements = {},
+      -- What a window's class asks of the keyboard: a purpose from
+      -- shell/keyboard_model.lua.
+      classes = {
+        kitty = "dev", foot = "dev", alacritty = "dev", wezterm = "dev", ghostty = "dev",
+        ["org.wezfurlong.wezterm"] = "dev", ["com.mitchellh.ghostty"] = "dev",
+        ["eva.phone"] = "phone",
+      },
     },
     services = {
       weather_location = "",
