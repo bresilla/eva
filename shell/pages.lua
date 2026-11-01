@@ -86,8 +86,12 @@ function M.panel_name(key)
 end
 
 -- Panels as they are built: one asks after its own pages while it loads.
-local built = {}
-function M.publish(name, panel) built[name] = panel end
+local built, publishes = {}, 0
+local published = morf.signal("eva.pages.published", 0)
+function M.publish(name, panel)
+  built[name], publishes = panel, publishes + 1
+  published:set(publishes)
+end
 
 --- The panel holding `key`: its `drawer` and `panel`, or nil.
 function M.holder(key)
@@ -110,9 +114,11 @@ function M.close(key)
   if holder then holder.drawer.set(false) end
 end
 
---- Whether `key` is what its panel is showing, open.
+--- Whether `key` is what its panel is showing, open. Read in bindings, so it
+--- never builds a panel: one not built yet shows nothing, until it is.
 function M.on_show(key)
-  local holder = M.holder(key)
+  published:get()
+  local holder = built[M.panel_name(key) or ""]
   return holder ~= nil and holder.drawer.open:get() and holder.panel.showing(key)
 end
 

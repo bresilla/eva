@@ -112,14 +112,25 @@ function M.new(bar)
     chosen = morf.signal("eva.bar.live.chosen", ""),
   }
 
-  --- The activities going on, the one on show first.
-  function model.list()
-    local on, first = {}, model.chosen:get()
+  -- Which are going on, worked out once as what they follow moves: everything
+  -- on the pill reads this, several times over.
+  local by_key = {}
+  for _, source in ipairs(sources) do by_key[source.key] = source end
+  local going = morf.signal("eva.bar.live.going", "")
+  morf.effect("eva.bar.live.going", function()
+    local keys, first = {}, model.chosen:get()
     for _, source in ipairs(sources) do
       if source.on() then
-        if source.key == first then table.insert(on, 1, source) else on[#on + 1] = source end
+        if source.key == first then table.insert(keys, 1, source.key) else keys[#keys + 1] = source.key end
       end
     end
+    going:set(table.concat(keys, " "))
+  end)
+
+  --- The activities going on, the one on show first.
+  function model.list()
+    local on = {}
+    for key in going:get():gmatch("%S+") do on[#on + 1] = by_key[key] end
     return on
   end
 
