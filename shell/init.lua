@@ -186,6 +186,7 @@ local bar = require("bar")
 local window_menu = require("window_menu")
 require("calendar_reminders").start()
 require("net_portal").start()
+require("welcome_model").start()
 require("panel_room").watch()
 require("phone")
 local overview = require("overview")
@@ -666,6 +667,13 @@ ipc.note = function(name)
   if not here() then return end
   pages.reach("notes")
   require("notes_model").create(name)
+  return true
+end
+-- `welcome [next|back]`: the first-run welcome again, or a step along it.
+ipc.welcome = function(how)
+  if not here() then return end
+  local welcome = require("welcome_model")
+  if how == "next" then welcome.next() elseif how == "back" then welcome.back() else welcome.open() end
   return true
 end
 -- `event [DAY]`: the calendar's form for a new event, on DAY or the day on show.

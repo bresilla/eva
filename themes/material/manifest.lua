@@ -16,6 +16,7 @@ return {
     side_panel = "themes.layouts.views.side_panel",
     connectivity = "themes.layouts.views.connectivity",
     net_help = "themes.layouts.views.net_help",
+    welcome = "themes.layouts.views.welcome",
     utilities = "themes.layouts.views.utilities",
     bottom = "themes.layouts.views.bottom",
     dashboard = "themes.layouts.views.dashboard",

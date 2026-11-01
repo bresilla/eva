@@ -132,6 +132,8 @@ M.PAGES = {
     keywords = "workspaces left edge hold" },
   { key = "panels", name = "Panels", icon = "dock_to_right", parent = "eva", category = "shell", summary = "Which page each panel holds",
     keywords = "tabs arrange move notifications tasks calendar sheet" },
+  { key = "welcome", name = "Welcome", icon = "waving_hand", parent = "eva", category = "shell", summary = "The short tour again",
+    keywords = "first run start guide tour getting started help gestures keys introduction" },
   { key = "capture", name = "Capture", icon = "screenshot_monitor", parent = "eva", category = "shell",
     summary = "Screenshots and recordings", keywords = "screenshot record folder upload editor blur hotkey" },
   { key = "keyboard", name = "On-screen keyboard", icon = "keyboard_alt", parent = "eva", category = "shell",

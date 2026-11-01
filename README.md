@@ -1230,6 +1230,21 @@ only what was changed in Settings is sent.
 it runs unchanged, against `lib.testing.dbus`. `tools/see/settings.steps` walks
 every page: `EVA_FAKE_SYSTEM=1 tools/see.sh settings`.
 
+## Welcome
+
+The first login opens **Welcome** in Settings, wherever Settings stands on that
+form: the right panel on a desk, the sheet on a tablet or phone. It is four short
+steps, three without a keyboard: dark or light, getting online, the gestures
+this device answers to, and the keys to learn first. Each step leads to the real
+page, and Back returns to the step. Skip leaves it. It comes once; Settings has
+it after that (Eva, Welcome, or search), and `eva welcome` opens it too.
+
+Someone who already used eva before this page existed is not shown it: past
+notifications or reminders in the state folder, or a settings file, mark a
+returning person. The mark itself is `welcome-seen` in that folder. Only the
+shell loads it, so the lock and the greeter never can. `EVA_WELCOME=0` keeps it
+away, as the VM tests do, and `=1` brings it to `tools/see.sh`.
+
 ## Connection help
 
 Network and Wired each lead to **Connection help**.

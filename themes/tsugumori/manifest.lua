@@ -41,6 +41,7 @@ return {
     drive_popup = "themes.layouts.views.drive_popup",
     connectivity = "themes.layouts.views.connectivity",
     net_help = "themes.layouts.views.net_help",
+    welcome = "themes.layouts.views.welcome",
     sound_page = "themes.layouts.views.sound_page",
     equalizer_page = "themes.layouts.views.equalizer_page",
     utilities = "themes.layouts.views.utilities",

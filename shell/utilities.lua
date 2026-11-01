@@ -87,6 +87,7 @@ end
 builders["network/help"]=function(w,h)
   return themed("net_help").page(with_request(require("net_help_model").new()),w,h)
 end
+builders.welcome=function(w,h) return themed("welcome").page(require("welcome_model"),M,w,h) end
 function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end
 --- Whether page `key` has a builder.
 function M.has_page(key) return builders[key]~=nil end
