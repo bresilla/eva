@@ -2,8 +2,8 @@
 -- the people and machines it knows, what they offer, what is nearby, and what
 -- is on its way. One model, whichever panel shows the page. No nodes.
 --
--- Nothing runs while `stage()` is not `ready`: a first drop command mints this
--- machine's key, so that happens on a press of `set_up`, never on a look.
+-- Nothing runs while `stage()` is not `ready`. `set_up`, on a press, is what
+-- does drop's first run and makes this machine's key.
 local morf = require("morf")
 local drop = require("lib.integrations.drop")
 local M = {

@@ -67,6 +67,22 @@ test.describe("ical", function()
     test.eq(test.ipc("times", text, utc(2026, 11, 1, 0), utc(2026, 11, 3, 0))[1].at, utc(2026, 11, 2, 9))
   end)
 
+  test.it("reads zones far from this machine's own", function()
+    -- At most one of these is the zone the specs run in.
+    for _, case in ipairs { { "Asia/Tokyo", 1 }, { "America/New_York", 15 }, { "Pacific/Auckland", -3 } } do
+      local text = event { "DTSTART;TZID=" .. case[1] .. ":20261102T100000" }
+      local day = case[2] < 0 and 1 or 2
+      local hour = case[2] < 0 and 24 + case[2] or case[2]
+      test.eq(test.ipc("times", text, utc(2026, 10, 30, 0), utc(2026, 11, 5, 0))[1].at, utc(2026, 11, day, hour), case[1])
+    end
+  end)
+
+  test.it("treats a floating time as this machine's, and an unknown zone likewise", function()
+    local floating = test.ipc("times", event { "DTSTART:20261102T100000" }, utc(2026, 10, 30, 0), utc(2026, 11, 5, 0))[1].at
+    local unknown = test.ipc("times", event { "DTSTART;TZID=Not/AZone:20261102T100000" }, utc(2026, 10, 30, 0), utc(2026, 11, 5, 0))[1].at
+    test.eq(unknown, floating)
+  end)
+
   test.it("keeps a repeat at its wall-clock time past a clock change", function()
     local text = event { "DTSTART;TZID=Europe/Amsterdam:20261019T090000", "RRULE:FREQ=WEEKLY;COUNT=3" }
     test.eq(ats(test.ipc("times", text, utc(2026, 10, 1, 0), utc(2026, 12, 1, 0))),

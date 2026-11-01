@@ -439,6 +439,13 @@ ipc.page = function(key)
   if key == "assistant-settings" then return require("pages").settings("assistant") end
   return require("pages").open(key)
 end
+-- `drop-target ID`: Drop opens on somebody's machine (`bob:laptop`, `orin`).
+ipc["drop-target"] = function(id)
+  if not here() then return end
+  require("pages").open("drop")
+  require("drop_model").select(id)
+  return true
+end
 -- `note NAME`: the note called NAME, opened or made.
 ipc.note = function(name)
   if not here() then return end

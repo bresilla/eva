@@ -88,6 +88,8 @@ test.describe("drop page", function()
     show()
     test.advance(1500)
     test.eq(state().stage, "first-run")
+    -- Started processes are recorded as they start: nothing here waits on one.
+    test.eq(#test.runs(), 0, "a page was looked at and drop ran")
     test.eq(calls(), "", "a page was looked at and drop ran")
     test.falsy(morf.fs.exists(scratch .. "/config/drop/badge"), "looking at a page made a key")
     test.truthy(test.get("drop-placeholder").visible)

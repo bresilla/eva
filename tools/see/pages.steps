@@ -20,6 +20,9 @@ printf 'sk-eva-test' | secret-tool store --label=fake account anthropic service 
 
 mkdir -p "$XDG_CONFIG_HOME/drop" "$HOME/Notes"
 : > "$XDG_CONFIG_HOME/drop/badge"
+start shell
+ipc page drop; pause 2.2; shot drop-not-serving
+stop
 export DROP_FAKE_SERVING=1
 printf '# Week plan\n\n- ship the **assistant**\n- read `drop` README\n\nSee https://example.test/plan.\n' > "$HOME/Notes/Week plan.md"
 printf 'Buy stamps\n' > "$HOME/Notes/Errands.txt"
@@ -61,6 +64,7 @@ ipc ask "Show me a short plan with a code block"; pause 2.4; shot assistant-chat
 pause 3; shot assistant-chat-later
 ipc close; pause 0.6
 ipc page drop; pause 2.2; shot drop-page
+ipc drop-target bob:laptop; pause 2.0; shot drop-person
 ipc close; pause 0.6
 ipc page notes; pause 1.4; shot notes-list
 ipc note "Week plan"; pause 1.4; shot notes-note
