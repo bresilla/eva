@@ -1,0 +1,16 @@
+# eva-clipboard on this private sway: copying for real, a password manager's
+# mark, a pin, the window.
+unset EVA_DRY_RUN
+start app clipboard
+shot empty
+printf 'first thing copied' | wl-copy
+pause 0.5
+printf 'https://example.test/a/rather/long/address' | wl-copy
+pause 0.5
+printf 'hunter2' | wl-copy --type x-kde-passwordManagerHint
+pause 0.5
+cat tests/fixtures/wallpaper.png | wl-copy --type image/png
+pause 0.8
+shot history
+note echo "kept: $(appipc state | grep -o 'found[^,]*')"
+note echo "secret on disk: $(grep -c hunter2 "$XDG_STATE_HOME/eva/clipboard/history.json")"

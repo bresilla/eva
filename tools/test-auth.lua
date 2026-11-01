@@ -83,3 +83,23 @@ package.loaded.morf.greetd.converse=converse
 refused:submit('answer')
 assert(refused.login~=nil,'a later try reaches greetd again')
 print('PASS: a refused conversation is reported and can be retried')
+
+-- A right password lets the screen leave first; the start it hands over is
+-- spent on nothing once the conversation is gone.
+local started
+local waiting=door{on_verified=function(start) started=start end}
+waiting:submit('answer')
+local verified=sessions[#sessions]
+verified.emit{kind='success'}
+assert(verified.starts==0 and started,'the session waits for the screen')
+started()
+assert(verified.starts==1,'the session starts when the screen has left')
+started=nil
+local gone=door{on_verified=function(start) started=start end}
+gone:submit('answer')
+local abandoned=sessions[#sessions]
+abandoned.emit{kind='success'}
+gone:stop()
+started()
+assert(abandoned.starts==0,'a stale start starts nothing')
+print('PASS: the session starts after the screen has left, and never from a stale conversation')

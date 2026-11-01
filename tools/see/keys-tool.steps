@@ -1,0 +1,14 @@
+# eva-keys on the sealed session, hyprctl a stand-in answering from a fixture,
+# then the appearance changing under the running window.
+export STUB_HYPR_BINDS="$SEE_EVA/tests/fixtures/binds.json"
+start app keys
+shot rest
+note echo "rows: $(appipc state | tr -d ' \n' | cut -c1-120)"
+note echo "fullscreen: $(appipc search fullscreen | tr -d ' \n')"
+pause 0.4
+shot searched
+appipc search "" > /dev/null
+if [ "$STYLE_NOW" = material ]; then appearance tsugumori; else appearance material; fi
+pause 2
+note echo "after the switch: $(appipc eva-app | tr -d ' \n' | grep -o "theme[^,}]*")"
+shot switched

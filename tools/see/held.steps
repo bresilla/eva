@@ -1,0 +1,8 @@
+# The lock held under ext-session-lock, at rest, after the same lock in a
+# window. Held comes last: sway stays locked once the held lock is stopped.
+start lock
+pause 1
+shot window-rest
+start held
+pause 1
+shot held-rest

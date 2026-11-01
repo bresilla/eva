@@ -1,0 +1,24 @@
+# eva-colorpick on this private sway: the window, the frozen screen with its
+# magnifier, a colour taken, the formats.
+unset EVA_DRY_RUN
+state() { appipc state | tr -d ' \n' | cut -c1-220; }
+
+start app colorpick
+shot window
+
+appipc freeze > /dev/null
+pause 1.6
+appipc point 1400 500 > /dev/null
+pause 0.6
+shot frozen
+note echo "frozen: $(state)"
+
+appipc pick > /dev/null
+pause 0.8
+shot picked
+note echo "picked: $(state)"
+note echo "clipboard: $(wl-paste -n 2>&1)"
+
+appipc format oklch > /dev/null
+pause 0.3
+shot oklch

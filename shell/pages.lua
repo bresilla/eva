@@ -19,7 +19,8 @@ local function workspace(key, title)
 end
 
 M.all = {
-  settings = { name = "Settings", icon = "tune", title_id = "settings-title", build = function(_, w, h) return require("utilities").page(w, h) end },
+  settings = { name = "Settings", icon = "tune", title_id = "settings-title", build = function(_, w, h) return require("utilities").page(w, h) end,
+    fit = function() return require("utilities").fit() end },
   notifications = { name = "Notifications", icon = "notifications", title_id = "sidebar-title",
     build = function(_, w, h) return require("notification_history").build(w, h) end },
   tasks = { name = "Tasks", icon = "checklist", title_id = "tasks-title", build = function(_, w, h) return require("tasks_page").build(w, h) end },
@@ -30,7 +31,8 @@ M.all = {
 }
 
 --- The pages the panel on `edge` holds, as side panel tabs (`key`, `name`,
---- `icon`, `build(w, h)` once `bind(model)` has given them their panel).
+--- `icon`, `fit`, `build(w, h)` once `bind(model)` has given them their
+--- panel). `fit()` is how tall a page wants to stand, or nil for all there is.
 function M.tabs(edge)
   local keys = config.get("panels." .. edge) or {}
   local tabs, panel = {}, nil
@@ -39,7 +41,7 @@ function M.tabs(edge)
     if page then
       -- Every page in the one frame: its name over its body
       -- (themes/layouts/page.lua), whatever draws the body.
-      tabs[#tabs + 1] = { key = key, name = page.name, icon = page.icon,
+      tabs[#tabs + 1] = { key = key, name = page.name, icon = page.icon, fit = page.fit,
         build = function(w, h)
           return require("themes.layouts.page").frame { id = "page-" .. key, width = w, height = h,
             title = page.name, title_id = page.title_id,

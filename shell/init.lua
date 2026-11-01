@@ -40,6 +40,14 @@ morf.surface.keyboard_focus = "none"
 morf.surface.exclusive_zone = -1
 -- Windows keep inside the frame.
 
+-- Where the tools of apps/ find these settings.
+if config.path then
+  local state = morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")
+  morf.fs.write(state .. "/eva/settings-path", config.path, { atomic = true, parents = true })
+end
+
+require("displays_hotplug").start()
+
 -- ------------------------------------------------------------------ colour --
 
 -- Two palettes: `theme.color`, the Material scheme, built from
@@ -105,6 +113,9 @@ morf.effect("eva.rotation", function()
     morf.reload { output = true }
   end
 end)
+-- Auto-rotation while the rotation is not locked, and a night light left on.
+require("auto_rotate").start()
+require("quick_hardware").nightlight()
 
 -- ---------------------------------------------------------------- drawers --
 
@@ -143,6 +154,8 @@ morf.effect("eva.keyboard.focus", function()
   local editor_open = leftbar.drawer.open:get()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/lule")
+    or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "hotspot")
+    or (sidebar.drawer.open:get() and require("utilities").tiles.editing:get())
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
 
@@ -206,7 +219,7 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
   },
 }
 local frame_view=require("themes").view("frame")
-local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),drawers=drawer.all,
+local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
   rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape},
   overlays=overlays,triggers=triggers}
 require("phone_gestures").attach(frame_root)
@@ -278,6 +291,8 @@ end
 ipc.dashboard = verb(dashboard.drawer)
 -- Builds the shell again from its files, in place.
 ipc.reload = function() morf.reload() return true end
+-- The frame, the rail and the bar come in again: a lock lifting.
+ipc.reveal = function() return require("themes.reveal").replay() end
 -- The scale, as the slider sets it: `scale -0.25` (smaller), `scale 0`
 -- (the compositor's), `scale 0.5` (bigger), or nothing to ask.
 ipc.scale = function(value)
@@ -360,6 +375,16 @@ ipc.settings = function(page)
   sidebar.drawer.set(true)
   return page or ""
 end
+-- `quick edit` or `quick done`: the quick settings' tiles being arranged.
+ipc.quick = function(how)
+  if how ~= "edit" and how ~= "done" then error("`" .. tostring(how) .. "`: edit or done") end
+  if not here() then return nil end
+  require("utilities").request("")
+  sidebar.select("settings")
+  sidebar.drawer.set(true)
+  require("utilities").tiles.editing:set(how == "edit")
+  return how == "edit"
+end
 ipc.leftbar = function(how, tab)
   if tab and here() and not leftbar.panel.select(tab) then error("No such left panel tab: " .. tostring(tab)) end
   return verb(leftbar.drawer)(how)
@@ -411,6 +436,9 @@ ipc["capture-editor"] = function(action,...)
   if not here() then return end
   if action=="tool" then capture.editor.choose(...) return true end
   if action=="copy" or action=="save" or action=="upload" then capture.editor.export(action) return true end
+  if action=="ocr" or action=="qr" then capture.editor.export(action) return true end
+  if action=="last" then return capture.editor.restore_last() end
+  if action=="file" then return capture.editor.open_file((...)) end
   return {open=capture.editor.active:get(),pending=capture.editor.pending:get(),busy=capture.editor.busy:get(),phase=capture.editor.phase:get()}
 end
 ipc.screenshot = function(what,how)
@@ -439,10 +467,11 @@ ipc.lule = function(how)
   local tty = require("terminal_colors").tty
   return tty and tty.path or "", theme.lule.accent:hex(), theme.color.primary:hex()
 end
+-- `osd [KIND]`: shows that display (the volume without one). False when its
+-- service is absent or its setting has it off.
 ipc.osd = function(kind)
   if not here() then return nil end
-  osd.flash(kind)
-  return true
+  return osd.flash(kind)
 end
 -- `notify SUMMARY [BODY [critical|normal [APP]]]` raises a notification of
 -- the shell's own, as the reference's toaster does.

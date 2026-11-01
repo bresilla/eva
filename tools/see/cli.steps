@@ -1,0 +1,18 @@
+# eva against the real shell on the sealed session, then with no shell at all.
+EVA="sh apps/bin/eva"
+note echo "no shell: $($EVA dashboard open 2>&1)"
+start shell
+$EVA dashboard open > /dev/null
+pause 1.2
+note echo "dashboard: $(ipc drawers | tr -d ' \n' | cut -c1-90)"
+shot dashboard
+$EVA close > /dev/null
+pause 0.6
+$EVA open settings/power > /dev/null
+pause 1.4
+note echo "settings: $(ipc drawers | tr -d ' \n' | cut -c1-90)"
+shot settings-power
+$EVA close > /dev/null
+pause 0.6
+note echo "verbs: $($EVA commands --json | jq 'length') listed, $($EVA commands --json | jq '[.[] | select(.available)] | length') answered"
+note echo "unknown: $($EVA open nowhere 2>&1)"

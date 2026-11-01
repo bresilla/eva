@@ -20,9 +20,10 @@ function M.attach(d, ctx, stop_theme)
     if ctx.floating then return false end
     local was_open = d.open:get()
     stop()
-    local origin = panel.visible and panel[axis] or ctx.tucked()
+    local from_tucked = not panel.visible
+    local origin = from_tucked and ctx.tucked() or panel[axis]
     d.manual = true
-    drag = { origin = origin, was_open = was_open, delta = 0 }
+    drag = { origin = origin, from_tucked = from_tucked, was_open = was_open, delta = 0 }
     panel.visible, panel.opacity, content.opacity, d.shape.opacity = true, 1, 1, 1
     panel[axis] = origin
     d.open:set(true)
@@ -32,10 +33,13 @@ function M.attach(d, ctx, stop_theme)
     if not drag then return end
     drag.delta = delta
     local tucked = ctx.tucked()
-    panel[axis] = math.max(math.min(0,tucked), math.min(math.max(0,tucked), drag.origin + delta))
+    -- A pull from tucked is measured from where tucked is now.
+    local origin = drag.from_tucked and tucked or drag.origin
+    panel[axis] = math.max(math.min(0,tucked), math.min(math.max(0,tucked), origin + delta))
   end
   function d.end_drag(velocity, canceled)
     if not drag then return end
+    if drag.from_tucked then d.drag_by(drag.delta) end
     local tucked = ctx.tucked()
     local size = math.max(1, math.abs(tucked))
     local progress = 1 - math.abs(panel[axis]) / size

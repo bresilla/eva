@@ -10,8 +10,13 @@ function M.new(ctx)
   }
   local builders = {}
   for i, tab in ipairs(ctx.tabs) do
-    model.tabs[i] = { key = tab.key, name = tab.name, icon = tab.icon }
+    model.tabs[i] = { key = tab.key, name = tab.name, icon = tab.icon, fit = tab.fit }
     builders[tab.key] = tab.build
+  end
+  --- How tall the page on show wants to stand, or nil for all there is.
+  function model.fit()
+    local tab = model.tabs[model.tab:get()]
+    return tab and tab.fit and tab.fit() or nil
   end
   function model.index(key)
     for i, tab in ipairs(model.tabs) do if tab.key == key then return i end end

@@ -7,6 +7,8 @@
 --     on_busy = function(busy) end,         -- a verdict is being waited on
 --     on_info = function(text, bad) end,    -- what the stack says ("touch the reader")
 --     on_failed = function(why) end,        -- a wrong answer
+--     on_verified = function(start) end,    -- the greeter: the password was right;
+--                                           -- call `start` to start the session
 --     on_open = function() end,             -- in: lift the lock, or the session starts
 --   }
 --   door:submit(password)
@@ -38,6 +40,7 @@ local function handlers(options)
     prompt = options.on_prompt or noop,
     failed = options.on_failed or noop,
     open = options.on_open or noop,
+    verified = options.on_verified or function(start) start() end,
   }
 end
 
@@ -238,7 +241,9 @@ function Greeter:begin()
         return
       end
       self.started = true
-      login:start(session.command, session.environment)
+      self.on.verified(function()
+        if self.login == login then login:start(session.command, session.environment) end
+      end)
     elseif m.kind == "error" or m.kind == "failed" then
       self:fail(m.text ~= "" and m.text or "Authentication connection failed")
     end

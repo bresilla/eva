@@ -5,6 +5,10 @@ local source=[[
   local active=morf.signal("fixture.active",true)
   package.loaded.services={here=function() return active:get() end,output=function() return "fixture" end,
     active_output=function() return active:get() and "fixture" or "other" end}
+  package.loaded.bar={desk=function() return 0,0,800,650 end}
+  package.loaded.rail={geometry=function() return {w=800,h=650,item=60,gap=12} end}
+  package.loaded.sidebar={drawer=require("drawer").new {name="sidebar",edge="right",width=430,height=360,content=ui.Item {}},
+    showing=function() return false end}
   morf.window.primary=function() return true end
   morf.broadcast=function() return false end
   local events,queries,rows=nil,0,{}
@@ -14,11 +18,13 @@ local source=[[
     return {kill=function() end}
   end
   local popup=require("headphones")
+  local levels=require("levels")
+  local root=levels.build()
   ui.Item {width=800,height=650,ui.Sdf {width=800,height=650,
-    fill_color=function() return require("theme").color.surface end,popup.drawer.shape},popup.drawer.panel}
+    fill_color=function() return require("theme").color.surface end,levels.shape},root}
   morf.ipc.rows=function(json) rows=morf.json.decode(json) events("Event 'change' on card #1") end
   morf.ipc.focus=function(value) active:set(value=="here") end
-  morf.ipc.state=function() return {open=popup.drawer.open:get(),name=popup.device.name,kind=popup.device.kind,
+  morf.ipc.state=function() return {open=levels.shown:get()=="headphones",name=popup.device.name,kind=popup.device.kind,
     queries=queries,focus=morf.surface.keyboard_focus} end
 ]]
 -- Not a dry run: the shell watches the audio server here, through the
@@ -31,17 +37,18 @@ local function sink(name,form,address)
   return {name=name,description=name,properties={["device.form_factor"]=form,["api.bluez5.address"]=address}}
 end
 local function rows(value) test.ipc("rows",morf.json.encode(value)) test.advance(300) end
-test.it("headphones connect in a centered transient popup and dismiss without taking keyboard focus",function()
+test.it("headphones connect in a centred display and leave without taking keyboard focus",function()
   for _,style in ipairs {"material","tsugumori"} do
     load(style)
     test.falsy(test.ipc("state").open)
     rows {sink("Studio headphones","headphone","AA:BB:CC:DD:EE:FF")}
     test.advance(700)
     test.truthy(test.ipc("state").open)
-    local panel=test.get("drawer-headphones")
+    local panel=test.get("levels-swell")
     test.near(panel.x+panel.width/2,400,1) test.near(panel.y+panel.height/2,325,1)
     test.eq(test.ipc("state").kind,"headphones")
     test.eq(test.ipc("state").focus,"none")
+    test.eq(test.get("levels-pill-detail").text,"Studio headphones")
     if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-headphones.png") end
     test.advance(3200) test.falsy(test.ipc("state").open)
     test.eq(#test.logs("error"),0)
@@ -54,7 +61,7 @@ test.it("earbuds have their own icon and a new connection replaces the old expir
   rows {sink("Studio headphones","headphone","AA"),sink("Galaxy Buds","headphone","BB")}
   test.eq(test.ipc("state").kind,"earbuds") test.eq(test.ipc("state").name,"Galaxy Buds")
   test.advance(1800) test.truthy(test.ipc("state").open)
-  test.advance(1600) test.falsy(test.ipc("state").open)
+  test.advance(1700) test.falsy(test.ipc("state").open)
 end)
 test.it("volume updates and Bluetooth profile recreation do not create connection popups",function()
   load()

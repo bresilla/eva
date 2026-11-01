@@ -81,12 +81,12 @@ function M.height_class()
 end
 
 --- phone, tablet or desk: what the output is used as. An upright output too
---- narrow for a desk's sides is a tablet with or without a touchscreen.
+--- narrow for a desk's sides is a phone unless a touchscreen makes it a tablet.
 function M.form()
   local class = M.width_class()
   if class == "compact" or M.phone() then return "phone" end
-  if M.touch() or (class == "medium" and M.portrait()) then return "tablet" end
-  return "desk"
+  if M.touch() then return "tablet" end
+  return class == "medium" and M.portrait() and "phone" or "desk"
 end
 
 --- Whether the panels come down as sheets and the edges belong to gestures.
@@ -196,6 +196,10 @@ function M.compact()
   -- Upright is a phone's however small the shell is drawn on it.
   return M.desk_width() < 1000 or M.portrait()
 end
+
+--- What kind of machine this is, by the name the tile board keeps its sets
+--- under: `form()`.
+function M.form_factor() return M.form() end
 
 --- How wide a dashboard page is on a phone: the desk inside the frame,
 --- less the drawer's padding.

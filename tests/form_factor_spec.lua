@@ -38,7 +38,7 @@ local CASES={
   {"a tablet held wide",1280,800,true,"tablet","expanded","medium"},
   {"a small tablet",600,960,true,"tablet","medium","expanded"},
   {"a narrow upright window",500,720,false,"phone","compact","medium"},
-  {"a narrow upright screen without a touchscreen",800,1280,false,"tablet","medium","expanded"},
+  {"a narrow upright screen without a touchscreen",800,1280,false,"phone","medium","expanded"},
   {"a laptop",1280,800,false,"desk","expanded","medium"},
   {"a desk",1920,1080,false,"desk","expanded","expanded"},
   {"an ultrawide",3440,1440,false,"desk","expanded","expanded"},

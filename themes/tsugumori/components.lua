@@ -668,6 +668,41 @@ return function(theme)
     return ui.Item(node)
   end
 
+  --- A quick-settings tile's ground: a square plate that keeps its corners.
+  --- A press sinks the plate a step on the press spring; turned on, a wash of
+  --- the tone runs out from the left edge on the fast spring and the accent
+  --- edge and registration marks register. `area` (a node), `on` (fn),
+  --- `pressed` (fn, more presses that count), `width` (fn), `tone`, `id`, `z`.
+  function M.tile_surface(spec)
+    local area = spec.area
+    local function on() return spec.on and spec.on() == true end
+    local tone = spec.tone and (type(spec.tone) == "function" and spec.tone or M.signal(spec.tone))
+      or function() return C.primary end
+    local function over() return area and area.hovered end
+    local function down() return (area and area.pressed) or (spec.pressed and spec.pressed()) or false end
+    local function reach() return spec.width and spec.width() or (area and area.layout_width) or 0 end
+    return ui.Item { id = spec.id, z = spec.z or -1, anchors = spec.anchors or { fill = true },
+      ui.Rect { anchors = { fill = true }, color = function() return C.surfaceContainerHigh end,
+        border_width = 1,
+        border_color = function()
+          if on() then return tone():alpha(.6) end
+          return over() and stroke(C, "hover") or stroke(C, "idle")
+        end,
+        translate_x = function() return down() and 2 or 0 end,
+        translate_y = function() return down() and 2 or 0 end,
+        behavior = { border_color = theme.spring.effects, translate_x = theme.spring.press,
+          translate_y = theme.spring.press } },
+      ui.Rect { id = spec.id and spec.id .. "-wash", anchors = { left = true, top = true, bottom = true },
+        width = function() return on() and reach() or 0 end,
+        color = function() return tone():alpha(.16) end, behavior = { width = theme.spring.fast } },
+      ui.Rect { anchors = { fill = true, margins = 3 }, color = function() return tone():alpha(.14) end,
+        opacity = function() return down() and 1 or 0 end, behavior = { opacity = theme.spring.effects } },
+      ui.Rect { width = 3, anchors = { top = true, bottom = true, left = true }, color = tone,
+        opacity = function() return on() and 1 or 0 end, behavior = { opacity = theme.spring.effects } },
+      anchored_marks(8, tone, 0, function() return on() and 1 or 0 end),
+    }
+  end
+
   --- The ink on a state surface: its ground is only a wash of the tone,
   --- so a control that is on reads in the tone itself. `on` (fn), `tone`,
   --- `idle` (the ink while off).
@@ -898,7 +933,7 @@ return function(theme)
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
       line { stroke_color = spec.track and function() return get(spec.track) end or M.stroke("quiet", color) },
       line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end,
-        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = settle() } },
+        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = spec.motion or settle() } },
     }
   end
 
@@ -940,7 +975,7 @@ return function(theme)
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
       line { stroke_color = M.stroke("quiet", color) },
       line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end,
-        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = settle() } },
+        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = spec.motion or settle() } },
     }
   end
 

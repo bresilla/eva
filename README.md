@@ -31,11 +31,37 @@ its source, with two visual themes: Material and Tsugumori.
 ```
 
 The module runs the shell as the `eva` user service, the greeter under
-greetd and the lock screen from Hyprland's idle daemon. It also handles the UI
-scale shared with the greeter, the wallpaper bridge, PAM, and, optionally,
-phone gestures. Its options live under `programs.eva`: `uiScale`, `idle.*`,
-`phone.*`, `hyprland.extraConfig`, `greeter.*`, `wallpaperLogo` and
-`usePackagedShell`.
+greetd on a Hyprland of its own and the lock screen from Hyprland's idle
+daemon. It also handles the UI scale shared with the greeter, the wallpaper
+bridge, PAM, and, optionally, phone gestures. Its options live under
+`programs.eva`: `uiScale`, `idle.*`, `phone.*`, `hyprland.extraConfig`,
+`greeter.*`, `seamless.*`, `wallpaperLogo` and `usePackagedShell`.
+
+`seamless.enable`, on by default, hides the way from boot to the desktop. Two
+compositors cannot share a frame, so greetd's switch between them always has a
+gap; this makes the gap the wallpaper's colour rather than black and text. One
+moment stays black: each Hyprland shows a cleared buffer from its first commit
+until its first rendered frame, and no configuration reaches that.
+
+- The kernel and systemd stay quiet, tty1 has no getty and no cursor, and
+  greetd stays on tty1. Other VTs get their cursor back at the login prompt.
+- The session's own output goes to the journal (`journalctl -t eva-session`),
+  through `EVA_SESSION_WRAPPER`, which the greeter puts in front of every
+  session it starts.
+- The wallpaper bridge writes the picture's dominant colour beside it. Both
+  Hyprlands use it as `background_color`, and tty1 uses it as its background.
+- The session records each output's mode, position, scale and transform in
+  `outputs` beside the scale file, and the greeter sets the same, so both ask
+  the display for one mode.
+- A right password clears its dots, fades the form, frame and clock off the
+  wallpaper in 170 ms, and draws nothing but the picture before asking greetd
+  for the session. The compositor ends with that bare wallpaper as its last
+  frame.
+
+The first shell of a session then brings the frame, the rail and the bar in from
+the edges; a lock lifting does the same, and `morf reload` and a theme switch do
+not. `seamless.plymouth = true` adds Plymouth, which hands its last frame to the
+greeter and ends under the greeter's first frame.
 
 On a phone, `phone.enable` adds continuous touch gestures, a hidden pointer and
 deliberate double-tap or power-button wake. `phone.idleTimeout = 0` disables
@@ -76,6 +102,36 @@ imports = [
 
 `nix/detached.nix` evaluates the test machine that way, from a downloaded
 output; the cache workflow runs it after each publish.
+
+## Tools
+
+Quick controls stay in the shell; heavier work has a tool of its own, in
+`apps/`. A tool is a real window that draws with the shell's theme, kit and
+palette, follows lule's colours and the chosen appearance live, and works when
+the shell is not running. On NixOS they are on `PATH`, each with a desktop entry.
+
+| Command | What it does |
+|---------|--------------|
+| `eva VERB`, `eva open settings/power`, `eva commands --json` | the shell from a command line, the front door for keybindings |
+| `eva-displays` | a canvas to arrange monitors with edge snapping; mode, scale, rotation, VRR and mirroring; a countdown that reverts; profiles matched on make, model and serial that apply on hotplug |
+| `eva-screenshot region\|window\|screen [--edit\|--copy\|--save] [--delay N] [--last]` | through the shell's editor, alone when it is down; `ocr` and `qr` copy what they read |
+| `eva-record region\|window\|monitor [--audio KIND]`, `eva-record stop` | `gpu-screen-recorder` with a stop indicator |
+| `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
+| `eva-keys` | a searchable sheet of the live bindings and the shell's own |
+| `eva-nightlight on\|off\|toggle\|auto\|daemon\|times` | warmer light over `hyprsunset`, by the sun at `services.weather_location` |
+| `eva-clipboard [--watch]` | a history of text and pictures with pins, skipping what a password manager marks; on NixOS `--watch` runs as a user service |
+| `eva-battery status`, `eva-battery limit on\|off` | the charge limit, through UPower's `EnableChargeThreshold` |
+
+`make app displays` runs one from a checkout.
+
+`eva-displays` writes what you keep to `$XDG_STATE_HOME/eva/displays/`. eva's
+Hyprland session loads `monitors.lua` from there; on sway, add
+`include $XDG_STATE_HOME/eva/displays/outputs.sway` to your configuration.
+
+A tool's folder holds `app.lua` and three links: `lua -> ../../shell`, which is
+how it reaches `theme`, `kit`, `palette` and `config`, `common -> ../common`, and
+`fonts -> ../../shell/fonts`. `apps/launch` finds the shell's appearance and
+settings files, which the shell names in `$XDG_STATE_HOME/eva/settings-path`.
 
 ## Helpers
 
@@ -177,8 +233,29 @@ Previews resize on an image worker only while the Lule page is visible.
 They overwrite one small scratch JPEG per output and clear on closing;
 opening the shell does not decode an entire wallpaper collection.
 
-Quick settings groups Keep Awake, Ring Mode and Do Not Disturb under **Focus**.
-Opening Focus leaves all three settings independent. **Tunnel** includes Tor's
+Quick settings opens with who is signed in. Lock acts at once; Log out, Suspend,
+Restart and Power off count only once held, and letting go cancels. They run
+`session.commands`; the full session drawer stays where it is.
+
+A lit tile is something switched on, nothing else. Pressing a tile acts on it and
+its chevron opens its page; a small tile has no chevron, so a long press does.
+The pencil in the page's head edits the tiles: drag to rearrange, by mouse or
+finger (Alt with the arrows from the keyboard), the minus badge hides a tile,
+**Available** adds one back, the corner badge makes it a small icon-only tile,
+two to a slot, and **Reset** restores the machine's defaults. Order and sizes are
+kept per kind of machine, in `quick.tiles` and `quick.small` for `desk`, `tablet`
+and `phone`. `morf ipc call quick edit` and `quick done` do the same.
+
+A tile is offered only where the machine can back it. **Hotspot** needs a Wi-Fi
+radio that can be an access point; NetworkManager keeps its password, and turning
+Wi-Fi off stops it. **Rotation lock** needs an accelerometer through
+iio-sensor-proxy: unlocked, the built-in screen follows it through Hyprland.
+**Night light** needs `hyprsunset`, **Power saver** power-profiles-daemon and
+**Flashlight** an LED under `/sys/class/leds` named `*:torch` or `*:flash`.
+`EVA_FAKE_HARDWARE=1` stands in for all of them.
+
+**Focus** groups Keep Awake, Ring Mode and Do Not Disturb, and each can also be a
+tile of its own. Opening Focus leaves all three settings independent. **Tunnel** includes Tor's
 Start/Stop control, bootstrap progress and SOCKS proxy address alongside VPNs;
 its overview status includes Tor when running. The old `settings tor` IPC
 shortcut opens Tunnel.
@@ -379,8 +456,8 @@ when opening the picker, then cached until the next shell reload. IPC accepts
 Lock controls follow the pointer's output. Each output uses its own logical
 dimensions, including space for the on-screen keyboard;
 other outputs show the clock and background. The lock has one private password
-draft across all outputs. The greeter stays on Cage's main display with one
-private draft and one authentication conversation.
+draft across all outputs. The greeter stays on its compositor's main display
+with one private draft and one authentication conversation.
 Both views rebuild their presentation after a resize or rotation while retaining
 controller state. Small outputs keep readable controls and scroll the sheet.
 Replacing a keyboard cancels held keys and
@@ -388,19 +465,55 @@ pending repeats. Short greeter outputs reserve a footer for power controls.
 The lock's live monitor list drops disconnected displays, so its controls move
 to a remaining output and recover when a display reconnects.
 
-Connecting headphones shows a centered status badge for 3.2 seconds on the active
-output. Earbuds get a separate icon when the name or form-factor metadata identifies
-them; generic analog jacks use headphones because they cannot distinguish the
-physical accessory. One `pactl subscribe` watcher reads audio-route changes,
-including wired jack availability, without idle polling. Native audio metadata is
-the fallback when PulseAudio compatibility is unavailable. Devices present at
-startup, volume changes and brief Bluetooth profile handoffs stay quiet.
-Preview with `morf ipc call headphones-demo` or
-`morf ipc call headphones-demo earbuds`.
+## On-screen displays
 
-Under Cage the greeter uses one login window on Cage's main display. The view
-uses its configured fullscreen window size and never follows the pointer or
-rebuilds in response to monitor metadata. Locking remains independent.
+A change made anywhere (a key, another program) shows as a display on the focused
+output: volume and brightness as a meter, and short pills for the microphone's
+mute, caps and num lock, the keyboard layout, the power profile, Do not disturb,
+keep awake, night light, the ring mode, a Bluetooth device connecting, headphones,
+and the track now playing. Each fires only on a real change, stays quiet while
+services report in at startup, and never appears when its service is absent.
+
+**Settings > Eva > On-screen displays** gives each kind its own place, one of
+`top_left`, `top_center`, `top_right`, `center_left`, `center`, `center_right`,
+`bottom_left`, `bottom_center` and `bottom_right`, with a switch, a hold time, a
+percentage switch for the levels, and a **Try** button. They are kept under
+`osd.kinds` in the settings; a phone's default is the top centre.
+
+At an edge a display swells out of the frame with its seam, lying along the top
+and bottom edges and standing upright on the sides; in the centre it floats with
+a shadow. Moved while on show it travels there. Displays at different places show
+together, up to three, and one in another's way takes over its bud.
+
+A level can be dragged to set it and clicked to mute, with a mouse or a finger,
+and waits while the pointer rests on it. `morf ipc call osd` flashes the volume,
+and `morf ipc call osd KIND` any of `volume`, `brightness`, `mic`, `caps`, `num`,
+`layout`, `profile`, `dnd`, `awake`, `night`, `ring`, `bluetooth`, `headphones` and
+`media`; it answers false when that display cannot appear.
+
+A track waits a moment for its cover and shows once, whatever metadata its player
+repeats. Caps and num lock are read from the kernel's LEDs, on the focused output
+only, three times a second. Night light shows once a service provides it: a
+`night` control in `settings_model.CONTROLS`, or `services.night`, with `on()`.
+
+Notification popups stand at any of the six top and bottom anchors, set on the
+same page as `osd.notifications`. Along an edge they move as the setting changes;
+to the other edge the output's shell is built again in place, which drops the
+popups on show at that moment. A card goes when swiped sideways or away from its
+edge, and springs back from a short pull.
+
+Headphones connecting show for 3.2 seconds, in the centre by default. Earbuds get a
+separate icon when the name or form-factor metadata identifies them; generic analog
+jacks use headphones because they cannot distinguish the physical accessory. One
+`pactl subscribe` watcher reads audio-route changes, including wired jack
+availability, without idle polling. Native audio metadata is the fallback when
+PulseAudio compatibility is unavailable. Devices present at startup, volume changes
+and brief Bluetooth profile handoffs stay quiet. Preview with
+`morf ipc call headphones-demo` or `morf ipc call headphones-demo earbuds`.
+
+The greeter uses one fullscreen surface on its Hyprland's main display. The
+view uses the size that surface is configured to and never follows the pointer
+or rebuilds in response to monitor metadata. Locking remains independent.
 
 ## Sound and nested settings
 

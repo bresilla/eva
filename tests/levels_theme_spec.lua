@@ -40,6 +40,12 @@ end
 local function snapshot(name)
   if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
 end
+-- Tsugumori's reading, digit by digit.
+local function reading()
+  local text={}
+  for i=1,3 do text[i]=test.get("levels-value-digit-"..i).text end
+  return table.concat(text)..test.get("levels-value-sign").text
+end
 for _,style in ipairs {"material","tsugumori"} do
   local hold=2200
   test.it(style.." OSD follows readings and ignores initial, settings and other-output changes",function()
@@ -85,7 +91,7 @@ test.it("Tsugumori OSD shows mute state, clamps readings and fits a compact outp
   test.ipc("volume","2") test.ipc("mute","yes") test.advance(1500)
   test.eq(test.ipc("state").volume,1)
   test.eq(test.get("levels-title-text").text,"MUTED")
-  test.eq(test.get("levels-value").text,"100%")
+  test.eq(reading(),"100%")
   local panel=test.get("levels-swell")
   test.truthy(panel.x>=0 and panel.x+panel.width<=800)
   test.truthy(panel.y>=0 and panel.y+panel.height<=480)
@@ -93,5 +99,5 @@ test.it("Tsugumori OSD shows mute state, clamps readings and fits a compact outp
   test.ipc("brightness","-1") test.advance(1500)
   test.near(test.ipc("state").brightness,.01,.0001)
   test.eq(test.get("levels-title-text").text,"BRIGHTNESS")
-  test.eq(test.get("levels-value").text,"1%")
+  test.eq(reading(),"1%")
 end)

@@ -63,3 +63,17 @@ like the dashboard.
 Nothing open. The idle inhibitor reads back: `morf.idle.inhibited()` is
 what the shell last asked for, and `morf.capabilities.idle_inhibit` says
 whether the compositor can hold one (docs/IO.md, "Idle").
+
+## Seamless login: open
+
+- Custom shaders on a held lock. Every renderer calls `register_shaders` except
+  the lock's (`crates/frontend/morf-host/src/lock/lock.rs`, after
+  `RenderEngine::new`), so a node with `shader` draws as a plain `Rect`: a
+  white one, at the node's opacity. `morf render` registers them, so it does
+  not show this. eva leaves Tsugumori's phase art out of a held lock until then.
+- A failed dmabuf import. `BufferSink::import` uses `create_immed` and ignores
+  `failed`, so the compositor ends the client with a protocol error at the first
+  `attach`. Falling back to the swapchain would keep the shell up on a software
+  GPU. `MORF_PRESENT=swapchain` does it by hand, in `nix/tests/login.nix`.
+- A first-frame hook. `enter` starts on a surface's first frame, but Lua cannot
+  hear it. Plymouth's hand-over listens for Hyprland's `layer.opened` instead.

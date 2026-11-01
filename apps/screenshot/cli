@@ -1,0 +1,181 @@
+#!/bin/sh
+# eva-screenshot: a picture of the screen, through the shell when it runs and
+# alone when it does not.
+#
+#   eva-screenshot                                   the window
+#   eva-screenshot region|window|screen [--edit|--copy|--save] [--delay N] [--last]
+#   eva-screenshot ocr|qr [region|window|screen]     copies what it reads
+#   eva-screenshot --edit-file FILE                  the editor on a picture
+#
+# --edit (the default) opens the editor, --copy puts the picture on the
+# clipboard, --save writes it to the captures folder. --last takes the region
+# taken last. What ocr and qr read goes to the clipboard, never to a file.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+target=""
+how=edit
+delay=0
+last=""
+reader=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    region | window | screen) target=$1 ;;
+    ocr | qr) reader=$1 ;;
+    --edit) how=edit ;;
+    --copy) how=copy ;;
+    --save) how=save ;;
+    --last) last=1 ;;
+    --edit-file)
+      shift
+      picture=${1:?--edit-file takes a file}
+      if eva_shell_up; then exec env -u MORF_APP "${MORF:-morf}" ipc call capture-editor file "$picture"; fi
+      exec sh "$apps/launch" screenshot file "$picture"
+      ;;
+    --delay)
+      shift
+      delay=${1:?--delay takes seconds}
+      ;;
+    --delay=*) delay=${1#--delay=} ;;
+    -h | --help)
+      sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
+      exit 0
+      ;;
+    *)
+      eva_say "unknown argument: $1"
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+case "$delay" in
+  '' | *[!0-9]*)
+    eva_say "--delay takes whole seconds"
+    exit 2
+    ;;
+esac
+
+if [ -z "$target" ] && [ -z "$reader" ]; then
+  exec sh "$apps/launch" screenshot
+fi
+
+region_file="$(eva_state)/capture/last-region"
+
+# grim's arguments for the target, one to a line.
+grim_args() {
+  case "$1" in
+    region)
+      if [ -n "$last" ]; then
+        if [ ! -r "$region_file" ]; then
+          eva_say "no region taken yet"
+          return 1
+        fi
+        area=$(cat "$region_file")
+      else
+        area=$(slurp) || return 1
+        mkdir -p "$(dirname "$region_file")"
+        printf '%s' "$area" > "$region_file"
+      fi
+      printf -- '-g\n%s\n' "$area"
+      ;;
+    window)
+      area=$(eva_window_area) || {
+        eva_say "no focused window"
+        return 1
+      }
+      printf -- '-g\n%s\n' "$area"
+      ;;
+    screen)
+      name=$(eva_focused_output) || return 1
+      printf -- '-o\n%s\n' "$name"
+      ;;
+  esac
+}
+
+# Takes the picture into file $2 for target $1.
+take() {
+  args=$(grim_args "$1") || return 1
+  if eva_dry; then
+    eva_say "dry run: grim $(printf '%s' "$args" | tr '\n' ' ')$2"
+    return 0
+  fi
+  old_ifs=$IFS
+  IFS='
+'
+  # shellcheck disable=SC2086
+  set -- $args "$2"
+  IFS=$old_ifs
+  grim "$@"
+}
+
+[ "$delay" -eq 0 ] || sleep "$delay"
+
+if [ -n "$reader" ]; then
+  case "$reader" in
+    ocr) program=tesseract ;;
+    qr) program=zbarimg ;;
+  esac
+  if ! eva_has "$program"; then
+    eva_say "$program is not installed"
+    exit 1
+  fi
+  shot=$(eva_private_file png)
+  trap 'rm -f "$shot"' EXIT
+  take "${target:-region}" "$shot"
+  if eva_dry; then exit 0; fi
+  case "$reader" in
+    ocr) words=$(tesseract "$shot" - 2>/dev/null || true) ;;
+    qr) words=$(zbarimg --quiet --raw "$shot" 2>/dev/null || true) ;;
+  esac
+  if [ -z "$words" ]; then
+    eva_say "nothing found"
+    exit 1
+  fi
+  printf '%s' "$words" | wl-copy
+  eva_notify "Copied" "$words"
+  exit 0
+fi
+
+if [ "$how" = edit ]; then
+  if eva_shell_up; then
+    eva_ipc screenshot "$target" > /dev/null
+    if [ -n "$last" ]; then
+      tries=0
+      while [ "$tries" -lt 30 ]; do
+        case "$(eva_ipc capture-editor last 2>/dev/null)" in *true*) break ;; esac
+        sleep 0.1
+        tries=$((tries + 1))
+      done
+    fi
+    exit 0
+  fi
+  picture=$(eva_private_file png)
+  trap 'rm -f "$picture"' EXIT
+  take "$target" "$picture"
+  if eva_dry; then exit 0; fi
+  sh "$apps/launch" screenshot file "$picture"
+  exit 0
+fi
+
+folder=$(eva_captures)
+stamp=$(date +%Y%m%d_%H-%M-%S)
+if [ "$how" = save ]; then
+  mkdir -p "$folder"
+  file="$folder/capture_$stamp.png"
+else
+  file=$(eva_private_file png)
+  trap 'rm -f "$file"' EXIT
+fi
+take "$target" "$file"
+if eva_dry; then exit 0; fi
+if [ "$how" = copy ]; then
+  wl-copy --type image/png < "$file"
+  eva_notify "Screenshot copied"
+  exit 0
+fi
+wl-copy --type image/png < "$file" 2>/dev/null || true
+eva_thumbnail "$file" "$file" "Screenshot saved" "$apps/screenshot/cli" &
+printf '%s\n' "$file"

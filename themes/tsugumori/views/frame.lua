@@ -65,11 +65,13 @@ local function decorations(model)
 end
 
 function V.build(model)
-  local opening = ui.SdfShape { id = "frame-opening", shape = "box", operation = "subtract", radius = 0,
+  local reveal = require("themes.reveal")
+  local hidden, rest = reveal.opening(model.desk, theme.LEFT, theme.BORDER, 2 * theme.ROUNDING)
+  local opening = reveal.part(ui.SdfShape, { id = "frame-opening", shape = "box", operation = "subtract", radius = 0,
     x = function() local x = model.desk() return x + theme.LEFT end,
     y = function() local _, y = model.desk() return y + theme.BORDER end,
     width = function() local _, _, w = model.desk() return w - theme.LEFT - theme.BORDER end,
-    height = function() local _, _, _, h = model.desk() return h - 2 * theme.BORDER end }
+    height = function() local _, _, _, h = model.desk() return h - 2 * theme.BORDER end }, 0, hidden, rest)
   local transition = require("themes.session").transition
   require("themes.switcher").morph(opening, "radius", 0, transition and transition.frame_rounding)
   local field = { id = "frame", anchors = { fill = true }, fill_color = function() return C.surface end, blend = 0,

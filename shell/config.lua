@@ -11,6 +11,14 @@ for _,tool in ipairs(require("lib.shell.capture.annotation").tools) do
   capture_tools[tool[1]]={color="#ef5350",width=tool[1]=="text" and 24 or 4,filled=false}
 end
 
+-- Each on-screen display: its place ("" for the default), whether it shows,
+-- its hold in ms (0 for the default) and whether it reads a percentage.
+local osd_kinds={}
+for _,kind in ipairs {"volume","brightness","mic","caps","num","layout","profile","dnd","awake","night",
+  "ring","bluetooth","headphones","media"} do
+  osd_kinds[kind]={position="",enabled=true,hold=0,percent=true}
+end
+
 local path = (morf.env and (morf.env("EVA_SETTINGS") or morf.env("CAELESTIA_SETTINGS")))
   or morf.paths.state("eva.json")
 
@@ -98,7 +106,7 @@ local config = settings.open {
         screenshot_window = { "sh", "-c", "grim -g \"$(hyprctl -j activewindow | jq -r '\"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"')\" \"$0\" && wl-copy < \"$0\"", "$FILE.png" },
         screenshot_screen = { "sh", "-c", "grim -o \"$(hyprctl -j monitors | jq -r '.[] | select(.focused) | .name')\" \"$0\" && wl-copy < \"$0\"", "$FILE.png" },
         record_region = { "sh", "-c", "region=$(slurp -f '%wx%h+%x+%y') || exit; exec gpu-screen-recorder -w region -region \"$region\" -f 60 -o \"$0\"", "$FILE.mp4" },
-        record_window = { "gpu-screen-recorder", "-w", "focused", "-f", "60", "-o", "$FILE.mp4" },
+        record_window = { "sh", "-c", "region=$(hyprctl -j activewindow | jq -er '\"\\(.size[0])x\\(.size[1])+\\(.at[0])+\\(.at[1])\"') && exec gpu-screen-recorder -w region -region \"$region\" -f 60 -o \"$0\"; exec gpu-screen-recorder -w portal -f 60 -o \"$0\"", "$FILE.mp4" },
         record_screen = { "gpu-screen-recorder", "-w", "screen", "-f", "60", "-o", "$FILE.mp4" },
         open = { "xdg-open" },
       },
@@ -107,6 +115,9 @@ local config = settings.open {
       max_shown = 7,
       action_prefix = ">",
     },
+    -- The on-screen displays, and where the notification popups stand ("" for
+    -- the default).
+    osd = { kinds = osd_kinds, notifications = "" },
     rail = {
       -- The workspaces down the left edge.
       enabled = true,
@@ -166,12 +177,32 @@ local config = settings.open {
       -- What each of the session menu's actions runs (`$USER` is the
       -- user's name).
       commands = {
+        lock = { "morf", "lock" },
         logout = { "loginctl", "terminate-user", "$USER" },
+        suspend = { "systemctl", "suspend" },
         shutdown = { "systemctl", "poweroff" },
         hibernate = { "systemctl", "hibernate" },
         reboot = { "systemctl", "reboot" },
       },
     },
+    -- The quick settings' tiles shown on each kind of machine, in order,
+    -- and which of them are drawn small. A tile the machine lacks is skipped.
+    quick = {
+      tiles = {
+        desk = { "wifi", "bluetooth", "wired", "mobile", "mesh", "tunnel", "airplane", "hotspot", "sound", "mic",
+          "nightlight", "powersaver", "battery", "focus", "theme", "eva" },
+        tablet = { "wifi", "bluetooth", "rotation", "keyboard", "airplane", "hotspot", "sound", "mic", "nightlight",
+          "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
+        phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "airplane", "nightlight",
+          "powersaver", "sound", "mic", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
+      },
+      small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "nightlight", "powersaver" } },
+    },
+    -- The night light (hyprsunset): whether it is on, and how warm, in kelvin.
+    nightlight = { on = false, temperature = 4500 },
+    -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
+    -- keeps it, a phone or a tablet follows the accelerometer).
+    rotation = { lock = "auto" },
   },
 }
 return require("themes.ui_scale").link(config)

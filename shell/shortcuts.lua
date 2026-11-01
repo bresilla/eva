@@ -7,6 +7,16 @@
 -- keeps its editing chords (Ctrl+A, C, V, ...) whatever is listed here.
 local M = {}
 
+--- What each key does, for eva-keys.
+M.LABELS = {
+  { "ctrl+space", "Open the launcher" }, { "ctrl+d", "Open the dashboard" },
+  { "ctrl+,", "Open the quick settings" }, { "ctrl+n", "Open the notifications" },
+  { "ctrl+t", "Open the tasks" }, { "ctrl+shift+c", "Open the calendar" },
+  { "ctrl+l", "Open the colour tool" }, { "ctrl+q", "Open the session menu" },
+  { "ctrl+shift+s", "Open the capture panel" }, { "ctrl+w", "Shut what is open" },
+  { "alt+Left", "Back one page" },
+}
+
 --- The table for a node's `shortcuts`, from the shell's IPC verbs.
 function M.table(ipc)
   local function call(name, ...)
@@ -17,6 +27,8 @@ function M.table(ipc)
   local function back()
     local settings = package.loaded["settings_model"]
     local pages = settings and settings.navigation
+    -- The tile editor has Alt with the arrows: the key goes on to it.
+    if settings and settings.tiles and settings.tiles.editing:get() then return false end
     if pages and settings.opened:get() and pages.can_go_back() then pages.back() return end
     close()
   end

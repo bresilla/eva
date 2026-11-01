@@ -136,11 +136,14 @@ morf.effect("eva.notifications.expansion",function()
   if changed then open_ids:set(ids) end
 end)
 local visual
-function M.dismiss_at(index)
+--- Where the popups stand: a top or bottom anchor (shell/osd_model.lua).
+M.position=require("osd_model").notifications
+--- Dismisses the popup at `index`, sent `direction` when a swipe says so.
+function M.dismiss_at(index,direction)
   local entry=M.shown()[index]
   if not entry then return end
   local id=entry.id
-  local delay=visual.dismiss(index) or 0
+  local delay=visual.dismiss(index,direction) or 0
   -- Capture identity before the exit animation. A new arrival can replace
   -- this slot while it is moving; it must not be dismissed in its place.
   if delay>0 then morf.time.timer(delay,function() M.dismiss(id) end,false)
@@ -155,4 +158,10 @@ morf.effect("eva.notifications.shown",function()
   M.drawer.set(#M.list:get()>0 and not M.covered:get() and not M.dnd:get() and require("services").here())
 end)
 morf.effect("eva.notifications.presented",function() M.opened:set(M.drawer.open:get()) end)
+-- A drawer's edge is fixed as it is built: the other one builds this output's
+-- shell again in place. Along the edge the popups just move.
+morf.effect("eva.notifications.edge",function()
+  local edge=M.position():match("^bottom") and "bottom" or "top"
+  if edge~=visual.edge then morf.reload {output=true} end
+end)
 return M

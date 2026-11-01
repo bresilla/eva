@@ -1,16 +1,10 @@
 local morf=require("morf")
 local services=require("services")
 local M={device=morf.state {name="",kind="headphones"}}
-local view=require("themes").view("headphones").build(M)
-M.drawer=require("drawer").new {name="headphones",edge=view.edge,width=view.width,height=view.height,
-  transient=true,content=view.content,props=view.props}
-local dismiss
 function M.show(device)
   if not services.here() then return end
   M.device.name=device.name M.device.kind=device.kind
-  if dismiss then dismiss:cancel() end
-  M.drawer.set(true)
-  dismiss=morf.time.timer(3200,function() dismiss=nil M.drawer.set(false) end,false)
+  require("osd").flash("headphones")
 end
 local function receive(payload,target)
   if target~=services.output() then return end

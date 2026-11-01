@@ -1,0 +1,26 @@
+# The way from a login screen to the desktop, frame by frame. All of it in
+# preview: no greetd, no PAM.
+start greet
+key Return; pause 0.9
+text hunter; pause 0.4
+shot greet-typed
+ipc stage leaving; pause 0.05
+shot greet-leaving
+pause 0.6
+shot greet-last-frame
+start lock
+key Return; pause 0.9
+text hunter; pause 0.4
+ipc stage opening; pause 0.6
+shot lock-last-frame
+start shell
+pause 2
+shot shell-rest
+ipc reveal; pause 0.02
+shot shell-bare
+pause 0.13
+shot shell-frame
+pause 0.1
+shot shell-rail
+pause 1
+shot shell-after

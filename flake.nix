@@ -32,20 +32,36 @@
         };
         # A system with eva enabled, evaluated and never built: the module's
         # options and wiring hold together.
-        machine = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = [ self.nixosModules.default ./nix/machine.nix ];
-        };
+        machine =
+          extra:
+          pkgs.writeText "eva-module-eval" (builtins.unsafeDiscardStringContext
+            (nixpkgs.lib.nixosSystem {
+              inherit system;
+              modules = [
+                self.nixosModules.default
+                ./nix/machine.nix
+                extra
+              ];
+            }).config.system.build.toplevel.drvPath);
       in
       {
         packages = {
           default = eva;
           inherit eva;
+          # Not a check: a login needs a Hyprland that reads Lua, so see the
+          # head of the file for how to run it.
+          login-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/login.nix {
+              module = self.nixosModules.default;
+              wallpaper = ./tests/fixtures/wallpaper.png;
+            }
+          );
         };
         checks = {
           inherit eva;
-          module = pkgs.writeText "eva-module-eval"
-            (builtins.unsafeDiscardStringContext machine.config.system.build.toplevel.drvPath);
+          module = machine { };
+          module-plymouth = machine { programs.eva.seamless.plymouth = true; };
+          module-plain = machine { programs.eva.seamless.enable = false; };
         };
         devShells.default = pkgs.mkShell {
           packages = [
@@ -59,6 +75,12 @@
             pkgs.grim
             pkgs.wtype
             pkgs.dbus
+            # What the tools of apps/ call, for tools/see.sh's scenarios.
+            pkgs.jq
+            pkgs.slurp
+            pkgs.wl-clipboard
+            pkgs.tesseract
+            pkgs.zbar
           ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.

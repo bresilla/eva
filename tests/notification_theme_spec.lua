@@ -45,10 +45,16 @@ local HOST=[[
   morf.ipc.expanded=function(id) return notifications.expanded(tonumber(id)) end
   morf.ipc.forget=function(id) notifications.forget(tonumber(id)) end
   morf.ipc.clear=notifications.clear
+  morf.ipc.place=function(position) require("config").set("osd.notifications",position) end
 ]]
-local function load(style,w,h)
+local loads=0
+-- `position`, a top or bottom anchor, is written before the shell starts.
+local function load(style,w,h,position)
+  loads=loads+1
+  local settings=morf.fs.join(morf.env("XDG_CACHE_HOME"),"notification-spec-"..loads..".json")
+  if position then morf.fs.write(settings,morf.json.encode {osd={notifications=position}}) end
   test.load("../shell/init.lua",{source=HOST,size={w or 1100,h or 750},env={
-    EVA_STYLE=style,TEST_WIDTH=tostring(w or 1100),TEST_HEIGHT=tostring(h or 750)}})
+    EVA_STYLE=style,TEST_WIDTH=tostring(w or 1100),TEST_HEIGHT=tostring(h or 750),EVA_SETTINGS=settings}})
 end
 local function snapshot(name)
   if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
@@ -97,6 +103,73 @@ for _,style in ipairs {"material","tsugumori"} do
     test.ipc("here","no") test.advance(1000) test.falsy(test.ipc("state").open)
     test.ipc("here","yes") test.advance(2200) test.truthy(test.ipc("state").open)
     if style=="tsugumori" then test.eq(test.get("notification-summary-1-text").text,"CRITICAL NOTIFICATION") end
+    test.eq(#test.logs("error"),0)
+  end)
+  test.it(style.." stands at a bottom anchor with the newest card nearest the edge",function()
+    load(style,1100,750,"bottom_center")
+    test.ipc("push","Older","First in","2") test.advance(200)
+    test.ipc("push","Newer","Second in","2") test.advance(2400)
+    local panel=test.get("drawer-notifications")
+    test.near(panel.y+panel.height,740,1,"it does not hang from the bottom edge")
+    test.near(panel.x+panel.width/2,550,12,"it is not in the middle")
+    test.truthy(test.get("notification-1").y>test.get("notification-2").y,"the newest is not nearest the edge")
+    test.eq(#test.logs("error"),0)
+  end)
+  test.it(style.." moves along its edge as its setting changes",function()
+    load(style)
+    test.ipc("push","Moving","Along the top","2") test.advance(2400)
+    local right=test.get("notification-1").x
+    test.ipc("place","top_left") test.advance(32)
+    local moving=test.get("notification-1").x
+    test.truthy(moving<right,"it did not start for the left")
+    test.advance(900)
+    local left=test.get("notification-1").x
+    test.truthy(left<moving and left<100,"it did not reach the left")
+    test.eq(#test.logs("error"),0)
+  end)
+  test.it(style.." a swipe sends a card sideways or away from its edge, again and again",function()
+    load(style,1100,750,"top_center")
+    local function card()
+      test.ipc("push","Swipe me","Somewhere","2") test.advance(2400)
+      local node=test.get("notification-1")
+      return node.x+node.width/2,node.y+node.height/2
+    end
+    local function gone() return #test.ipc("state").ids==0 end
+    -- Sideways, either way, on the same slot.
+    for _,side in ipairs {200,-200} do
+      local x,y=card()
+      test.drag({x,y},{x+side/2,y},{steps=6})
+      test.advance(40)
+      test.drag({x,y},{x+side,y},{steps=6})
+      test.advance(600)
+      test.truthy(gone(),"a sideways swipe did not dismiss it")
+    end
+    -- Away from the top edge.
+    local x,y=card()
+    test.press(x,y) test.move(x,y+20) test.move(x,y+60)
+    test.truthy(test.get("notification-1").y>y-200,"it did not follow the finger")
+    test.move(x,y+120) test.release(x,y+120)
+    test.advance(600)
+    test.truthy(gone(),"a swipe away from the edge did not dismiss it")
+    -- Into the edge there is no room: it stays and springs back.
+    x,y=card()
+    test.drag({x,y},{x,y-120},{steps=6}) test.advance(500)
+    test.falsy(gone(),"a swipe into the edge dismissed it")
+    test.eq(#test.logs("error"),0)
+  end)
+  test.it(style.." a short pull springs back and a card follows the finger after a dismissal",function()
+    load(style)
+    test.ipc("push","First","Goes","2") test.advance(2400)
+    local node=test.get("notification-1")
+    local x,y=node.x+node.width/2,node.y+node.height/2
+    test.drag({x,y},{x-200,y},{steps=6}) test.advance(600)
+    test.ipc("push","Second","Stays","2") test.advance(2400)
+    local before=test.get("notification-1").x
+    test.press(x,y) test.move(x-20,y) test.move(x-50,y) test.advance(320)
+    test.near(test.get("notification-1").x,before-50,6,"the slot lost the finger after its first dismissal")
+    test.move(x-40,y) test.release(x-40,y) test.advance(1200)
+    test.near(test.get("notification-1").x,before,1,"a short pull did not spring back")
+    test.eq(#test.ipc("state").ids,1)
     test.eq(#test.logs("error"),0)
   end)
   test.it(style.." dismisses server-owned notifications through the server",function()

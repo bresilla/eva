@@ -5,12 +5,19 @@
   ...
 }:
 let
+  seamless = config.programs.eva.seamless;
+  handoff = ''local handoff = dofile("${./scripts/hyprland-handoff.lua}")'';
+  background =
+    if seamless.enable then
+      ''handoff.background(${builtins.toJSON seamless.colourFile}, "rgb(000000)")''
+    else
+      ''"rgb(000000)"'';
   quietConfig = ''
     hl.config({
         misc = {
             disable_hyprland_logo = true,
             disable_splash_rendering = true,
-            background_color = "rgb(000000)",
+            background_color = ${background},
             disable_watchdog_warning = true,
             disable_xdg_env_checks = true,
         },
@@ -19,6 +26,7 @@ let
   '';
   hyprland = config.programs.hyprland.package;
   desktopConfig = pkgs.writeText "hyprland-session.lua" ''
+    ${handoff}
     local apply_scale = dofile("${./scripts/hyprland-scale.lua}")(
       ${builtins.toJSON config.programs.eva.uiScaleFile}, ${toString config.programs.eva.uiScale})
     local root = (os.getenv("XDG_CONFIG_HOME") or (assert(os.getenv("HOME")) .. "/.config")) .. "/hypr"
@@ -31,11 +39,19 @@ let
     else
       dofile("${hyprland}/share/hypr/hyprland.lua")
     end
+    -- The arrangement eva-displays kept.
+    local state = os.getenv("XDG_STATE_HOME") or (assert(os.getenv("HOME")) .. "/.local/state")
+    local kept = io.open(state .. "/eva/displays/monitors.lua", "r")
+    if kept then
+      kept:close()
+      dofile(state .. "/eva/displays/monitors.lua")
+    end
     ${quietConfig}
     -- A lock screen that dies leaves the session locked; a new one may take over.
     hl.config({ misc = { allow_session_lock_restore = true } })
     ${config.programs.eva.hyprland.extraConfig}
     apply_scale()
+    ${lib.optionalString seamless.enable "handoff.record(${builtins.toJSON seamless.outputsFile})"}
   '';
   desktop =pkgs.writeShellScriptBin "hyprland-session" ''
     exec ${pkgs.systemd}/bin/systemd-cat --identifier=hyprland -- \
@@ -54,18 +70,23 @@ let
           --replace-fail '${hyprland}/bin/start-hyprland' '${desktop}/bin/hyprland-session'
       '';
   cfg = config.programs.eva.greeter;
-  session = pkgs.writeShellScript "eva-greeter-session" ''
-    ${cfg.sessionSetup}
-    ${config.system.build.evaLauncher}/bin/morf greet
-    status=$?
+  greeterExit = pkgs.writeShellScript "eva-greeter-exit" ''
     ${hyprland}/bin/hyprctl dispatch 'hl.dsp.exit()' >/dev/null 2>&1 \
       || ${hyprland}/bin/hyprctl dispatch exit >/dev/null 2>&1
+  '';
+  session = pkgs.writeShellScript "eva-greeter-session" ''
+    ${cfg.sessionSetup}
+    EVA_GREETER_EXIT=${greeterExit} ${config.system.build.evaLauncher}/bin/morf greet
+    status=$?
+    ${greeterExit}
     exit "$status"
   '';
   greeterConfig = pkgs.writeText "eva-greeter.lua" ''
+    ${handoff}
     local apply_scale = dofile("${./scripts/hyprland-scale.lua}")(
       ${builtins.toJSON config.programs.eva.uiScaleFile}, ${toString config.programs.eva.uiScale})
     hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
+    ${lib.optionalString seamless.enable "handoff.adopt(${builtins.toJSON seamless.outputsFile})"}
     ${quietConfig}
     hl.config({
       animations = { enabled = false },
@@ -74,6 +95,8 @@ let
     })
     ${cfg.extraConfig}
     apply_scale()
+    ${lib.optionalString (seamless.enable && seamless.plymouth)
+      ''handoff.announce("eva-greet", ${builtins.toJSON seamless.readyFile})''}
     hl.on("hyprland.start", function()
       hl.exec_cmd("${session}")
     end)

@@ -61,10 +61,11 @@ local function two_up(x, y, y2, lag)
   test.touch("up", 10, x, y - 6 * lag - 160) test.touch("up", 11, x + 70, y2 - 160) test.advance(1000)
 end
 
--- The middle of what drawer `name` shows.
+-- The middle of what drawer `name` shows; on the sidebar, below its sliders,
+-- since a sideways drag on a slider is the slider's.
 local function middle(name)
   local r = test.get("drawer-" .. name)
-  return r.x + r.width / 2, r.y + r.height / 2
+  return r.x + r.width / 2, r.y + r.height * (name == "sidebar" and 0.8 or 0.5)
 end
 
 local function pull_and_back(name, from, to, back)

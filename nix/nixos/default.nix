@@ -22,6 +22,8 @@ let
       lib.concatMapStringsSep ":" toString config.programs.eva.runtimePaths
     }''${MORF_RUNTIME_PATH:+:$MORF_RUNTIME_PATH}"
     export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${shell}/bin/eva-keyring}"
+    # morf as a client, outside any tool.
+    unset MORF_APP
     export EVA_SCALE_MODE=compositor
     export EVA_SCALE_FILE="''${EVA_SCALE_FILE:-${config.programs.eva.uiScaleFile}}"
     export EVA_SCALE_DEFAULT="''${EVA_SCALE_DEFAULT:-${toString config.programs.eva.uiScale}}"
@@ -94,6 +96,18 @@ let
     export XDG_CONFIG_DIRS=/etc/xdg
     exec ${morf}/bin/morf "$fallback"
   '';
+  # The tools and the command line, reaching morf through the launcher above.
+  tools =pkgs.runCommand "eva-tools" { } ''
+    mkdir -p "$out/bin" "$out/share"
+    for tool in ${shell}/bin/eva ${shell}/bin/eva-*; do
+      name=$(basename "$tool")
+      [ "$name" = eva-keyring ] && continue
+      printf '#!%s\nexport MORF="''${MORF:-%s}"\nexec %s "$@"\n' \
+        ${pkgs.runtimeShell} ${morfDefault}/bin/morf "$tool" > "$out/bin/$name"
+      chmod +x "$out/bin/$name"
+    done
+    ln -s ${shell}/share/applications "$out/share/applications"
+  '';
   greeterAccess = pkgs.writeShellScript "eva-greeter-access" ''
     # No write access, and no directory listing outside the eva tree.
     home=$(${pkgs.coreutils}/bin/readlink -e ${lib.escapeShellArg userHome}) || exit 0
@@ -137,13 +151,17 @@ let
     export EVA_GREETER_APPEARANCE=${lib.escapeShellArg "${userHome}/.local/state/eva/appearance/appearance.json"}
     export XDG_CONFIG_DIRS=${lib.escapeShellArg "${userHome}/.config:/etc/xdg"}
     export XDG_DATA_DIRS=${config.services.displayManager.sessionData.desktops}/share:/run/current-system/sw/share
+    ${lib.optionalString config.programs.eva.seamless.enable ''
+      ${config.system.build.evaVt}
+      export EVA_SESSION_WRAPPER=${config.system.build.evaSession}
+    ''}
     exec ${config.system.build.evaGreeterCompositor}
   '';
   scaleDirectory = "/var/lib/eva/ui-scale/${user}";
   directory = "/var/lib/eva/wallpaper/${user}";
   lule = config.programs.eva.lulePackage;
   bridge = pkgs.writeShellScriptBin "eva-wallpaper" ''
-    exec ${pkgs.python3}/bin/python3 ${./scripts/wallpaper.py} "$@"
+    exec ${pkgs.python3.withPackages (python: [ python.pillow ])}/bin/python3 ${./scripts/wallpaper.py} "$@"
   '';
   # A minimal greeter-only palette config: user hooks belong to their session.
   luleConfig = pkgs.writeTextDir "init.lua" ''
@@ -163,6 +181,7 @@ in
     ./compositor.nix
     ./idle.nix
     ./phone.nix
+    ./seamless.nix
   ];
 
   options.programs.eva = {
@@ -212,6 +231,12 @@ in
     default = "${scaleDirectory}/scale.json";
     description = "Shared, user-writable UI scale preference readable by the greeter.";
   };
+  options.programs.eva.rotation.enable = lib.mkOption {
+    type = lib.types.bool;
+    default = config.programs.eva.phone.enable;
+    defaultText = lib.literalExpression "config.programs.eva.phone.enable";
+    description = "Read the accelerometer, for auto-rotate and the rotation lock tile.";
+  };
   options.programs.eva.runtimePaths = lib.mkOption {
     type = lib.types.listOf lib.types.path;
     default = [ "${config.programs.eva.package}/share/morf/library" ];
@@ -237,7 +262,13 @@ in
       environment.systemPackages = [
         (lib.hiPrio morfDefault)
         bridge
+        pkgs.hyprsunset
+        tools
       ];
+      hardware.sensor.iio.enable = lib.mkIf config.programs.eva.rotation.enable true;
+      services.power-profiles-daemon.enable = lib.mkIf (
+        !config.services.tlp.enable && !config.services.auto-cpufreq.enable
+      ) (lib.mkDefault true);
       system.build.evaLauncher = morfDefault;
       system.build.evaGreeter = greeter;
       system.build.evaGreeterAccess = greeterAccess;
@@ -304,6 +335,17 @@ in
           ExecStartPre = "-${bridge}/bin/eva-wallpaper adopt";
           ExecStart = "${morfDefault}/bin/morf shell";
           ExecStopPost = "-${bridge}/bin/eva-wallpaper publish";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
+      systemd.user.services.eva-clipboard = {
+        description = "eva clipboard history";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        serviceConfig = {
+          ExecStart = "${tools}/bin/eva-clipboard --watch";
           Restart = "on-failure";
           RestartSec = 2;
         };

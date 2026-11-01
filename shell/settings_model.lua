@@ -41,6 +41,61 @@ function M.run(name)
   return true
 end
 
+--- Whether the command kept under `name` has something to run: its first
+--- word on PATH and, for `hyprctl`, a Hyprland to talk to.
+function M.can_run(name)
+  local words = config.get("utilities.commands." .. name)
+  if type(words) ~= "table" or #words == 0 then return false end
+  local program = tostring(words[1])
+  if program == "hyprctl" and not (services.hyprland and services.hyprland.available()) then return false end
+  return services.installed ~= nil and services.installed(program)
+end
+
+--- The quick settings' panel shut, as what a tile starts takes the screen.
+function M.close_panel() require("sidebar").drawer.set(false) end
+
+--- A screenshot of a region, once the panel is out of the way.
+function M.shoot()
+  local capture = require("capture")
+  M.close_panel()
+  if capture.shoot then capture.shoot("region") end
+end
+
+--- A recording of the chosen target started, or the one running stopped.
+function M.record()
+  local capture = require("capture")
+  M.close_panel()
+  if capture.record then capture.record(capture.target and capture.target:get() or "screen") end
+end
+
+-- The session row: Lock acts at once, what ends the session must be held.
+M.SESSION = {
+  { id = "lock", icon = "lock", name = "Lock", tone = "accent" },
+  { id = "logout", icon = "logout", name = "Log out", hold = true },
+  { id = "suspend", icon = "bedtime", name = "Suspend", hold = true, tone = "accent" },
+  { id = "reboot", icon = "restart_alt", name = "Restart", hold = true },
+  { id = "shutdown", icon = "power_settings_new", name = "Power off", hold = true },
+}
+
+--- Whether the session action `id` has a command to run.
+function M.session_available(id)
+  local words = config.get("session.commands." .. id)
+  return type(words) == "table" and #words > 0
+end
+
+--- Who is signed in: `label` (the name to show) and `face` (a picture, or nil).
+function M.session_user()
+  local ok, me = pcall(function() return require("lib.services.accounts").me() end)
+  if ok and me then return me end
+  return { label = morf.env("USER") or "user" }
+end
+
+--- Runs session action `id` (shell/session.lua's commands) as the panel shuts.
+function M.session_run(id)
+  M.close_panel()
+  return require("session").run(id)
+end
+
 -- ------------------------------------------------------------ keep awake --
 
 M.awake = require("themes.session").keep("eva.utilities.awake", false)
@@ -184,8 +239,12 @@ M.TOGGLES = {
   },
   {
     -- Wired: the first wired port's state, a click connects or disconnects
-    -- it; ">" lists every port.
+    -- it; ">" lists every port. Without a port it is not offered.
     id = "wired", name = "Wired", detail = "wired",
+    present = function()
+      local n = services.net
+      return n ~= nil and n.state.available == true and n.state.wired.device ~= ""
+    end,
     icon = function()
       local n = services.net
       return (n and n.state.available and n.state.wired.carrier == false) and "settings_ethernet" or "lan"
@@ -212,9 +271,13 @@ M.TOGGLES = {
     end,
   },
   {
-    -- A phone's mobile data. Without a modem it says so, crossed out; its
-    -- page has the rest of it (roaming, network mode and 5G, the SIM).
+    -- A phone's mobile data, offered once a modem is there; its page has the
+    -- rest of it (roaming, network mode and 5G, the SIM).
     id = "mobile", name = "Mobile data", detail = "mobile",
+    present = function()
+      local m = services.modem
+      return m ~= nil and m.state.available == true
+    end,
     icon = function()
       local m = services.modem
       if not (m and m.state.available) then return "signal_cellular_nodata" end
@@ -363,6 +426,7 @@ M.TOGGLES = {
   {
     -- How it calls for attention: sound, vibrate (on a phone) or silent.
     id = "ringer", name = "Ring mode",
+    present = function() return services.ringer ~= nil end,
     icon = function()
       local r = services.ringer
       return require("lib.shell.audio.ringer").icon(r and r.state.mode or "sound")
@@ -402,56 +466,51 @@ M.TOGGLES = {
 M.detail = require("themes.session").keep("eva.settings.detail", "")
 if M.detail:get()=="tor" then M.detail:set("tunnel") end
 
--- Focus is one entry point; each setting remains independent inside it.
+-- The catalogue: every tile a machine could show. Which are shown, in what
+-- order and at what size is the board's (`M.tiles`).
 -- Retain the raw controls for the detail page, before overview read caching.
 M.CONTROLS={}
 do
-  local kept = {}
-  for _, t in ipairs(M.TOGGLES) do
-    M.CONTROLS[t.id]=t
-    if t.id=="awake" then
-      kept[#kept+1]={id="focus",name="Focus",detail="focus",
-        icon=function()
-          if notifs.dnd:get() then return "notifications_off" end
-          if M.awake:get() then return "coffee" end
-          return "tune"
-        end,
-        on=function() return M.awake:get() or notifs.dnd:get() or M.CONTROLS.ringer.on() end,
-        set=function() M.detail:set("focus") end,
-        status=function()
-          local names={}
-          if M.awake:get() then names[#names+1]="Awake" end
-          if M.CONTROLS.ringer.on() then names[#names+1]=M.CONTROLS.ringer.status() end
-          if notifs.dnd:get() then names[#names+1]="DND" end
-          return #names>0 and table.concat(names," · ") or "Sound · Normal sleep"
-        end}
-    elseif t.id~="ringer" and t.id~="dnd" and t.id~="tor" and t.id~="bar" and (not t.present or t.present()) then
-      kept[#kept + 1] = t
-    end
-  end
-  -- The theme: the tile switches dark and light; its page has that, and
-  -- Lule (wallpaper, colours, the shell's theme and font) one page in.
+  for _, t in ipairs(require("quick_tiles").list(M, local_state.gamemode)) do M.TOGGLES[#M.TOGGLES + 1] = t end
+  for _, t in ipairs(M.TOGGLES) do M.CONTROLS[t.id]=t end
+  -- Focus is one entry point; each setting remains independent inside it.
+  M.TOGGLES[#M.TOGGLES + 1] = {id="focus",name="Focus",detail="focus",
+    icon=function()
+      if notifs.dnd:get() then return "notifications_off" end
+      if M.awake:get() then return "coffee" end
+      return "tune"
+    end,
+    on=function() return M.awake:get() or notifs.dnd:get() or M.CONTROLS.ringer.on() end,
+    set=function() M.detail:set("focus") end,
+    status=function()
+      local names={}
+      if M.awake:get() then names[#names+1]="Awake" end
+      if M.CONTROLS.ringer.on() then names[#names+1]=M.CONTROLS.ringer.status() end
+      if notifs.dnd:get() then names[#names+1]="DND" end
+      return #names>0 and table.concat(names," · ") or "Sound · Normal sleep"
+    end}
+  -- The theme: the tile flips dark and light and never lights; its page has
+  -- that, and Lule (wallpaper, colours, the shell's theme and font) one page in.
   local color_mode = require("themes.color_mode")
   local function dark()
     local tool = require("terminal_colors").current:get()
     return color_mode.resolve(tool and tool.mode) ~= "light"
   end
-  kept[#kept + 1] = { id = "theme", name = "Theme", detail = "theme",
+  M.TOGGLES[#M.TOGGLES + 1] = { id = "theme", name = "Theme", detail = "theme",
     icon = function() return dark() and "dark_mode" or "light_mode" end,
-    on = dark,
+    on = function() return false end,
     set = function() color_mode.set(dark() and "light" or "dark") end,
     status = function()
       return (dark() and "Dark" or "Light") .. (color_mode.chosen() == "auto" and " · Auto" or "")
     end }
   -- The shell itself: the bar, and how its panels open.
-  kept[#kept + 1] = { id = "eva", name = "Eva", detail = "eva", icon = "dashboard_customize",
-    on = function() return M.edge_hover() end,
+  M.TOGGLES[#M.TOGGLES + 1] = { id = "eva", name = "Eva", detail = "eva", icon = "dashboard_customize",
+    on = function() return false end,
     set = function() M.detail:set("eva") end,
     status = function()
       local b = require("bar")
       return (b.on() and "Bar " .. b.side() or "No bar") .. " · " .. (M.edge_hover() and "Hover" or "Click")
     end }
-  M.TOGGLES = kept
 end
 
 --- Whether the panels open as the pointer reaches their edge; off, a press
@@ -473,7 +532,9 @@ M.DETAILS = {
   {key="mobile",name="Mobile networks"},
   {key="sound",name="Sound"}, {key="microphone",name="Microphone"},
   {key="power",name="Power"}, {key="eva",name="Eva"}, {key="bar",name="Bar",parent="eva"}, {key="wired",name="Wired"},
+  {key="osd",name="On-screen displays",parent="eva"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
+  {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},
   {key="sound/equalizer",name="Equalizer",parent="sound"},
   {key="sound/equalizer/audiogram",name="Audiogram",parent="sound/equalizer"},
@@ -498,12 +559,18 @@ local function reading(fn, initial, active)
     return cached
   end
 end
-for _, toggle in ipairs(M.TOGGLES) do
-  toggle.on=reading(toggle.on,false)
-  if toggle.status then toggle.status=reading(toggle.status,nil) end
-  if type(toggle.icon)=="function" then toggle.icon=reading(toggle.icon,"") end
-  if toggle.glyph then toggle.glyph=reading(toggle.glyph,require("battery_status_model").NONE) end
+-- Each tile reads through a cache; `M.CONTROLS` keeps the live controls.
+for index, control in ipairs(M.TOGGLES) do
+  local toggle={}
+  for key, value in pairs(control) do toggle[key]=value end
+  toggle.on=reading(control.on,false)
+  if control.status then toggle.status=reading(control.status,nil) end
+  if type(control.icon)=="function" then toggle.icon=reading(control.icon,"") end
+  if control.present then toggle.present=reading(control.present,false) end
+  if control.glyph then toggle.glyph=reading(control.glyph,require("battery_status_model").NONE) end
+  M.TOGGLES[index]=toggle
 end
+M.tiles=require("tiles_model").new(M.TOGGLES,function() return require("responsive").form_factor() end)
 M.focus={}
 local function focus_active() return M.opened:get() and M.displayed:get()=="focus" end
 for _,id in ipairs {"awake","ringer","dnd"} do

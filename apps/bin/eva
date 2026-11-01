@@ -1,0 +1,127 @@
+#!/bin/sh
+# eva: the shell from a command line, the front door for keybindings.
+#
+#   eva VERB [ARGS]         a verb of the running shell
+#   eva open TARGET         a deep link: settings/power, sidebar/notifications,
+#                           bottom/drop, or a tool such as displays
+#   eva commands [--json]   the verbs, with what each one takes
+#   eva tools               the tools of this install
+#
+# MORF is the binary (default: morf on PATH).
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+verbs() {
+  cat <<'VERBS'
+launcher|toggle, open or close|The application launcher
+dashboard|toggle, open or close|The dashboard
+session|toggle, open or close|The session menu
+sidebar|HOW [TAB]|The right panel: settings or notifications
+utilities|toggle, open or close|The quick settings
+settings|[PAGE]|A page of Settings
+leftbar|HOW [TAB]|The left panel: tasks or calendar
+tasks|toggle, open or close|The tasks
+calendar|toggle, open or close|The calendar
+capture|toggle, open or close|The capture panel
+screenshot|region, window or screen [quick]|Take a screenshot
+record|region, window or screen|Start or stop a recording
+bottom|HOW [TAB]|The bottom workspace: assistant or drop
+assistant|toggle, open or close|The assistant
+lule|toggle, open or close|The colour tool's panel
+osd|volume, brightness or microphone|Show the on-screen display
+notify|SUMMARY [BODY URGENCY APP]|Post a notification
+workspace|N|Go to workspace N
+window_menu|toggle, open or close|The window menu
+appearance|material, tsugumori, font:NAME or state|Change or read the theme
+scale|VALUE|The interface scale, from -1 to 1
+screen|-|The screen the shell runs on
+drawers|list, or HOW NAME|The open drawers, or one drawer by name
+close|-|Shut every drawer
+reload|-|Reload the shell
+VERBS
+}
+
+# A JSON string for one line of plain text.
+quoted() {
+  printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
+}
+
+# The verbs the shell answers, one to a line, from its JSON reply.
+live_verbs() {
+  eva_morf ipc verbs 2>/dev/null | sed -e 's/.*"result":\[//' -e 's/\].*//' | tr ',' '\n' | tr -d '"' || true
+}
+
+commands_text() {
+  verbs | while IFS='|' read -r verb takes what; do
+    printf '%-14s %-36s %s\n' "$verb" "$takes" "$what"
+  done
+}
+
+commands_json() {
+  live=$(live_verbs)
+  sep=""
+  printf '['
+  verbs | {
+    while IFS='|' read -r verb takes what; do
+      available=false
+      if printf '%s\n' "$live" | grep -qx -- "$verb"; then available=true; fi
+      printf '%s{"verb":%s,"takes":%s,"description":%s,"available":%s}' \
+        "$sep" "$(quoted "$verb")" "$(quoted "$takes")" "$(quoted "$what")" "$available"
+      sep=","
+    done
+    printf ']\n'
+  }
+}
+
+tools() {
+  for folder in "$apps"/*/; do
+    if [ -f "$folder/app.lua" ]; then basename "$folder"; fi
+  done
+}
+
+need_shell() {
+  if ! eva_shell_up; then
+    eva_say "the shell is not running"
+    exit 1
+  fi
+}
+
+open_target() {
+  case "$1" in
+    settings/*) need_shell; eva_ipc settings "${1#settings/}" ;;
+    sidebar/*) need_shell; eva_ipc sidebar open "${1#sidebar/}" ;;
+    leftbar/*) need_shell; eva_ipc leftbar open "${1#leftbar/}" ;;
+    bottom/*) need_shell; eva_ipc bottom open "${1#bottom/}" ;;
+    */*) eva_say "no such target: $1"; exit 1 ;;
+    settings) need_shell; eva_ipc settings ;;
+    launcher | dashboard | session | utilities | capture | lule | tasks | calendar | assistant)
+      need_shell
+      eva_ipc "$1" open
+      ;;
+    *)
+      if [ -f "$apps/$1/app.lua" ]; then exec sh "$apps/launch" "$1"; fi
+      eva_say "no such target: $1"
+      exit 1
+      ;;
+  esac
+}
+
+case "${1:-help}" in
+  help | -h | --help)
+    sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
+    ;;
+  commands)
+    if [ "${2:-}" = --json ]; then commands_json; else commands_text; fi
+    ;;
+  tools)
+    tools
+    ;;
+  open)
+    open_target "${2:?usage: eva open TARGET}"
+    ;;
+  *)
+    need_shell
+    eva_ipc "$@"
+    ;;
+esac

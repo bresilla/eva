@@ -19,6 +19,7 @@ local generation,rendering=0,false
 local picker_done
 function M.running() return M.active:get() or M.pending:get() end
 M.tools=annotation.tools
+M.readers=morf.signal("eva.capture.readers",require("lib.shell.capture.read").available())
 -- The marker inks a mark may take: document content, not theme chrome, so
 -- they are the same in every theme (the first is the configured default).
 M.COLOURS={"#ef5350","#ff9800","#ffeb3b","#66bb6a","#26c6da","#5c6bc0","#ffffff","#202020"}
@@ -192,11 +193,24 @@ function M.start(target,done)
   if target~="screen" and #(morf.screens or {})>1 and session.desktop then session.desktop(morf.screens,captured)
   else session.snapshot(screen.name,captured) end
 end
+local function last_region_path()
+  return (morf.env("XDG_STATE_HOME") or (morf.fs.home().."/.local/state")).."/eva/capture/last-region"
+end
+--- The crop saved as "X,Y WxH" in layout pixels, as slurp prints a region.
+local function remember_region()
+  local d,s=M.document,output
+  if not d or not s or not (s.width and s.width>0) then return end
+  local factor=d.width/s.width local c=d.crop
+  local function whole(value) return math.floor(value+.5) end
+  local line=("%d,%d %dx%d"):format(whole((s.x or 0)+c.x/factor),whole((s.y or 0)+c.y/factor),whole(c.w/factor),whole(c.h/factor))
+  morf.fs.write(last_region_path(),line,{atomic=true,parents=true})
+end
 function M.confirm_selection()
   if not M.document then return end
   if not selection_confirmed then
     M.document.undo_stack={} M.document.redo_stack={} selection_confirmed=true
   end
+  remember_region()
   M.phase:set("editing") M.hovered:set(false) M.toolbar:set({x=0,y=0})
   M.status:set("") M.tools_open:set(false) M.more_open:set(false)
   M.hint:set("")
@@ -208,6 +222,35 @@ function M.select_screen()
   d.set_crop(((screen.x or 0)-(s.x or 0))*factor,((screen.y or 0)-(s.y or 0))*factor,
     (screen.width or d.width)*factor,(screen.height or d.height)*factor)
   M.confirm_selection()
+end
+--- The editor on a picture that already exists, all of it selected. Answers
+--- ok, why.
+function M.open_file(path,done)
+  local info,why=morf.image.info(path)
+  if not info then
+    if done then done(false,why) end
+    return false,why
+  end
+  if session then M.cancel() end
+  generation=generation+1
+  session=backend.session {cursor=false}
+  M.windows={} M.target="screen"
+  M.load(path,info.width,info.height,{x=0,y=0,width=info.width,height=info.height},done,path)
+  M.document.set_crop(0,0,info.width,info.height,false)
+  M.confirm_selection()
+  return true
+end
+--- The region last confirmed, selected again. Answers whether there was one.
+function M.restore_last()
+  local d,s=M.document,output
+  if not d or not s then return false end
+  local text=morf.fs.read(last_region_path()) or ""
+  local x,y,w,h=tostring(text):match("^(%-?%d+),(%-?%d+) (%d+)x(%d+)")
+  if not x then return false end
+  local factor=d.width/(s.width or d.width)
+  d.set_crop((tonumber(x)-(s.x or 0))*factor,(tonumber(y)-(s.y or 0))*factor,tonumber(w)*factor,tonumber(h)*factor)
+  M.confirm_selection()
+  return true
 end
 function M.reselect()
   if not M.document or M.busy:get() then return end
@@ -457,6 +500,7 @@ function M.export(action)
         if config.get("capture.save_dialog") then M.pick_open("save",output_name(),function(target) if current==generation then save(target,config.get("capture.copy_on_save")) end end)
         else save(output_name(),config.get("capture.copy_on_save")) end
       elseif action=="upload" then backend.upload(path,config.get("capture.upload_endpoint"),complete)
+      elseif action=="ocr" or action=="qr" then require("lib.shell.capture.read").read(action,path,complete)
       else complete(false,"Unknown export action") end
     end)
   end

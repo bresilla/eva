@@ -1,0 +1,17 @@
+# The on-screen displays: each family at each kind of place, the popups at a
+# bottom anchor, and the Settings page.
+export EVA_FAKE_OSD=1
+export EVA_FAKE_ART=$SEE_EVA/tests/fixtures/wallpaper.png
+start shell
+shot rest
+ipc osd volume; pause 0.9; shot volume
+ipc osd mic; pause 0.9; shot volume-and-mic
+pause 3.5
+ipc osd media; pause 0.9; shot media
+ipc osd headphones; pause 0.9; shot media-and-headphones
+pause 4
+ipc notify "A message" "Something happened and it is worth a look" normal Eva; pause 1; shot notification
+pause 5
+ipc settings osd; pause 1.4; shot settings
+ipc close; pause 0.8
+stop
