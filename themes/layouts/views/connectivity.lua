@@ -8,6 +8,7 @@
 
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local P = require("themes.layouts.page")
@@ -509,7 +510,7 @@ local function mobile_page(model,w,h)
           return P.row {id="mobile-operator-row-"..i,width=rw,icon="cell_tower",
             on=function() return n().availability=="current" end,
             title=function() return n().name or "" end,
-            subtitle=function() return (n().technology or ""):upper().." · "..(n().availability or "") end,
+            subtitle=function() return unicase.upper(n().technology or "").." · "..(n().availability or "") end,
             on_clicked=function() if n().code then model.register(n().code) end end}
         end,"Scan to list the networks nearby",16),
         P.buttons {width=inner,

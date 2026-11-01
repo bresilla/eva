@@ -8,6 +8,7 @@
 -- the configuration's; what it accepts, the archetype's.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local stripes = require("themes.tsugumori.stripes")
 local stroke = require("themes.tsugumori.strokes")
 
@@ -83,7 +84,7 @@ return function(S, theme, M, hud)
     local lh = math.ceil(size * 1.4)
     local function up() return always or t.focused or not t.empty or spec.tags ~= nil end
     local function rest() return math.floor((box(t, spec) - lh) / 2) end
-    return M.text { text = function() return tostring(get(spec.label) or ""):upper() end,
+    return M.text { text = function() return unicase.upper(tostring(get(spec.label) or "")) end,
       x = l, height = lh, font_size = size, font_weight = 500,
       width=function() return math.max(1e-3,t.width-l-r) end,elide="right",
       letter_spacing = 0.8, vertical_alignment = "center", transform_origin_x = 0, transform_origin_y = 0, z = 8,
@@ -198,7 +199,7 @@ return function(S, theme, M, hud)
       fill_color = "transparent", stroke_width = 1, stroke_color = function() return stroke(C, "idle") end })
     if spec.unit then
       local _, top, _, bottom = sides(spec.inset)
-      s.trailing = M.text { text = tostring(spec.unit):upper(), anchors = { right = true, right_margin = 14 }, height = 20,
+      s.trailing = M.text { text = unicase.upper(tostring(spec.unit)), anchors = { right = true, right_margin = 14 }, height = 20,
         y = function() return top + math.floor((box(t, spec) - top - bottom - 20) / 2) end,
         font_size = theme.typography.menu, vertical_alignment = "center",
         color = function() return C.onSurfaceVariant end }
@@ -240,7 +241,7 @@ return function(S, theme, M, hud)
     local l = sides(spec.inset)
     local row = { x = l, y = 24, gap = 6 }
     for _, tag in ipairs(spec.tags or {}) do
-      local text = M.text { text = tostring(tag):upper(), x = 11, height = 24, vertical_alignment = "center",
+      local text = M.text { text = unicase.upper(tostring(tag)), x = 11, height = 24, vertical_alignment = "center",
         font_size = theme.typography.menu, letter_spacing = 0.5, color = function() return C.onSurface end }
       row[#row + 1] = ui.Rect { height = 24, accessible_name = tostring(tag),
         width = function() return (text.layout_width or 0) + 34 end,
@@ -362,8 +363,8 @@ return function(S, theme, M, hud)
     Escape = "Esc", BackSpace = "Bksp", Delete = "Del", Page_Up = "PgUp", Page_Down = "PgDn",
     Left = "←", Right = "→", Up = "↑", Down = "↓" }
   local function legend(part)
-    if LEGEND[part] then return LEGEND[part]:upper() end
-    return (part:gsub("_", " ")):upper()
+    if LEGEND[part] then return unicase.upper(LEGEND[part]) end
+    return unicase.upper((part:gsub("_", " ")))
   end
   local function chord_parts(text)
     local out = {}
@@ -416,14 +417,14 @@ return function(S, theme, M, hud)
           border_width = 1, border_color = edge, behavior = { border_color = quick } },
         caps },
       placeholder = M.text { x = 14, height = 20, y = function() return math.floor((h() - 20) / 2) end,
-        text = function() return t.focused and "PRESS KEYS…" or tostring(spec.placeholder or "None"):upper() end,
+        text = function() return t.focused and "PRESS KEYS…" or unicase.upper(tostring(spec.placeholder or "None")) end,
         font_size = theme.typography.menu, font_weight = 500, color = function() return C.onSurfaceVariant end,
         opacity = function() return (t.text or "") == "" and 1 or 0 end, behavior = { opacity = quick } },
       trailing = ui.Row { anchors = { right = true, right_margin = 12 }, gap = 6, align = "center", height = 20,
         y = function() return math.floor((h() - 20) / 2) end,
         opacity = function() return warned() and 1 or 0 end, behavior = { opacity = quick },
         ui.Rect { width = 8, height = 8, color = alert },
-        M.text { text = function() return tostring(t.conflict or ""):upper() end, font_size = theme.typography.menu,
+        M.text { text = function() return unicase.upper(tostring(t.conflict or "")) end, font_size = theme.typography.menu,
           font_weight = 500, color = alert } },
       error = ui.Item { anchors = { left = true, right = true, top = true }, height = h,
         hud().corners { length = 7, weight = 2, color = function() return warned() and alert() or C.primary end,

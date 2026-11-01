@@ -2,6 +2,7 @@
 -- `mimeinfo.cache` every applications folder keeps says who can.
 local morf = require("morf")
 local host = require("lib.services.host")
+local unicase = require("lib.util.unicase")
 
 local M = {}
 
@@ -66,7 +67,7 @@ end
 local function named(id, entries)
   local entry = entries and entries[id]
   if entry then return entry.name, entry.icon end
-  return (id:gsub("%.desktop$", ""):gsub("^.*%.", ""):gsub("^%l", string.upper))
+  return unicase.capitalise((id:gsub("%.desktop$", ""):gsub("^.*%.", "")))
 end
 
 --- The apps that can open `kind`, `{ key, id, name, icon, words }`.

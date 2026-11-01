@@ -3,6 +3,7 @@
 -- through a portal (Flatpak, Snap): a native program never appears in it.
 local host = require("lib.services.host")
 local dbus_client = require("lib.services.dbus")
+local unicase = require("lib.util.unicase")
 
 local M = {}
 
@@ -86,7 +87,7 @@ end
 --- An app id as a name: its last part.
 function M.app_name(id)
   local last = tostring(id):match("([^%.]+)$") or tostring(id)
-  return last:sub(1, 1):upper() .. last:sub(2)
+  return unicase.capitalise(last)
 end
 
 return M

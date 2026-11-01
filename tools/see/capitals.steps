@@ -1,0 +1,8 @@
+# Names past ASCII where a theme shows capitals: the colour schemes by name and
+# a notification in Albanian, Greek and Cyrillic.
+start shell
+drawn
+ipc settings theme/look; pause 2.6; shot schemes
+ipc close; pause 0.8
+ipc notify "Rosé Pine, një çelës për këtë" "Çajupi, Ελληνικά, Жанна" normal "Çelësat"; pause 2; shot notification
+stop

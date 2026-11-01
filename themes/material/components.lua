@@ -4,6 +4,7 @@
 local morf = require("morf")
 local ui = require("morf.ui")
 local channel = require("lib.util.channel")
+local unicase = require("lib.util.unicase")
 return function(theme)
 
 local M = {}
@@ -563,10 +564,7 @@ M.bytes = common.bytes
 
 local function settle() return { duration = theme.duration.large, easing = theme.ease.emphasized_decel } end
 local function spatial(ms) return { duration = ms or 500, easing = theme.ease.spatial } end
-local function sentence(s)
-  s = tostring(s or "")
-  return s:sub(1, 1):upper() .. s:sub(2):lower()
-end
+local function sentence(s) return unicase.capitalise(unicase.lower(tostring(s or ""))) end
 
 -- ------------------------------------------------------- colour and ink --
 

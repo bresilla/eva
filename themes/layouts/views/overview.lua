@@ -5,6 +5,7 @@
 -- closes as they land. Only kit calls and theme tokens draw.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local L = require("themes.layouts.parts")
@@ -264,7 +265,7 @@ function V.build(model)
       on_clicked = function() model.choose_layout(layout) end,
       kit.surface { anchors = { fill = true }, radius = L.control_round(S.TARGET),
         color = function() return chosen() and C.secondaryContainer or C.surfaceContainerHigh end },
-      L.label { anchors = { center_in = true }, text = layout:gsub("^%l", string.upper),
+      L.label { anchors = { center_in = true }, text = unicase.capitalise(layout),
         color = function() return chosen() and C.onSecondaryContainer or C.onSurfaceVariant end } }
   end
   local function pad_delegate(row)

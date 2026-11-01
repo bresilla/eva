@@ -13,6 +13,7 @@
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
+local unicase = require("lib.util.unicase")
 
 local M = {}
 
@@ -66,7 +67,7 @@ function M.new(spec)
       and "secure_overlay" or "local_control" }
   end
   -- A landmark a screen reader walks: what the drawer is, by name.
-  local landmark = LANDMARKS[spec.name] or { "region", spec.name:sub(1, 1):upper() .. spec.name:sub(2) }
+  local landmark = LANDMARKS[spec.name] or { "region", unicase.capitalise(spec.name) }
   props.accessible_role = props.accessible_role or spec.role or landmark[1]
   props.accessible_name = props.accessible_name or spec.title or landmark[2]
   if landmark[1] == "dialog" or landmark[1] == "alert_dialog" then props.accessible = { modal = true } end

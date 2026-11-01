@@ -4,6 +4,7 @@ local morf=require("morf")
 local kit=require("kit")
 local theme=require("theme")
 local config=require("config")
+local unicase=require("lib.util.unicase")
 local C=theme.color
 local V={}
 -- The dimming over what is outside the crop, and behind the picker.
@@ -129,11 +130,11 @@ function V.build(M)
       y=function() return math.floor((i-1)/columns())*62 end,
       width=function() return cell_width()-6 end,height=56,cursor="pointer",
       on_clicked=function() M.choose(t[1]) end,
-      on_entered=function() M.hint:set(t[2].." · "..t[3]:upper()) end,
+      on_entered=function() M.hint:set(t[2].." · "..unicase.upper(t[3])) end,
       on_exited=function() M.hint:set("") end,
       kit.icon(t[4],22,ink,{anchors={horizontal_center=true},y=7,fill=on}),
       kit.text {text=t[2],font_size=12,font_weight=500,color=ink,anchors={horizontal_center=true},y=34},
-      kit.label {text=t[3]:upper(),font_size=9,color=function() return C.onSurfaceVariant:alpha(.6) end,
+      kit.label {text=unicase.upper(t[3]),font_size=9,color=function() return C.onSurfaceVariant:alpha(.6) end,
         anchors={right=true,right_margin=8},y=5},
     }
     kit.hover(area,function(hovered) return on() and C.primaryContainer or C.primary:alpha(hovered and .10 or .025) end,12)

@@ -2,6 +2,7 @@
 -- row per app at `senders`, one line at `count`, nothing at `none`. `dots` is
 -- one mark per app. Everything drawn here comes from the model; a sender's
 -- icon is never loaded, only the first letter of its name.
+local unicase = require("lib.util.unicase")
 local M = {}
 
 local function ago(time, now)
@@ -24,7 +25,7 @@ function M.build(view, spec)
         color = C.onSecondaryContainer,
         text = function()
           local got = item(i)
-          return got and (got.app or "?"):sub(1, 1):upper() or ""
+          return got and unicase.upper(unicase.first(got.app or "?")) or ""
         end } }
   end
   local function card(i)

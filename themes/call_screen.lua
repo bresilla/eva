@@ -12,6 +12,7 @@
 -- the orb and runs into the target it reaches.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local S = require("themes.spacing")
 
 local M = {}
@@ -218,7 +219,7 @@ function M.build(spec)
   local function initial()
     local row = phone.current()
     if not row or row.name == "" then return "" end
-    return utf8.char(utf8.codepoint(row.name, 1)):upper()
+    return unicase.upper(unicase.first(row.name))
   end
   local face = compact and S.TOUCH + S.s or M.AVATAR
   local avatar = ui.Item { id = "call-avatar", width = face, height = face,

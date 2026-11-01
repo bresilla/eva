@@ -10,6 +10,7 @@
 -- tsugumori's; only the style differs.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 
 return function(S, theme, M)
   local function C() return theme.color end
@@ -51,7 +52,7 @@ return function(S, theme, M)
     for i = 1, #name do h = (h * 31 + name:byte(i)) % 997 end
     return TONES[h % #TONES + 1]
   end
-  local function initial(name) return (tostring(name or "?"):match("[%w]") or "?"):upper() end
+  local function initial(name) return unicase.initial(tostring(name or "?")) end
   local function show(v)
     if type(v) ~= "number" then return tostring(v == nil and "" or v) end
     if v == math.floor(v) and math.abs(v) < 1e15 then

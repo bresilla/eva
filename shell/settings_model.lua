@@ -3,6 +3,7 @@ local morf = require("morf")
 local config = require("config")
 local services = require("services")
 local notifs = require("notifs")
+local unicase = require("lib.util.unicase")
 local M = {}
 local function dry_run()
   local v = morf.env and morf.env("EVA_DRY_RUN")
@@ -440,7 +441,7 @@ M.TOGGLES = {
     status = function()
       local r = services.ringer
       local mode = r and r.state.mode or "sound"
-      return mode:sub(1, 1):upper() .. mode:sub(2)
+      return unicase.capitalise(mode)
     end,
   },
   {
@@ -452,7 +453,7 @@ M.TOGGLES = {
       local b = require("bar")
       if not b.on() then return "Off" end
       local side = b.side()
-      return side:sub(1, 1):upper() .. side:sub(2)
+      return unicase.capitalise(side)
     end,
   },
   {

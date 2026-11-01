@@ -3,6 +3,7 @@
 local morf = require("morf")
 local config = require("config")
 local rules = require("notification_rules")
+local unicase = require("lib.util.unicase")
 local M = {}
 
 M.TIMES = { { 0, "Auto" }, { 3000, "3 s" }, { 5000, "5 s" }, { 10000, "10 s" } }
@@ -23,7 +24,7 @@ function M.model()
   function model.ring()
     local ringer = require("services").ringer
     local mode = ringer and ringer.state.mode or config.get("ringer.mode")
-    return mode:sub(1, 1):upper() .. mode:sub(2)
+    return unicase.capitalise(mode)
   end
   --- Plays the sound a notification would make now.
   function model.try()

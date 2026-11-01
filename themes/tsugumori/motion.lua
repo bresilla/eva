@@ -2,6 +2,7 @@
 -- See REFERENCE.md and LICENSE-Tsugumori. Reversals retain the current pose.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 return function(theme)
   local M = { liquid_cards = false,
     value_flash=require("themes.tsugumori.value_flash")(theme),
@@ -45,8 +46,8 @@ return function(theme)
       if immediate then cover.visible = false cover.width = 0 swap() return end
       if destination then
         register.text=("%02d / %s"):format(destination.index or 0,
-          tostring(destination.name or destination.key or id):upper())
-      else register.text=("TS / %s"):format(id:upper()) end
+          unicase.upper(tostring(destination.name or destination.key or id)))
+      else register.text=("TS / %s"):format(unicase.upper(id)) end
       register.visible=true
       cover.visible = true
       running = morf.animation.play { { parallel = {
