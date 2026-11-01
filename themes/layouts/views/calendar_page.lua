@@ -44,11 +44,6 @@ function M.build(model, w, h)
 
   local day = { id = "planner-day", caption_id = "planner-day-title", width = w, title = model.day_title,
     note = function() return tostring(agenda:len()) .. " planned" end,
-    P.row { id = "planner-weather", width = inner, height = 48,
-      icon = function() local f = model.weather() return f and f.symbol or "cloud" end,
-      title = function() local f = model.weather() return f and f.words or "" end,
-      subtitle = function() local f = model.weather() return f and f.condition or "" end,
-      visible = function() return model.weather() ~= nil end },
     ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = agenda,
       delegate = function(item)
         if item.event then
@@ -74,6 +69,11 @@ function M.build(model, w, h)
     P.row { id = "planner-empty", width = inner, icon = "event_available", on = function() return false end,
       title = "Nothing planned yet", subtitle = "Events and tasks show here.",
       visible = function() return agenda:len() == 0 end },
+    P.row { id = "planner-weather", width = inner, height = 48,
+      icon = function() local f = model.weather() return f and f.symbol or "cloud" end,
+      title = function() local f = model.weather() return f and f.words or "" end,
+      subtitle = function() local f = model.weather() return f and f.condition or "" end,
+      visible = function() return model.weather() ~= nil end },
   }
   local function next_up() return model.next_up() end
 
