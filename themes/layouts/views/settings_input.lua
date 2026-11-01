@@ -58,7 +58,7 @@ local function keyboard_page(model, w, h)
     },
     P.section { id = "input-keys", width = w, title = "Special keys",
       F.note(inner, "Caps Lock acts as"),
-      F.choices { id = "input-caps", width = inner, items = model.CAPS, now = function() return model.value("caps", "") end,
+      F.choices { id = "input-caps", width = inner, items = model.CAPS, per_row = 2, now = function() return model.value("caps", "") end,
         pick = function(word) model.set("caps", word) end },
       F.note(inner, "Compose key"),
       F.choices { id = "input-compose", width = inner, items = model.COMPOSE, per_row = 2,
