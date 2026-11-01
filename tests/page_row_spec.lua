@@ -12,8 +12,9 @@ local HOST = ([[
     P.row { id = "short", width = 300, height = 44, icon = "info", title = "Short", subtitle = "Fits" },
     P.row { id = "long", width = 300, height = 44, icon = "info", title = "Long", subtitle = %q },
     ui.Item { id = "under", width = 300, height = 10 },
+    P.row { id = "named", width = 300, height = 44, icon = "info", title = %q },
   }
-]]):format(LONG)
+]]):format(LONG, LONG)
 
 local NOTE = "Camera and commands ask for the password first"
 local CAPTION = ([[
@@ -37,5 +38,6 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(note.height >= 2 * test.get("short-subtitle").height, "the note took a second line")
     test.truthy(test.get("long").height > 44, "the row grew")
     test.truthy(test.get("under").y >= note.y + note.height, "what follows clears the note")
+    test.truthy(test.get("named-title").height >= 2 * test.get("short-title").height, "a long title wraps too")
   end)
 end
