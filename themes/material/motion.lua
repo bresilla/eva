@@ -1,74 +1,65 @@
 -- Material drawer choreography, separate from drawer state and placement.
 local morf = require("morf")
+local ui = require("morf.ui")
 return function(theme)
   local M = {}
-  function M.drawer(ctx)
-    local panel, spec, d = ctx.panel, ctx.spec, ctx.drawer
-    local axis, floating, tucked = ctx.axis, ctx.floating, ctx.tucked
-  local running
-  -- A floating panel (edge "center") joins no edge: it grows in evenly
-  -- about its centre as it and its background fade in, and shrinks a
-  -- touch as they fade out.
-  local function pop(opening)
-    local hidden = not panel.visible
-    if running then running:stop() end
-    if opening then panel.visible = true end
-    running = morf.animation.play {
-      {
-        parallel = {
-          { node = panel, property = "scale", from = opening and hidden and 0.92 or nil, to = opening and 1 or 0.96,
-            duration = opening and theme.bounce.spatial.duration or 160,
-            easing = opening and theme.bounce.spatial.easing or theme.ease.emphasized_accel },
-          { node = panel, property = "opacity", from = opening and hidden and 0 or nil, to = opening and 1 or 0,
-            duration = opening and 180 or 140 },
-          { node = d.shape, property = "opacity", from = opening and hidden and 0 or nil, to = opening and 1 or 0,
-            duration = opening and 180 or 140 },
-        },
-      },
-      on_finished = function(reason)
-        if reason == "completed" and not d.open:get() then panel.visible = false end
-      end,
-    }
+
+  -- What a presence lights: whole by the middle of the way out, and whole
+  -- still until the middle of the way back.
+  local function lit(gone)
+    return function() return math.max(0, math.min(1, (1 - gone:get()) * 2)) end
   end
-  local function move(opening)
-    if floating then return pop(opening) end
-    local hidden = not panel.visible
-    if running then running:stop() end
-    if opening then panel.visible = true end
-    local slide = {
-      node = panel, property = axis, to = opening and 0 or tucked(),
-      duration = opening and theme.bounce.drawer.duration or theme.duration.drawer_close,
-      easing = opening and theme.bounce.drawer.easing or theme.ease.emphasized_accel,
+
+  -- A panel on an edge slides out of it: the axis on the drawer spring, its
+  -- contents, background and seam following who owns the axis.
+  local function slide(ctx)
+    local panel, content, d = ctx.panel, ctx.spec.content, ctx.drawer
+    local axis
+    axis = require("themes.drawer_axis").new {
+      node = panel, property = ctx.axis, name = "eva.drawer." .. d.name,
+      spring = theme.spring.drawer, away = ctx.tucked,
+      out = function() return d.open:get() end,
+      landed = function() panel.visible = d.open:get() end,
     }
-    -- The reference's contents fade in over the first hundred-odd
-    -- milliseconds of the slide, and its background with them: the
-    -- background is a layer of the frame's field, whose own opacity fades
-    -- it -- fillet and all -- and leaves the frame as it is. Closing only
-    -- slides.
-    if opening and hidden then
-      spec.content.opacity = 0
-      d.shape.opacity = 0
-    end
-    local fade = { duration = opening and 150 or 1, easing = theme.ease.standard_decel }
-    running = morf.animation.play {
-      {
-        parallel = {
-          slide,
-          { node = spec.content, property = "opacity", to = 1,
-            duration = fade.duration, easing = fade.easing },
-          { node = d.shape, property = "opacity", to = 1,
-            duration = fade.duration, easing = fade.easing },
-        },
-      },
-      on_finished = function(reason)
-        if reason == "completed" and not d.open:get() then panel.visible = false end
+    local shown = lit(axis.away)
+    content.opacity, d.shape.opacity = shown, shown
+    d.shape.blend = function() return theme.SEAM * shown() end
+    return {
+      move = function(opening) if opening then panel.visible = true end end,
+      stop = axis.stop,
+      grab = function(from)
+        panel.visible = true
+        return axis.grab(from)
       end,
+      drag = axis.drag, release = axis.release,
     }
   end
 
-    return move, function() if running then running:stop() running=nil end end
+  -- A floating panel joins no edge: it grows about its centre as it and its
+  -- background fade in, and shrinks a touch as they fade out.
+  local function pop(ctx)
+    local panel, d = ctx.panel, ctx.drawer
+    local function open() return d.open:get() end
+    local claims = ui.claims(panel, {
+      grown = { when = open, motion = theme.spring.spatial, set = { scale = 1 } },
+      small = { motion = theme.spring.fast, set = { scale = 0.92 } },
+      shown = { when = open, motion = theme.spring.effects, set = { opacity = 1 } },
+      gone = { motion = theme.spring.effects, set = { opacity = 0 } },
+    })
+    d.shape.opacity = lit(claims.gone.presence)
+    morf.effect("eva.drawer." .. d.name .. ".landed", function()
+      if claims.gone.presence:get() >= 1 and not open() then panel.visible = false end
+    end, { owner = panel })
+    local function idle() end
+    return { move = function(opening) if opening then panel.visible = true end end,
+      stop = idle, grab = idle, drag = idle, release = idle }
   end
-function M.entries(entries, coming, opts)
+
+  function M.drawer(ctx)
+    return (ctx.floating and pop or slide)(ctx)
+  end
+
+  function M.entries(entries, coming, opts)
     if require("themes.session").restoring then
       for _, entry in ipairs(entries) do
         entry.node.opacity = coming and 1 or 0
@@ -77,34 +68,34 @@ function M.entries(entries, coming, opts)
       end
       return {}, 0
     end
-  opts = opts or {}
-  local handles = {}
-  for k, entry in ipairs(entries) do
-    local n = entry.node
-    local fresh = not (n.opacity > 0 and n.opacity < 1)
-    local steps
-    if coming then
-      local delay = (opts.delay or 40) + (k - 1) * (opts.stagger or 26)
-      steps = {
-        { node = n, property = "scale", from = fresh and (opts.from or 0.92) or nil, to = 1,
-          duration = theme.bounce.spatial.duration, easing = theme.bounce.spatial.easing, delay = delay },
-        { node = n, property = "opacity", from = fresh and 0 or nil, to = 1, duration = 220, delay = delay },
-      }
-    else
-      steps = {
-        { node = n, property = "scale", to = 0.96, duration = 160, easing = theme.ease.emphasized_accel, delay = (k - 1) * (opts.leave_stagger or 0) },
-        { node = n, property = "opacity", to = 0, duration = 120, delay = (k - 1) * (opts.leave_stagger or 0) },
-      }
+    opts = opts or {}
+    local handles = {}
+    for k, entry in ipairs(entries) do
+      local n = entry.node
+      local fresh = not (n.opacity > 0 and n.opacity < 1)
+      local steps
+      if coming then
+        local delay = (opts.delay or 40) + (k - 1) * (opts.stagger or 26)
+        steps = {
+          { node = n, property = "scale", from = fresh and (opts.from or 0.92) or nil, to = 1,
+            duration = theme.bounce.spatial.duration, easing = theme.bounce.spatial.easing, delay = delay },
+          { node = n, property = "opacity", from = fresh and 0 or nil, to = 1, duration = 220, delay = delay },
+        }
+      else
+        steps = {
+          { node = n, property = "scale", to = 0.96, duration = 160, easing = theme.ease.emphasized_accel, delay = (k - 1) * (opts.leave_stagger or 0) },
+          { node = n, property = "opacity", to = 0, duration = 120, delay = (k - 1) * (opts.leave_stagger or 0) },
+        }
+      end
+      if entry.shape then
+        steps[#steps + 1] = { node = entry.shape, property = "opacity", from = coming and fresh and 0 or nil,
+          to = coming and 1 or 0, duration = coming and 220 or 120,
+          delay = coming and ((opts.delay or 40) + (k - 1) * (opts.stagger or 26)) or 0 }
+      end
+      handles[#handles + 1] = morf.animation.play { { parallel = steps } }
     end
-    if entry.shape then
-      steps[#steps + 1] = { node = entry.shape, property = "opacity", from = coming and fresh and 0 or nil,
-        to = coming and 1 or 0, duration = coming and 220 or 120,
-        delay = coming and ((opts.delay or 40) + (k - 1) * (opts.stagger or 26)) or 0 }
-    end
-    handles[#handles + 1] = morf.animation.play { { parallel = steps } }
+    return handles, coming and (420 + #entries * (opts.stagger or 26)) or 200
   end
-  return handles, coming and (420 + #entries * (opts.stagger or 26)) or 200
-end
 
   return M
 end

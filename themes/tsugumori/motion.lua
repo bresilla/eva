@@ -219,12 +219,37 @@ return function(theme)
         end)
       end
     end
-    return move, function()
-      generation = generation + 1
-      if running then running:stop() running=nil end
-      if lock_motion then lock_motion:stop() lock_motion=nil end
-      for _, node in ipairs {curtain,glow,flash,corner_a,corner_b,pip} do node.visible=false end
-    end
+    if ctx.floating then d.shape.opacity = d.open:get() and 1 or 0
+    else panel[axis] = d.open:get() and 0 or tucked() end
+    local settling
+    return {
+      move = move,
+      stop = function()
+        generation = generation + 1
+        if settling then settling:stop() settling=nil end
+        if running then running:stop() running=nil end
+        if lock_motion then lock_motion:stop() lock_motion=nil end
+        for _, node in ipairs {curtain,glow,flash,corner_a,corner_b,pip} do node.visible=false end
+      end,
+      grab = function(from)
+        panel.visible, panel.opacity, content.opacity, d.shape.opacity = true, 1, 1, 1
+        panel[axis] = from
+        return from
+      end,
+      drag = function(position) panel[axis] = position end,
+      release = function(velocity, done)
+        local away = tucked()
+        settling = morf.animation.play {
+          require("gesture_motion").step(panel, axis, d.open:get() and 0 or away, velocity, math.abs(away)),
+          on_finished = function(reason)
+            if reason ~= "completed" then return end
+            settling = nil
+            panel.visible = d.open:get()
+            done()
+          end,
+        }
+      end,
+    }
   end
   return M
 end
