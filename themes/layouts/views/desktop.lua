@@ -194,7 +194,7 @@ function V.build(model)
     visible = editing, ui.Item { x = S.s, y = S.s, width = 1, height = 1, spare } }
 
   local press_timer
-  local ground_press = ui.MouseArea { anchors = { fill = true }, z = -1,
+  local ground_press = ui.MouseArea { anchors = { fill = true }, z = -1, accepted_buttons = { "left", "right" },
     on_position_changed = function(x, y) require("wallpaper").pointer(x, y) end,
     on_pressed = function(x, y, _, _, button)
       if menu_at:get() then menu_at:set(false) return end

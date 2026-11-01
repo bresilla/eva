@@ -145,6 +145,33 @@ test.describe("where they live", function()
   end)
 end)
 
+test.describe("the bare desktop", function()
+  test.it("offers its menu on a right press, and it leads to arranging", function()
+    load { settings = painted { widgets = { desk = { "clock" } } } }
+    test.falsy(test.find { id = "desktop-menu", visible = true })
+    test.click(300, 300, { button = "right", surface = "eva-wallpaper" })
+    test.settle(200)
+    test.truthy(test.find { id = "desktop-menu", visible = true }, "no menu")
+    test.click("desktop-menu-arrange") test.settle(300)
+    test.truthy(test.ipc("desktop", "state").editing, "it did not start arranging")
+    test.falsy(test.find { id = "desktop-menu", visible = true }, "the menu stayed")
+  end)
+
+  test.it("offers its menu on a long press, and not on a short one", function()
+    load { settings = painted { widgets = { desk = { "clock" } } } }
+    test.press(300, 300, { surface = "eva-wallpaper" })
+    test.advance(120)
+    test.release(300, 300, { surface = "eva-wallpaper" })
+    test.advance(600)
+    test.falsy(test.find { id = "desktop-menu", visible = true }, "a short press opened it")
+    test.press(300, 300, { surface = "eva-wallpaper" })
+    test.advance(600)
+    test.release(300, 300, { surface = "eva-wallpaper" })
+    test.settle(200)
+    test.truthy(test.find { id = "desktop-menu", visible = true }, "a long press did not")
+  end)
+end)
+
 test.describe("on a phone and a tablet", function()
   test.it("flows down a phone, two small to a row, in the board's order", function()
     load { size = { 412, 915 }, touch = true,

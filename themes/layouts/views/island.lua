@@ -78,7 +78,7 @@ function V.build(model, desk)
     y = theme.BORDER - S.xxs,
     behavior = { width = theme.spring.spatial, height = theme.spring.spatial, x = theme.spring.spatial },
     stretch = theme.stretch and theme.stretch.blob or nil,
-    ui.MouseArea { anchors = { fill = true }, z = -1,
+    ui.MouseArea { id = "island-press", anchors = { fill = true }, z = -1, accepted_buttons = { "left", "right" },
       on_clicked = function(_, _, _, _, button)
         if button == "right" then model.cycle() else model.toggle() end
       end },

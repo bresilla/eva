@@ -124,13 +124,21 @@ function M.apply(plan, done)
     if not by_path[change.path] then by_path[change.path] = {} order[#order + 1] = change.path end
     table.insert(by_path[change.path], change)
   end
-  for _, path in ipairs(order) do
+  -- A file already as it should be stays untouched: rewriting it would replace
+  -- a link a person keeps there with a plain copy.
+  local function current(path)
     local ok, text = pcall(morf.fs.read, path)
-    text = ok and type(text) == "string" and text or ""
-    for _, change in ipairs(by_path[path]) do text = M.ini_set(text, change.section, change.key, change.value) end
-    save(path, text)
+    return ok and type(text) == "string" and text or nil
   end
-  for _, write in ipairs(plan.writes) do save(write.path, write.text) end
+  for _, path in ipairs(order) do
+    local before = current(path)
+    local text = before or ""
+    for _, change in ipairs(by_path[path]) do text = M.ini_set(text, change.section, change.key, change.value) end
+    if text ~= before then save(path, text) end
+  end
+  for _, write in ipairs(plan.writes) do
+    if current(write.path) ~= write.text then save(write.path, write.text) end
+  end
   local waiting, failed = #plan.commands, 0
   if waiting == 0 and done then done(0) end
   for _, argv in ipairs(plan.commands) do

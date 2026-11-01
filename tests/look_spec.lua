@@ -236,6 +236,25 @@ test.describe("the rest of the desktop", function()
     test.truthy(morf.fs.read(home .. "/.icons/default/index.theme"):find("Inherits=Bibata", 1, true))
   end)
 
+  test.it("leaves a file that is already right alone, a link included", function()
+    test.stub_run("gsettings", { code = 0 })
+    test.stub_run("hyprctl", { code = 0 })
+    local home = load { live = true, settings = { appearance = { sync = false } } }
+    local want = { mode = "dark" }
+    test.ipc("l_apply", want)
+    test.wait(function() test.advance(16) return test.ipc("l_failed") ~= nil end, 3000)
+    -- The settings move elsewhere and a link takes their place, as a dotfile
+    -- manager would have it.
+    local file = home .. "/config/gtk-3.0/settings.ini"
+    local kept = home .. "/kept-settings.ini"
+    morf.fs.write(kept, morf.fs.read(file))
+    morf.fs.remove(file)
+    morf.fs.symlink(kept, file)
+    test.ipc("l_apply", want)
+    test.advance(32)
+    test.eq(morf.fs.read_link(file), kept, "an unchanged file was rewritten over its link")
+  end)
+
   test.it("gives Qt twenty-one roles in each of its three states", function()
     load {}
     local text = test.ipc("l_qt")
