@@ -86,9 +86,10 @@ function M.build(model, w, h)
   local charge = model.charge
   local function route(kind) return function() return charge.route() == kind end end
   local by_file = route("file")
-  local function limit_on() return charge.on() end
+  local function limit() return charge.limit(first().charge_limit) end
+  local function limit_on() return charge.on(first().charge_limit) end
   local function adaptive_on() return charge.adaptive() end
-  local function can_adapt() return by_file() and charge.limit() > charge.HOLD end
+  local function can_adapt() return by_file() and limit() > charge.HOLD end
   local function mark(key, spec)
     local chip = kit.chip(spec)
     chip.visible = function() return model.charging() and model.feed()[key] == true end
@@ -100,13 +101,13 @@ function M.build(model, w, h)
     mark("slow", { id = "power-mark-slow", text = "Slow", color = kit.signal("warn") }),
   }
   local limit_slider = kit.slider { id = "power-limit", accessible_name = "Charge limit", width = inner, icon = "battery_saver",
-    value = function() return (charge.limit() - charge.LOWEST) / (100 - charge.LOWEST) end,
+    value = function() return (limit() - charge.LOWEST) / (100 - charge.LOWEST) end,
     set = function(value) charge.set_limit(charge.LOWEST + value * (100 - charge.LOWEST)) end,
     reading = function(value)
       local level = charge.LOWEST + value * (100 - charge.LOWEST)
       return ("%d%%"):format(math.floor(level / charge.STEP + 0.5) * charge.STEP)
     end }
-  limit_slider.visible = by_file
+  limit_slider.visible = function() return by_file() and limit_on() end
   local charging = P.section { id = "power-charging", caption_id = "power-heading-charging", width = w, title = "Charging",
     visible = model.charging_shown,
     P.row { id = "power-charger", width = inner, icon = model.charger_icon, on = model.charging,
@@ -115,7 +116,7 @@ function M.build(model, w, h)
       visible = function() return by_file() or route("upower")() end,
       subtitle = function()
         if not limit_on() then return "Charges to full" end
-        if by_file() then return ("Stops at %d%%"):format(charge.limit()) end
+        if by_file() then return ("Stops at %d%%"):format(limit()) end
         return "Held by UPower"
       end,
       trailing = P.switch { id = "power-limit-switch", name = "Charge limit", on = limit_on, on_toggled = charge.set_on } },

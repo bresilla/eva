@@ -81,7 +81,9 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   it answers hangs the shell until a timeout. GeoClue's `Manager.AddAgent` does
   that (it reads `MaxAccuracyLevel` from the agent), and it takes the agent from
   the caller's connection, so no other connection can register it. Without
-  this eva cannot be the session's location agent, and has no Location tile.
+  this eva cannot be the session's location agent: the Location tile starts and
+  stops GeoClue's demo agent, and a per-program prompt or an accuracy choice
+  cannot be the shell's.
 
 ## Seamless login: open
 

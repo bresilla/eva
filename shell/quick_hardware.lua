@@ -357,9 +357,9 @@ M.datasaver = lazily(function()
   -- The connection in use, as an active row.
   local function in_use()
     if not (net and net.state.available) then return nil end
-    local path = net.state.primary.path
+    local path = net.state.primary and net.state.primary.path
     local rows = net.state.active_connections
-    for i = 1, rows:len() do
+    for i = 1, path and rows and rows:len() or 0 do
       local row = rows:get(i)
       if row.path == path then return row end
     end
@@ -373,8 +373,9 @@ M.datasaver = lazily(function()
     return row and row.id ~= "" and row.id or "On"
   end
   morf.effect("eva.datasaver", function()
-    local on, row = d.on(), in_use()
-    if primary() and d.present() then saver.follow(on, row) end
+    local on = d.on()
+    if not on and not saver.marking() then return end
+    if primary() and d.present() then saver.follow(on, in_use()) end
   end)
   return d
 end)
@@ -546,7 +547,7 @@ local function unit_device(name, tag)
     end
     if not fake() and not dry() then
       unit.find()
-      checks[#checks + 1] = unit.find
+      checks[#checks + 1] = unit.check
     end
     return u
   end)
@@ -554,6 +555,9 @@ end
 
 M.syncthing = unit_device("syncthing.service", "syncthing")
 M.ssh = unit_device("sshd.service", "ssh")
+-- GeoClue answers a program only through the session's agent: with the agent
+-- stopped no program gets a location.
+M.location = unit_device("geoclue-agent.service", "location")
 
 M.waydroid = lazily(function()
   local droid = require("lib.services.waydroid").new { run = run,
@@ -605,7 +609,7 @@ end)
 --- signals of its own, outside any effect.
 function M.start()
   for _, name in ipairs { "filters", "autobrightness", "datasaver", "nfc", "tether", "voice", "sounds", "syncthing", "ssh",
-    "waydroid", "onehanded" } do
+    "location", "waydroid", "onehanded" } do
     M[name]()
   end
 end

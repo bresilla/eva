@@ -54,7 +54,7 @@ function M.new(options)
         droid.phase:set("off")
         droid.check()
       end)
-      -- `session start` stays until the session ends: its status says when it is up.
+      -- `session start` runs as long as the session: its status says when it is up.
       morf.time.timer(M.BOOT, function()
         if droid.phase:get() ~= "starting" then return end
         run({ "waydroid", "status" }, function(result)

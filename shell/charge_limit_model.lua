@@ -61,11 +61,12 @@ end
 
 local function chosen() return tonumber(config.get("battery.limit")) or 0 end
 
---- The limit: the person's, else the kernel's, 100 for none.
-function M.limit()
+--- The limit: the person's, else the kernel's (`kernel` where the caller has
+--- read it), 100 for none.
+function M.limit(kernel)
   local set = chosen()
   if set > 0 then return set end
-  return charger.read(dir()).limit or 100
+  return kernel or charger.read(dir()).limit or 100
 end
 
 --- Whether adaptive charging is on.
@@ -84,9 +85,9 @@ end
 function M.route() return route:get() end
 
 --- Whether a charge limit is on.
-function M.on()
+function M.on(kernel)
   if route:get() == "upower" then return threshold:get().enabled == true end
-  return M.limit() < 100
+  return M.limit(kernel) < 100
 end
 
 --- Writes the limit the moment calls for, if it differs from the kernel's. A

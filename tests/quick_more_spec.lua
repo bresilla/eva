@@ -490,7 +490,7 @@ local SOURCE=[[
   morf.ipc.q_lux=function(value) require("quick_hardware").rotation().sensors.state.lux=tonumber(value) end
   morf.ipc.q_brightness=function() return (require("osd").brightness()) end
 ]]
-local NEW={"nfc","usbtether","datasaver","autobrightness","grayscale","invert","extradim","reading","correction",
+local NEW={"nfc","location","usbtether","datasaver","autobrightness","grayscale","invert","extradim","reading","correction",
   "voicenote","sounds","waydroid","syncthing","ssh","onehanded"}
 local shell_serial=0
 local function shell(options)

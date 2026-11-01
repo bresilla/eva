@@ -37,7 +37,8 @@ function M.new(active,open_battery)
   model.charge.probe()
   --- Whether the Charging section has anything to say.
   function model.charging_shown()
-    return model.present() and (model.state().ac==true or model.charging() or model.charge.route()~="")
+    return model.present() and (model.state().ac==true or model.charging() or model.feed().kind~=nil
+      or model.charge.route()~="")
   end
   function model.charger_icon()
     local f=model.feed()

@@ -304,7 +304,11 @@ ipc.launcher = function(how)
   end
   return verb(launcher.drawer)(how)
 end
-ipc.dashboard = verb(dashboard.drawer)
+-- `dashboard [how [TAB]]`: TAB is one of its tabs by name, such as battery.
+ipc.dashboard = function(how, tab)
+  if tab and here() then require("dashboard_state").show(tab) end
+  return verb(dashboard.drawer)(how)
+end
 -- Builds the shell again from its files, in place.
 ipc.reload = function() morf.reload() return true end
 -- The frame, the rail and the bar come in again: a lock lifting.

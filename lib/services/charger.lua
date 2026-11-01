@@ -151,7 +151,7 @@ function M.set_limit(value, dir)
   local base = own_battery(dir)
   if not base or not morf.fs.exists(base .. "/" .. END_FILE) then return nil, "this battery has no charge limit" end
   value = math.max(M.LOWEST, math.min(100, math.floor((tonumber(value) or 100) + 0.5)))
-  -- A start at or above the new end would be refused with it.
+  -- The start threshold goes below the new end first.
   local start = number_at(base .. "/" .. START_FILE)
   if start and start >= value then
     local done, why = write(base .. "/" .. START_FILE, value - 5)

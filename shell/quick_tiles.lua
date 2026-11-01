@@ -36,11 +36,11 @@ local function filter(id, name, icon)
 end
 
 -- An application a press opens, where one of `ids` is installed or, failing
--- that, one that names `word`. It never lights.
-local function app(id, name, icon, ids, word)
+-- that, one that names `word`, and `wanted()` says it is of use. It never lights.
+local function app(id, name, icon, ids, word, wanted)
   local function found() return require("apps").find(ids, word) end
   return { id = id, name = name, icon = icon,
-    present = function() return found() ~= nil end,
+    present = function() return found() ~= nil and (wanted == nil or wanted()) end,
     on = function() return false end,
     set = function()
       local entry = found()
@@ -137,6 +137,7 @@ function M.list(model, gamemode)
       set = function(now) model.close_panel() require("keyboard").set(now) end,
     },
     switch("nfc", "NFC", "nfc", hardware("nfc")),
+    switch("location", "Location", "location_on", hardware("location")),
     switch("usbtether", "USB tethering", "usb", hardware("tether")),
     switch("datasaver", "Data Saver", "data_saver_on", hardware("datasaver")),
     switch("autobrightness", "Auto brightness", "brightness_auto", hardware("autobrightness")),
@@ -173,6 +174,12 @@ function M.list(model, gamemode)
     app("cast", "Cast", "cast", { "org.gnome.NetworkDisplays" }),
     app("nearby", "Nearby share", "share", { "org.localsend.localsend_app", "localsend_app", "org.kde.kdeconnect.app",
       "org.kde.kdeconnect-app" }),
+    app("recognise", "Recognise music", "music_note", { "com.github.marinm.songrec" }),
+    app("printers", "Printers", "print", { "system-config-printer", "org.gnome.Settings.printers" }),
+    app("displays", "Displays", "monitor", { "eva-displays" }, nil, function()
+      local rows = require("lib.compositor.hyprland").state.monitors
+      return rows ~= nil and rows:len() > 1
+    end),
   }
 end
 

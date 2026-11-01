@@ -376,7 +376,46 @@ a tray nobody can see.
 `EVA_FAKE_BATTERY=57,charging,saver`, `EVA_FAKE_STATUS=wifi,bluetooth,vpn,dnd`
 and `EVA_FAKE_CUTOUT=400,68,34` stand in for hardware; a `tools/see/` scenario
 exports them, as `tools/see/bar.steps` and `cutout.steps` do, and
-`morf ipc call fake-battery 12` moves the battery while it runs.
+`morf ipc call fake-battery 12` moves the battery while it runs. The battery's
+stand-in also takes `wireless`, `fast`, `slow`, `watts=N` and `limit=N`.
+
+### Convertibles
+
+A convertible folded back reads as a tablet with its keyboard still attached:
+sheets, a finger's targets, the on-screen keyboard, and the screen following
+the accelerometer. libinput ignores the keyboard and touchpad by itself while
+the switch is on. Opened again the rotation is held by the hinge and the panel
+stands upright. A keyboard plugged in or paired still counts while folded.
+
+The state comes from the kernel's `SW_TABLET_MODE`, found through
+`/proc/bus/input/devices` and read with `evtest`: its events as a stream, and
+the switch asked outright at the start, after a resume, after each event, and
+every 20 seconds while folded. `eva tablet on|off` is a hint the same question
+follows; `eva tablet pin on|off` holds the posture over a switch that sticks,
+`eva tablet auto` lets it go. `EVA_FAKE_TABLET=on|off` stands in for the switch.
+
+```nix
+programs.eva.hardware = {
+  # evtest, and read access to switch devices alone. `name` is what
+  # `hyprctl devices` calls the switch, and adds Hyprland's switch binds.
+  tabletSwitch = { enable = true; name = "Intel HID switches"; };
+  # The session may write the kernel's charge thresholds.
+  chargeLimit = true;
+  # A USB network port for the USB tethering tile.
+  usbTether = true;
+};
+```
+
+### Charging
+
+The Power page says what feeds the battery (USB PD, a wireless pad, a weak
+port), how fast and how long until it stops. A charge limit and adaptive
+charging, which waits at 80% overnight and finishes by the time you set, need
+`charge_control_end_threshold` from the driver and the right to write it:
+`programs.eva.hardware.chargeLimit` grants that. Without the grant UPower's own
+fixed thresholds can still be switched, where the driver and UPower have them;
+adaptive charging runs in the shell, so a phone asleep through the night wakes
+to its release late.
 
 ## Visual themes (in progress)
 

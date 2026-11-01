@@ -208,12 +208,15 @@ local function instance()
   local kept = bank:get().folded
   local switch = fake_switch()
   if switch ~= nil and kept ~= nil then switch = kept end
+  local stand_in = switch ~= nil
   local options = { initial = switch, changed = function(value)
     bank:set({ folded = value })
     local path = runtime_file()
-    if path then pcall(morf.fs.write, path, value and "folded\n" or "open\n", { atomic = true, parents = true }) end
+    if path and not stand_in then
+      pcall(morf.fs.write, path, value and "folded\n" or "open\n", { atomic = true, parents = true })
+    end
   end }
-  if switch ~= nil then
+  if stand_in then
     options.find = function() return { name = "Stand-in tablet switch", node = "" } end
     options.ask = function(_, done) done(switch) end
     options.listen = function() end

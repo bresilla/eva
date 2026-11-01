@@ -24,12 +24,14 @@ function M.new(options)
 
   local function flag(uuid, value, devices)
     options.run({ "nmcli", "connection", "modify", uuid, "connection.metered", value }, function()
-      -- A device takes the flag up without dropping its connection.
       for _, interface in ipairs(devices or {}) do
         options.run({ "nmcli", "device", "reapply", interface }, function() end)
       end
     end)
   end
+
+  --- Whether anything stands marked.
+  function saver.marking() return next(marked) ~= nil end
 
   --- On, marks `row` as it comes; off, puts back all it marked.
   function saver.follow(on, row)
