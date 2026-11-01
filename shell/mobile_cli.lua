@@ -1,7 +1,7 @@
 -- Mobile broadband details and actions through ModemManager's and
 -- NetworkManager's command lines: `mmcli -J` for the modem, its SIM and
 -- bearers, `nmcli` for saved profiles. Parsing is pure; `run` is the only side
--- effect, so tests stub the commands.
+-- effect.
 local morf = require("morf")
 local M = {}
 

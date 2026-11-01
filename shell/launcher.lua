@@ -603,8 +603,7 @@ function M.key(_, _, modifiers, _, key)
   if key == "F1" or (ctrl and key == "y") then M.toggle_preview() return true end
 end
 -- TextInput consumes horizontal arrow presses for its caret. Releases reach
--- the controller, so the wallpaper chooser and the grid can use them without an
--- engine hook.
+-- the controller, so the wallpaper chooser and the grid can use them.
 function M.release(_, _, modifiers, _, key)
   if modifiers and modifiers ~= "" then return end
   if grid() then

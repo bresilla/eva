@@ -203,7 +203,7 @@ local ACT = {
   suspend = function() run(config.get("session.commands.suspend"), "suspend") end,
 }
 
---- A stage has come due. Exposed for specs.
+--- A stage has come due.
 function M.fire(stage)
   if M.held() then return false end
   if stage == "warning" then

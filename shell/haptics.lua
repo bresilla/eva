@@ -4,9 +4,9 @@
 --
 -- Nothing here raises: a buzz that fails is no buzz, and the press goes on.
 --
--- Every press of a kit control reaches it through `attach`, so a view needs no
--- line of its own; the keyboard, tiles and gestures name their moments. The
--- one setting is `haptics.on`. Strength and silence are feedbackd's profile's.
+-- Every press of a kit control reaches it through `attach`; the keyboard,
+-- tiles and gestures name their moments. The one setting is `haptics.on`.
+-- Strength and silence are feedbackd's profile's.
 -- EVA_FAKE_HAPTICS=1 reads as a machine that can buzz, for sealed sessions.
 local morf = require("morf")
 local config = require("config")

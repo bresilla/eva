@@ -2,7 +2,7 @@
 -- are, which this machine can do, and what stands in the way. No nodes.
 --
 -- An action logind says it cannot do is not offered. Where logind does not
--- answer (no bus, a machine without it) what has a command is offered, as ever.
+-- answer (no bus, a machine without it) what has a command is offered.
 local morf = require("morf")
 local config = require("config")
 local actions = require("models.session_actions")

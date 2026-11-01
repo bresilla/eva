@@ -232,7 +232,6 @@ local function build()
       stamp(ms)
       if recogniser.count() == 0 then look_at_session() end
       recogniser.down(id, x, y, ms or event_at)
-      -- Two fingers together are no strip's: its pull goes before it shows.
       if recogniser.gathered() == 2 and not M.trying:get() then require("phone_gestures").yield() end
       start_ticking()
     end,

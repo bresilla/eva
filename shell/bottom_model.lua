@@ -2,7 +2,6 @@
 -- Visual themes receive it; they do not own integrations or settings.
 local M = {}
 function M.new()
-  -- Its pages are the `panels.bottom` setting's (shell/pages.lua).
   local tabs, bind = require("pages").tabs("bottom")
   local model = require("side_panel_model").new { id = "bottom", edge = "bottom", tabs = tabs }
   bind(model)

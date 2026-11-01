@@ -53,7 +53,7 @@ function M.take(queue, wanted)
 end
 
 --- Holds every capture back for `ms`: the compositor ends the connection over
---- a capture of a window it has just destroyed (NEEDS.md).
+--- a capture of a window it has just destroyed.
 M.paused = false
 local paused_by
 function M.pause(ms)

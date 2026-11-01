@@ -159,8 +159,7 @@ function M.change(source, kind)
   if not swap then return end
   local w, h = require("workspace_wallpaper").screen_size()
   local at = M.origin or {}
-  -- The plate may stand off the screen by the parallax: a change starts under
-  -- the pointer on the screen all the same.
+  -- A change starts under the pointer, wherever the parallax stands the plate.
   local shift = (M.overscan() - 1) * w * along()
   swap.show(source, { kind = kind or config.get("wallpaper.transition.kind"), x = at.x and at.x + shift, y = at.y,
     width = math.floor(w * M.overscan()), height = h, time = config.get("wallpaper.transition.duration"),

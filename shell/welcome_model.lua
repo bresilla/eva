@@ -1,6 +1,6 @@
 -- The first-run welcome: which step it is on, and whether this person has had
 -- it. It is a Settings page, so it stands wherever Settings does on this form,
--- and it opens the real pages rather than copies of them. Only the shell starts
+-- and it opens the real pages. Only the shell starts
 -- it: the lock and the greeter never load this file. No nodes.
 local morf = require("morf")
 local host = require("lib.services.host")
@@ -18,7 +18,7 @@ function M.steps()
   return out
 end
 
---- Whether this person has been here before eva had a welcome: anything the
+--- Whether this person has been here before: anything the
 --- shell keeps from a past session.
 local function returning()
   local settings = morf.env and morf.env("EVA_SETTINGS")

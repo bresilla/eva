@@ -230,16 +230,12 @@ end
 local overlays={
   -- The desk dims under the session menu.
   session.dim(),
-  -- A notification lights the screen's edge.
   notifs.overlay(),
   -- A press on the desk shuts what is open: each drawer's close policy
   -- (shell/drawer.lua), not catchers here.
 }
 local triggers=require("responsive").touch() and {} or require("responsive").sheets() and {
-  -- A narrow window: the top edge brings quick settings down, the bottom one
-  -- the dashboard up; the side edges are left to the workspace gestures, and
-  -- the planner and the assistant wait for theirs. Under a finger the edges
-  -- are the gestures' alone.
+  -- A narrow window leaves the side edges to gestures; a finger, all four.
   require("hover").edge {
     name = "sidebar", drawer = sidebar.drawer, edge = "top",
     length = function() local _, _, w = bar.desk() return w - 2 * (theme.BORDER + theme.ROUNDING) end,
@@ -781,7 +777,7 @@ ipc.brightness = function(how)
   return true
 end
 -- `notify SUMMARY [BODY [critical|normal|low [APP [ICON [IMAGE]]]]]` raises a
--- notification of the shell's own, as the reference's toaster does.
+-- notification of the shell's own.
 ipc.notify = function(summary, body, urgency, app, icon, image)
   if morf.window.primary and not morf.window.primary() then return nil end
   return notifs.push { summary = summary, body = body, app = app, icon = icon, image = image,

@@ -30,7 +30,6 @@ function M.attach(d, ctx, theme_motion)
     if not drag then return end
     drag.delta = delta
     local tucked = ctx.tucked()
-    -- A pull from tucked is measured from where tucked is now.
     local origin = drag.from_tucked and tucked or drag.origin
     local at = origin + delta
     -- Past open it runs on elastically; past tucked there is nothing to see.

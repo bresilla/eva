@@ -1,6 +1,6 @@
 -- What the lock shows of the shell: a small file under the runtime directory,
--- filtered to the chosen level before it is written. Per-app rules come from the
--- notifications stream through `rules()`.
+-- filtered to the chosen level before it is written. Per-app rules come from
+-- shell/notification_rules.lua through `rules()`.
 local morf = require("morf")
 local config = require("config")
 local view = require("models.lock_notifications")

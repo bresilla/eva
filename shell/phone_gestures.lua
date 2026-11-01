@@ -375,13 +375,11 @@ function M.attach(root)
   local gestures=require("keyboard_gestures")
   local contacts=gestures.contacts("bottom",function() return M.global_allowed() and not blocked() end,
     function(phase,dx,dy,x)
-      -- A tap that went nowhere: the workspace under it, on the rail.
       if phase=="end" and not mode and math.max(math.abs(dx),math.abs(dy))<8 then require("rail").tap(x) end
       single(phase,dx,dy,0,0)
     end)
   cancel_global[#cancel_global+1]=function()
     contacts.cancel() single("cancel") preview.cancel()
-    -- The rest of this contact sequence stays cancelled.
     mode="ignored"
   end
   -- The bottom strip owns the gesture so a second finger can cancel

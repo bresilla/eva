@@ -67,14 +67,13 @@ local config = settings.open {
       cursor_size = 24,
       icon_theme = "",
       gtk_theme = "",
-      -- How quick everything is, and how far surfaces deform as they move.
       speed = 1,
       deform = 1,
       -- Looks saved by name (shell/profiles_model.lua).
       profiles = {},
       -- How much larger every label is set, 1 for as designed.
       text_scale = 1,
-      -- Stronger contrast: text at full strength, surfaces plainer.
+      -- Text at full strength, surfaces plainer.
       high_contrast = false,
     },
     -- What the Input pages chose (shell/input_model.lua): only what was
@@ -101,7 +100,7 @@ local config = settings.open {
     sound = {
       -- The event sound theme ("" leaves it alone).
       theme = "",
-      -- The outputs and inputs wanted, most wanted first, by device name.
+      -- Most wanted first, by device name.
       preferred_outputs = {},
       preferred_inputs = {},
     },
@@ -125,10 +124,8 @@ local config = settings.open {
     backups = {
       -- snapper, btrbk or restic; "" takes the first one here.
       tool = "",
-      -- The snapper config the page shows.
       snapper_config = "root",
-      -- restic's repository, the file holding its password, and what it
-      -- backs up. The password itself is never kept here.
+      -- The password itself is never kept here.
       restic_repository = "",
       restic_password_file = "",
       restic_paths = { "~" },
@@ -231,7 +228,6 @@ local config = settings.open {
       custom = {},
       -- Fixed words for the Text module.
       text = "",
-      -- The mount the Disk module reads.
       disk = { mount = "/" },
       -- A date the Countdown module counts to, as YYYY-MM-DD, and its name.
       countdown = { date = "", label = "" },
@@ -248,8 +244,7 @@ local config = settings.open {
       hover = true,
     },
     -- Which pages each edge's panel holds (shell/pages.lua): a desk's right,
-    -- left and bottom panels, and the sheet from the top on a phone. A page
-    -- moves by moving its key.
+    -- left and bottom panels, and the sheet from the top on a phone.
     panels = {
       right = { "settings", "notifications" },
       left = { "tasks", "calendar" },
@@ -280,7 +275,6 @@ local config = settings.open {
       cursor = false, save_dialog = false, copy_on_save = true, copy_to_disk = false,
       -- The small picture after a shot, and how long it stays in seconds.
       thumbnail = false, thumbnail_seconds = 5,
-      -- The seconds a replay buffer keeps, and a GIF's frames and width.
       replay_seconds = 30, gif_fps = 12, gif_width = 960,
       upload_endpoint = "https://litterbox.catbox.moe/resources/internals/api.php",
       hotkey = "Print", keybind_file = "",
@@ -330,19 +324,15 @@ local config = settings.open {
       plugins = true,
       -- The terminal things run in, as words; empty uses $TERMINAL.
       terminal = {},
-      -- What the person has pinned, hidden, filed and named.
       favourites = {}, hidden = {}, folders = {}, aliases = {},
       -- Their own search engines ({ bang, name, url }, %s for the words), links
       -- ({ name, url }, {query} for the words) and bookmarks ({ name, url }).
       engines = {}, quicklinks = {}, bookmarks = {},
-      -- The language a translation goes to, Wikipedia's language, and the folders
-      -- of projects.
       translate_to = "en",
       wiki_language = "en",
       projects = { "~/code", "~/src", "~/projects" },
       -- What `launcher apps` and `launcher web` read.
       menus = {
-        -- Folders of AppImages.
         appimages = { "~/Applications", "~/AppImages", "~/.local/share/AppImages" },
         -- The `bookmark` tool's folder.
         bookmarks = "~/.local/share/bookmark",
@@ -350,8 +340,7 @@ local config = settings.open {
         player = { "mpv" },
       },
     },
-    -- The on-screen displays, and where the notification popups stand ("" for
-    -- the default).
+    -- Where the notification popups stand ("" for the default).
     osd = { kinds = osd_kinds, notifications = "" },
     rail = {
       -- The workspaces down the left edge.
@@ -389,7 +378,7 @@ local config = settings.open {
     airplane = { on = false, was = { wifi = false, bluetooth = false, mobile = false, nfc = false } },
     -- sound, vibrate or silent (lib/util/ringer.lua; vibrate where feedbackd is).
     ringer = { mode = "sound" },
-    -- The notification server and how it behaves (shell/notifs.lua).
+    -- The notification server (shell/notifs.lua).
     notifications = {
       -- Off, another daemon keeps the bus name; the shell's own still show.
       daemon = true,
@@ -508,7 +497,6 @@ local config = settings.open {
       -- What a stranger should know, shown on the lock's emergency pad: blood
       -- type, allergies, medication.
       medical = "",
-      -- The power key ends a call that is up.
       power_ends_call = false,
       -- What pressing power twice runs: a command, as a list.
       double_power = {},
@@ -577,7 +565,6 @@ local config = settings.open {
         reboot = { "systemctl", "reboot" },
       },
     },
-    -- The lock screen: models/lock_defaults.lua.
     lock = require("models.lock_defaults"),
     -- Idle: seconds to each stage, 0 for never (shell/idle_model.lua). `dim` is
     -- how long the warning shows before the lock; `battery` overrides a stage

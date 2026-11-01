@@ -1,7 +1,7 @@
 -- The gestures and keys this device has, in a person's words, for the welcome.
 -- A row is `{ icon, what, how }`. What a keyboard or touchpad reaches is read
--- from the table that binds it (shell/keybinds.lua), so it cannot drift; the
--- touch rows follow shell/phone_gestures.lua and nix/nixos/scripts/gestures.sh.
+-- from the table that binds it (shell/keybinds.lua); the touch rows follow
+-- shell/phone_gestures.lua and nix/nixos/scripts/gestures.sh.
 local morf = require("morf")
 local keybinds = require("keybinds")
 local M = {}
