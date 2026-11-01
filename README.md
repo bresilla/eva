@@ -39,7 +39,9 @@ bridge, PAM, and, optionally, phone gestures. Its options live under
 
 `seamless.enable`, on by default, hides the way from boot to the desktop. Two
 compositors cannot share a frame, so greetd's switch between them always has a
-gap; this makes the gap a colour rather than text:
+gap; this makes the gap the wallpaper's colour rather than black and text. One
+moment stays black: each Hyprland shows a cleared buffer from its first commit
+until its first rendered frame, and no configuration reaches that.
 
 - The kernel and systemd stay quiet, tty1 has no getty and no cursor, and
   greetd stays on tty1. Other VTs get their cursor back at the login prompt.
@@ -49,11 +51,12 @@ gap; this makes the gap a colour rather than text:
 - The wallpaper bridge writes the picture's dominant colour beside it. Both
   Hyprlands use it as `background_color`, and tty1 uses it as its background.
 - The session records each output's mode, position, scale and transform in
-  `outputs` beside the scale file, and the greeter sets the same, so the switch
-  needs no modeset.
-- A right password fades the form, frame and clock off the wallpaper in 170 ms,
-  and only then asks greetd for the session. The compositor ends with that
-  bare wallpaper as its last frame.
+  `outputs` beside the scale file, and the greeter sets the same, so both ask
+  the display for one mode.
+- A right password clears its dots, fades the form, frame and clock off the
+  wallpaper in 170 ms, and draws nothing but the picture before asking greetd
+  for the session. The compositor ends with that bare wallpaper as its last
+  frame.
 
 The first shell of a session then brings the frame, the rail and the bar in from
 the edges; a lock lifting does the same, and `morf reload` and a theme switch do
