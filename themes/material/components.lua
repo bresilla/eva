@@ -675,7 +675,7 @@ function M.caption(spec)
     M.label { x = 14, y = -2, height = 18, text = spec.text, size = theme.size.small - 1,
       color = M.ink("hi"), width = w - 140, elide = "right" },
     spec.note and M.label { anchors = { right = true }, y = -2, height = 18, text = spec.note,
-      horizontal_alignment = "right" } or nil,
+      width = math.max(124, w - 80), elide = "right", horizontal_alignment = "right" } or nil,
   }
 end
 
