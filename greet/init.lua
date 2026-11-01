@@ -30,6 +30,7 @@ local sessions = require("lib.services.sessions")
 local auth = require("lib.shell.auth")
 local reveal = require("themes.reveal")
 require("themes.ui_scale").apply()
+require("themes.motion_style").install()
 
 -- `-- preview`: never talks to greetd, for pictures and tests.
 local PREVIEW = morf.operands[1] == "preview"

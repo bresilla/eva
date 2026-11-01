@@ -58,17 +58,9 @@ require("displays_hotplug").start()
 local terminal_colors = require("terminal_colors")
 morf.effect("eva.lule", function() theme.apply_lule(terminal_colors.current:get()) end)
 morf.effect("eva.scheme", function()
-  local source = config.get("theme.source")
-  local tool = terminal_colors.current:get()
-  local mode = require("themes.color_mode").resolve(tool and tool.mode)
-  if (source == "auto" or source == "lule") and tool then
-    theme.follow(tool.accent, nil, mode)
-  else
-    theme.follow(source == "auto" and "wallpaper" or source, wallpaper.current:get(), mode)
-  end
-  -- The variant is read inside `follow`; name it here so a change re-runs this.
-  config.get("theme.variant")
+  theme.track(terminal_colors.current:get(), wallpaper.current:get())
 end)
+require("appearance_model").start()
 
 -- ------------------------------------------------------------------ scale --
 
@@ -100,7 +92,8 @@ end)
 -- again in place, as the scale does.
 local motion_first, motion_settle = true, nil
 morf.effect("eva.motion", function()
-  local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion") }
+  local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion"),
+    config.get("appearance.density"), config.get("appearance.corners"), require("themes.motion_style").reduced() }
   if motion_first or not style then motion_first = false return end
   if motion_settle then motion_settle:cancel() end
   motion_settle = morf.time.timer(120, function()
@@ -168,6 +161,8 @@ morf.effect("eva.keyboard.focus", function()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/lule")
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/desktop")
+    or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/look")
+    or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme")
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "hotspot")
     or (sidebar.drawer.open:get() and require("utilities").tiles.editing:get())
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
@@ -234,7 +229,7 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
 }
 local frame_view=require("themes").view("frame")
 local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
-  rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape},
+  rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape,panels=levels.panels},
   overlays=overlays,triggers=triggers}
 require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)

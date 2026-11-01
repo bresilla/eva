@@ -25,6 +25,7 @@ local accounts = require("lib.services.accounts")
 local auth = require("lib.shell.auth")
 local reveal = require("themes.reveal")
 require("themes.ui_scale").apply()
+require("themes.motion_style").install()
 
 local HELD = morf.operands[1] ~= "window"
 -- A fingerprint stack to listen on (helpers/pam/readers.sh), said in the hint.

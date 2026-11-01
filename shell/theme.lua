@@ -11,8 +11,15 @@ if appearance.font and appearance.font ~= "" then
   M.font, M.mono, M.font_file = appearance.font, appearance.font, ""
 end
 M.space = require("themes.spacing")
+-- The density's steps and the corner scale, as every layout reads them.
+do
+  local corners = math.max(0, tonumber(config.get("appearance.corners")) or 1)
+  M.corners = corners
+  M.ROUNDING, M.SEAM = M.ROUNDING * corners, M.SEAM * corners
+  M.PAD, M.GAP = M.space.l, M.space.m
+end
 -- Reduce motion lands everything at once, before anything is built to move.
-if config.get("appearance.reduce_motion") == true then
+if require("themes.motion_style").reduced() then
   require("themes.motion_landing").install()
   for name in pairs(M.stretch or {}) do M.stretch[name] = false end
 end

@@ -32,6 +32,12 @@ local config = settings.open {
       -- own colours are theme.lule either way.
       source = "auto",
       variant = "tonal_spot",
+      -- Colours follow the album art while something plays.
+      follow_song = false,
+      -- Turns the source colour round the wheel, in degrees.
+      hue = 0,
+      -- What runs when the mode turns; `$MODE` is filled in.
+      hook = {},
     },
     appearance = {
       -- A font file every label is set in ("" for the installed faces).
@@ -43,6 +49,22 @@ local config = settings.open {
       motion = "balanced",
       -- Everything lands at once, with no travel.
       reduce_motion = false,
+      -- "compact", "normal" or "spacious": a step along the spacing scale.
+      density = "normal",
+      -- How round the corners are: 0 square, 1 the theme's own, 2 twice it.
+      corners = 1,
+      -- Panels of glass over the picture, and how much of the picture shows.
+      glass = false,
+      glass_clarity = 0.45,
+      -- The dark palette's surfaces all the way to black.
+      pure_black = false,
+      -- Push the mode, cursor and icons to GTK, Qt and the terminals.
+      sync = true,
+      -- "" leaves each as the desktop has it.
+      cursor_theme = "",
+      cursor_size = 24,
+      icon_theme = "",
+      gtk_theme = "",
     },
     wallpaper = {
       -- A picture to paint under everything; "" reads the path the
@@ -256,4 +278,4 @@ local config = settings.open {
     rotation = { lock = "auto" },
   },
 }
-return require("themes.ui_scale").link(config)
+return require("themes.motion_style").link(require("themes.ui_scale").link(config))

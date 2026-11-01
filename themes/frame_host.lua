@@ -39,5 +39,6 @@ return function(model,frame,insets,decorations)
   for _,node in ipairs {model.bar,model.rail.node,model.levels.node} do switcher.fade(node) end
   switcher.fade(decorations)
   local bar=arriving("arrival-bar",model.bar,2,model.bar_edge or function() return "top" end,model.bar_reach or theme.BORDER)
-  return ui.Item {anchors={fill=true},frame,bar,ui.Item(desk),ui.Item(docked),switcher.blocker()}
+  local plate=require("themes.glass_plate").build(model,insets)
+  return ui.Item {anchors={fill=true},plate,frame,bar,ui.Item(desk),ui.Item(docked),switcher.blocker()}
 end

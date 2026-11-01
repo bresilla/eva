@@ -30,6 +30,7 @@ return {
     desktop = "themes.layouts.views.desktop",
     desktop_faces = "themes.layouts.views.desktop_faces",
     desktop_page = "themes.layouts.views.desktop_page",
+    look_page = "themes.layouts.views.look_page",
     tasks_page = "themes.layouts.views.tasks_page",
     calendar_page = "themes.layouts.views.calendar_page",
     planner_widgets = "themes.layouts.views.planner_widgets",

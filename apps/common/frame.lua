@@ -28,25 +28,21 @@ M.PAD = S.l
 function M.follow_scheme()
   morf.effect("eva.app.lule", function() theme.apply_lule(terminal_colors.current:get()) end)
   morf.effect("eva.app.scheme", function()
-    local source = config.get("theme.source")
-    local tool = terminal_colors.current:get()
-    local mode = color_mode.resolve(tool and tool.mode)
-    if (source == "auto" or source == "lule") and tool then
-      theme.follow(tool.accent, nil, mode)
-    else
-      local picture = config.get("wallpaper.path")
-      theme.follow(source == "auto" and "wallpaper" or source, picture, mode)
-    end
-    config.get("theme.variant")
+    theme.track(terminal_colors.current:get(), config.get("wallpaper.path"))
   end)
 end
 
--- A theme or font chosen elsewhere builds the window again in place.
+-- A theme, a font, a motion or a density chosen elsewhere builds the window
+-- again in place.
 local function follow_appearance()
-  local style, font = themes.preferences.get("theme"), themes.preferences.get("font")
+  local function look()
+    local read = themes.preferences.get
+    return table.concat({ read("theme"), read("font"), read("motion"), tostring(read("reduce_motion")),
+      read("density"), tostring(read("corners")) }, "\n")
+  end
+  local built = look()
   morf.effect("eva.app.appearance", function()
-    local now, face = themes.preferences.get("theme"), themes.preferences.get("font")
-    if now ~= style or face ~= font then morf.reload() end
+    if look() ~= built then morf.reload() end
   end)
 end
 

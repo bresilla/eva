@@ -17,7 +17,11 @@ function V.build(model)
       height=function() local _,_,_,h=model.desk() return h-2*theme.BORDER end},0,hidden,rest)
   local transition=require("themes.session").transition
   require("themes.switcher").morph(opening,"radius",theme.ROUNDING,transition and transition.frame_rounding)
-  local field={id="frame",anchors={fill=true},fill_color=function() return theme.color.surface end,
+  local glass=require("themes.glass")
+  local field={id="frame",anchors={fill=true},fill_color=function() return glass.fill(theme.color.surface,1.1) end,
+    backdrop_blur=function() return glass.compositor() end,
+    stroke_color=function() return glass.on() and theme.color.onSurface:alpha(.14) or "transparent" end,
+    stroke_width=function() return glass.on() and 1 or 0 end,
     blend=theme.SEAM,blend_profile="circular",shadow_color="#000000a0",shadow_blur=6,
     ui.SdfShape {shape="box",anchors={fill=true}},
     opening,
