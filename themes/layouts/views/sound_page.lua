@@ -8,7 +8,10 @@
 --                  another the default
 --   Apps           what is playing: each app's volume and mute, and a
 --                  button for each output to send it to
---   Input          the default input's volume and mute, and every input
+--   Input          the default input's volume, mute and channels, and
+--                  every input
+--   Recording      what records: each app's volume and mute, and a button
+--                  for each input to take it from
 --
 -- Readings and actions come from the shared audio model.
 
@@ -77,7 +80,10 @@ end
 -- ------------------------------------------------------------------ output --
 
 local channels_open = require("themes.session").keep("eva.sound.channels_open", true)
-local function output_section()
+
+--- The default device's channels, each its own slider, under an expander that
+--- remembers being shut: `prefix` names them.
+local function channels_expander(prefix)
   local channels = {}
   for i = 1, MAX_CHANNELS do
     local function count() local s = sink() return s and s.channels or 0 end
@@ -91,13 +97,23 @@ local function output_section()
       kit.text { width = 18, text = name, horizontal_alignment = "center",
         font_size = theme.size.small, font_weight = 600, color = kit.ink("lo") },
       kit.slider {
-        id = "sound-channel-" .. i, width = INNER - 26, height = 26,
+        id = prefix .. "-channel-" .. i, width = INNER - 26, height = 26,
         accessible_name = function() return "Channel " .. name() end,
         value = function() local s = sink() return s and s.volumes and s.volumes[i] or 0 end,
         set = function(v) model.set_channel(i, v) end,
       },
     }
   end
+  return (disclosure.make("expander", {
+    id = prefix .. "-channels", title = "Channels", width = INNER, header_height = 34,
+    visible = function() local s = sink() return s ~= nil and (s.channels or 0) > 1 end,
+    expanded = function() return channels_open:get() end,
+    on_toggled = function(open) if open ~= channels_open:get() then channels_open:set(open) end end,
+    content = ui.Column { gap = P.ROW_GAP, table.unpack(channels) },
+  }))
+end
+
+local function output_section()
   return P.section { id = "sound-output", caption_id = "sound-title-output", width = w, title = "Output",
     P.row { id = "sound-output-device", width = INNER, icon = volume_icon,
       on = function() local s = sink() return s ~= nil and not s.muted end,
@@ -114,13 +130,7 @@ local function output_section()
         set = function(v) local s = sink() if s then model.set_device_volume(s, v) end end,
         icon = volume_icon,
       },
-      (disclosure.make("expander", {
-        id = "sound-channels", title = "Channels", width = INNER, header_height = 34,
-        visible = function() local s = sink() return s ~= nil and (s.channels or 0) > 1 end,
-        expanded = function() return channels_open:get() end,
-        on_toggled = function(open) if open ~= channels_open:get() then channels_open:set(open) end end,
-        content = ui.Column { gap = P.ROW_GAP, table.unpack(channels) },
-      })),
+      channels_expander("sound"),
     },
     P.row { id = "sound-equalizer", width = INNER, icon = "equalizer", title = "Equalizer",
       subtitle = "Tone, presets and audiogram compensation", trailing = P.chevron(),
@@ -140,10 +150,13 @@ end
 
 -- -------------------------------------------------------------------- apps --
 
---- One app playing: its name and what it plays with its mute, its volume,
---- and a button for each output to send it to.
+local PLAYS = model.kind == "output"
+local DIRECTION = PLAYS and "playback" or "record"
+
+--- One app playing or recording: its name and what it plays with its mute, its
+--- volume, and a button for each device to send it to or take it from.
 local function app_row(row)
-  if row.direction ~= "playback" then return ui.Item { width = 0, height = 0, visible = false } end
+  if row.direction ~= DIRECTION then return ui.Item { width = 0, height = 0, visible = false } end
   local id = row.id
   local function live() return model.stream(row) end
   local function app_name() local s = live() return s and (s.app_name or s.binary) or "App" end
@@ -171,11 +184,12 @@ local function app_row(row)
     id = "sound-app-" .. math.floor(id) .. "-mute",
     accessible_name = function() return "Mute " .. app_name() end,
     width = 40, height = 36,
-    on = function() return muted() == true end, icon_on = "volume_off", icon_off = "volume_up",
+    on = function() return muted() == true end, icon_on = PLAYS and "volume_off" or "mic_off",
+    icon_off = PLAYS and "volume_up" or "mic",
     on_clicked = function() if live() then model.toggle_stream(row) end end,
   }
   return ui.Column { width = INNER, gap = 4,
-    P.row { width = INNER, icon = "music_note", title = app_name,
+    P.row { width = INNER, icon = PLAYS and "music_note" or "mic", title = app_name,
       on = function() return muted() ~= true end,
       subtitle = function() local s = live() return s and s.media_name or "" end,
       trailing = mute },
@@ -185,7 +199,8 @@ local function app_row(row)
       value = function() local s = live() return s and s.volume or 0 end,
       set = function(v) model.set_stream_volume(row, v) end,
     },
-    kit.text { x = 0, width = INNER, text = "Play on", font_size = theme.size.small, color = kit.ink("lo") },
+    kit.text { x = 0, width = INNER, text = PLAYS and "Play on" or "Record from", font_size = theme.size.small,
+      color = kit.ink("lo") },
     routes,
     ui.Item { width = INNER, height = 6 },
   }
@@ -196,15 +211,18 @@ local function apps_section()
     if not available() then return 0 end
     local n, streams = 0, model.streams
     for i = 1, streams:len() do
-      if streams:get(i).direction == "playback" then n = n + 1 end
+      if streams:get(i).direction == DIRECTION then n = n + 1 end
     end
     return n
   end
-  return P.section { id = "sound-apps", caption_id = "sound-title-apps", width = w, title = "Apps",
+  return P.section { id = "sound-apps", caption_id = "sound-title-apps", width = w,
+    title = PLAYS and "Apps" or "Recording",
     ui.Repeater { as = "column", gap = P.ROW_GAP, width = INNER, model = model.streams,
       visible = function() return playing() > 0 end, delegate = app_row },
-    nothing("music_off", function() return available() and "Nothing playing" or "No sound server" end,
-      function() return playing() == 0 end),
+    nothing(PLAYS and "music_off" or "mic_off", function()
+      if not available() then return "No sound server" end
+      return PLAYS and "Nothing playing" or "Nothing recording"
+    end, function() return playing() == 0 end),
   }
 end
 
@@ -227,6 +245,7 @@ local function input_section()
       set = function(v) local s = source() if s then model.set_device_volume(s, v) end end,
       icon = function() local s = source() return (s and s.muted) and "mic_off" or "mic" end,
     },
+    channels_expander("sound-input"),
   }
 end
 
@@ -250,7 +269,7 @@ if model.kind == "output" then
     P.page { id = "sound-scroll", width = w, height = h, output_section(), devices_section(), apps_section() } }
 end
 return ui.Item { id = "microphone-page", width = w, height = h, clip = true,
-  P.page { id = "microphone-scroll", width = w, height = h, input_section(), inputs_section() } }
+  P.page { id = "microphone-scroll", width = w, height = h, input_section(), inputs_section(), apps_section() } }
 end
 
 return M
