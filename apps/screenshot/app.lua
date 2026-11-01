@@ -92,6 +92,8 @@ local function state_path()
   return (morf.env("XDG_RUNTIME_DIR") or "/tmp") .. "/eva/capture.json"
 end
 
+-- A dry run tells the shell nothing.
+local silent = dry()
 local written
 morf.effect("eva.capture.publish", function()
   local recording, phase = capture.recording:get(), capture.phase:get()
@@ -100,7 +102,7 @@ morf.effect("eva.capture.publish", function()
     phase = recording and phase ~= "stopping" and "recording" or phase, recording = recording,
     started = capture.started:get(), target = capture.target:get(), output = me,
   }
-  if not mine() or line == written then return end
+  if silent or not mine() or line == written then return end
   written = line
   morf.fs.write(state_path(), line, { atomic = true, parents = true })
 end)

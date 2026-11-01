@@ -155,50 +155,22 @@ test.describe("eva", function()
     test.falsy(shown("dashboard"), "leaving the panel did not shut it")
   end)
 
-  test.it("opens the assistant from the bottom edge and captures from its separate popup", function()
+  test.it("opens the assistant from the bottom edge and asks the capture tool for its panel", function()
     load()
     test.move(W / 2 + 25, H - 4)
     test.advance(1500)
     test.truthy(shown("bottom"), "the bottom edge did not open the assistant")
-    test.falsy(shown("capture"), "capture must only open explicitly")
-    test.ipc("capture", "open") test.settle(1000)
-    test.falsy(shown("bottom"), "the assistant overlapped capture")
-    test.falsy(shown("launcher"), "the bottom edge opened the launcher")
-    local d = drawer("capture")
-    test.near(d.y + d.height, H - 10, 1)
-    for _, id in ipairs { "capture-target-region", "capture-target-window", "capture-target-screen",
-      "capture-screenshot", "capture-record" } do
-      test.truthy(test.find { id = id, visible = true }, id .. " not shown")
-    end
-    test.snapshot("eva-capture.png", { surface = "screen" })
+    test.falsy(test.find { id = "drawer-capture" }, "the shell holds no capture panel")
     test.clear_logs()
-    test.click { id = "capture-delay-3" }
-    test.click { id = "capture-target-screen" }
-    test.click { id = "capture-screenshot" }
-    test.settle(1000)
-    test.falsy(shown("capture"), "it stayed in the picture")
+    test.ipc("capture", "open") test.settle(1000)
+    test.falsy(shown("launcher"), "the bottom edge opened the launcher")
     local said = function()
       for _, l in ipairs(test.logs("info")) do
-        if l.message:find("capture screenshot_screen (dry run)", 1, true) then return true end
+        if l.message:find("capture capture open (dry run)", 1, true) then return true end
       end
       return false
     end
-    test.falsy(said(), "it did not wait the delay")
-    -- settle stops as soon as the drawer's animation rests; include the
-    -- capture's close margin as well as the selected three-second delay.
-    test.advance(3500)
-    test.truthy(said(), "the screenshot was not taken")
-    -- Recording the same target, from the same place: Record, then Stop.
-    test.ipc("capture", "open")
-    test.settle(1500)
-    test.click { id = "capture-record" }
-    test.advance(3500)
-    test.ipc("capture", "open")
-    test.settle(1500)
-    test.truthy(test.find { text = "Stop", visible = true }, "not recording")
-    test.click { id = "capture-record" }
-    test.settle(300)
-    test.truthy(test.find { text = "Record", visible = true }, "not stopped")
+    test.truthy(said(), "the verb did not reach the tool")
     -- Background performance sampling can invoke nvidia-smi in dry mode.
     for _, run in ipairs(test.runs()) do
       test.falsy(run[1] == "sh" or run[1] == "grim" or run[1] == "gpu-screen-recorder",

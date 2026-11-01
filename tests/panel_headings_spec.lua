@@ -47,7 +47,6 @@ test.it("every main panel uses the shared title and replays it on entry",functio
     test.truthy(not title or not title.visible,"a desk page drew its title: "..case[4])
   end
   for _,case in ipairs {
-    {"capture","open",nil,"capture-title","CAPTURE"},
     {"page","2",nil,"media-empty-title","NOTHING PLAYING"},
   } do
     test.ipc("close") test.advance(900)
@@ -55,6 +54,16 @@ test.it("every main panel uses the shared title and replays it on entry",functio
     decoded(case[4],case[5])
     if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(case[4]..".png") end
   end
+  test.eq(#test.logs("error"),0)
+  test.eq(#test.logs("warn"),0)
+end)
+test.it("the capture tool's panel uses the shared title and replays it on entry",function()
+  test.load("../apps/screenshot/app.lua",{size={1920,1080},env={EVA_STYLE="tsugumori",EVA_DRY_RUN="1",
+    LULE_A="/nonexistent/lule"}})
+  test.settle(600)
+  test.ipc("capture","open")
+  decoded("capture-title","CAPTURE")
+  if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot("capture-title.png") end
   test.eq(#test.logs("error"),0)
   test.eq(#test.logs("warn"),0)
 end)

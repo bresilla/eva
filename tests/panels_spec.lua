@@ -4,10 +4,9 @@ local test = morf.test
 local UUID = "12345678-1234-1234-1234-123456789abc"
 local HOST = [[
   require("init")
-  require("config").set("capture.folder", morf.env("XDG_CACHE_HOME") .. "/captures")
   local capture = require("capture")
   morf.ipc.panel_state = function()
-    return { phase = capture.phase:get(), recording = capture.recording:get(), message = capture.message:get(),
+    return { phase = capture.phase:get(), recording = capture.recording:get(),
       bottom = require("bottom").drawer.open:get(), leftbar = require("leftbar").drawer.open:get(),
       assistant = require("bottom").drawer.open:get() and require("bottom").panel.showing("assistant"), tasks = require("leftbar").panel.showing("tasks"),
       calendar = require("leftbar").panel.showing("calendar"), error = require("planner").client.error:get(),
@@ -90,49 +89,26 @@ test.describe("eva panels", function()
     test.eq(#test.logs("error"), 0)
   end)
 
-  test.it("separates the assistant and compact capture popup, and cancels queued recording", function()
+  test.it("gives the bottom edge to the capture tool's panel, and takes it back", function()
     load()
     test.move(985, 1076) test.advance(1600)
     test.eq(state().assistant, true)
-    test.falsy(test.get("drawer-capture").visible)
+    test.falsy(test.find { id = "drawer-capture" })
     test.get("bottom-tab-assistant")
     test.click("bottom-tab-drop") test.settle(650)
     test.truthy(test.find { id = "drop-placeholder", visible = true })
     test.click("bottom-tab-assistant") test.settle(650)
     test.truthy(test.get("assistant-page").width > 900)
     test.falsy(test.find { id = "bottom-tab-capture" })
-    test.ipc("capture", "open") test.settle(1000)
-    test.eq(state().assistant, false)
-    test.truthy(test.get("drawer-capture").width <= 480)
-    test.truthy(test.get("drawer-capture").height <= 264)
-    test.get("capture-target-region")
-    local resting_width = test.get("capture-selection").width
-    test.click("capture-target-screen") test.advance(160)
-    test.truthy(test.get("capture-selection").width > resting_width + 20,
-      "the target selection did not stretch during its transition")
-    test.advance(650)
-    test.near(test.get("capture-selection").width, resting_width, 1)
-    test.falsy(test.find { id = "capture-library" })
-    test.falsy(test.find { id = "capture-close" })
-    test.click(100, 100) test.settle(800)
-    test.falsy(test.get("drawer-capture").visible)
+    test.clear_logs()
     test.ipc("utilities", "open") test.settle(800)
     test.click("utilities-capture") test.settle(800)
-    test.truthy(test.get("drawer-capture").visible)
     test.falsy(test.get("drawer-sidebar").visible)
-    test.click(100, 100) test.settle(800)
-    test.falsy(test.get("drawer-capture").visible)
-    test.ipc("capture", "open") test.settle(800)
-    test.click("capture-delay-5")
-    test.ipc("record", "screen")
-    test.eq(state().phase, "countdown")
-    test.ipc("record") -- cancels the queued start, never starts a recorder
-    test.advance(6500)
-    test.eq(state().recording, false)
-    test.eq(state().phase, "ready")
+    local said = false
     for _, log in ipairs(test.logs("info")) do
-      test.falsy(log.message:find("capture record_screen", 1, true), "cancelled recording still started")
+      if log.message:find("capture capture open (dry run)", 1, true) then said = true end
     end
+    test.truthy(said, "the button did not ask the tool")
     test.ipc("assistant", "open") test.settle(600)
     test.eq(state().assistant, true)
     test.eq(#test.logs("error"), 0)
@@ -167,14 +143,5 @@ test.describe("eva panels", function()
     test.eq(state().tasks, true)
     test.eq(test.get("task-scheduled").text, "2030-10-01T09:00")
     test.eq(#test.logs("error"), 0)
-  end)
-
-  test.it("shows recorder failures and clears recording state", function()
-    test.stub_run("gpu-screen-recorder", { code = 1, stderr = "Recorder could not start" })
-    load(false)
-    test.ipc("record", "screen") test.advance(1000)
-    test.eq(state().recording, false)
-    test.eq(state().phase, "error")
-    test.eq(state().message, "Recorder could not start")
   end)
 end)

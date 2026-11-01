@@ -1,6 +1,6 @@
--- eva-screenshot: its command line against stand-in programs, what the editor
--- gained (solid redaction, the last region, a picture from a file, reading a
--- picture), and its window.
+-- eva-screenshot: its command line against stand-in programs, and what the
+-- editor gained (solid redaction, the last region, a picture from a file,
+-- reading a picture). The tool itself is tests/capture_tool_spec.lua.
 --
 --     morf test --no-dbus tests/screenshot_spec.lua
 
@@ -19,7 +19,7 @@ local function cli(args, env)
   local log = state .. "/shot-" .. tostring(morf.time.now_ms()) .. ".log"
   morf.fs.write(log, "")
   local argv = { "env", "PATH=" .. BIN .. ":" .. morf.env("PATH"), "STUB_LOG=" .. log, "MORF=" .. BIN .. "/morf",
-    "SWAYSOCK=/nonexistent/sway", "HOME=" .. state, "XDG_STATE_HOME=" .. state,
+    "WAYLAND_DISPLAY=wayland-1", "HOME=" .. state, "XDG_STATE_HOME=" .. state,
     "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR") }
   for _, word in ipairs(env or {}) do argv[#argv + 1] = word end
   argv[#argv + 1] = "sh"
@@ -30,71 +30,106 @@ local function cli(args, env)
   return result, morf.fs.read(log) or ""
 end
 
-test.it("copies a region through grim and slurp, leaving no file behind", function()
+local function untouched(calls)
+  test.falsy(calls:find("slurp", 1, true), "slurp ran")
+  test.falsy(calls:find("grim", 1, true), "grim ran")
+end
+
+test.it("shows the panel with no arguments", function()
+  host()
+  local result, calls = cli {}
+  test.truthy(result.ok)
+  test.contains(calls, "-i wayland-1-screenshot")
+  test.contains(calls, "-- capture open")
+  untouched(calls)
+end)
+
+test.it("copies a region through the selection", function()
   host()
   local result, calls = cli { "region", "--copy" }
   test.truthy(result.ok)
-  test.contains(calls, "slurp")
-  test.contains(calls, "grim -g 10,20 300x200")
-  test.contains(calls, "wl-copy --type image/png")
-  local path = calls:match("grim %-g 10,20 300x200 (%S+)")
-  test.falsy(morf.fs.exists(path))
+  test.contains(calls, "screenshot region how=copy")
+  untouched(calls)
 end)
 
-test.it("saves into the captures folder and says where", function()
+test.it("saves through the selection and says where", function()
   host()
   local result, calls = cli { "screen", "--save" }
   test.truthy(result.ok)
   test.contains(result.stdout, "Pictures/Captures/capture_")
-  test.contains(calls, "grim -o DP-1")
+  test.contains(calls, "screenshot screen how=save")
+  untouched(calls)
 end)
 
-test.it("takes the focused window by its geometry", function()
+test.it("takes a window through the selection", function()
   host()
   local _, calls = cli { "window", "--copy" }
-  test.contains(calls, "grim -g 5,6 70x80")
+  test.contains(calls, "screenshot window how=copy")
+  untouched(calls)
 end)
 
 test.it("restores the last region", function()
   host()
-  cli { "region", "--copy" }
   local result, calls = cli { "region", "--copy", "--last" }
   test.truthy(result.ok)
-  test.falsy(calls:find("slurp", 1, true))
-  test.contains(calls, "grim -g 10,20 300x200")
+  test.contains(calls, "last=1")
+  untouched(calls)
 end)
 
-test.it("reads text to the clipboard and writes nothing to disk", function()
+test.it("waits the delay in the tool", function()
   host()
-  local before = #(morf.fs.list(morf.env("XDG_RUNTIME_DIR") .. "/eva") or {})
+  local _, calls = cli { "region", "--delay", "3" }
+  test.contains(calls, "screenshot region how=edit delay=3")
+end)
+
+test.it("reads text through the selection", function()
+  host()
   local result, calls = cli { "ocr", "region" }
   test.truthy(result.ok)
-  test.contains(calls, "clipboard: hello words")
-  test.eq(#(morf.fs.list(morf.env("XDG_RUNTIME_DIR") .. "/eva") or {}), before)
+  test.contains(calls, "screenshot region how=ocr")
+  untouched(calls)
 end)
 
 test.it("reads a QR code, and says so when there is nothing to read", function()
   host()
-  local _, calls = cli { "qr", "region" }
-  test.contains(calls, "clipboard: https://example.test")
-  local result = cli({ "qr", "region" }, { "STUB_READ=" })
+  local _, calls = cli { "qr" }
+  test.contains(calls, "screenshot region how=qr")
+  local result = cli({ "qr", "region" }, { "STUB_RESULT=no\\nNo code found\\n" })
   test.falsy(result.ok)
-  test.contains(result.stderr, "nothing found")
+  test.contains(result.stderr, "No code found")
+end)
+
+test.it("opens the editor on a picture", function()
+  host()
+  local _, calls = cli { "--edit-file", "/tmp/picture.png" }
+  test.contains(calls, "capture-editor file /tmp/picture.png")
+  untouched(calls)
 end)
 
 test.it("holds back under EVA_DRY_RUN", function()
   host()
   local result, calls = cli({ "screen", "--save" }, { "EVA_DRY_RUN=1" })
   test.truthy(result.ok)
-  test.falsy(calls:find("grim", 1, true))
+  test.falsy(calls:find("app.lua", 1, true))
   test.contains(result.stderr, "dry run")
 end)
 
-test.it("goes through the shell when it runs", function()
+test.it("asks the tool that is running", function()
   host()
-  local _, calls = cli({ "region", "--edit" }, { "STUB_UP=1" })
-  test.contains(calls, "ipc call screenshot region")
-  test.falsy(calls:find("grim", 1, true))
+  local _, calls = cli({ "region", "--edit" }, { "STUB_TOOL=1" })
+  test.contains(calls, "-i wayland-1-screenshot ipc call screenshot region how=edit")
+  test.falsy(calls:find("app.lua", 1, true))
+end)
+
+test.it("keeps the tool ready for a verb the shell asks", function()
+  host()
+  local _, calls = cli { "--ask", "capture", "toggle" }
+  test.contains(calls, "-- standby capture toggle")
+  local _, idle = cli { "--ask", "standby" }
+  test.contains(idle, "app.lua -- standby")
+  test.falsy(idle:find("standby standby", 1, true))
+  local _, none = cli { "--ask", "capture", "close" }
+  test.falsy(none:find("app.lua", 1, true), "a close started the tool")
 end)
 
 test.it("refuses what it does not know", function()
@@ -152,7 +187,7 @@ end
 local PICTURE = ROOT .. "tests/fixtures/wallpaper.png"
 
 local function editor_host()
-  test.load("../shell/init.lua", { source = EDITOR, env = { EVA_SETTINGS = "/nonexistent/eva.json", EVA_DRY_RUN = "1" } })
+  test.load("../apps/screenshot/app.lua", { source = EDITOR, env = { EVA_SETTINGS = "/nonexistent/eva.json", EVA_DRY_RUN = "1" } })
 end
 
 test.it("offers solid redaction as an opaque filled rectangle", function()
@@ -197,19 +232,4 @@ test.it("hands back what a picture says, or that it says nothing", function()
   local nothing = test.ipc("read_last")
   test.falsy(nothing.ok)
   test.eq(nothing.words, "No code found")
-end)
-
--- ----------------------------------------------------------------- the window --
-
-test.it("takes what the window says, leaving first", function()
-  test.stub_run("sh", { code = 0 })
-  test.load("../apps/screenshot/app.lua", { env = { EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_DRY_RUN = "1" } })
-  test.settle(500)
-  test.click { id = "screenshot-how-copy" }
-  test.click { id = "screenshot-delay-3" }
-  test.settle(200)
-  local state = test.ipc("state")
-  test.eq(state.how, "copy")
-  test.eq(state.delay, 3)
-  test.eq(#test.logs("error"), 0)
 end)

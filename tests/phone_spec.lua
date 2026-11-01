@@ -104,7 +104,6 @@ local PANELS={
   {"leftbar",{"leftbar","open"}},
   {"bottom",{"bottom","open"}},
   {"keyboard",{"keyboard","open"}},
-  {"capture",{"capture","open"}},
   {"notifications",{"sidebar","open","notifications"}},
 }
 for _,style in ipairs {"material","tsugumori"} do
