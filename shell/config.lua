@@ -31,6 +31,8 @@ local config = settings.open {
       -- How big everything is drawn, from -1 (half the size) through 0 (the
       -- compositor's own scale) to 1 (twice it): the scale slider.
       zoom = 0,
+      -- How much things bounce: "calm", "balanced" or "playful".
+      motion = "balanced",
     },
     wallpaper = {
       -- A picture to paint under everything; "" reads the path the

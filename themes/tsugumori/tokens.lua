@@ -35,6 +35,15 @@ M.MARK = 10
 
 -- --------------------------------------------------------------- motion --
 
+-- Stiffer and closer to critical than Material's: a brief settle, not a bounce.
+M.springs = {
+  fast = { stiffness = 900, ratio = 0.78 },
+  spatial = { stiffness = 560, ratio = 0.84 },
+  slow = { stiffness = 320, ratio = 0.9 },
+  effects = { stiffness = 1600, ratio = 1 },
+  drawer = { stiffness = 520, ratio = 0.8 },
+  press = { stiffness = 1100, ratio = 0.68 },
+}
 M.duration = { small = 140, normal = 240, large = 400, drawer_open = 280, drawer_close = 180 }
 M.ease = {
   standard = "out_cubic", standard_decel = "out_cubic", standard_accel = "in_cubic",

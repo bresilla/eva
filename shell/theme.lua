@@ -10,5 +10,17 @@ if M.font_file ~= "" and not morf.fs.exists(M.font_file) then M.font_file = "" e
 if appearance.font and appearance.font ~= "" then
   M.font, M.mono, M.font_file = appearance.font, appearance.font, ""
 end
+M.space = require("themes.spacing")
+-- Each named spring two ways: `theme.spring.spatial` for a behavior,
+-- `theme.bounce.spatial` as a `duration` and `easing`.
+do
+  local spring = require("themes.spring")
+  local style = config.get("appearance.motion")
+  M.spring, M.bounce = {}, {}
+  for name, raw in pairs(M.springs or {}) do
+    local styled = spring.styled(raw, style)
+    M.spring[name], M.bounce[name] = spring.behavior(styled), spring.curve(styled)
+  end
+end
 M.motion = require(M.appearance.motion)(M)
 return M

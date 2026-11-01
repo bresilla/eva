@@ -46,6 +46,18 @@ M.ease = {
   emphasized = { spline = { 0.05, 0, 0.133333, 0.06, 0.166666, 0.4, 0.208333, 0.82, 0.25, 1, 1, 1 } },
 }
 
+-- Stiffness and damping ratio of each spring, Material 3 Expressive's where it
+-- names one: `spatial` for what travels, `fast` for controls, `slow` for large
+-- surfaces, `effects` for colour and opacity, `drawer` for the frame's panels.
+M.springs = {
+  fast = { stiffness = 800, ratio = 0.6 },
+  spatial = { stiffness = 380, ratio = 0.72 },
+  slow = { stiffness = 200, ratio = 0.8 },
+  effects = { stiffness = 1600, ratio = 1 },
+  drawer = { stiffness = 300, ratio = 0.68 },
+  press = { stiffness = 900, ratio = 0.5 },
+}
+
 -- Durations and curves fitted to films of the reference in the sandbox
 -- (tools/sandbox/eva-motion.steps): a drawer opens on the spatial
 -- curve over about 470 ms (500 here films as ~470 in the same sandbox), overshooting by about 1 % and settling, and

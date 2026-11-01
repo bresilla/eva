@@ -17,7 +17,8 @@ return function(theme)
       {
         parallel = {
           { node = panel, property = "scale", from = opening and hidden and 0.92 or nil, to = opening and 1 or 0.96,
-            duration = opening and 420 or 160, easing = opening and theme.ease.spatial or theme.ease.emphasized_accel },
+            duration = opening and theme.bounce.spatial.duration or 160,
+            easing = opening and theme.bounce.spatial.easing or theme.ease.emphasized_accel },
           { node = panel, property = "opacity", from = opening and hidden and 0 or nil, to = opening and 1 or 0,
             duration = opening and 180 or 140 },
           { node = d.shape, property = "opacity", from = opening and hidden and 0 or nil, to = opening and 1 or 0,
@@ -36,8 +37,8 @@ return function(theme)
     if opening then panel.visible = true end
     local slide = {
       node = panel, property = axis, to = opening and 0 or tucked(),
-      duration = opening and theme.duration.drawer_open or theme.duration.drawer_close,
-      easing = opening and theme.ease.spatial or theme.ease.emphasized_accel,
+      duration = opening and theme.bounce.drawer.duration or theme.duration.drawer_close,
+      easing = opening and theme.bounce.drawer.easing or theme.ease.emphasized_accel,
     }
     -- The reference's contents fade in over the first hundred-odd
     -- milliseconds of the slide, and its background with them: the
@@ -85,7 +86,8 @@ function M.entries(entries, coming, opts)
     if coming then
       local delay = (opts.delay or 40) + (k - 1) * (opts.stagger or 26)
       steps = {
-        { node = n, property = "scale", from = fresh and (opts.from or 0.92) or nil, to = 1, duration = 420, easing = theme.ease.spatial, delay = delay },
+        { node = n, property = "scale", from = fresh and (opts.from or 0.92) or nil, to = 1,
+          duration = theme.bounce.spatial.duration, easing = theme.bounce.spatial.easing, delay = delay },
         { node = n, property = "opacity", from = fresh and 0 or nil, to = 1, duration = 220, delay = delay },
       }
     else
