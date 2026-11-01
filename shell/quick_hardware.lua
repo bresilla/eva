@@ -167,9 +167,30 @@ M.nightlight = lazily(function()
   function n.temperature() return tonumber(config.get("nightlight.temperature")) or 4500 end
   function n.set_temperature(value) config.set("nightlight.temperature", lib.clamp(value)) end
   function n.status() return n.on() and ("%d K"):format(n.temperature()) or "Off" end
+  --- Whether it follows the sun at the weather's place.
+  function n.follow() return config.get("nightlight.follow") == true end
+  function n.set_follow(now) config.set("nightlight.follow", now == true) end
+  --- Whether there is a place to follow the sun at.
+  function n.placed() return lib.where(config) ~= "" end
+  --- A command of the tile's and eva-nightlight's, in words.
+  function n.command(how, value) return lib.command(n, how, value) end
   morf.effect("eva.nightlight", function()
     local on, temperature = n.on(), n.temperature()
     if primary() and n.present() then night.apply(on, temperature) end
+  end)
+  -- The sun: looked at on the turn it is asked for, then every few minutes.
+  local following
+  morf.effect("eva.nightlight.follow", function()
+    local follow = n.follow() and primary()
+    if following then following:cancel() following = nil end
+    if not follow then return end
+    local function look()
+      lib.decide(n, lib.where(config), function(_, why)
+        if why then morf.log("warn", "eva: night light: " .. tostring(why)) end
+      end)
+    end
+    look()
+    following = morf.time.timer(lib.EVERY, look, true)
   end)
   return n
 end)

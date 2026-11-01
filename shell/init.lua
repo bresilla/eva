@@ -462,6 +462,14 @@ ipc.record = function(what)
   if not here() then return nil end
   return capture.record(what)
 end
+-- `nightlight on|off|toggle|status|temperature|follow [VALUE]`: the tile's own
+-- device, for eva-nightlight.
+ipc.nightlight = function(how, value)
+  if not here() then return nil end
+  local text, why = require("quick_hardware").nightlight().command(how, value)
+  if not text then error(why) end
+  return text
+end
 ipc.workspace = function(n)
   if not here() then return nil end
   require("services").workspace.go(n)

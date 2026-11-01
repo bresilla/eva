@@ -200,8 +200,9 @@ local config = settings.open {
       },
       small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "nightlight", "powersaver" } },
     },
-    -- The night light (hyprsunset): whether it is on, and how warm, in kelvin.
-    nightlight = { on = false, temperature = 4500 },
+    -- The night light (hyprsunset): whether it is on, how warm, in kelvin, and
+    -- whether the sun at the weather's place turns it on and off.
+    nightlight = { on = false, temperature = 4500, follow = false },
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
     -- keeps it, a phone or a tablet follows the accelerometer).
     rotation = { lock = "auto" },

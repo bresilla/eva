@@ -339,6 +339,18 @@ in
           RestartSec = 2;
         };
       };
+      # The night light's daemon, neutral until the shell's device speaks to it.
+      systemd.user.services.eva-hyprsunset = {
+        description = "hyprsunset, for eva's night light";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        serviceConfig = {
+          ExecStart = "${pkgs.hyprsunset}/bin/hyprsunset --identity";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
       systemd.user.services.eva-clipboard = {
         description = "eva clipboard history";
         wantedBy = [ "graphical-session.target" ];

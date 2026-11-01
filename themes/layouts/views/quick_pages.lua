@@ -94,6 +94,11 @@ function V.nightlight_page(model, w, h)
           local kelvin = night.WARMEST + value * span
           return ("%d K"):format(math.floor(kelvin / night.STEP + 0.5) * night.STEP)
         end },
+      P.row { id = "settings-nightlight-follow", width = inner, icon = "wb_twilight", on = night.follow,
+        title = "Follow the sun", subtitle = "On at sunset, off at sunrise",
+        visible = night.placed,
+        trailing = P.switch { id = "settings-nightlight-follow-switch", name = "Follow the sun", on = night.follow,
+          on_toggled = function(now) night.set_follow(now) end } },
     },
   }
 end
