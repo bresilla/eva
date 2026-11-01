@@ -514,13 +514,45 @@ The greeter uses one fullscreen surface on its Hyprland's main display. The
 view uses the size that surface is configured to and never follows the pointer
 or rebuilds in response to monitor metadata. Locking remains independent.
 
+## Settings
+
+**All settings**, under the sliders in quick settings, lists every page by
+category with a search box over every page and setting. `eva open settings/KEY`
+and `morf ipc call settings KEY` open a page directly; `morf ipc call
+settings-search WORDS` searches, and with no words lists every page.
+
+`shell/settings_registry.lua` is the one list of pages: `list()` gives `{ key,
+name, icon, keywords }`. A new page is a row there and a builder in
+`shell/utilities.lua`. A page that is only settings is a form in
+`shell/settings_forms.lua`, with no view of its own.
+
+Where a system's configuration holds a value, the page says so and names the
+option. On NixOS that is usually `time.timeZone`, `i18n.defaultLocale`,
+`networking.hostName`, `networking.firewall` and `users.users`. Two settings
+overrule the configuration, and say so where they are set:
+
+- **Idle timeouts** start as `programs.eva.idle.*`. Changing one writes
+  `$XDG_STATE_HOME/eva/idle/hypridle.conf`, which wins for that account until
+  **Back to the system's** removes it.
+- **Lid and power button** start as **System**, which is logind's. Anything else
+  wins while the shell runs, by an inhibitor; at the login screen logind decides.
+
+Keyboard, pointer and accessibility choices go to Hyprland at run time and again
+after each reload. They are never written into its configuration files, and
+only what was changed in Settings is sent.
+
+`EVA_FAKE_SYSTEM=1` stands a whole machine in for the real one
+(`lib/services/host_fake.lua`), `=nixos` a NixOS one, and
+`EVA_FAKE_CAN="suspend=no"` answers logind's questions. The service code above
+it runs unchanged, against `lib.testing.dbus`. `tools/see/settings.steps` walks
+every page: `EVA_FAKE_SYSTEM=1 tools/see.sh settings`.
+
 ## Sound and nested settings
 
 Sound opens **Equalizer**, which opens a deeper **Audiogram** editor. Back
-returns to the parent page. Other settings can use the same hierarchy:
-add a descriptor with `key`, `name`, and `parent` to `settings_model.DETAILS`
-and a builder in `utilities.lua`. Breadcrumbs and presentation scopes follow
-the registry. `morf ipc call settings sound/equalizer` opens the EQ directly.
+returns to the parent page. Other settings can use the same hierarchy: give the
+page a `parent` in `shell/settings_registry.lua`. Breadcrumbs and presentation
+scopes follow it. `morf ipc call settings sound/equalizer` opens the EQ directly.
 
 The EQ provides eight tone bands, Auto/Headphones/Speakers modes, separate
 per-mode strength, channel separation and output trim. Audiogram compensation
