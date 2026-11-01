@@ -1,10 +1,13 @@
--- The right panel's Bar page, behind the Bar tile's ">": whether the bar is
--- up (on, off, or up only on a narrow screen), which edge it is on, and how
--- it shows windows. In the page template (themes/layouts/page.lua): each a
--- section of choices that share its width.
+-- The right panel's Bar page, behind the Bar tile's ">": whether the bar is up
+-- (on, off, or up only on a narrow screen), which edge it is on, how it shows
+-- windows, its clock, the board of its modules, and what each screen does. In the
+-- page template (themes/layouts/page.lua): each a section of choices that share
+-- its width.
 
+local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
+local L = require("themes.layouts.parts")
 local P = require("themes.layouts.page")
 
 local M = {}
@@ -26,6 +29,16 @@ local function toggle(w, id, icon, name, on, set)
     trailing = P.switch { id = id .. "-switch", name = name, on = on, on_toggled = set } }
 end
 
+--- What one screen does: the bar up, as set or its own way, and its own modules.
+local function screen(w, model, name)
+  local tag = name:gsub("%W", "-")
+  return choices(w, { group = "bar-screen-" .. tag, caption_id = "bar-heading-screen-" .. tag, title = name,
+    items = model.screen_shows, now = function() return model.output_on(name) end,
+    pick = function(value) model.set_output_on(name, value) end }),
+    toggle(w, "bar-screen-own-" .. tag, "view_module", "Its own modules on " .. name,
+      function() return model.output_own(name) end, function(on) model.set_output_own(name, on) end)
+end
+
 function M.build(model, w, h)
   local sections = { id = "bar-scroll", width = w, height = h, active = model.active,
     choices(w, { group = "bar-show", caption_id = "bar-heading-show-the-bar", title = "Show the bar",
@@ -35,13 +48,30 @@ function M.build(model, w, h)
     choices(w, { group = "bar-titles", caption_id = "bar-heading-window-titles", title = "Window titles",
       items = { { "on", "title", "Shown" }, { "off", "apps", "Icons only" } },
       now = model.titles, pick = model.set_titles }),
+    P.section { id = "bar-clock-settings", caption_id = "bar-heading-clock", width = w, title = "Clock",
+      toggle(w, "bar-clock-twelve", "schedule", "12-hour", model.twelve_hour, model.set_twelve_hour),
+      toggle(w, "bar-clock-seconds", "timer", "Seconds", model.seconds, model.set_seconds),
+    },
+    choices(w, { group = "bar-date", caption_id = "bar-heading-date", title = "Date beside the clock",
+      items = model.dates, now = model.date, pick = model.set_date }),
   }
+  local bar = model.bar_model()
+  if bar then
+    local board = require("themes").view("bar_board").build({ board = bar.board, items = bar.modules }, w)
+    sections[#sections + 1] = ui.Column { id = "bar-arrange", width = w, gap = P.GAP / 2,
+      L.caption { id = "bar-heading-modules", width = w, text = "Modules" }, board.node }
+  end
   if model.desk then
     sections[#sections + 1] = P.section { id = "bar-desk", caption_id = "bar-heading-desk", width = w, title = "On a desk",
       toggle(w, "bar-tray", "apps", "System tray", model.tray, model.set_tray),
       toggle(w, "bar-wheel-volume-row", "volume_up", "Wheel sets volume", model.wheel_volume, model.set_wheel_volume),
       toggle(w, "bar-wheel-workspace-row", "swap_horiz", "Wheel on clock: workspace", model.wheel_workspace, model.set_wheel_workspace),
     }
+  end
+  for _, name in ipairs(model.outputs()) do
+    local choose, own = screen(w, model, name)
+    sections[#sections + 1] = choose
+    sections[#sections + 1] = P.section { id = "bar-screen-" .. name:gsub("%W", "-") .. "-own", width = w, own }
   end
   sections[#sections + 1] = kit.subtitle { width = w, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
     text = "Auto puts the bar up on a phone, a tablet or a narrow screen, and keeps it down on a desk." }

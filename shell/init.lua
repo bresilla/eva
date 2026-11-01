@@ -398,6 +398,35 @@ ipc.quick = function(how)
   require("utilities").tiles.editing:set(how == "edit")
   return how == "edit"
 end
+-- `bar modules`: what stands on the bar, zone by zone, and what could. `bar add
+-- ID [ZONE]`, `bar remove ID`, `bar move ID INDEX [ZONE]`, `bar small ID`, `bar
+-- reset`, `bar show on|off|auto`, `bar side EDGE` and `bar live toggle|next`.
+ipc.bar = function(how, id, a, b)
+  local model = bar.model
+  local board = model.board
+  if how == "show" then config.set("edgebar.enabled", id) return bar.on() end
+  if how == "side" then bar.set_side(id) return bar.side() end
+  if how == "modules" then
+    local out = {}
+    for _, zone in ipairs(board.zones) do
+      out[zone] = {}
+      for i, item in ipairs(board.shown(zone)) do out[zone][i] = item.id end
+    end
+    out.spare = {}
+    for i, item in ipairs(board.spare()) do out.spare[i] = item.id end
+    return out
+  end
+  if how == "add" then return board.add(id, a) end
+  if how == "remove" then board.hide(id) return true end
+  if how == "move" then return board.move(id, tonumber(a) or 1, b) end
+  if how == "small" then board.toggle_size(id) return board.small(id) end
+  if how == "reset" then board.reset() return true end
+  if how == "live" then
+    if id == "next" then model.live.cycle() else model.live.toggle() end
+    return model.live.expanded:get()
+  end
+  error("`" .. tostring(how) .. "`: modules, add, remove, move, small, reset or live")
+end
 ipc.leftbar = function(how, tab)
   if tab and here() and not leftbar.panel.select(tab) then error("No such left panel tab: " .. tostring(tab)) end
   return verb(leftbar.drawer)(how)

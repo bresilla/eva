@@ -302,7 +302,7 @@ function M.list(bar)
   add { id = "netspeed", name = "Network speed", icon = "swap_vert", tier = 2,
     text = function()
       local i = own_interface()
-      return rate_text(i.rx_rate) .. " ↓ " .. rate_text(i.tx_rate) .. " ↑"
+      return "↓" .. rate_text(i.rx_rate) .. " ↑" .. rate_text(i.tx_rate)
     end,
     tooltip = function()
       local i = own_interface()
@@ -637,7 +637,7 @@ function M.list(bar)
     tooltip = function()
       local w = services().weather()
       if not w.available then return "No weather yet" end
-      return ("%s, %s"):format(require("weather_model").place_name(w.place), w.description or w.text or "")
+      return ("%s, %s"):format(require("weather_model").place_name(w.place), w.condition or "")
     end,
     press = dashboard_tab("weather") }
   add { id = "updates", name = "Updates", icon = "system_update_alt", tier = 2,

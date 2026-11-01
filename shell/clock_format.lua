@@ -4,10 +4,10 @@ local M = {}
 
 M.DATES = {
   { "none", "event_busy", "None", "" },
-  { "short", "today", "Tue 3 Mar", "%a %-d %b" },
-  { "day", "calendar_view_day", "Tue 3", "%a %-d" },
-  { "long", "calendar_month", "Tuesday, 3 March", "%A, %-d %B" },
-  { "iso", "numbers", "2026-03-03", "%Y-%m-%d" },
+  { "day", "calendar_view_day", "Day", "%a %-d" },
+  { "short", "today", "Short", "%a %-d %b" },
+  { "long", "calendar_month", "Long", "%A, %-d %B" },
+  { "iso", "numbers", "ISO", "%Y-%m-%d" },
 }
 
 local function date_pattern(name)

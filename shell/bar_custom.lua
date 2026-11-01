@@ -89,9 +89,9 @@ end
 local function load_file(path, api)
   local ok, text = pcall(morf.fs.read, path)
   if not ok or type(text) ~= "string" then return nil, "cannot read it" end
-  local chunk, why = load(text, "@" .. path, "t")
+  local read, chunk, why = pcall(load, text, "@" .. path, "t")
+  if not read then return nil, chunk end
   if not chunk then return nil, why end
-  package.preload["eva.bar"] = function() return api end
   package.loaded["eva.bar"] = api
   local fine, failure = pcall(chunk)
   if not fine then return nil, failure end
@@ -138,14 +138,25 @@ function M.from_files()
   return out
 end
 
---- The person's modules: the settings', then the files'.
+--- The person's modules: the settings', then the files'. A change to the
+--- settings' builds the shell again in place.
 function M.modules(run)
   local out = {}
-  local rows = require("config").get("bar.custom")
+  local config = require("config")
+  local rows = config.get("bar.custom")
   for _, row in ipairs(type(rows) == "table" and rows or {}) do
     if row.id and type(row.command) == "table" and #row.command > 0 then out[#out + 1] = from_row(row, run) end
   end
   for _, spec in ipairs(M.from_files()) do out[#out + 1] = spec end
+  local first = true
+  morf.effect("eva.bar.custom", function()
+    config.get("bar.custom")
+    if first then first = false return end
+    morf.time.timer(120, function()
+      require("themes.session").hold()
+      morf.reload()
+    end, false)
+  end)
   return out
 end
 

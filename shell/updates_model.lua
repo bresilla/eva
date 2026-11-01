@@ -47,12 +47,12 @@ function M.nix(root, chosen, now)
   local current = read_link(root .. "/run/current-system") or ""
   out.version = current:match("nixos%-system%-[^-]+%-(.+)$")
   local built = M.version_date(out.version)
-  if built then out.age = math.max(0, (now - built) // 86400) end
+  if built then out.age = math.max(0, math.floor((now - built) / 86400)) end
   for _, path in ipairs(flake_paths(chosen, morf.fs.home())) do
     local ok, text = pcall(morf.fs.read, root .. path)
     local locked = ok and M.flake_date(text) or nil
     if locked then
-      out.flake_age = math.max(0, (now - locked) // 86400)
+      out.flake_age = math.max(0, math.floor((now - locked) / 86400))
       break
     end
   end

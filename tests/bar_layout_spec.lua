@@ -1,0 +1,90 @@
+-- Where the bar's modules go: what folds and in what order, the three zones, and
+-- how a cutout parts the row.
+local test=morf.test
+local HOST=[[
+  local ui=require("morf.ui")
+  ui.Item {width=100,height=100}
+  morf.ipc.run=function(code) return load(code)() end
+]]
+local function run(code) return test.ipc("run",code) end
+test.before_each(function() test.load("../shell/init.lua",{source=HOST,size={200,200}}) end)
+
+local function items(list) return "{"..list.."}" end
+local function item(id,size,tier,extra)
+  return ("{id=%q,size=%d,tier=%d%s}"):format(id,size,tier,extra and (","..extra) or "")
+end
+local function flow(spec)
+  return run("return require('bar_layout').flow{"..spec.."}")
+end
+
+test.describe("folding",function()
+  test.it("keeps everything that fits",function()
+    local out=run([[return require('bar_layout').fold({{key='a',tier=1,size=30},{key='b',tier=2,size=30}},60,10)]])
+    test.falsy(out.dot) test.eq(out.hidden,{})
+  end)
+  test.it("gives up the lowest tier first, and counts the dot",function()
+    local out=run([[return require('bar_layout').fold({{key='a',tier=3,size=30},{key='b',tier=1,size=30},{key='c',tier=2,size=30}},60,10)]])
+    test.truthy(out.dot) test.truthy(out.hidden.b) test.truthy(out.hidden.c) test.falsy(out.hidden.a)
+    test.eq(out.need,40)
+  end)
+  test.it("never gives up tier 0",function()
+    local out=run([[return require('bar_layout').fold({{key='a',tier=0,size=100}},10,5)]])
+    test.falsy(out.hidden.a) test.falsy(out.dot)
+  end)
+end)
+
+test.describe("zones",function()
+  local ZONES="zones={start="..items(item("a",40,1)..","..item("b",40,1))..",centre="..items(item("c",100,0))
+    ..",['end']="..items(item("d",40,1)..","..item("e",40,1)).."}"
+  test.it("packs the start from the left, the end to the right, and centres the centre",function()
+    local out=flow(ZONES..",from=10,to=990,middle=500,gap=4,dot=20")
+    test.eq(out.cells.a.at,10) test.eq(out.cells.b.at,54)
+    test.eq(out.cells.c.at,450)
+    test.eq(out.cells.e.at+out.cells.e.size,990) test.eq(out.cells.d.at+out.cells.d.size+4,out.cells.e.at)
+  end)
+  test.it("folds what no longer fits beside the centre, into a mark at the zone's inner end",function()
+    local out=flow(ZONES..",from=10,to=260,middle=135,gap=4,dot=20")
+    test.truthy(out.cells.a.folded or out.cells.b.folded,"nothing folded in the start")
+    test.truthy(out.more.start~=nil) test.truthy(out.more["end"]~=nil)
+    test.truthy(#out.more.start.ids>=1)
+    local last=out.cells.b.folded and out.cells.a or out.cells.b
+    test.truthy(last.at+last.size<=out.more.start.at)
+    test.truthy(out.more.start.at+20<=out.cells.c.at+1)
+  end)
+  test.it("lets a flexible item take what the zone leaves, and folds nothing for it",function()
+    local out=flow("zones={start="..items(item("logo",40,0)..","..item("w",900,0,"flex=true"))
+      ..",centre="..items(item("c",100,0)).."},from=0,to=1000,middle=500,gap=4,dot=20")
+    test.eq(out.cells.w.at,44) test.eq(out.cells.w.size,402)
+    test.eq(out.more.start,nil)
+  end)
+  test.it("gives a holding item what the others leave after they fold",function()
+    local out=flow("zones={['end']="..items(item("x",100,1)..","..item("s",300,0,"flex=true,hold=true"))
+      .."},from=0,to=350,gap=4,dot=20")
+    test.truthy(out.cells.x.folded) test.truthy(out.cells.s.size<=330)
+    test.eq(out.cells.s.at+out.cells.s.size,350)
+  end)
+  test.it("shares the row when the centre is empty",function()
+    local out=flow("zones={start="..items(item("a",40,0))..",centre="..items(item("c",0,0))..",['end']="..items(item("e",40,0))
+      .."},from=0,to=400,middle=200,gap=4,dot=20")
+    test.eq(out.cells.a.at,0) test.eq(out.cells.e.at,360)
+  end)
+end)
+
+test.describe("a cutout",function()
+  test.it("sends the centre to the end, and parts the row round it",function()
+    local out=flow("zones={start="..items(item("a",40,0))..",centre="..items(item("c",60,3))..",['end']="..items(item("e",40,0))
+      .."},from=0,to=900,middle=450,gap_from=420,gap_to=480,gap=4,dot=20")
+    test.truthy(out.cells.c.at>=480,"the centre stands in the cutout")
+    test.eq(out.cells.e.at+out.cells.e.size,900)
+  end)
+  test.it("centres an island on the camera, its bubble hanging off the far side",function()
+    local out=flow("zones={centre="..items(item("live",200,0,"island=true,extra=40")).."},from=0,to=900,gap_from=420,gap_to=480,gap=4,dot=20")
+    test.eq(out.cells.live.at+(200-40)/2,450)
+  end)
+  test.it("keeps the zones off the island",function()
+    local out=flow("zones={start="..items(item("a",500,1)..","..item("b",40,0))..",centre="..items(item("live",200,0,"island=true"))
+      .."},from=0,to=900,gap_from=420,gap_to=480,gap=4,dot=20")
+    test.truthy(out.cells.a.folded)
+    test.truthy(out.cells.b.at+out.cells.b.size<=out.cells.live.at)
+  end)
+end)

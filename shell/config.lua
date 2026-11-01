@@ -79,7 +79,7 @@ local config = settings.open {
           ["end"] = { "privacy", "status" } },
         phone = { start = { "clock", "notifications" }, centre = { "live" }, ["end"] = { "privacy", "status" } },
       },
-      small = { desk = {}, tablet = {}, phone = { "notifications" } },
+      small = { desk = {}, tablet = {}, phone = { "clock", "notifications" } },
       -- A screen's own choices, by its output's name: `{ name, on, modules,
       -- small }`, `on` being "on", "off" or "" for the bar's own setting and
       -- `modules` this screen's zones, absent to follow the form's.

@@ -1,0 +1,46 @@
+# The bar as a board of modules: the system readings, the live pill, the privacy
+# marks and the Bar page. Stand-ins for what a sealed session lacks.
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-57,charging} EVA_FAKE_MODEM=1
+export EVA_FAKE_STATUS=${EVA_FAKE_STATUS:-wifi,bluetooth,vpn,dnd}
+export EVA_FAKE_MEDIA='So What|Miles Davis' EVA_FAKE_WEATHER=18:2
+export EVA_FAKE_DEVICES='Pixel Buds:82:headphones,MX Master:12:mouse'
+export EVA_FAKE_CALL='Ada Lovelace' EVA_FAKE_TIMER='Tea:300'
+export EVA_FAKE_PRIVACY=${EVA_FAKE_PRIVACY:-mic:Firefox,camera:Zoom}
+start shell
+ipc fake-live call off
+ipc fake-live timer off
+ipc bar show on
+pause 1.5
+shot rest
+ipc bar add cpu end; ipc bar add memory end; ipc bar add temperature end; ipc bar add disk end
+ipc bar add netspeed end; ipc bar add weather start; ipc bar add visualiser centre
+pause 2
+shot modules
+ipc bar add bt_batteries end; ipc bar add updates end; ipc bar add idle end; ipc bar add load start
+pause 2
+shot folded
+ipc bar reset
+pause 1
+ipc fake-privacy mic:Firefox,camera:Zoom,screen:OBS
+pause 1
+shot share
+ipc fake-privacy mic:Firefox
+ipc fake-live timer Tea:300
+pause 1.5
+shot pill
+ipc bar live toggle
+pause 1.4
+shot pill-open
+ipc bar live toggle
+pause 1
+ipc fake-live call on
+pause 1.5
+shot pill-call
+ipc bar live toggle
+pause 1.4
+shot pill-call-open
+ipc bar live toggle
+pause 1
+ipc settings bar
+pause 1.6
+shot page

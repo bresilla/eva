@@ -251,7 +251,8 @@ function V.build(ctx)
   local out = { node = node }
   --- What the zones place: room, and the pill stands over it.
   function out.part()
-    return { node = ui.Item {}, size = total, island = true, clip = false }
+    return { node = ui.Item {}, size = total, island = true, clip = false,
+      extra = function() return second() and (HIGH + S.xs) or 0 end }
   end
   function out.follow(axis, read) cells[axis] = read end
   return out

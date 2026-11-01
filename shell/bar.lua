@@ -69,6 +69,7 @@ function M.build()
     screen=function() local w,h=screen() return w,h-keyboard_space:get() end,
     insets=bar_insets,
   }
+  M.model = model
   return view.build(model)
 end
 return M

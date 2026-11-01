@@ -117,7 +117,9 @@ function V.build(model)
         behavior = { width = { duration = theme.duration.small }, x = { duration = theme.duration.small } },
       },
     }
-    modules.tip(area, function() return client.title end, false)
+    modules.tip(area, function() return client.title end, model.vertical())
+    ui.reparent(ui.MouseArea { anchors = { fill = true }, accepted_buttons = { "right" },
+      on_pressed = function() model.window_menu(client.address) end }, area)
     return kit.hover(area, function(hovered)
       if focused() then return C.primary:alpha(0.16) end
       return hovered and C.onSurface:alpha(0.07) or C.onSurface:alpha(0)
@@ -391,11 +393,12 @@ function V.build(model)
         return c and c.size or 0
       end
       local part = (OWN[m.kind] or modules.part)(m, vertical, length)
+      local function slot_length() return part.flex and math.max(1, length()) or length() end
       parts[m.id] = part
       built:set(built:get() + 1)
       local spec = { id = "bar-slot-" .. m.id .. v, clip = part.clip ~= false,
         anchors = vertical and { horizontal_center = true } or { vertical_center = true },
-        [AT] = at, [ALONG] = length, [ACROSS] = part.across or ITEM,
+        [AT] = at, [ALONG] = slot_length, [ACROSS] = part.across or ITEM,
         visible = function() return part.flex or length() > 0.5 end,
         behavior = { [AT] = theme.spring.spatial, [ALONG] = theme.spring.spatial },
         part.node }
@@ -457,7 +460,8 @@ function V.build(model)
         for _, item in ipairs(model.board.shown(zone)) do
           local m, part = by_id[item.id], parts[item.id]
           items[#items + 1] = { id = item.id, tier = m.tier, size = (part and active(m)) and part.size() or 0,
-            flex = part and part.flex, hold = part and part.hold, island = part and part.island }
+            flex = part and part.flex, hold = part and part.hold, island = part and part.island,
+            extra = part and part.extra and part.extra() or nil }
         end
         zones[zone] = items
       end

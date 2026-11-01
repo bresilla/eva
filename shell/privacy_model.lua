@@ -69,10 +69,10 @@ function M.parse_pipewire(objects)
   return out
 end
 
---- `/proc/PID/fd/N` paths as a list of pids, each once.
+--- `.../PID/fd/N` paths as a list of pids, each once.
 function M.parse_holders(text)
   local out, seen = {}, {}
-  for pid in tostring(text or ""):gmatch("/proc/(%d+)/fd/%d+") do
+  for pid in tostring(text or ""):gmatch("/(%d+)/fd/%d+") do
     if not seen[pid] then seen[pid] = true out[#out + 1] = tonumber(pid) end
   end
   return out

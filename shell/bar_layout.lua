@@ -2,9 +2,10 @@
 -- runs out of room, and how a cutout splits the row. Geometry only: no nodes
 -- and no state.
 --
--- An item is `{ id, size, tier, flex, island }`. `tier` says when it folds: 1
--- the rare ones, then 2, then 3; 0 never. `flex` gives up its own size first
--- (the windows, which scroll). `island` sits over a cutout (the live pill).
+-- An item is `{ id, size, tier, flex, hold, island, extra }`. `tier` says when
+-- it folds: 1 the rare ones, then 2, then 3; 0 never. `flex` gives up its own
+-- size first (the windows, which scroll). `island` sits centred over a cutout
+-- (the live pill), `extra` of its size hanging off past the far side.
 local M = {}
 
 M.ZONES = { "start", "centre", "end" }
@@ -115,7 +116,7 @@ function M.flow(spec)
     tail, centre = joined, {}
     left_end, right_start = spec.gap_from, spec.gap_to
     if island then
-      local at = (spec.gap_from + spec.gap_to) / 2 - island.size / 2
+      local at = (spec.gap_from + spec.gap_to) / 2 - (island.size - (island.extra or 0)) / 2
       cells[island.id] = { at = at, size = island.size }
       left_end, right_start = math.min(left_end, at), math.max(right_start, at + island.size)
     end

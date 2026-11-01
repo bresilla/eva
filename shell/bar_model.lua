@@ -132,6 +132,12 @@ function M.new(ctx)
     end
     return false
   end
+  --- Window `address` focused, and its menu open over it.
+  function model.window_menu(address)
+    if not model.on() then return end
+    model.focus(address)
+    require("window_menu").open()
+  end
   function model.toggle_launcher()
     if not model.on() then return end
     local d=require("launcher").drawer d.set(not d.open:get())

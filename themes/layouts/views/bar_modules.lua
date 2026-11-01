@@ -234,7 +234,9 @@ function V.context(spec)
     area = kit.action { id = "bar-module-privacy" .. (vertical and "-v" or ""), cursor = "pointer", anchors = { fill = true },
       accessible_name = function() return "In use. " .. table.concat(model.privacy.summary(), ". ") end,
       on_clicked = function() M.open_privacy(area) end, on_long_pressed = function() M.open_privacy(area) end,
-      kit.surface { anchors = { fill = true, margins = S.xs }, radius = kit.round(S.m),
+      kit.surface { anchors = { center_in = true }, radius = kit.round(S.m),
+        width = function() return vertical and ICONS_H + S.xs or (row.layout_width or 0) + S.m end,
+        height = function() return vertical and (row.layout_height or 0) + S.m or ICONS_H + S.xs end,
         color = function() return kit.signal("ok")():alpha(0.14) end },
       row }
     M.dress(area, m, vertical)

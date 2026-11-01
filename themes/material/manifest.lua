@@ -45,6 +45,7 @@ return {
     net_pages = "themes.layouts.views.net_pages",
     power_page = "themes.layouts.views.power_page",
     bar_page = "themes.layouts.views.bar_page",
+    bar_board = "themes.layouts.views.bar_board",
     quick_tiles = "themes.layouts.views.quick_tiles",
     quick_session = "themes.layouts.views.quick_session",
     quick_pages = "themes.layouts.views.quick_pages",
