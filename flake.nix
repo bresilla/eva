@@ -95,6 +95,7 @@
               tabletSwitch = { enable = true; name = "Intel HID switches"; };
               chargeLimit = true;
               usbTether = true;
+              hotspot = true;
             };
           };
           module-fixed = machine {
