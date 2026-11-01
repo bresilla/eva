@@ -24,7 +24,7 @@ M.URGENCY = { { 0, "Everything" }, { 1, "Normal up" }, { 2, "Critical" }, { 3, "
 M.DAYS = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" }
 local REPEAT_CALL = 900
 
--- The clock; a spec sets it, as morf.time.now does not follow test.advance.
+-- The clock, in seconds; a spec sets its own.
 M.now = function() return morf.time.now() end
 local shared = morf.shared or morf.signal
 -- The machine's reason to stay quiet: "", "sharing" or "fullscreen", set by
@@ -42,8 +42,8 @@ local function copy(value)
   return out
 end
 
--- The modes, one table until they change: `config.get` copies, and a page reads
--- them from every binding. Another screen's writes arrive through the file.
+-- The modes, one table until they change. Another screen's writes arrive through
+-- the file.
 local modes_now, modes_at = config.get("focus.modes") or {}, morf.signal("eva.focus.revision", 0)
 local function store(modes)
   modes_now = modes

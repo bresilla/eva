@@ -14,9 +14,8 @@ local M = {}
 local shared = morf.shared or morf.signal
 local function primary() return not morf.window.primary or morf.window.primary() end
 
--- Moves with every change to the lists below. A signal's `get` copies its table,
--- so bindings read `records`, `asleep`, `recent` and `on_show`: one table until
--- the next change.
+-- Moves with every change to the lists below. `records`, `asleep`, `recent` and
+-- `on_show` read them through it: one table until the next change.
 M.revision = shared("eva.notifications.revision", 0)
 local function listing(name)
   local signal, list, at, value = shared(name, {}), {}, nil, nil
@@ -146,7 +145,7 @@ local function store_path()
   return morf.paths.state("notifications/history.json")
 end
 
--- The store's folder, for its owner alone: the file holds what people wrote.
+-- The store's folder, for its owner alone.
 local function private_folder()
   local dry = morf.env and morf.env("EVA_DRY_RUN")
   local chosen = morf.env and morf.env("EVA_NOTIFICATION_STORE")

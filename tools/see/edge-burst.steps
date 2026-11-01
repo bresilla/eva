@@ -1,0 +1,11 @@
+# The edge light through its whole rise and fall, and the flash.
+export BOOT=4
+export EVA_SETTINGS=$SEE_OUT/settings.json
+printf '{"notifications":{"edge_light":true,"flash":true}}\n' > "$EVA_SETTINGS"
+start shell
+BUS() { local verb=$1; shift; busctl --address="$DBUS_SESSION_BUS_ADDRESS" "$verb" -- "$@"; }
+SERVICE="org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications"
+BUS call $SERVICE Notify susssasa{sv}i Doorbell 0 "" "Someone at the door" "Front camera" 0 0 0 > /dev/null
+for i in 1 2 3 4 5 6 7 8; do grim "$SEE_OUT/burst-$i.png"; done
+note ls -la "$SEE_OUT"
+stop

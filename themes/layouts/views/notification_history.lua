@@ -165,7 +165,7 @@ function V.build(state, width, height)
       local x = g()
       return x and math.min(ITEMS, #x.items) or 0
     end
-    -- One entry a tick, as many as the group has: a card is a handler's worth.
+    -- One entry a tick, as many as the group has.
     local function grow()
       building = false
       local k = #item_nodes + 1

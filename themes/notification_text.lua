@@ -48,7 +48,7 @@ function M.image_of(x)
   return local_picture(src) or ""
 end
 
--- What a notification's text gave, kept per notification: bindings ask each frame.
+-- What a notification's text gave, kept per notification.
 local function remembered(find)
   local known = setmetatable({}, { __mode = "k" })
   return function(x)

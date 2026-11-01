@@ -70,7 +70,7 @@ ipc close; pause 0.4
 printf '{"notifications":{"edge_light":true,"sounds":true}}\n' > "$EVA_SETTINGS"
 pause 0.6
 SEND Doorbell 0 "" "Someone at the door" "Front camera" 0 0 0 > /dev/null
-pause 0.12; shot edge-light
+pause 0.5; shot edge-light
 pause 1
 note cat "$SEE_OUT/sound.log"
 stop
