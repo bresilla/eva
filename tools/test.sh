@@ -1,6 +1,6 @@
 #!/bin/sh
-# Every spec under tests/ through `morf test`, in parallel shards, with the
-# XDG folders and the buses kept away from the person's own.
+# Every spec under tests/ through `morf test`, in parallel shards, with HOME,
+# the XDG folders and the buses kept away from the person's own.
 #
 #   tools/test.sh [SPEC ...]
 #
@@ -21,7 +21,7 @@ export MORF_FONT_PATH EVA_INPUT_DEVICES MORF_LIMITS
 
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/eva-test.XXXXXX")
 trap 'rm -rf "$scratch"' EXIT
-mkdir -p "$scratch/state" "$scratch/cache" "$scratch/config" "$scratch/run"
+mkdir -p "$scratch/home" "$scratch/state" "$scratch/cache" "$scratch/config" "$scratch/run"
 chmod 700 "$scratch/run"
 
 if [ "$#" -gt 0 ]; then printf '%s\n' "$@"; else ls tests/*_spec.lua; fi > "$scratch/specs"
@@ -30,7 +30,7 @@ split -n "l/$jobs" -d "$scratch/specs" "$scratch/shard."
 for shard in "$scratch"/shard.*; do
   [ -s "$shard" ] || continue
   (
-    XDG_STATE_HOME="$scratch/state" XDG_CACHE_HOME="$scratch/cache" \
+    HOME="$scratch/home" XDG_STATE_HOME="$scratch/state" XDG_CACHE_HOME="$scratch/cache" \
     XDG_CONFIG_HOME="$scratch/config" XDG_RUNTIME_DIR="$scratch/run" \
     DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent \
     DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \
