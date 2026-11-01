@@ -280,12 +280,13 @@ end
 function M.reading() return reader ~= nil and reader.reading() end
 
 --- `touch [state]`: what it is doing. `touch try on|off`: gestures named, not run.
---- `touch set KEY ACTION`: what a gesture does here. `touch output NAME`: the
---- screen it sits on. `touch feed LINE`: under EVA_FAKE_TOUCH, a line as
---- `libinput debug-events` prints it.
+--- `touch set KEY ACTION`: what a gesture does here. `touch on|off`: the switch.
+--- `touch output NAME`: the screen it sits on. `touch feed LINE`: under
+--- EVA_FAKE_TOUCH, a line as `libinput debug-events` prints it.
 function M.register(ipc)
   ipc.touch = function(how, a, b)
     if how == "output" then config.set("gestures.output", a or "") return a end
+    if how == "on" or how == "off" then config.set("gestures.enabled", how == "on") return how == "on" end
     if how == "try" then
       M.trying:set(a == "on")
       M.watching:set(a == "on")

@@ -32,7 +32,8 @@ function M.attach(d, ctx, theme_motion)
     drag.at = math.max(math.min(0,tucked), math.min(math.max(0,tucked), origin + delta))
     theme_motion.drag(drag.at)
   end
-  function d.end_drag(velocity, canceled)
+  -- `settled`, when given, says how it ends whatever the distance and the speed.
+  function d.end_drag(velocity, canceled, settled)
     if not drag then return end
     if drag.from_tucked then d.drag_by(drag.delta) end
     local tucked = ctx.tucked()
@@ -41,6 +42,7 @@ function M.attach(d, ctx, theme_motion)
     local opening_velocity = velocity * (tucked > 0 and -1 or 1)
     local opening = progress >= 0.5
     if canceled then opening = drag.was_open
+    elseif settled ~= nil then opening = settled
     elseif motion.fling(drag.delta, opening_velocity) then
       opening = opening_velocity > 0
     end

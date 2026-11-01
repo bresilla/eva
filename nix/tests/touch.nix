@@ -50,8 +50,17 @@ in
         isNormalUser = true;
         inherit password;
       };
-      # wev logs each wl_touch event a window receives; zenity is a real toolkit.
-      environment.systemPackages = [ pkgs.wev pkgs.zenity pkgs.acl ];
+      # wev logs each wl_touch event a window receives; zenity is GTK's own drag
+      # to scroll, and scroller.lua a window scrolled by two fingers.
+      environment.systemPackages = [ pkgs.wev pkgs.zenity pkgs.acl pkgs.hyprlock ];
+      environment.etc."eva-test/scroller.lua".source = ./scroller.lua;
+      # A locker that tells logind nothing.
+      environment.etc."eva-test/hyprlock.conf".text = ''
+        background {
+          color = rgb(20, 20, 40)
+        }
+      '';
+      security.pam.services.hyprlock = { };
       # No sound, modem or Bluetooth service, even in the guest.
       services.pipewire.enable = lib.mkForce false;
       services.pipewire.wireplumber.enable = lib.mkForce false;

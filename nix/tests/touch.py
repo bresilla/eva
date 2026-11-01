@@ -5,6 +5,8 @@ import shlex
 import time
 from typing import Any
 
+from PIL import Image
+
 results = []
 
 # virtio-multitouch reports positions from 0 to this on each axis.
@@ -209,11 +211,13 @@ def run(password):
         check("the user is not in input", "input" not in machine.succeed("id -nG alice").split())
 
     with subtest("the line format is what this libinput prints"):
+        ours = set(reader_pids())
         run_app("lines", "exec libinput debug-events --device /dev/input/event2 > /tmp/lines.log 2>&1")
         machine.sleep(2)
         stroke(line([(200, 300), (260, 300)]), line([(200, 320), (260, 320)]), steps=4)
         machine.sleep(1)
-        machine.execute("pkill -u alice -f 'debug-events --device /dev/input/event2 ' || true")
+        for pid in set(reader_pids()) - ours:
+            machine.succeed(f"kill {pid}")
         machine.sleep(1)
         lines = machine.succeed("cat /tmp/lines.log")
         print("LINES", lines)
@@ -320,18 +324,60 @@ def run(password):
               int(touches("down")) == downs + 3)
         go_to(1)
 
-    with subtest("a real toolkit scrolls under two fingers"):
-        run_app("scroller", "exec zenity --text-info --title=scroller --width=900 --height=600 --filename=/etc/services")
+    with subtest("the reader takes nothing from an app"):
+        def scroll():
+            stroke(line([(600, 250), (680, 250)]), line([(600, 550), (680, 550)]), steps=60, pause=0.016)
+            machine.sleep(1)
+
+        def tally():
+            return [int(touches(event)) for event in ("down", "motion", "up", "cancel")]
+
+        start = tally()
+        scroll()
+        reading = [b - a for a, b in zip(start, tally())]
+        ipc("touch", "off")
+        check("the switch ends the process", eventually(lambda: reader_pids() == [], 6), str(reader_pids()))
+        start = tally()
+        scroll()
+        alone = [b - a for a, b in zip(start, tally())]
+        ipc("touch", "on")
+        check("and starts it again", eventually(lambda: len(reader_pids()) == 1, 6), str(reader_pids()))
+        print("TOUCHES reading", reading, "alone", alone)
+        check("an app hears the same with the reader on and off", reading == alone, f"{reading} and {alone}")
+
+    with subtest("windows that scroll"):
+        run_app("scroller", "exec morf app /etc/eva-test/scroller.lua")
         machine.wait_until_succeeds(session("hyprctl --instance 0 clients | grep -q 'title: scroller'"), timeout=30)
         machine.sleep(3)
-        machine.screenshot("scroller-before")
         row = client("scroller")
         print("SCROLLER", row)
         x0, y0 = row["at"][0] + row["size"][0] / 2, row["at"][1] + row["size"][1] / 2
-        stroke(line([(x0 - 40, y0 + 150), (x0 + 40, y0 + 150)]), line([(x0 - 40, y0 - 150), (x0 + 40, y0 - 150)]), steps=60, pause=0.016)
+        stroke(line([(x0 - 40, y0 - 150), (x0 + 40, y0 - 150)]), line([(x0 - 40, y0 + 150), (x0 + 40, y0 + 150)]), steps=60, pause=0.016)
         machine.sleep(2)
-        machine.screenshot("scroller-after")
-        check("nothing fired over the toolkit", not keyboard_up(), heard())
+        moved = machine.succeed("cat /tmp/scroller.log").strip()
+        machine.screenshot("scroller")
+        check("a slow two-finger scroll in the middle of the screen scrolls the app", abs(float(moved) - 300) < 40, moved)
+        check("and fires nothing", not keyboard_up() and ipc("overview", "state") is False, heard())
+        machine.execute("pkill -f scroller.lua || true")
+        machine.sleep(2)
+
+        run_app("gtk", "exec zenity --text-info --title=gtk --filename=/etc/services")
+        machine.wait_until_succeeds(session("hyprctl --instance 0 clients | grep -q 'title: gtk'"), timeout=30)
+        machine.sleep(3)
+        row = client("gtk")
+        machine.screenshot("gtk-before")
+        x0, y0 = row["at"][0] + row["size"][0] / 2, row["at"][1] + row["size"][1] / 2
+        stroke(line([(x0, y0 + 150)]), line([(x0, y0 - 150)]), steps=60, pause=0.016)
+        machine.sleep(2)
+        machine.screenshot("gtk-after")
+
+        def crop(name):
+            with Image.open(machine.out_dir / f"{name}.png") as picture:
+                return picture.convert("L").crop((row["at"][0], row["at"][1], row["at"][0] + row["size"][0], row["at"][1] + row["size"][1])).tobytes()
+
+        before, after = crop("gtk-before"), crop("gtk-after")
+        changed = sum(1 for a, b in zip(before, after) if abs(a - b) > 40)
+        check("a finger drags a GTK window's text", changed > 2000, str(changed))
         machine.execute("pkill zenity || true")
         machine.sleep(2)
 
@@ -346,7 +392,7 @@ def run(password):
         pid = reader_pids()
         check("reading before the lock", len(pid) == 1)
         before = workspace()
-        machine.succeed(session("loginctl lock-session"))
+        machine.succeed("loginctl lock-sessions")
         gone = eventually(lambda: reader_pids() == [], 8)
         check("the reader stops", gone, str(reader_pids()))
         check("the session is locked", eventually(lambda: "true" in hyprctl("locked"), 15), hyprctl("locked"))
@@ -398,6 +444,17 @@ def run(password):
         hyprctl("eval", 'hl.monitor({ output = "Virtual-1", transform = 0 })')
         hyprctl("eval", "hl.config({ input = { touchdevice = { transform = 0 } } })")
         machine.sleep(6)
+
+    with subtest("a locker that tells nobody"):
+        run_app("locker", "exec hyprlock -c /etc/eva-test/hyprlock.conf")
+        check("it locks the compositor", eventually(lambda: "true" in hyprctl("locked"), 15), hyprctl("locked"))
+        check("logind has not heard", "LockedHint=no" in machine.execute("loginctl show-session 1 -p LockedHint; true")[1]
+              or (ipc("touch") or {}).get("locked") is False, str(ipc("touch")))
+        stroke(line([(640, 400)]), line([(640, 400)]), steps=1, pause=0.05)
+        check("the first finger stops the reader", eventually(lambda: reader_pids() == [], 6), str(reader_pids()))
+        machine.execute("pkill -USR1 hyprlock || true")
+        check("the locker goes", eventually(lambda: "false" in hyprctl("locked"), 15), hyprctl("locked"))
+        check("and the reader comes back", eventually(lambda: len(reader_pids()) == 1, 20), str(reader_pids()))
 
     with subtest("a second screen"):
         print("OUTPUT", hyprctl("output", "create", "headless", "HEADLESS-2"))

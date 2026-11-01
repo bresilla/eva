@@ -49,13 +49,13 @@ local SOURCE=[[
   end
 ]]
 local loads=0
-local function load(extra)
+local function load(extra,size)
   loads=loads+1
   test.stub_run("task",{code=0,stdout="[]"})
   local env={EVA_DRY_RUN="1",EVA_WALLPAPER="",EVA_FAKE_TOUCH="1",EVA_FAKE_LOGIND="{}",TEST_PANEL="",
     EVA_SETTINGS=morf.fs.join(morf.env("XDG_CACHE_HOME"),"touch-driver-"..loads..".json")}
   for name,value in pairs(extra or {}) do env[name]=value end
-  test.load("../shell/init.lua",{source=SOURCE,size={1280,800},env=env})
+  test.load("../shell/init.lua",{source=SOURCE,size=size or {1280,800},env=env})
   test.settle(1500)
 end
 local function touch() return test.ipc("touch") end
@@ -117,11 +117,22 @@ test.describe("the defaults",function()
     stroke(TWO,0,-36,30)
     test.falsy(spy().keyboard)
   end)
+  test.it("take a slow pull that went far enough all the way",function()
+    load()
+    stroke(TWO,0,-110,60)
+    test.truthy(spy().keyboard)
+  end)
   test.it("hide the keyboard with two fingers down on it",function()
     load()
     test.ipc("keyboard","full") test.settle(1200)
     test.truthy(spy().keyboard)
     stroke({{500,600},{700,620}},0,160,12)
+    test.falsy(spy().keyboard)
+  end)
+  test.it("hide it slowly too",function()
+    load()
+    test.ipc("keyboard","full") test.settle(1200)
+    stroke({{500,600},{700,620}},0,120,60)
     test.falsy(spy().keyboard)
   end)
   test.it("do nothing for a slow scroll in an app",function()
@@ -241,6 +252,31 @@ test.describe("the bindings",function()
     stroke(THREE,0,-160,20)
     test.near(test.ipc("osd_level","volume"),.92,.02)
   end)
+end)
+
+test.describe("every action",function()
+  local ALL={"keyboard","overview","recents","launcher","app_grid","dashboard","quick_settings","notifications",
+    "workspace_next","workspace_previous","switch_app","back","close_window","show_desktop","screenshot","lock",
+    "volume","brightness","none","command"}
+  local DEVICES=morf.env("EVA_INPUT_DEVICES")
+  for _,form in ipairs {
+    {"desk",{1280,800},DEVICES},{"tablet",{1280,800},DEVICES.."-touch"},{"phone",{868,1932},DEVICES.."-touch"},
+  } do
+    test.it("runs on a "..form[1].." with no error, each way the fingers go",function()
+      load({EVA_INPUT_DEVICES=form[3]},form[2])
+      test.eq(touch().form,form[1])
+      for _,action in ipairs(ALL) do
+        for _,key in ipairs {"three_up","three_left"} do
+          test.ipc("touch","set",key,action)
+          local x,y=form[2][1]/2,form[2][2]/2
+          local shape={{x-80,y},{x,y+20},{x+80,y}}
+          if key=="three_up" then stroke(shape,0,-200,16) else stroke(shape,-200,0,16) end
+          test.ipc("close") test.settle(600)
+        end
+      end
+      test.eq(#test.logs("error"),0)
+    end)
+  end
 end)
 
 test.describe("what stops the reader",function()

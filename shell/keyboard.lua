@@ -363,8 +363,9 @@ function M.pull_begin()
 end
 
 --- The gesture ends: the panel settles, up or down, and that is remembered.
-function M.pull_end(velocity, canceled)
-  M.drawer.end_drag(velocity, canceled)
+--- `settled` says which, when it is not left to where the panel got to.
+function M.pull_end(velocity, canceled, settled)
+  M.drawer.end_drag(velocity, canceled, settled)
   remember(M.drawer.open:get())
 end
 

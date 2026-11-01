@@ -23,7 +23,10 @@ local function pull(drawer, event)
   local function speed(e) return across and (e.vx or 0) or (e.vy or 0) end
   return {
     update = function(e) drawer.drag_by(travel(e)) end,
-    finish = function(e) drawer.drag_by(travel(e)) drawer.end_drag(speed(e), false) end,
+    finish = function(e)
+      drawer.drag_by(travel(e))
+      drawer.end_drag(speed(e), e.committed ~= true, e.direction == inward)
+    end,
     cancel = function() drawer.end_drag(0, true) end,
   }
 end
@@ -124,7 +127,10 @@ M.ACTIONS = {
       if not keyboard.pull_begin() then return nil end
       return {
         update = function(e) keyboard.drawer.drag_by(e.dy) end,
-        finish = function(e) keyboard.drawer.drag_by(e.dy) keyboard.pull_end(e.vy or 0, false) end,
+        finish = function(e)
+          keyboard.drawer.drag_by(e.dy)
+          keyboard.pull_end(e.vy or 0, e.committed ~= true, e.direction == "up")
+        end,
         cancel = function() keyboard.pull_end(0, true) end,
       }
     end,
