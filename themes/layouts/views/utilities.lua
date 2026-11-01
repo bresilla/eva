@@ -25,6 +25,9 @@ function V.theme_page(model,w,h)
       P.row {id="settings-theme-wallpaper",width=inner,icon="wallpaper",title="Wallpaper",
         subtitle="Pictures, transitions, slideshow, day and night",trailing=P.chevron(),
         on_clicked=function() model.request("theme/wallpaper") end},
+      P.row {id="settings-theme-desktop",width=inner,icon="widgets",title="Desktop",
+        subtitle="Widgets on the wallpaper",trailing=P.chevron(),
+        on_clicked=function() model.request("theme/desktop") end},
     },
   }
 end

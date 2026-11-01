@@ -84,6 +84,25 @@ local config = settings.open {
       -- What runs after a change; `$WALLPAPER` and `$OUTPUT` are filled in.
       hook = {},
     },
+    -- The widgets on the desktop (shell/desktop_model.lua): which are shown on
+    -- each kind of machine, which small, and where a desk or a tablet has
+    -- them, as `{ id, x, y }` in fractions of the screen.
+    desktop = {
+      widgets = { desk = {}, tablet = {}, phone = {} },
+      small = { desk = {}, tablet = {}, phone = {} },
+      place = { desk = {}, tablet = {}, phone = {} },
+      -- What a widget stands on: "glass", "solid" or "none".
+      chrome = "glass",
+      -- The clock keeps to the quietest part of the picture.
+      quiet_clock = false,
+      -- The custom command, run through `sh -c`, and how often, in seconds.
+      command = { title = "Command", run = "", interval = 60 },
+      -- One line a line; "" for the built-in quotes.
+      quotes = "",
+      note = "",
+      countdown = { title = "", date = "" },
+      photo = "",
+    },
     bar = {
       workspaces = { shown = 5 },
       clock = { twelve_hour = true },

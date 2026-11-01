@@ -167,6 +167,7 @@ morf.effect("eva.keyboard.focus", function()
   local editor_open = leftbar.drawer.open:get()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/lule")
+    or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/desktop")
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "hotspot")
     or (sidebar.drawer.open:get() and require("utilities").tiles.editing:get())
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
@@ -262,6 +263,7 @@ do
   pictures.start()
   pictures.watch_hook()
 end
+require("desktop").start()
 
 -- -------------------------------------------------------------------- ipc --
 
@@ -487,6 +489,8 @@ ipc.lule = function(how)
 end
 -- `wallpaper [get|state|set PATH [OUTPUT]|next|previous|random|transition KIND|draw on|off]`.
 ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, ...) end
+-- `desktop [state|edit|done|add ID|hide ID|size ID]`: the widgets on the desktop.
+ipc.desktop = function(how, id) return require("desktop").verb(how, id) end
 -- `osd [KIND]`: shows that display (the volume without one). False when its
 -- service is absent or its setting has it off.
 ipc.osd = function(kind)
