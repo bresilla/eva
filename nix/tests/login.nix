@@ -100,7 +100,15 @@ in
         machine.sleep(5)
         machine.screenshot("01-greeter-starting")
         machine.wait_until_succeeds("pgrep -u greeter -f 'morf.*greet'", timeout=120)
-        machine.sleep(15)
+        dominant = tuple(bytes.fromhex(machine.succeed("cut -c2- /var/lib/eva/wallpaper/alice/dominant").strip()))
+
+        # The frame is drawn over the compositor's bare background.
+        def greeter_drawn(_):
+            machine.screenshot("02-greeter-rest")
+            return corner("02-greeter-rest") != dominant
+
+        retry(greeter_drawn, timeout_seconds=180)
+        machine.sleep(5)
         machine.screenshot("02-greeter-rest")
         machine.succeed("test $(pgrep -u greeter -c Hyprland) -eq 1")
 
@@ -165,11 +173,17 @@ in
         # Where hypridle runs it from: alice's user manager.
         machine.succeed(f"{alice} systemd-run --user --wait --quiet ${nodes.machine.system.build.evaIdleLock}")
 
-    def locked_up():
+    def lock_count():
+        return int(machine.succeed("journalctl -b | grep -c 'Wayland session got locked' || true").strip())
+
+    def locked_up(before):
         machine.wait_until_succeeds(is_locked(), timeout=90)
         machine.wait_until_succeeds("pgrep -u alice -f 'morf.*lock'", timeout=60)
-        # The compositor's confirmation, and the first frame on it.
-        machine.sleep(6)
+        # The compositor's confirmation, and a moment for the first frame on it.
+        machine.wait_until_succeeds(
+            f"test $(journalctl -b | grep -c 'Wayland session got locked') -gt {before}", timeout=90
+        )
+        machine.sleep(4)
 
     def unlock():
         machine.send_chars("${password}\n")
@@ -182,8 +196,9 @@ in
         machine.succeed("jq -e 'type == \"object\"' /etc/eva/lock.json")
 
     with subtest("real PAM: a wrong password keeps the lock, the right one lifts it"):
+        before = lock_count()
         machine.succeed(f"loginctl lock-session {session()}")
-        locked_up()
+        locked_up(before)
         machine.screenshot("09-lock-rest")
         machine.send_chars("not the password\n")
         # The verdict, then a moment for the field to take keys again.
@@ -196,8 +211,9 @@ in
 
     with subtest("a lock asked for by the idle timer opens on a key, inside the window"):
         settings('{"lock":{"grace_seconds":60}}')
+        before = lock_count()
         idle_mark()
-        locked_up()
+        locked_up(before)
         machine.screenshot("12-idle-lock")
         machine.succeed(is_locked())
         machine.send_key("shift")
@@ -206,8 +222,9 @@ in
         machine.sleep(3)
 
     with subtest("a lock nobody marked wants the password, the window set or not"):
+        before = lock_count()
         machine.succeed(f"loginctl lock-session {session()}")
-        locked_up()
+        locked_up(before)
         machine.send_key("a")
         machine.sleep(5)
         machine.succeed(is_locked())
@@ -218,8 +235,9 @@ in
 
     with subtest("the window ends with the time, and the password is back"):
         settings('{"lock":{"grace_seconds":2}}')
+        before = lock_count()
         idle_mark()
-        locked_up()
+        locked_up(before)
         machine.send_key("a")
         machine.sleep(5)
         machine.succeed(is_locked())
