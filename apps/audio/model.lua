@@ -42,7 +42,8 @@ end
 
 --- The equalizer's state from the shell, which runs the filter.
 function M.ask_shell()
-  sys.shell({ "equalizer-state" }, { read = true }, function(reply)
+  sys.shell({ "equalizer-state" }, { read = true }, function(answer)
+    local reply = require("lib.util.reply")(answer)
     M.shell_up:set(type(reply) == "table")
     if type(reply) ~= "table" then
       M.equalizer.follow { status = "off", error = "The equalizer runs in the shell, and the shell is not running." }

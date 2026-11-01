@@ -5,10 +5,10 @@ local morf = require("morf")
 
 if morf.env("EVA_FAKE_AUDIO") == "1" then require("fake").install() end
 
-if morf.operands[1] then
+if morf.args[1] then
   local job = require("lib.util.job")
   job.quiet()
-  require("model").job(morf.operands, job.finish)
+  require("model").job(morf.args, job.finish)
   return
 end
 

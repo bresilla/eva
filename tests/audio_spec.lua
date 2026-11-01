@@ -120,7 +120,7 @@ end)
 
 test.it("takes what the shell says of the filter", function()
   test.clear_stubs()
-  test.stub_run("env", { code = 0, stdout = morf.json.encode { result = { status = "on", error = "", auto = "headphones" } } })
+  test.stub_run("env", { code = 0, stdout = [[{"n":1,"ok":true,"result":["{\"status\":\"on\",\"error\":\"\",\"auto\":\"headphones\"}"]}]] })
   local state = fresh()
   test.load("../apps/audio/app.lua", { env = { XDG_STATE_HOME = state, EVA_FAKE_AUDIO = "1", MORF_APP = "1",
     EVA_SETTINGS = state .. "/shell/eva.json", LULE_A = "/nonexistent/lule" } })
