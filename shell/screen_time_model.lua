@@ -17,7 +17,8 @@ M.PERIODS = { { 1, "Today" }, { 2, "Yesterday" }, { 7, "7 days" } }
 local EVERY_DAY = { 1, 2, 3, 4, 5, 6, 7 }
 
 M.now = function() return morf.time.now() end
--- What the warning says, or false: `{ kind, key, name }`.
+-- What the warning says, or false: `{ kind, key, name, waiting }`, `waiting` an app
+-- not yet opened.
 M.notice = morf.signal("eva.screen_time.notice", false)
 -- Moves as the counts change.
 M.revision = morf.signal("eva.screen_time.revision", 0)
@@ -192,7 +193,7 @@ local pending
 
 local function raise(kind, key, go)
   pending = go
-  M.notice:set { kind = kind, key = key, name = (M.name_of(key)) }
+  M.notice:set { kind = kind, key = key, name = (M.name_of(key)), waiting = go ~= nil }
 end
 
 --- Whether opening `row` waits for a word first: true once the warning is up,

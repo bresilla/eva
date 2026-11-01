@@ -194,10 +194,7 @@ function M.act_on_row(row)
 end
 
 --- Whether anything on this machine can install: the grid's chip asks.
-function M.can_install()
-  local machine = require("software_model").machine()
-  return machine.nix == true or machine.flatpak == true
-end
+function M.can_install() return require("software_model").can_install() end
 
 --- Turns the field to `query`, focused, as an action that asks a question does.
 function M.activate_query(query)

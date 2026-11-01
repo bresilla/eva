@@ -379,6 +379,15 @@ function M.toggle_app(id)
   return M.place(item)
 end
 
+--- The icon `old` under the name `new`, where it stands.
+function M.rename_item(old, new)
+  local zone = M.board.zone_of(old)
+  if not zone then return end
+  local store, list = page_store(), {}
+  for index, id in ipairs(store.order(zone)) do list[index] = id == old and new or id end
+  store.set_order(zone, list)
+end
+
 --- What the icon `id` stands for, as a tile the launcher's grid would draw:
 --- `{ id, key, kind, name, icon, material, members }`, or nil once it is gone.
 function M.icon_row(id)

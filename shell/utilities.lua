@@ -53,10 +53,7 @@ end
 builders.software=function(w,h) return themed("software_page").build(require("software_model"),w,h) end
 builders.screen_time=function(w,h) return themed("screen_time_page").build(require("screen_time_model"),w,h) end
 builders["screen_time/app"]=function(w,h) return themed("screen_time_page").app(require("screen_time_model"),w,h) end
-builders["bar/fold"]=function(w,h)
-  local bar=require("bar")
-  return themed("bar_fold").build(require("status_model"),bar.model.board,bar.model.modules,w,h)
-end
+builders["bar/fold"]=function(w,h) return themed("bar_fold").build(require("status_model"),w,h) end
 
 -- All settings, and the pages over the shell's own configuration.
 builders.home=function(w,h)

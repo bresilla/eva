@@ -19,7 +19,16 @@ function M.scan()
   service.scan(function() M.revision:set(M.revision:get() + 1) end)
 end
 
-M.machine = service.machine
+local machine
+
+--- What this machine installs with, looked for once.
+function M.machine()
+  if not machine then machine = service.machine() end
+  return machine
+end
+
+--- Whether anything on this machine can install.
+function M.can_install() return M.machine().nix == true or M.machine().flatpak == true end
 
 --- Where `row` came from and whether it can go.
 function M.source(row) return service.source_of(row) end
@@ -69,12 +78,15 @@ function M.show(row)
   M.revision:set(M.revision:get() + 1)
 end
 
+local sorted, sorted_at, sorted_rows
+
 --- The apps of the launcher by where they came from: `{ kind, label, rows }` each,
---- those that can go first.
+--- those that can go first. Worked out once for each list of apps.
 function M.by_source()
-  M.revision:get()
+  local at, installed = M.revision:get(), require("apps").installed()
+  if sorted and sorted_at == at and sorted_rows == installed then return sorted end
   local groups, order = {}, {}
-  for _, row in ipairs(require("apps").installed()) do
+  for _, row in ipairs(installed) do
     local source = M.source(row)
     if not groups[source.kind] then
       groups[source.kind] = { kind = source.kind, label = source.label, removable = source.removable, why = source.why, rows = {} }
@@ -87,6 +99,7 @@ function M.by_source()
     if a.removable ~= b.removable then return a.removable end
     return a.label < b.label
   end)
+  sorted, sorted_at, sorted_rows = order, at, installed
   return order
 end
 

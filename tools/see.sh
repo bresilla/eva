@@ -6,8 +6,8 @@
 #   SCREEN=868x1932 TOUCH=1 STYLE=material MODE=light tools/see.sh quick
 #
 # SCREEN is the output, STYLE the visual theme, MODE dark or light, TOUCH=1 a
-# machine with a touchscreen and no keyboard. OUT overrides the output folder,
-# TIMEOUT the seconds it may take.
+# machine with a touchscreen and no keyboard, COVER=1 one with both. OUT overrides
+# the output folder, TIMEOUT the seconds it may take.
 #
 # The session is sealed: an empty environment, its own runtime dir, HOME and
 # session bus, no system bus, and a fixed wallpaper and palette. Nothing here
@@ -36,6 +36,7 @@ printf '{ "theme": "%s", "font": "" }\n' "$STYLE" > "$HOME_DIR/.config/appearanc
 
 DEVICES=$EVA/tests/fixtures/input-devices
 [ -n "${TOUCH:-}" ] && DEVICES=$EVA/tests/fixtures/input-devices-touch
+[ -n "${COVER:-}" ] && DEVICES=$EVA/tests/fixtures/input-devices-cover
 
 setsid env -i \
   PATH="$PATH" USER="${USER:-eva}" LC_ALL=C.UTF-8 TERM=dumb \

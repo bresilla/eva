@@ -25,6 +25,17 @@ local SOURCE = [==[
   end
   morf.ipc.editing = function() return require("desktop_model").editing() end
   morf.ipc.home_on = function(on) require("config").set("desktop.home.enabled", on) return true end
+  morf.ipc.apps_read = function()
+    require("apps").refresh(true)
+    require("lib.shell.launcher.rows").bump()
+    return true
+  end
+  morf.ipc.rename_folder = function(old, new)
+    require("launcher_modes.shell").rename(old)
+    local mode = require("lib.shell.launcher.registry").by_word("foldername")
+    mode.search(new)[1].run()
+    return true
+  end
 ]==]
 
 local function load(size, devices, settings, style)
@@ -183,6 +194,23 @@ for _, style in ipairs { "material", "tsugumori" } do
       load(PHONE, TOUCH, { desktop = { widgets = { phone = { "app:nothing-installed", "app:fixture-editor" } } } }, style)
       test.falsy(test.ipc("layout")["app:nothing-installed"], "a ghost stands on the page")
       test.truthy(test.ipc("layout")["app:fixture-editor"])
+    end)
+
+    test.it("an app removed while it stands on a page goes from the page", function()
+      load(PHONE, TOUCH, { desktop = { widgets = { phone = { "app:fixture-top", "app:fixture-editor" } } } }, style)
+      test.truthy(test.ipc("layout")["app:fixture-top"])
+      morf.fs.remove(morf.env("XDG_DATA_HOME") .. "/applications/fixture-top.desktop")
+      test.ipc("apps_read") test.settle(300)
+      test.falsy(test.ipc("layout")["app:fixture-top"], "a ghost stands on the page")
+      test.truthy(test.ipc("layout")["app:fixture-editor"])
+    end)
+
+    test.it("keeps a folder on the page when it is renamed", function()
+      load(PHONE, TOUCH, { launcher = { folders = { { name = "Work", apps = { "fixture-editor" } } } },
+        desktop = { widgets = { phone = { "folder:Work" } } } }, style)
+      test.ipc("rename_folder", "Work", "Play") test.settle(300)
+      test.truthy(test.ipc("layout")["folder:Play"], "the renamed folder left the page")
+      test.falsy(test.ipc("layout")["folder:Work"])
     end)
 
     test.it("opens a folder on the home in the launcher's grid", function()

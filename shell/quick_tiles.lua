@@ -59,11 +59,16 @@ local function app(id, name, icon, ids, word, wanted)
     end }
 end
 
--- A tool of apps/ a press opens, where this install has it. It never lights.
+-- A tool of apps/ a press opens, where this install has it, looked for once. It
+-- never lights.
 local function tool(model, id, name, icon, program, status)
   local function host() return require("lib.services.host") end
+  local here
   return { id = id, name = name, icon = icon,
-    present = function() return host().tool(program) ~= nil end,
+    present = function()
+      if here == nil then here = host().tool(program) ~= nil end
+      return here
+    end,
     on = function() return false end,
     set = function()
       model.close_panel()
@@ -266,7 +271,6 @@ function M.list(model, gamemode)
     },
     {
       id = "lockscreen", icon = "lock", name = "Lock",
-      present = function() return model.session_available("lock") end,
       on = function() return false end,
       set = function() model.session_run("lock") end,
       status = function() return "Now" end,
@@ -292,7 +296,7 @@ function M.list(model, gamemode)
     },
     {
       id = "getapps", icon = "add_circle", name = "Get apps",
-      present = function() return require("launcher").can_install() end,
+      present = function() return require("software_model").can_install() end,
       on = function() return false end,
       set = function()
         model.close_panel()

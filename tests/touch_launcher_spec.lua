@@ -44,9 +44,9 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.touch("down", 0, x, y) test.advance(700)
     test.truthy(test.find { id = "launcher-pin-target", visible = true }, "the place to drop on shows")
     local place = test.get("launcher-pin-target")
-    local _, ty = at(place)
-    for i = 1, 10 do test.touch("move", 0, x, y + (ty - y) * i / 10) test.advance(16) end
-    test.touch("up", 0, x, ty) test.advance(400)
+    local tx, ty = at(place)
+    for i = 1, 10 do test.touch("move", 0, x + (tx - x) * i / 10, y + (ty - y) * i / 10) test.advance(16) end
+    test.touch("up", 0, tx, ty) test.advance(400)
     test.falsy(test.find { id = "launcher-pin-target", visible = true }, "it goes with the finger")
     test.eq(test.ipc("state").acting, "", "a drag away from where it was opens no menu")
     tile = test.get { text = "Fixture Browser", visible = true }

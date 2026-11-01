@@ -1,0 +1,52 @@
+# The phone and tablet pieces on a stand-in NixOS: the grid with a folder and a
+# hidden app, what an app can and cannot have done to it, the quick settings'
+# catalogue, the bar's rules, Screen time and its warning, Software, Fingerprints,
+# and the lock's scrambled pad. Nothing here is installed, removed or enrolled.
+#
+#   SCREEN=868x1932 TOUCH=1 tools/see.sh mobile
+#   SCREEN=1280x800 TOUCH=1 tools/see.sh mobile
+#   SCREEN=1440x900 COVER=1 tools/see.sh mobile
+mkdir -p "$XDG_DATA_HOME/applications"
+for pair in "Browser:Network" "Files:Utility" "Terminal:System" "Notes:Office" "Paint:Graphics" "Player:AudioVideo" \
+  "Mail:Network" "Chess:Game" "Editor:Development" "Photos:Graphics" "Maps:Utility"; do
+  name=${pair%%:*}; category=${pair##*:}
+  printf '[Desktop Entry]\nType=Application\nName=%s\nComment=The %s app\nExec=true\nCategories=%s;\n' \
+    "$name" "$name" "$category" > "$XDG_DATA_HOME/applications/see-$name.desktop"
+done
+WALLS=$SEE_EVA/tests/fixtures/wallpapers
+export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
+export EVA_FAKE_SYSTEM=nixos EVA_FAKE_FINGER_STACK=1
+export EVA_FAKE_SOFTWARE="see-Browser=system,see-Chess=flatpak,see-Maps=flatpak,see-Paint=profile,see-Notes=local,see-Mail=declared"
+export EVA_SCREEN_TIME=$XDG_STATE_HOME/see-screen-time.json
+TODAY=$(date +%Y-%m-%d)
+cat > "$EVA_SCREEN_TIME" <<JSON
+{ "days": { "$TODAY": { "see-Browser": 4920, "see-Chess": 2700, "see-Files": 840, "see-Photos": 120 } } }
+JSON
+cat > "$EVA_SETTINGS" <<JSON
+{ "lule": { "folder": "$WALLS" },
+  "wallpaper": { "draw": true },
+  "launcher": { "hidden": ["see-Maps"],
+    "folders": [ { "name": "Work", "apps": ["see-Editor", "see-Notes", "see-Mail"] } ] },
+  "wellbeing": { "limits": [ { "app": "see-Browser", "minutes": 60 } ],
+    "downtime": { "on": true, "from": "22:00", "to": "07:00", "allowed": ["see-Files"] } },
+  "bar": { "fold": [ { "id": "alarm", "rule": "keep" }, { "id": "vpn", "rule": "early" } ] },
+  "lock": { "keypad": "digits", "scramble": true } }
+JSON
+start shell
+ipc wallpaper set "$WALLS/dusk.png"
+pause 2.5
+ipc launcher open; pause 2; shot grid
+ipc launcher query "> get chess"; pause 1.5; shot get
+ipc close; pause 0.6
+ipc quick edit; pause 2.5; shot tiles
+ipc quick done; pause 0.5
+ipc settings bar/fold; pause 2; shot fold
+ipc settings screen_time; pause 2; shot screen-time
+ipc settings software; pause 2; shot software
+ipc settings lock/fingerprint; pause 2; shot fingerprint
+ipc close; pause 0.6
+stop
+start lock
+key a
+pause 2
+shot pin

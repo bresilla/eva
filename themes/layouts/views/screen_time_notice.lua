@@ -30,8 +30,8 @@ function V.build(model)
         end },
       kit.text { id = "screen-time-why", width = inner, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
         text = "A reminder you set, not a lock: a shell cannot stop an app, so going on is up to you." },
-      P.button { id = "screen-time-away", label = "Step away", icon = "close", tone = "primary", width = inner,
-        on_clicked = model.step_away },
+      P.button { id = "screen-time-away", icon = "close", tone = "primary", width = inner,
+        label = function() return now().waiting and "Leave it shut" or "Close it" end, on_clicked = model.step_away },
       P.button { id = "screen-time-more", label = model.MORE .. " more minutes", icon = "more_time", width = inner,
         visible = function() return not downtime() end, on_clicked = model.extend },
       P.button { id = "screen-time-override", label = "Go on for today", icon = "skip_next", width = inner,
@@ -41,7 +41,7 @@ function V.build(model)
     height = function() return (body.layout_height or 0) + 2 * S.l end, body }
   return ui.Rect { id = "screen-time-veil", anchors = { fill = true }, z = 50, color = morf.color("#000000"):alpha(0.5),
     visible = function() return model.notice:get() ~= false end,
-    ui.MouseArea { anchors = { fill = true }, on_clicked = model.step_away },
+    ui.MouseArea { anchors = { fill = true } },
     card }
 end
 

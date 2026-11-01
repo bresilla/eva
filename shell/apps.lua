@@ -94,6 +94,7 @@ function M.refresh(force)
   local list, seen, ids = {}, {}, {}
   local ok, all = pcall(index.applications, index)
   if not ok or type(all) ~= "table" then return false end
+  by_id = {}
   for _, entry in ipairs(all) do
     local name = (entry.name or ""):match("^%s*(.-)%s*$")
     if not entry.no_display and name ~= "" and not seen[entry.id] then
