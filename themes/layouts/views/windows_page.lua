@@ -135,7 +135,7 @@ function M.build_rule(model, w, h)
       text("rule-class", "class", "Class", "^firefox$"),
       text("rule-title", "title", "Title", "Any") },
     P.section { id = "rule-place", caption_id = "rule-place-caption", width = w, title = "How it opens",
-      F.choices { id = "rule-layout", width = inner, items = model.layouts, now = function() return value("layout")() or "" end,
+      F.choices { id = "rule-layout", width = inner, items = model.layouts, per_row = 2, now = function() return value("layout")() or "" end,
         pick = function(key) rules.change("layout", key) end },
       text("rule-size", "size", "Size, in pixels", "800 600"),
       text("rule-move", "move", "Position", "30 40"),
