@@ -1247,12 +1247,11 @@ function M.round(r) return r end
 --- it stretches towards the next row and settles round there. `track`,
 --- `color` (a tonal wash of the ink), `radius` (12), `stretch` (false to
 --- leave the track's own motion alone), `id`, `anchors`, `z`.
-local SELECT_STRETCH = { stiffness = 300, damping = 15, scale = 0.1, max = 0.22 }
 function M.selection(spec)
   local track = spec.track
   if track and spec.stretch ~= false then
     local ok, current = pcall(function() return track.stretch end)
-    if ok and not current then track.stretch = spec.stretch or SELECT_STRETCH end
+    if ok and not current then track.stretch = spec.stretch or theme.stretch.selection end
   end
   return ui.Sdf { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = spec.height,
     anchors = spec.anchors or (spec.width == nil and { fill = true } or nil), z = spec.z or -1,

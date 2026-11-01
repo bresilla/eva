@@ -404,7 +404,7 @@ function V.build(M)
       x = 0, width = INNER,
       y = function() return (entry_span(math.max(1, M.selected:get()))) - scroll:get() end,
       height = function() local _, h = entry_span(math.max(1, M.selected:get())) return h end,
-      behavior = { y = kit.spring(420, 28), height = kit.spring(420, 28) },
+      behavior = { y = theme.spring.spatial, height = theme.spring.spatial },
       visible = function()
         local sel = M.results:get(M.selected:get())
         return M.count:get() > 0 and sel ~= nil and sel.kind ~= "hero"
@@ -628,10 +628,7 @@ function V.build(M)
     end,
     props = {
       anchors = { top = true, horizontal_center = true, top_margin = top_margin() },
-      behavior = {
-        width = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel },
-        height = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel },
-      },
+      behavior = { width = theme.spring.spatial, height = theme.spring.spatial },
     },
   }
 end
