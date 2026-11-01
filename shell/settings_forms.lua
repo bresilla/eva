@@ -20,6 +20,16 @@ local function commands(prefix, rows)
   return out
 end
 
+-- The session's actions by id, named and drawn as the menu has them.
+local function session_commands(ids)
+  local rows = {}
+  for index, id in ipairs(ids) do
+    local action = require("models.session_actions").BY_ID[id]
+    rows[index] = { id, action.name, action.icon }
+  end
+  return commands("session.commands.", rows)
+end
+
 M.PAGES = {
   launcher = { sections = {
     { title = "Results", fields = {
@@ -159,11 +169,8 @@ M.PAGES = {
       { key = "update.flake", kind = "text", title = "Flake", icon = "account_tree",
         note = "What eva-update reads, or its folder; empty finds /etc/nixos's" },
     } },
-    { title = "Session", note = "$USER is your name", fields = commands("session.commands.", {
-      { "lock", "Lock", "lock" }, { "logout", "Log out", "logout" }, { "suspend", "Suspend", "bedtime" },
-      { "hibernate", "Hibernate", "downloading" }, { "suspend_hibernate", "Suspend, then hibernate", "hotel" },
-      { "reboot", "Restart", "restart_alt" }, { "shutdown", "Power off", "power_settings_new" },
-    }) },
+    { title = "Session", note = "$USER is your name", fields = session_commands {
+      "lock", "logout", "suspend", "hibernate", "suspend_hibernate", "reboot", "shutdown" } },
     { title = "Session menu", fields = {
       { key = "session.countdown", kind = "number", title = "Count down", icon = "timer", from = 0, to = 30, step = 1,
         unit = " s" },
