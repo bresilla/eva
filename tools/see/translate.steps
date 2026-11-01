@@ -1,0 +1,59 @@
+# eva-translate on the sealed session. MyMemory is real: one word and one short
+# phrase, over morf.http, sent by the scenario's own press. translate-shell and
+# argos-translate are not in the dev shell, so a stand-in script takes their place
+# to show the engine chooser and the offline note; a real `trans` run is noted by
+# hand in the report.
+unset EVA_DRY_RUN
+state() { appipc state | tr -d ' \n' | cut -c1-300; }
+
+note echo "--- engines with nothing installed"
+note sh apps/translate/cli engines
+
+BOOT=4 start app translate
+appipc input "good morning" > /dev/null
+appipc target de > /dev/null
+pause 0.8
+shot before
+note echo "--- typed, nothing sent: $(state)"
+appipc go > /dev/null
+pause 4
+shot online
+note echo "--- sent to MyMemory: $(state)"
+
+wl-copy "where is the station"
+appipc paste clipboard > /dev/null
+pause 0.6
+appipc source en > /dev/null
+appipc target fr > /dev/null
+appipc go > /dev/null
+pause 4
+note echo "--- the clipboard sent: $(state)"
+appipc swap > /dev/null
+pause 0.5
+shot swapped
+note echo "--- swapped: $(state)"
+stop
+
+note echo "--- command line, MyMemory"
+note sh apps/translate/cli -t it "thank you"
+note sh -c 'printf "see you tomorrow" | sh apps/translate/cli -t es -'
+note sh apps/translate/cli -t xx hello
+
+# Stand-ins, on this session's PATH alone.
+STANDINS=$XDG_RUNTIME_DIR/standins
+mkdir -p "$STANDINS"
+printf '#!/bin/sh\nprintf "[offline] "; cat\n' > "$STANDINS/argos-translate"
+printf '#!/bin/sh\nprintf "[trans] "; cat\n' > "$STANDINS/trans"
+chmod +x "$STANDINS/argos-translate" "$STANDINS/trans"
+export PATH="$STANDINS:$PATH"
+
+note echo "--- engines with the stand-ins"
+note sh apps/translate/cli engines
+BOOT=4 start app translate
+appipc source en > /dev/null
+appipc input "words that stay here" > /dev/null
+pause 0.5
+appipc go > /dev/null
+pause 1
+shot offline
+note echo "--- offline stand-in: $(state)"
