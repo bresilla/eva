@@ -318,6 +318,7 @@ ui.reparent(window_switcher.node,frame_root)
 ui.reparent(snap.node,frame_root)
 ui.reparent(kill_mode.node,frame_root)
 ui.reparent(require("hot_corners").build(),frame_root)
+ui.reparent(require("screen_time").node,frame_root)
 -- Authentication can interrupt editing without ending up behind its overlay.
 morf.effect("eva.capture.authentication",function()
   if (polkit.pending:get() or keyring.request:get()) and capture.editor.running() then capture.cancel() end
@@ -338,6 +339,7 @@ do
 end
 require("desktop").start()
 require("standby").start()
+require("screen_time_model").start()
 
 -- -------------------------------------------------------------------- ipc --
 
@@ -737,6 +739,8 @@ end
 ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, ...) end
 -- `desktop [state|edit|done|add ID|hide ID|size ID]`: the widgets on the desktop.
 ipc.desktop = function(how, id) return require("desktop").verb(how, id) end
+-- `screen-time [status|today|bedtime on|off]`.
+ipc["screen-time"] = function(how, value) return require("screen_time_model").verb(how, value) end
 -- `island [on|off|toggle|next|state]`.
 ipc.island = function(how) return require("island").verb(how) end
 -- `standby [on [when-charging] [night]|off|toggle|state|clock|photos|widgets|world|alarm]`.

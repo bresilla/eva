@@ -249,6 +249,22 @@ function M.list(model, gamemode)
       end,
     },
     {
+      id = "screentime", icon = "hourglass_bottom", name = "Screen time", detail = "screen_time",
+      on = function() return false end,
+      set = function() model.detail:set("screen_time") end,
+      status = function()
+        local time = require("screen_time_model")
+        local _, total = time.report(1)
+        return time.words(total) .. " today"
+      end,
+    },
+    {
+      id = "bedtime", icon = "bedtime", name = "Bedtime", detail = "screen_time",
+      on = function() return require("screen_time_model").bedtime() end,
+      set = function(now) require("screen_time_model").set_bedtime(now) end,
+      status = function() return require("screen_time_model").bedtime() and "On" or "Off" end,
+    },
+    {
       id = "lockscreen", icon = "lock", name = "Lock",
       present = function() return model.session_available("lock") end,
       on = function() return false end,

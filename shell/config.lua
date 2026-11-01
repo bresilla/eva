@@ -658,6 +658,14 @@ local config = settings.open {
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
     -- keeps it, a phone or a tablet follows the accelerometer).
     rotation = { lock = "auto" },
+    -- Screen time (shell/screen_time_model.lua): whether it counts, each app's
+    -- daily limit as `{ app, minutes }`, and the hours of downtime and bedtime.
+    wellbeing = {
+      enabled = true,
+      limits = {},
+      downtime = { on = false, from = "22:00", to = "07:00", allowed = {} },
+      bedtime = { on = false, from = "22:30", to = "07:00", grayscale = true, quiet = true },
+    },
     -- Charging stops at `limit` percent: 100 for none, 0 leaves the kernel's
     -- as it is. With `adaptive` it waits lower overnight and is done by
     -- `ready`, in minutes after midnight.

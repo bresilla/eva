@@ -117,7 +117,8 @@ end
 local function tile_of(row)
   by_key["tile:" .. row.id] = row
   return { key = "tile:" .. row.id, name = row.name, icon = row.icon, material = row.material, pinned = row.pinned,
-    fresh = row.fresh, kind = row.kind, count = row.count, members = row.members }
+    fresh = row.fresh, kind = row.kind, count = row.count, members = row.members,
+    spent = row.kind == "app" and require("screen_time_model").spent(row.id) or nil }
 end
 
 local function tiles_of(list)

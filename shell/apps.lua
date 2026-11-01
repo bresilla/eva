@@ -704,8 +704,11 @@ end
 function M.activate(row)
   if not row then return "keep" end
   if row.kind == "app" then
-    if config.get("launcher.remember") then used.record(row.id) end
-    launch(row)
+    local function start()
+      if config.get("launcher.remember") then used.record(row.id) end
+      launch(row)
+    end
+    if not require("screen_time_model").holds(row, start) then start() end
     return "close"
   end
   if row.pin and not row.private and config.get("launcher.remember") then used.record(row.pin) end

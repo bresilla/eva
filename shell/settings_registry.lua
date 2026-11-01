@@ -170,6 +170,12 @@ M.PAGES = {
     keywords = "autostart login boot systemd service background" },
   { key = "notes", name = "Notes", icon = "sticky_note_2", category = "apps", summary = "Quick notes, in a folder",
     keywords = "jot write markdown text" },
+  { key = "screen_time", name = "Screen time", icon = "hourglass_bottom", category = "apps", summary = "Use, limits, downtime, bedtime",
+    keywords = "wellbeing digital usage time per app limit timer focus habits",
+    items = { { "Count screen time", "measure usage local private" }, { "Downtime", "evening night quiet apps allowed schedule" },
+      { "Bedtime", "grey grayscale sleep wind down night" }, { "Forget screen time", "clear history delete usage" } } },
+  { key = "screen_time/app", name = "App", icon = "apps", parent = "screen_time", keywords = "daily limit allowed downtime",
+    items = { { "App limit", "daily minutes timer" }, { "Allowed during downtime", "exception always" } } },
 
   { key = "datetime", name = "Date and time", icon = "schedule", category = "system", summary = "Timezone and clock",
     keywords = "timezone ntp clock 24 hour automatic time zone" },

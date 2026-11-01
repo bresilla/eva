@@ -94,6 +94,7 @@ function V.row(M, entry, columns, ctx)
         cell.node.accessible_name = tile.name or ""
         cell.pin.visible = tile.pinned == true
         cell.fresh.visible = tile.fresh == true
+        cell.box.opacity = tile.spent and 0.4 or 1
       end
     end
   end

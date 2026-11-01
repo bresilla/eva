@@ -189,6 +189,7 @@ local function locked()
   end
   return login and login.state.session.locked == true or false
 end
+M.locked = locked
 
 --- Whether the slideshow is holding: something fullscreen here, or a lock.
 function M.held()

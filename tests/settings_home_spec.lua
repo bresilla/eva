@@ -91,6 +91,7 @@ local HOST = [[
       "shell/quick_tiles.lua", "shell/idle_model.lua", "shell/idle_page.lua", "shell/lock_page.lua",
       "themes/layouts/views/idle_page.lua", "themes/layouts/views/lock_page.lua",
       "shell/windows_page.lua", "themes/layouts/views/windows_page.lua",
+      "shell/screen_time_model.lua", "themes/layouts/views/screen_time_page.lua",
       "themes/layouts/views/assistant_settings.lua", "themes/layouts/views/calendar_settings.lua",
       "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",

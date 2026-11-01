@@ -26,8 +26,10 @@ local function badge(spec) return require("themes").view("quick_tiles").badge(sp
 --- An app or a folder on a page: its art and name. A press opens it, a hold or
 --- a right press offers what can be done to it.
 local function icon_face(row, ctx, model, armed, menu_for)
+  local spent = row.kind == "app" and row.id:match("^app:(.*)$") or nil
   local art = ui.Item { id = "desktop-icon-art-" .. row.id, width = ICON, height = ICON, y = S.s,
     x = function() return (ctx.w() - ICON) / 2 end,
+    opacity = function() return spent and require("screen_time_model").spent(spent) and 0.4 or 1 end,
     require("themes").view("launcher_grid").art(require("apps").icon, row, ICON) }
   local name = kit.text { id = "desktop-icon-name-" .. row.id, y = S.s + ICON + S.xs, x = S.xs, text = row.name, elide = "right",
     width = function() return ctx.w() - S.s end, horizontal_alignment = "center", font_size = theme.size.small,
