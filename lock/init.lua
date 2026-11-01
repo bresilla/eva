@@ -29,7 +29,8 @@ require("themes.ui_scale").apply()
 local HELD = morf.operands[1] ~= "window"
 -- Why this lock was asked for, and what it may show and do because of it.
 local lock_settings = require("models.lock_settings")
-local REASON = HELD and require("models.lock_reason").take() or "manual"
+local REASON, MARKED = "manual", nil
+if HELD then REASON, MARKED = require("models.lock_reason").take() end
 local prefs = lock_settings.load()
 if REASON == "lockdown" then lock_settings.lockdown(prefs) end
 -- A fingerprint stack to listen on (helpers/pam/readers.sh), said in the hint.
@@ -113,6 +114,7 @@ local tries = require("models.lock_attempts").new(prefs.attempts)
 local guard = (REASON == "idle" and prefs.grace_seconds > 0) and require("models.logind").guard() or nil
 local grace = require("models.lock_grace").new {
   seconds = prefs.grace_seconds, reason = REASON, guard = guard, phone = phone_screen.present(),
+  since = MARKED,
 }
 if prefs.force_layout ~= "" then keyboard.force(prefs.force_layout) end
 

@@ -59,9 +59,12 @@ function M.new(options)
     if armed or not self.eligible() then return false end
     if guard.preparing and guard.preparing() then return false end
     if guard.lid_closed and guard.lid_closed() then return false end
+    -- From the idle request: time spent coming up is spent from the window.
     local now = clock()
-    armed, deadline, last, baseline = true, now + seconds, now, count()
-    self.left:set(seconds)
+    local from = math.min(tonumber(options.since) or now, now)
+    if now >= from + seconds then return false end
+    armed, deadline, last, baseline = true, from + seconds, now, count()
+    self.left:set(math.ceil(deadline - now))
     guard.on_sleep(function() self.revoke("sleeping") end)
     guard.on_lock(function() self.revoke("locked again") end)
     ticking = timer(500, function() holds() end, true)

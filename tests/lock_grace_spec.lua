@@ -8,10 +8,10 @@ local function rig(values)
     local sleep_fns,lock_fns={},{}
     local preparing,lid,reachable=false,false,true
     local clock_ok,count_ok=true,true
-    local g
+    local g,tick
     morf.ipc.make=function(raw)
       local v=morf.json.decode(raw)
-      g=grace.new {seconds=v.seconds or 15,reason=v.reason or "idle",phone=v.phone==true,
+      g=grace.new {seconds=v.seconds or 15,reason=v.reason or "idle",phone=v.phone==true,since=v.since,
         guard=v.no_guard~=true and {
           available=function() return reachable end,
           preparing=function() return preparing end,
@@ -21,9 +21,10 @@ local function rig(values)
         } or nil,
         clock=function() return clock_ok and now or nil end,
         suspends=function() return count_ok and total or nil end,
-        timer=function() return {cancel=function() end} end}
+        timer=function(_,fn) tick=fn return {cancel=function() end} end}
       return true
     end
+    morf.ipc.tick=function() if tick then tick() end end
     morf.ipc.arm=function() return g.arm() end
     morf.ipc.take=function() return g.take() end
     morf.ipc.why=function() return g.why end
@@ -74,6 +75,29 @@ end)
 test.it("not while the machine goes to sleep or the lid is shut",function()
   rig() test.ipc("set","preparing","true") test.falsy(test.ipc("arm"))
   rig() test.ipc("set","lid","true") test.falsy(test.ipc("arm"))
+end)
+
+test.it("counts from the idle request: a slow lock shortens the window, never moves it",function()
+  local function ticks(count) for _=1,count do step(1) test.ipc("tick") end end
+  rig{seconds=10,since=97} test.truthy(test.ipc("arm"))
+  ticks(6) test.eq(test.ipc("take"),true,"at 106, still inside 97 + 10")
+  rig{seconds=10,since=97} test.truthy(test.ipc("arm"))
+  ticks(7)
+  test.eq(test.ipc("take"),false,"at 107 it is over, though it armed at 100")
+  test.eq(test.ipc("why"),"expired")
+end)
+
+test.it("a lock that came up after its window has none",function()
+  rig{seconds=2,since=90}
+  test.falsy(test.ipc("arm"))
+  test.eq(test.ipc("take"),false)
+end)
+
+test.it("a mark from the future is not a longer window",function()
+  rig{seconds=2,since=500}
+  test.truthy(test.ipc("arm"))
+  step(1) step(1)
+  test.eq(test.ipc("take"),false)
 end)
 
 test.it("ends when the time runs out",function()

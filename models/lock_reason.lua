@@ -1,5 +1,6 @@
 -- Why the session is being locked: one small file under the runtime directory,
--- used once. `take` answers "idle", "lockdown", or "manual" with no fresh mark.
+-- used once. `take` answers "idle" or "lockdown" and when it was marked, or
+-- "manual" with no fresh mark.
 local morf = require("morf")
 local M = { FRESH = 20 }
 local KNOWN = { idle = true, lockdown = true }
@@ -38,7 +39,7 @@ function M.take()
   if not fine or type(value) ~= "table" or not KNOWN[value.reason] then return "manual" end
   local now, at = M.uptime(), tonumber(value.at)
   if not now or not at or at > now or now - at > M.FRESH then return "manual" end
-  return value.reason
+  return value.reason, at
 end
 
 return M
