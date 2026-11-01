@@ -229,7 +229,7 @@ function M.stream(spec)
   local request = M.request(spec)
   count = count + 1
   local body_path = ("%s/request-%d-%d.json"):format(spool(), morf.process_id or 0, count)
-  local wrote, failure = morf.fs.write(body_path, morf.json.encode(request.body))
+  local wrote, failure = morf.fs.write(body_path, morf.json.encode(request.body), { mode = 384 })
   if not wrote then spec.on_done { error = "The request could not be written: " .. tostring(failure) } return nil end
 
   local stopped, finished, reason, status, failed = false, false, nil, nil, nil

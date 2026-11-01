@@ -3,7 +3,7 @@
 -- open reads as code to the end, so a reply still arriving reads well.
 --
 --   markup.blocks("# Hi\n\nSome **bold** text.")
---     --> { { key = "1", kind = "heading", level = 1, spans = { "Hi" }, text = "Hi" }, ... }
+--     --> { { key = "1:heading", kind = "heading", level = 1, spans = { "Hi" }, text = "Hi" }, ... }
 --
 -- A block is `heading` (`level`), `paragraph`, `item` (`mark`, `depth`),
 -- `quote`, `code` (`language`, `open`), `table` or `rule`. A span is a string,
@@ -75,7 +75,7 @@ function M.blocks(text)
   local blocks, paragraph = {}, {}
   local code, table_rows
   local function add(block)
-    block.key = tostring(#blocks + 1)
+    block.key = (#blocks + 1) .. ":" .. block.kind
     blocks[#blocks + 1] = block
   end
   local function flush()

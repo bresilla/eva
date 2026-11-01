@@ -8,7 +8,9 @@
 --   secrets.clear({ service = "eva", account = "anthropic" }, function(ok, why) end)
 local morf = require("morf")
 local poll = require("lib.util.poll")
-local M = { TIMEOUT_MS = 8000, MISSING = "secret-tool is not installed: add libsecret to keep keys in the keyring." }
+local M = { TIMEOUT_MS = 8000, MISSING = "secret-tool is not installed: add libsecret to keep keys in the keyring.",
+  -- Added to what `secret-tool` inherits.
+  env = nil }
 
 local function program() return poll.which("secret-tool") end
 
@@ -45,6 +47,7 @@ local function why(result)
 end
 
 local function run(words, options, done)
+  options.env = M.env
   local ok, failure = pcall(morf.process.run, words, options, done)
   if not ok then done { ok = false, error = tostring(failure) } end
 end
