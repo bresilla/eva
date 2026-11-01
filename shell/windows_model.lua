@@ -186,7 +186,8 @@ local function note(text)
 end
 
 -- A window's size, place and floating come by no event of their own: the list
--- is asked for again after anything the shell sends, and when the focus moves.
+-- is asked for again after anything the shell sends, and by whatever is about
+-- to read it.
 local refreshing
 function M.refresh()
   if refreshing or not hyprland.refresh then return end
@@ -195,7 +196,6 @@ function M.refresh()
     hyprland.refresh()
   end, false)
 end
-if hyprland.on then hyprland.on("activewindowv2", M.refresh) end
 
 --- Runs `steps` on `address`: the Lua form on a Lua-configured Hyprland and
 --- the classic one elsewhere. False with no window.

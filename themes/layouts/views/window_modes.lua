@@ -27,7 +27,7 @@ function V.build(model)
     y = function() local d = divider() if not d then return 0 end return d.vertical and d.y or d.y - GRIP / 2 end,
     width = function() local d = divider() if not d then return 0 end return d.vertical and GRIP or d.length end,
     height = function() local d = divider() if not d then return 0 end return d.vertical and d.length or GRIP end,
-    visible = function() return touch_only() and divider() ~= nil end,
+    visible = function() return touch_only() and divider() ~= nil and not model.panel_open() end,
     on_pressed = function(x, y) drag_from = { x = x, y = y } end,
     on_dragged = function(x, y)
       if not drag_from then return end
@@ -99,7 +99,7 @@ function V.build(model)
     x = function() local r = pip() return r and r.x or 0 end, y = function() local r = pip() return r and r.y or 0 end,
     width = function() local r = pip() return r and r.width or 1 end,
     height = function() local r = pip() return r and r.height or 1 end,
-    visible = function() return pip() ~= nil end,
+    visible = function() return pip() ~= nil and not model.panel_open() end,
     area, shade, panel, tab }
 
   local root = ui.Item { id = "window-modes", anchors = { fill = true }, grip, cover }

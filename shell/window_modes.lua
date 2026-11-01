@@ -232,6 +232,14 @@ morf.effect("eva.windows.pip.auto", function()
   end
 end)
 
+--- Whether a panel is open: what lies over a window then gives way to it.
+function M.panel_open()
+  for _, d in ipairs(require("drawer").all) do
+    if d.name ~= "keyboard" and d.open:get() then return true end
+  end
+  return false
+end
+
 --- The picture's box on this surface, or nil.
 function M.pip_rect()
   local c = windows.get(M.pip:get())

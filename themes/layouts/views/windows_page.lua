@@ -48,8 +48,10 @@ function M.build_windows(model, w, h)
     sections[#sections + 1] = choices(w, { group = "windows-scrub", title = "The bottom edge walks",
       items = model.scrubs, now = model.get("windows.scrub"), pick = model.set("windows.scrub") })
   end
-  sections[#sections + 1] = kit.subtitle { width = w, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
-    text = "A corner's button says which key must be held for it to work." }
+  if not model.touch then
+    sections[#sections + 1] = kit.subtitle { width = w, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
+      text = "A corner's button says which key must be held for it to work." }
+  end
   return P.page(sections)
 end
 

@@ -153,6 +153,14 @@ function M.windows_of(key)
   return out
 end
 
+-- Hiding under windows reads where they are: a moved one tells nothing until
+-- the focus moves.
+if services.hyprland.on then
+  services.hyprland.on("activewindowv2", function()
+    if M.on() and M.autohide() == "windows" then windows.refresh() end
+  end)
+end
+
 morf.effect("eva.dock.rows", function()
   if not M.on() then return end
   local list, pinned = M.entries()

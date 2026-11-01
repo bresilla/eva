@@ -32,9 +32,18 @@ function M.covered()
   return false
 end
 
+--- Whether a panel hangs from the dock's edge, or a sheet is over the screen.
+local function panel_in_the_way()
+  local sheets = require("responsive").sheets()
+  for _, d in ipairs(require("drawer").all) do
+    if d.name ~= "keyboard" and d.open:get() and (sheets or d.edge == model.edge()) then return true end
+  end
+  return false
+end
+
 --- Whether the dock is out.
 function M.shown()
-  if not model.on() then return false end
+  if not model.on() or panel_in_the_way() then return false end
   if M.near:get() or M.menu_for:get() ~= "" then return true end
   local how = model.autohide()
   if how == "off" then return true end

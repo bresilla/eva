@@ -227,6 +227,7 @@ end
 --- none, nothing while it asks the compositor which window that is.
 local FOLD_MS, closed_at, waiting = 280, -1e9, nil
 function M.open()
+  windows.refresh()
   local function show(address, folded)
     if not client(address) then return false end
     if waiting then waiting:cancel() waiting = nil end
