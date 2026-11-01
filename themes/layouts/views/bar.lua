@@ -179,12 +179,19 @@ function V.build(model)
     end
     return out
   end
+  -- The percentage's room: none on a side bar, without a battery, or by the
+  -- setting, unless the battery is low.
+  local function percent_room(vertical)
+    local b = reading().battery
+    if vertical or not b.present then return 0 end
+    if require("config").get("bar.percent") == false and not b.low then return 0 end
+    return PERCENT
+  end
   local function status(m, vertical, length)
     local v = vertical and "-v" or ""
     local function plan()
       local r = reading()
-      local sizes = { icon = SLOT, dot = DOT, fixed = fixed(vertical), percent = vertical and 0 or PERCENT, level = r.battery.level }
-      if not r.battery.present then sizes.percent = 0 end
+      local sizes = { icon = SLOT, dot = DOT, fixed = fixed(vertical), percent = percent_room(vertical), level = r.battery.level }
       return require("status_model").arrange(indicators(), length() - S.l, sizes)
     end
     local nodes = { gap = 0, align = "center" }
@@ -252,9 +259,7 @@ function V.build(model)
     end
     dress(area, m, vertical)
     return { node = ui.Item { anchors = { fill = true }, area }, flex = true, hold = true,
-      size = function()
-        return fixed(vertical) + #indicators() * SLOT + S.l + ((vertical or not reading().battery.present) and 0 or PERCENT)
-      end }
+      size = function() return fixed(vertical) + #indicators() * SLOT + S.l + percent_room(vertical) end }
   end
 
   -- ------------------------------------------------------------ tray --
@@ -477,6 +482,9 @@ function V.build(model)
 
   local along = strip(false)
   local down = strip(true)
+  local ground
+  ground = ui.MouseArea { id = "bar-ground", anchors = { fill = true }, z = -1, accepted_buttons = { "right" },
+    on_pressed = function() modules.open_bar_menu(ground) end }
   return ui.Item {
     id = "bar",
     visible = function() return model.on() end,
@@ -486,6 +494,8 @@ function V.build(model)
     height = function() local _, _, _, h = strip_box() return h end,
     -- A side bar is ground a drag along it can start from, end to end.
     ui.MouseArea { anchors = { fill = true }, z = -1, visible = function() return model.vertical() end },
+    -- A right press on the bare bar offers the bar's own settings.
+    ground,
     ui.Item { visible = function() return not model.vertical() end, anchors = { fill = true }, along },
     ui.Item { visible = function() return model.vertical() end, anchors = { fill = true }, down },
     pill.node,

@@ -168,6 +168,7 @@ morf.effect("eva.keyboard.focus", function()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/lule")
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "hotspot")
+    or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "bar")
     or (sidebar.drawer.open:get() and require("utilities").tiles.editing:get())
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)

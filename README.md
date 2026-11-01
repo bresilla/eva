@@ -378,6 +378,79 @@ and `EVA_FAKE_CUTOUT=400,68,34` stand in for hardware; a `tools/see/` scenario
 exports them, as `tools/see/bar.steps` and `cutout.steps` do, and
 `morf ipc call fake-battery 12` moves the battery while it runs.
 
+## The bar's modules
+
+The bar is a board of modules in three zones, start, centre and end, kept per
+form factor. Eva, Bar arranges them on the same board as the quick tiles: drag a
+module along or between zones, Alt and the arrows walk it, a badge removes it or
+draws it as its icon alone, and Available holds the rest. From a script:
+
+    morf ipc call bar modules
+    morf ipc call bar add cpu end
+    morf ipc call bar move cpu 1 start
+    morf ipc call bar remove cpu
+
+When a zone runs out of room its rarest modules fold into a mark that lists them,
+then the status folds its own icons into its dot. Every module has a tooltip, a
+press and a right press; a right press also arranges the bar or removes that
+module, and a long press does the same on a touchscreen. A cutout parts the row:
+the centre zone joins the end one and the live pill wraps the camera.
+
+The modules: launcher, workspaces, windows, window title, clock, world clock,
+fuzzy clock, binary clock, countdown, next event, status, system tray, privacy,
+live activity, notifications, dashboard, quick settings, session, assistant,
+clipboard, screenshot, wallpaper, on-screen keyboard, volume, microphone,
+brightness, network, network speed, local and public address, VPN, Bluetooth,
+device batteries, battery, power draw, power profile, CPU, CPU cores, CPU speed,
+memory, swap, temperature, GPU, fans, disk, disk activity, load, uptime, machine
+name, user, media, audio visualiser, lyrics, keep awake, focus, night light, dark
+mode, rotation lock, flashlight, recording, screen sharing, weather, updates,
+keyboard layout, lock keys, key mode, failed services, containers, SSH sessions,
+tmux sessions, trash, print jobs, GameMode, text, spacers and dividers.
+
+The live pill shows the most pressing of a call, a recording, screen sharing, a
+timer, the flashlight and media. It is one distance field: a press morphs it into
+a panel with the activity's controls, and a second activity buds off it as a
+bubble. A press on the bubble or a right press on the pill swaps them.
+
+The privacy module names who is using the microphone, camera, screen and location
+on a press. The camera comes from PipeWire's graph, and from whoever holds
+`/dev/video*` open, read through `/proc` when the driver's use count moves; it
+sees the person's own processes without root. Screen sharing comes from the
+graph and Hyprland's screencast event, location from GeoClue.
+
+Each screen can keep the bar up or down against the setting and keep modules of
+its own (`bar.outputs`, or Eva, Bar). On Nix the Updates module reads the
+generation and how old nixpkgs is, from the system and a flake.lock; elsewhere it
+counts what the package managers offer.
+
+### Your own modules
+
+From a command, in `bar.custom` in the settings file. What it prints is the
+module's text, or JSON with any of `text`, `tooltip`, `icon`, `tone` and
+`percentage`. With `stream` it keeps running and each line is a new reading.
+
+    { "bar": { "custom": [ { "id": "mail", "name": "Mail", "icon": "mail",
+      "command": ["mail-count"], "interval": 60000, "press": ["thunderbird"] } ] } }
+
+From Lua, in `~/.config/eva/bar/plugin/*.lua`, run in order at startup and then
+`~/.config/eva/bar/after/plugin/*.lua`. A file registers by name, returns nothing,
+and a later one replaces an earlier one of the same name. One that fails is
+logged and the rest load. It runs as text in the shell's own Lua, as your code.
+
+    local bar = require("eva.bar")
+    bar.modules["ups"] = { name = "UPS", icon = "battery_saver",
+      text = function() return "98%" end,
+      tooltip = function() return "On mains" end,
+      press = function() end,
+      menu = function() return { { label = "Details", icon = "info", on_clicked = function() end } } end }
+
+Stand-ins for a sealed session: `EVA_FAKE_MEDIA="Title|Artist"`,
+`EVA_FAKE_DEVICES="Pixel Buds:82:headphones"`, `EVA_FAKE_WEATHER=18:2`,
+`EVA_FAKE_CALL=Name`, `EVA_FAKE_TIMER=Tea:300` and
+`EVA_FAKE_PRIVACY=mic:Firefox,camera:Zoom`. `morf ipc call fake-privacy` and
+`fake-live` move them; `tools/see/barboard.steps` uses them all.
+
 ## Visual themes (in progress)
 
 The shell, lock and greeter select a visual package with

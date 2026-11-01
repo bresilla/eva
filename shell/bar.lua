@@ -37,11 +37,17 @@ end
 
 function M.vertical() return M.side() == "left" or M.side() == "right" end
 
+--- How thick a bar along the top or bottom is.
+function M.thickness()
+  local set = tonumber(config.get("bar.height")) or 0
+  return set > 0 and set or M.THICK
+end
+
 --- What the bar takes from each side of the screen: `{ left, top, right,
 --- bottom }`, all zero while it is down.
 local function bar_insets()
   local out = { left = 0, top = 0, right = 0, bottom = 0 }
-  if M.on() then out[M.side()] = M.vertical() and M.WIDE or M.THICK end
+  if M.on() then out[M.side()] = M.vertical() and M.WIDE or M.thickness() end
   return out
 end
 

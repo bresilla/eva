@@ -42,6 +42,25 @@ function M.new(active)
   model.seconds,model.set_seconds=flag("seconds")
   function model.date() return config.get("bar.clock.date") end
   function model.set_date(value) return select(model.dates,"bar.clock.date",value) end
+  -- Its height, and whether the battery says its percentage.
+  model.heights={{"0","height","Normal"},{"32","compress","Slim"},{"48","expand","Tall"}}
+  function model.height() return tostring(math.floor(tonumber(config.get("bar.height")) or 0)) end
+  function model.set_height(value) if active() then config.set("bar.height",tonumber(value) or 0) end end
+  function model.percent() return config.get("bar.percent")~=false end
+  function model.set_percent(on) if active() then config.set("bar.percent",on==true) end end
+  -- What a few modules need told: `{ key, title, hint }`, each a setting's text.
+  model.details={
+    {key="bar.clock.format",title="Clock pattern",hint="strftime, as %H:%M, empty for the choices above"},
+    {key="bar.clock.zone",title="World clock zone",hint="Asia/Tokyo"},
+    {key="bar.clock.zone_label",title="World clock name",hint="Tokyo"},
+    {key="bar.countdown.date",title="Countdown to",hint="2027-01-01"},
+    {key="bar.countdown.label",title="Countdown name",hint="New year"},
+    {key="bar.disk.mount",title="Disk to watch",hint="/"},
+    {key="bar.text",title="Text module",hint="Any words"},
+    {key="bar.updates.flake",title="Flake to watch",hint="~/nixos/flake.lock"},
+  }
+  function model.detail(key) return config.get(key) end
+  function model.set_detail(key,value) if active() then config.set(key,value) end end
   -- The modules, on the bar's own board.
   function model.bar_model() return bar.model end
   -- The screens, each with its own say.

@@ -69,6 +69,10 @@ local config = settings.open {
       },
       -- What the Bluetooth popout's "Open settings" starts.
       bluetooth_settings = { "blueman-manager" },
+      -- How thick the bar is along a top or bottom edge, 0 for its own size.
+      height = 0,
+      -- Whether the status writes the battery's percentage.
+      percent = true,
       -- The modules along the bar on each kind of machine, zone by zone, in
       -- order; which are drawn as an icon alone. A module the machine lacks
       -- is skipped.

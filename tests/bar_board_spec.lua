@@ -12,6 +12,7 @@ local SOURCE=[[
   morf.ipc.q_on=function() return bar.on() end
   morf.ipc.q_store=function(call,...) return require("bar_store")[call](...) end
   morf.ipc.q_form=function() return require("responsive").form() end
+  morf.ipc.q_run=function(code) return load(code)() end
 ]]
 local serial=0
 local function load(options)
@@ -128,11 +129,41 @@ test.describe("the Bar page",function()
     test.eq(#modules().centre,before+1)
     test.ipc("q_set","bar.small.desk",{}) test.advance(100)
   end)
-  test.it("sets the clock from its section",function()
+  test.it("sets the clock, the height and the percentage from its sections",function()
     open {}
     test.truthy(test.find {id="bar-clock-seconds"}~=nil)
     test.truthy(test.find {id="bar-date-iso"}~=nil)
+    test.click(reach("bar-height-48")) test.settle(1200)
+    test.eq(test.ipc("q_run",[[return require('bar').insets().top]]),48)
+    test.click(reach("bar-height-0")) test.settle(1200)
+    test.eq(test.ipc("q_run",[[return require('bar').insets().top]]),40)
+    test.truthy(test.find {id="bar-percent-switch"}~=nil)
   end)
+  test.it("types a module's details into the settings",function()
+    open {}
+    local field=test.find {id="bar-detail-bar-text"}
+    test.truthy(field~=nil)
+    test.ipc("q_run",[[require('config').set('bar.text','Hello') return true]]) test.advance(100)
+    test.truthy(test.ipc("q_run",[[
+      for _,row in ipairs(require('bar').model.board.spare()) do if row.id=='text' then return true end end
+      return false
+    ]]),"the Text module is offered once it has words")
+  end)
+end)
+
+test.it("offers the bar's own settings on a right press of the bare bar",function()
+  load {}
+  test.click(700,4,{button="right"}) test.advance(300)
+  test.truthy(test.find {text="Arrange the bar",visible=true}~=nil)
+end)
+
+test.it("hides the percentage by the setting, but never a low battery's",function()
+  load {env={EVA_FAKE_BATTERY="57"}}
+  test.truthy(up("bar-percent"))
+  test.ipc("q_set","bar.percent",false) test.settle(900)
+  test.falsy(up("bar-percent"))
+  test.ipc("fake-battery","12") test.settle(900)
+  test.truthy(up("bar-percent"))
 end)
 
 test.describe("each screen",function()

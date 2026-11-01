@@ -1,0 +1,13 @@
+# Two sealed outputs, each running the shell: the bar's settings by screen. The
+# second screen gets modules of its own, then keeps its bar down.
+export EVA_FAKE_BATTERY=64 EVA_FAKE_STATUS=wifi
+swaymsg create_output > /dev/null
+pause 0.3
+swaymsg output HEADLESS-2 mode 1280x720@60Hz > /dev/null
+start shell
+pause 2
+ipc bar show on
+pause 1.5
+ipc bar modules > "$SEE_OUT/board.json"
+note swaymsg -t get_outputs -p
+shot both

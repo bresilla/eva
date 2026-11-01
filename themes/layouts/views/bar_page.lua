@@ -9,6 +9,7 @@ local kit = require("kit")
 local theme = require("theme")
 local L = require("themes.layouts.parts")
 local P = require("themes.layouts.page")
+local S = theme.space
 
 local M = {}
 
@@ -54,6 +55,10 @@ function M.build(model, w, h)
     },
     choices(w, { group = "bar-date", caption_id = "bar-heading-date", title = "Date beside the clock",
       items = model.dates, now = model.date, pick = model.set_date }),
+    choices(w, { group = "bar-height", caption_id = "bar-heading-height", title = "Height",
+      items = model.heights, now = model.height, pick = model.set_height }),
+    P.section { id = "bar-status-settings", caption_id = "bar-heading-status", width = w, title = "Status",
+      toggle(w, "bar-percent", "percent", "Battery percentage", model.percent, model.set_percent) },
   }
   local bar = model.bar_model()
   if bar then
@@ -68,12 +73,23 @@ function M.build(model, w, h)
       toggle(w, "bar-wheel-workspace-row", "swap_horiz", "Wheel on clock: workspace", model.wheel_workspace, model.set_wheel_workspace),
     }
   end
+  local details = { id = "bar-details", caption_id = "bar-heading-details", width = w, title = "Module details" }
+  for _, row in ipairs(model.details) do
+    local inner = P.inner(w)
+    local tag = row.key:gsub("%W", "-")
+    local box, handle = require("themes").view("quick_pages").field("bar-detail-" .. tag, inner, row.hint, "entry",
+      function(value) model.set_detail(row.key, value) end, function() end)
+    handle.text = model.detail(row.key)
+    details[#details + 1] = ui.Column { width = inner, gap = S.xxs,
+      kit.subtitle { width = inner, font_size = theme.size.small, color = kit.ink("lo"), text = row.title }, box }
+  end
+  sections[#sections + 1] = P.section(details)
   for _, name in ipairs(model.outputs()) do
     local choose, own = screen(w, model, name)
     sections[#sections + 1] = choose
     sections[#sections + 1] = P.section { id = "bar-screen-" .. name:gsub("%W", "-") .. "-own", width = w, own }
   end
-  sections[#sections + 1] = kit.subtitle { width = w, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
+  sections[#sections + 1] = kit.subtitle { id = "bar-note", width = w, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
     text = "Auto puts the bar up on a phone, a tablet or a narrow screen, and keeps it down on a desk." }
   return P.page(sections)
 end

@@ -54,6 +54,15 @@ function V.context(spec)
     open_items(m.id, area, items)
   end
 
+  --- A right press on the bare bar.
+  function M.open_bar_menu(area)
+    open_items("bar", area, {
+      { label = "Arrange the bar", icon = "tune", on_clicked = model.open_bar_page },
+      { label = "Quick settings", icon = "tune", on_clicked = model.open_settings },
+      { label = "Dashboard", icon = "dashboard", on_clicked = model.toggle_dashboard },
+    })
+  end
+
   --- What folded into a zone's overflow, each a press away.
   function M.open_more(area, ids)
     local items = {}

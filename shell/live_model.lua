@@ -73,6 +73,21 @@ local function catalogue(bar)
         return { { id = "cancel", name = "Cancel the timer", icon = "close",
           press = function() services().alarm.cancel_timer() end } }
       end },
+    { key = "torch", icon = "flashlight_on", tone = "warn",
+      on = function()
+        local ok, on = pcall(function()
+          local torch = require("quick_hardware").torch()
+          return torch.present() and torch.on()
+        end)
+        return ok and on == true
+      end,
+      title = function() return "Flashlight" end,
+      subtitle = function() return "On" end,
+      short = function() return "On" end,
+      controls = function()
+        return { { id = "off", name = "Turn off", icon = "flashlight_off",
+          press = function() require("quick_hardware").torch().set(false) end } }
+      end },
     { key = "media", icon = "music_note", tone = "accent",
       on = function() return media().playing() end,
       title = function() return media().field("title")() end,
