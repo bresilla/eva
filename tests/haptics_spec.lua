@@ -47,6 +47,25 @@ test.it("feedback events go out typed as feedbackd declares them",function()
   test.eq(state.calls[2].id,7)
 end)
 
+test.it("feedbackd, which has no unit, is asked for by name",function()
+  test.load("activate-fixture.lua",{source=[[
+    local fake=require("lib.testing.dbus")
+    local ring=require("lib.shell.audio.ringer").connect{dbus=fake.dbus}
+    morf.ipc.run=function()
+      local before=ring.trigger("button-pressed")
+      ring.activate()
+      local call=fake.calls_to("StartServiceByName")[1]
+      return {before=before,dest=call.dest,name=call.args[1],signature=call.args[2].signature,flags=call.args[2].value}
+    end
+  ]],size={20,20}})
+  local read=test.ipc("run")
+  test.eq(read.before,false)
+  test.eq(read.dest,"org.freedesktop.DBus")
+  test.eq(read.name,"org.sigxcpu.Feedback")
+  test.eq(read.signature,"u")
+  test.eq(read.flags,0)
+end)
+
 local KIT=[[
   local ui=require("morf.ui")
   local kit=require("kit")

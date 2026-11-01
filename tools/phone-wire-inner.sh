@@ -52,6 +52,7 @@ want EnableSpeaker 'boolean true'
 want MuteMic 'boolean true'
 want TriggerFeedback 'string "org.eva.Shell" string "phone-incoming-call" array [ dict entry( string "important" variant boolean true ) ] int32 0'
 want EndFeedback 'uint32 7'
+want StartServiceByName 'string "org.sigxcpu.Feedback" uint32 0'
 for member in Accept Hangup JoinMultiparty LeaveMultiparty HoldAndAccept HangupAndAccept HangupAll Transfer; do
   grep -q "member=$member\$" "$out" && echo "ok   $member: sent, no arguments" \
     || { echo "FAIL $member: never sent"; status=1; }

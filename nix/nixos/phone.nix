@@ -169,6 +169,9 @@ in
       {
         services.logind.settings.Login.HandlePowerKey = "lock";
         networking.modemmanager.enable = lib.mkIf config.programs.eva.phone.calls (lib.mkDefault true);
+        # The package's [Install] section is not read through systemd.packages.
+        systemd.services.ModemManager.wantedBy =
+          lib.optional config.programs.eva.phone.calls "multi-user.target";
         programs.feedbackd.enable = lib.mkIf config.programs.eva.phone.calls (lib.mkDefault true);
         hardware.sensor.iio.enable = lib.mkIf config.programs.eva.phone.calls (lib.mkDefault true);
         services.dbus.packages = lib.optional config.programs.eva.phone.calls pkgs.callaudiod;

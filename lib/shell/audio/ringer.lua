@@ -68,6 +68,13 @@ function ringer.connect(options)
     return true
   end
 
+  --- Asks the bus to start feedbackd where it is installed: it has a bus
+  --- activation file and no unit. Its name appearing is what `read` hears.
+  function ring.activate()
+    return client.call_async("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+      "StartServiceByName", { NAME, dbus_client.u(0) }, TIMEOUT)
+  end
+
   --- Plays a feedback event from feedbackd's theme, the profile's choice of
   --- sound, vibration and light. `options.timeout` is seconds, 0 until
   --- `stop`, -1 (the default) once; `options.important` plays it through a

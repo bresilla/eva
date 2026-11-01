@@ -42,6 +42,7 @@ local HOST=[[
     audio.call(true)
     audio.speaker(true)
     audio.mute(true)
+    ring.activate()
     ring.state.feedbackd=true
     ring.trigger("phone-incoming-call",{timeout=0,important=true})
     ring.stop(7)

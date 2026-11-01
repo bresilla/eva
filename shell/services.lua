@@ -147,6 +147,7 @@ do
   local ring = ok and select(2, pcall(ringer.connect, { mode = config.get("ringer.mode") })) or nil
   if type(ring) == "table" and ring.state then
     M.ringer = ring
+    if ring.activate then pcall(ring.activate) end
     morf.effect("eva.ringer.remember", function()
       local mode = ring.state.mode
       if config.get("ringer.mode") ~= mode then config.set("ringer.mode", mode) end
