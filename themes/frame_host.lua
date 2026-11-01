@@ -30,6 +30,7 @@ return function(model,frame,insets,decorations)
     arriving("arrival-rail",model.rail.node,1,rail_edge,theme.LEFT),
     arriving("arrival-levels",model.levels.node,1,function() return "right" end,theme.BORDER)}
   if decorations then desk[#desk+1]=arriving("arrival-marks",decorations,1,rail_edge,theme.LEFT) end
+  if model.island then desk[#desk+1]=model.island.node end
   desk[#desk+1]=ui.Item(panels)
   for _,trigger in ipairs(model.triggers) do desk[#desk+1]=trigger end
   local switcher=require("themes.switcher")
@@ -39,5 +40,6 @@ return function(model,frame,insets,decorations)
   for _,node in ipairs {model.bar,model.rail.node,model.levels.node} do switcher.fade(node) end
   switcher.fade(decorations)
   local bar=arriving("arrival-bar",model.bar,2,model.bar_edge or function() return "top" end,model.bar_reach or theme.BORDER)
-  return ui.Item {anchors={fill=true},frame,bar,ui.Item(desk),ui.Item(docked),switcher.blocker()}
+  local plate=require("themes.glass_plate").build(model,insets)
+  return ui.Item {anchors={fill=true},plate,frame,bar,ui.Item(desk),ui.Item(docked),switcher.blocker()}
 end

@@ -1,0 +1,17 @@
+# The island out of the frame at rest and open, the cut clock, and a colour scheme.
+export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
+WALLS=$SEE_EVA/tests/fixtures/wallpapers
+cat > "$EVA_SETTINGS" <<JSON
+{ "theme": { "source": "catppuccin" },
+  "island": { "enabled": true },
+  "wallpaper": { "draw": true },
+  "desktop": { "chrome": "stencil", "quiet_clock": true,
+    "widgets": { "desk": ["clock", "date", "orb", "visualiser"], "tablet": ["clock", "date"], "phone": ["clock", "date", "orb"] },
+    "small": { "desk": ["visualiser"], "tablet": [], "phone": [] } } }
+JSON
+start shell
+pause 3
+ipc wallpaper set "$WALLS/lagoon.png"
+pause 2.5
+shot rest
+ipc island toggle; pause 1; shot open

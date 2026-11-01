@@ -59,17 +59,9 @@ require("displays_hotplug").start()
 local terminal_colors = require("terminal_colors")
 morf.effect("eva.lule", function() theme.apply_lule(terminal_colors.current:get()) end)
 morf.effect("eva.scheme", function()
-  local source = config.get("theme.source")
-  local tool = terminal_colors.current:get()
-  local mode = require("themes.color_mode").resolve(tool and tool.mode)
-  if (source == "auto" or source == "lule") and tool then
-    theme.follow(tool.accent, nil, mode)
-  else
-    theme.follow(source == "auto" and "wallpaper" or source, wallpaper.current:get(), mode)
-  end
-  -- The variant is read inside `follow`; name it here so a change re-runs this.
-  config.get("theme.variant")
+  theme.track(terminal_colors.current:get(), wallpaper.current:get())
 end)
+require("appearance_model").start()
 
 -- ------------------------------------------------------------------ scale --
 
@@ -101,7 +93,9 @@ end)
 -- again in place, as the scale does.
 local motion_first, motion_settle = true, nil
 morf.effect("eva.motion", function()
-  local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion") }
+  local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion"),
+    config.get("appearance.density"), config.get("appearance.corners"), config.get("appearance.speed"),
+    config.get("appearance.deform"), config.get("island.enabled"), require("themes.motion_style").reduced() }
   if motion_first or not style then motion_first = false return end
   if motion_settle then motion_settle:cancel() end
   motion_settle = morf.time.timer(120, function()
@@ -179,7 +173,8 @@ morf.effect("eva.keyboard.focus", function()
   local shown = require("utilities").displayed:get()
   local editor_open = pages.typing()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
-    or (settings_open and (shown == "theme/lule" or shown == "hotspot" or shown == "panels"
+    or (settings_open and (shown == "theme/lule" or shown == "theme/desktop" or shown == "theme/look"
+      or shown == "theme" or shown == "hotspot" or shown == "panels"
       or pages.typed_route(shown) or require("utilities").tiles.editing:get()))
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
@@ -262,8 +257,8 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
 if rail.hits then triggers[#triggers+1]=rail.hits end
 local frame_view=require("themes").view("frame")
 local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
-  rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape},
-  overlays=overlays,triggers=triggers}
+  rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape,panels=levels.panels},
+  island=require("island").build(bar.desk),overlays=overlays,triggers=triggers}
 require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)
 -- The shell's window, to a screen reader.
@@ -285,7 +280,14 @@ morf.effect("eva.bar.reserve", function()
   morf.surface.reserve = frame_view.insets(bar.insets())
 end)
 
-if config.get("wallpaper.draw") then wallpaper.open_layer() end
+wallpaper.open_layer()
+do
+  local pictures = require("wallpaper_model")
+  pictures.start()
+  pictures.watch_hook()
+end
+require("desktop").start()
+require("standby").start()
 
 -- -------------------------------------------------------------------- ipc --
 
@@ -550,6 +552,14 @@ ipc.lule = function(how)
   local tty = require("terminal_colors").tty
   return tty and tty.path or "", theme.lule.accent:hex(), theme.color.primary:hex()
 end
+-- `wallpaper [get|state|set PATH [OUTPUT]|next|previous|random|transition KIND|draw on|off]`.
+ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, ...) end
+-- `desktop [state|edit|done|add ID|hide ID|size ID]`: the widgets on the desktop.
+ipc.desktop = function(how, id) return require("desktop").verb(how, id) end
+-- `island [on|off|toggle|next|state]`.
+ipc.island = function(how) return require("island").verb(how) end
+-- `standby [on|off|state|clock|photos|widgets]`.
+ipc.standby = function(how) return require("standby_model").verb(how) end
 -- `osd [KIND]`: shows that display (the volume without one). False when its
 -- service is absent or its setting has it off.
 ipc.osd = function(kind)

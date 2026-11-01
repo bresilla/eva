@@ -238,6 +238,7 @@ function V.build(model)
   local riding = ui.Item { id = "levels-riding", anchors = { fill = true } }
   ui.reparent(riding, still)
   local shapes = { id = "levels-layers", anchors = { fill = true } }
+  local panels = {}
 
   local function bud(i)
     local tag = i == 1 and "" or "-" .. i
@@ -387,9 +388,10 @@ function V.build(model)
     ground(float, function() return floats() and 1 or 0 end)
     local field = ui.Sdf { id = "levels-float" .. tag, anchors = { fill = true },
       visible = function() return not gone() end,
-      fill_color = function() return C.surface end,
+      fill_color = function() return require("themes.glass").fill(C.surface, 1.1) end,
       shadow_color = function() return C.shadow:alpha(.42) end, shadow_blur = S.xl, shadow_offset_y = S.s,
       float }
+    panels[#panels + 1] = panel
 
     -- On the right it rides out with the sidebar; elsewhere it stays.
     local holder = ui.Item { anchors = { fill = true }, field, panel }
@@ -469,6 +471,6 @@ function V.build(model)
     local p, q = spot(a), spot(b)
     return p.x < q.x + q.w and q.x < p.x + p.w and p.y < q.y + q.h and q.y < p.y + p.h
   end
-  return { node = still, shape = shape, buds = buds, geometry = geometry, spot = spot, overlap = overlap }
+  return { node = still, shape = shape, buds = buds, geometry = geometry, spot = spot, overlap = overlap, panels = panels }
 end
 return V

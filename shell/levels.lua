@@ -80,6 +80,7 @@ function M.build()
     portrait=require("responsive").portrait(),
   }
   M.shape=visual.shape
+  M.panels=visual.panels
   slots={}
   for i,bud in ipairs(visual.buds) do
     local slot={bud=bud,generation=0,serial=0}

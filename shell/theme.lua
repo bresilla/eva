@@ -11,8 +11,15 @@ if appearance.font and appearance.font ~= "" then
   M.font, M.mono, M.font_file = appearance.font, appearance.font, ""
 end
 M.space = require("themes.spacing")
+-- The density's steps and the corner scale, as every layout reads them.
+do
+  local corners = math.max(0, tonumber(config.get("appearance.corners")) or 1)
+  M.corners = corners
+  M.ROUNDING, M.SEAM = M.ROUNDING * corners, M.SEAM * corners
+  M.PAD, M.GAP = M.space.l, M.space.m
+end
 -- Reduce motion lands everything at once, before anything is built to move.
-if config.get("appearance.reduce_motion") == true then
+if require("themes.motion_style").reduced() then
   require("themes.motion_landing").install()
   for name in pairs(M.stretch or {}) do M.stretch[name] = false end
 end
@@ -21,10 +28,15 @@ end
 do
   local spring = require("themes.spring")
   local style = config.get("appearance.motion")
+  local speed = tonumber(config.get("appearance.speed")) or 1
   M.spring, M.bounce = {}, {}
   for name, raw in pairs(M.springs or {}) do
-    local styled = spring.styled(raw, style)
+    local styled = spring.styled(raw, style, speed)
     M.spring[name], M.bounce[name] = spring.behavior(styled), spring.curve(styled)
+  end
+  local deform = tonumber(config.get("appearance.deform")) or 1
+  for _, stretch in pairs(M.stretch or {}) do
+    if stretch then stretch.scale = stretch.scale * deform end
   end
 end
 M.motion = require(M.appearance.motion)(M)

@@ -130,6 +130,7 @@ function M.new(spec)
     backing = ui.Item { anchors = reach }
     ui.reparent(backing, panel)
   end
+  d.backing = backing
   -- A floating one is rounded all round, and apart from the frame's seams.
   local corners = spec.corners or {}
   d.shape = ui.SdfShape {

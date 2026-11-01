@@ -33,6 +33,7 @@ morf.effect("eva.sidebar.lule", function()
   local studio = require("lule_studio")
   local settings = require("utilities")
   if not (studio.active and settings.displayed) then return end
-  studio.active:set(pages.on_show("settings") and settings.displayed:get() == "theme/lule")
+  local page = settings.displayed:get()
+  studio.active:set(pages.on_show("settings") and (page == "theme/lule" or page == "theme/wallpaper"))
 end)
 return M

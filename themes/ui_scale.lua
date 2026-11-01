@@ -38,10 +38,18 @@ function M.display_scale(value)
   end
   return best
 end
+--- Keeps `values` beside the scale, in the one file of the user's a greeter
+--- can read.
+function M.share(values)
+  local stored = read(M.path) or {}
+  for key, value in pairs(values) do stored[key] = value end
+  return morf.fs.write(M.path, morf.json.encode(stored), { mode = 420, atomic = true, parents = true })
+end
 function M.set(value)
   value = tonumber(value)
   if not valid(value) then return false, "Scale must be between -1 and 1" end
-  local preference = { zoom = value }
+  local preference = read(M.path) or {}
+  preference.zoom = value
   if M.compositor then
     preference.scale = M.display_scale(value)
     value = math.log(preference.scale) / math.log(2)

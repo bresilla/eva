@@ -10,18 +10,69 @@ local V={WIDTH=430,RADIUS=15}
 function V.theme_page(model,w,h)
   local mode=require("themes.color_mode")
   local inner=P.inner(w)
-  local choices={id="settings-theme-mode",width=inner}
-  for _,choice in ipairs {{"auto","Auto","brightness_auto"},{"dark","Dark","dark_mode"},{"light","Light","light_mode"}} do
-    choices[#choices+1]={id="settings-theme-mode-"..choice[1],label=choice[2],icon=choice[3],
-      group="settings-theme-mode",selected=function() return mode.chosen()==choice[1] end,
-      on_clicked=function() mode.set(choice[1]) end}
+  local function buttons(id,list)
+    local row={id=id,width=inner}
+    for _,choice in ipairs(list) do
+      row[#row+1]={id="settings-theme-mode-"..choice[1],label=choice[2],icon=choice[3],
+        group="settings-theme-mode",selected=function() return mode.chosen()==choice[1] end,
+        on_clicked=function() mode.set(choice[1]) end}
+    end
+    return P.buttons(row)
+  end
+  local prefs=require("themes").preferences
+  local function clock(id,key,other,light)
+    local node,handle=kit.text_field("entry",{id=id,x=theme.space.s,y=theme.space.xs,
+      width=math.floor(inner/2)-theme.space.xxl,height=P.BUTTON_H-2*theme.space.xs,
+      font_family=theme.font,font_size=theme.size.small,placeholder="07:00",
+      color=function() return C.onSurface end,placeholder_color=function() return C.onSurfaceVariant end,
+      caret_color=function() return C.primary end,selection_color=function() return C.primary:alpha(0.25) end,
+      on_accepted=function(value)
+        if light then mode.set_schedule(value,prefs.get(other)) else mode.set_schedule(prefs.get(other),value) end
+      end})
+    local box=kit.surface {width=math.floor(inner/2)-theme.space.xs,height=P.BUTTON_H,radius=kit.round(theme.space.m),
+      color=function() return C.surfaceContainerHighest end,node}
+    morf.effect("eva.theme.clock."..id,function() handle.text=prefs.get(key) end,{owner=box})
+    return box
+  end
+  local function until_next() return mode.chosen()=="schedule" or mode.chosen()=="sun" end
+  local function note()
+    local chosen=mode.chosen()
+    local held=mode.snoozed()
+    if held then return "Holding "..held.." for now" end
+    if chosen=="sun" then
+      local rise,set=prefs.get("sunrise"),prefs.get("sunset")
+      return rise~="" and ("Light at "..rise..", dark at "..set) or "Looking for the sun at the weather's place"
+    end
+    if chosen=="system" then return "Following the desktop: "..tostring(morf.prefers and morf.prefers.color_scheme or "none") end
+    if chosen=="schedule" then return "Light at "..prefs.get("light_from")..", dark at "..prefs.get("dark_from") end
+    return chosen=="auto" and "As the colour tool made it" or "Always "..chosen
   end
   return P.page {id="settings-theme-scroll",width=w,height=h,
     P.section {id="settings-theme",width=w,title="Appearance",
-      P.buttons(choices),
+      buttons("settings-theme-modes",{{"auto","Auto","brightness_auto"},{"dark","Dark","dark_mode"},{"light","Light","light_mode"}}),
+      buttons("settings-theme-timed",{{"schedule","Clock","schedule"},{"sun","Sun","wb_twilight"},{"system","System","computer"}}),
+      kit.subtitle {id="settings-theme-note",width=inner,font_size=theme.size.small,color=kit.ink("lo"),text=note},
+      ui.Row {id="settings-theme-times",gap=theme.space.s,visible=function() return mode.chosen()=="schedule" end,
+        clock("settings-theme-light-from","light_from","dark_from",true),
+        clock("settings-theme-dark-from","dark_from","light_from",false)},
+      P.button {id="settings-theme-snooze",icon="snooze",width=inner,visible=until_next,
+        label=function() return mode.snoozed() and "Back to the schedule" or "Hold this mode for an hour" end,
+        on_clicked=function()
+          if mode.snoozed() then mode.set(mode.chosen())
+          else mode.snooze(mode.resolve(require("appearance_model").tool_mode()),3600) end
+        end},
+      P.row {id="settings-theme-look",width=inner,icon="style",title="Look",
+        subtitle="Colours, shape, glass, font, cursor and icons",trailing=P.chevron(),
+        on_clicked=function() model.request("theme/look") end},
       P.row {id="settings-theme-lule",width=inner,icon="palette",title="Lule",
         subtitle="Wallpaper, colours, the shell's theme and font",trailing=P.chevron(),
         on_clicked=function() model.request("theme/lule") end},
+      P.row {id="settings-theme-wallpaper",width=inner,icon="wallpaper",title="Wallpaper",
+        subtitle="Pictures, transitions, slideshow, day and night",trailing=P.chevron(),
+        on_clicked=function() model.request("theme/wallpaper") end},
+      P.row {id="settings-theme-desktop",width=inner,icon="widgets",title="Desktop",
+        subtitle="Widgets on the wallpaper",trailing=P.chevron(),
+        on_clicked=function() model.request("theme/desktop") end},
     },
   }
 end
@@ -34,6 +85,16 @@ function V.eva_page(model,w,h)
   local hover=model.edge_hover
   local reduced=model.reduce_motion
   local styles={width=inner}
+  local function steps(id,key,list)
+    local row={id=id,width=inner}
+    for _,entry in ipairs(list) do
+      row[#row+1]={id=id.."-"..tostring(entry[1]),label=entry[2],group=id,
+        enabled=function() return not reduced() end,
+        selected=function() return require("config").get(key)==entry[1] end,
+        on_clicked=function() require("config").set(key,entry[1]) end}
+    end
+    return row
+  end
   for _,style in ipairs(model.MOTIONS) do
     styles[#styles+1]={id="settings-motion-"..style[1],icon=style[2],label=style[3],group="settings-motion",
       enabled=function() return not reduced() end,
@@ -54,6 +115,11 @@ function V.eva_page(model,w,h)
       P.row {id="settings-eva-calendars",width=inner,icon="calendar_month",title="Calendars",
         subtitle=function() return require("calendar_sources").summary() end,
         trailing=P.chevron(),on_clicked=function() model.request("calendars") end},
+      P.row {id="settings-eva-island",width=inner,icon="capsule",title="Island",
+        subtitle="A pill out of the top of the frame, for music and the time",
+        on=function() return require("island").enabled() end,
+        trailing=P.switch {id="utilities-toggle-island",name="Island",on=function() return require("island").enabled() end,
+          on_toggled=function(on) require("config").set("island.enabled",on==true) end}},
     },
     P.section {id="settings-eva-panels",width=w,title="Panels",
       P.row {id="settings-eva-arrange",width=inner,icon="dashboard_customize",title="Arrange panels",
@@ -66,6 +132,8 @@ function V.eva_page(model,w,h)
     },
     P.section {id="settings-eva-motion",width=w,title="Motion",
       P.buttons(styles),
+      P.buttons(steps("settings-speed","appearance.speed",{{.75,"Unhurried"},{1,"Usual"},{1.5,"Quick"}})),
+      P.buttons(steps("settings-deform","appearance.deform",{{0,"Rigid"},{1,"Fluid"},{2,"Liquid"}})),
       P.row {id="settings-eva-reduce",width=inner,icon="animation",title="Reduce motion",on=reduced,
         subtitle=function() return reduced() and "Everything lands at once" or "Things travel on springs" end,
         trailing=P.switch {id="utilities-toggle-reduce-motion",name="Reduce motion",on=reduced,
