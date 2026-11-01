@@ -177,8 +177,29 @@ Previews resize on an image worker only while the Lule page is visible.
 They overwrite one small scratch JPEG per output and clear on closing;
 opening the shell does not decode an entire wallpaper collection.
 
-Quick settings groups Keep Awake, Ring Mode and Do Not Disturb under **Focus**.
-Opening Focus leaves all three settings independent. **Tunnel** includes Tor's
+Quick settings opens with who is signed in. Lock acts at once; Log out, Suspend,
+Restart and Power off count only once held, and letting go cancels. They run
+`session.commands`; the full session drawer stays where it is.
+
+A lit tile is something switched on, nothing else. Pressing a tile acts on it and
+its chevron opens its page; a small tile has no chevron, so a long press does.
+The pencil in the page's head edits the tiles: drag to rearrange, by mouse or
+finger (Alt with the arrows from the keyboard), the minus badge hides a tile,
+**Available** adds one back, the corner badge makes it a small icon-only tile,
+two to a slot, and **Reset** restores the machine's defaults. Order and sizes are
+kept per kind of machine, in `quick.tiles` and `quick.small` for `desk`, `tablet`
+and `phone`. `morf ipc call quick edit` and `quick done` do the same.
+
+A tile is offered only where the machine can back it. **Hotspot** needs a Wi-Fi
+radio that can be an access point; NetworkManager keeps its password, and turning
+Wi-Fi off stops it. **Rotation lock** needs an accelerometer through
+iio-sensor-proxy: unlocked, the built-in screen follows it through Hyprland.
+**Night light** needs `hyprsunset`, **Power saver** power-profiles-daemon and
+**Flashlight** an LED under `/sys/class/leds` named `*:torch` or `*:flash`.
+`EVA_FAKE_HARDWARE=1` stands in for all of them.
+
+**Focus** groups Keep Awake, Ring Mode and Do Not Disturb, and each can also be a
+tile of its own. Opening Focus leaves all three settings independent. **Tunnel** includes Tor's
 Start/Stop control, bootstrap progress and SOCKS proxy address alongside VPNs;
 its overview status includes Tor when running. The old `settings tor` IPC
 shortcut opens Tunnel.

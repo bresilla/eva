@@ -1306,6 +1306,43 @@ function M.state_surface(spec)
   return node
 end
 
+--- A quick-settings tile's ground: a pill while off and a rounded rectangle
+--- while on. Its corners morph on the fast spring as it is pressed and on the
+--- spatial one as its state changes; its colour moves on `effects`. `area`
+--- (a node), `on` (fn), `pressed` (fn, more presses that count), `height`,
+--- `tone`, `id`, `z`.
+function M.tile_surface(spec)
+  local on = spec.on or function() return false end
+  local tone = TONES[spec.tone or "primary"] or TONES.primary
+  local h = spec.height or 56
+  local LIT, OFF = math.max(8, math.floor(h * 0.28)), h / 2
+  local function pressed()
+    local a = spec.area
+    return (a and a.pressed) or (spec.pressed and spec.pressed()) or false
+  end
+  local node = ui.Rect {
+    id = spec.id, z = spec.z or -1, anchors = spec.anchors or { fill = true },
+    color = function()
+      local c = theme.color
+      local base, ink = c.surfaceContainerHighest, c.onSurface
+      if on() then base, ink = c[tone[1]], c[tone[2]] end
+      local a = spec.area
+      if pressed() then return base:mix(ink, 0.12) end
+      if a and a.hovered then return base:mix(ink, 0.08) end
+      return base
+    end,
+    behavior = { color = theme.spring.effects },
+  }
+  ui.claims(node, {
+    -- (Claims of one class go in byte order: the press first.)
+    a_pressed = { when = pressed, motion = theme.spring.fast,
+      set = { radius = function() return on() and math.floor(LIT * 0.6) or math.floor(OFF * 0.6) end } },
+    b_lit = { when = on, motion = theme.spring.spatial, set = { radius = LIT } },
+    rest = { motion = theme.spring.spatial, set = { radius = OFF } },
+  })
+  return node
+end
+
 local function glyphs(s)
   local ok, n = pcall(utf8.len, s)
   return ok and n or #s

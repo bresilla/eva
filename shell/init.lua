@@ -97,6 +97,9 @@ morf.effect("eva.rotation", function()
     morf.reload { output = true }
   end
 end)
+-- Auto-rotation while the rotation is not locked, and a night light left on.
+require("auto_rotate").start()
+require("quick_hardware").nightlight()
 
 -- ---------------------------------------------------------------- drawers --
 
@@ -135,6 +138,8 @@ morf.effect("eva.keyboard.focus", function()
   local editor_open = leftbar.drawer.open:get()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/lule")
+    or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "hotspot")
+    or (sidebar.drawer.open:get() and require("utilities").tiles.editing:get())
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
 
@@ -346,6 +351,16 @@ ipc.settings = function(page)
   sidebar.select("settings")
   sidebar.drawer.set(true)
   return page or ""
+end
+-- `quick edit` or `quick done`: the quick settings' tiles being arranged.
+ipc.quick = function(how)
+  if how ~= "edit" and how ~= "done" then error("`" .. tostring(how) .. "`: edit or done") end
+  if not here() then return nil end
+  require("utilities").request("")
+  sidebar.select("settings")
+  sidebar.drawer.set(true)
+  require("utilities").tiles.editing:set(how == "edit")
+  return how == "edit"
 end
 ipc.leftbar = function(how, tab)
   if tab and here() and not leftbar.panel.select(tab) then error("No such left panel tab: " .. tostring(tab)) end

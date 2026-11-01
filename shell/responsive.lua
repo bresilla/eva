@@ -28,6 +28,21 @@ function M.compact()
   return M.desk_width() < 1000 or M.portrait()
 end
 
+local form
+
+--- What kind of machine this is, settled once a build: "phone" (compact),
+--- "tablet" (a wide screen with a touchscreen and no keyboard) or "desk".
+function M.form_factor()
+  if form then return form end
+  -- (A stand-in bar, a test's, may have no `desk`.)
+  local measured, compact = pcall(M.compact)
+  if not measured then compact = M.portrait() end
+  if compact then form = "phone"
+  elseif require("models.touchscreens").attached() and not require("models.keyboards").attached() then form = "tablet"
+  else form = "desk" end
+  return form
+end
+
 --- How wide a dashboard page is on a phone: the desk inside the frame,
 --- less the drawer's padding.
 function M.sheet_width()

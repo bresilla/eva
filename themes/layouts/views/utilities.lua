@@ -3,7 +3,6 @@ local morf=require("morf")
 local ui=require("morf.ui")
 local theme=require("theme")
 local kit=require("kit")
-local rows=require("themes.layouts.rows")
 local P=require("themes.layouts.page")
 local C=theme.color
 local V={WIDTH=430,RADIUS=15}
@@ -78,74 +77,8 @@ local M={TOGGLES=model.TOGGLES,DETAILS=model.DETAILS,detail=model.detail,RADIUS=
 -- take its width.
 local CARD_W,GAP=w,P.GAP
 local overview_viewport, overview_viewport_node, overview_viewport_t, overview_viewport_ctl
-local TILE_H,TILE_GAP=60,8
-local TILE_COLUMNS=CARD_W-2*P.PAD>=2*176+TILE_GAP and 2 or 1
-local TILE_W=(CARD_W-2*P.PAD-(TILE_COLUMNS-1)*TILE_GAP)/TILE_COLUMNS
-local TILE_ROWS=math.ceil(#M.TOGGLES/TILE_COLUMNS)
-local TILES_H=2*P.PAD+TILE_ROWS*TILE_H+(TILE_ROWS-1)*TILE_GAP
-local function tile(t)
-  local area, more
-  local function on() return t.on() == true end
-  local fg = rows.ink(on, true, C.onSurface)
-  local function sub() return on() and fg():alpha(0.8) or C.onSurfaceVariant end
-  area = kit.action {
-    id = "utilities-toggle-" .. t.id,
-    accessible_name = t.name or t.id,
-    width = TILE_W, height = TILE_H, cursor = "pointer",
-    on_clicked = function() t.set(not on()) end,
-    kit.icon(t.icon, 22, fg, { x = 16, anchors = { vertical_center = true }, fill = t.fill or on }),
-    ui.Column {
-      x = 48, anchors = { vertical_center = true }, gap = 0,
-      kit.heading { id = "settings-tile-title-" .. t.id, scope = "settings.overview", level = "caption",
-        viewport=function() return overview_viewport end,
-        width = TILE_W - 48 - (t.detail and 46 or 12), elide = "right",
-        text = t.name or t.id, font_size = theme.size.normal, font_weight = 500, color = fg, ink = fg,
-      },
-      kit.subtitle {
-        width = TILE_W - 48 - (t.detail and 46 or 12), elide = "right",
-        text = function()
-          local s = t.status and t.status()
-          if s and s ~= "" then return s end
-          return on() and "On" or "Off"
-        end,
-        font_size = theme.size.small, color = sub,
-      },
-    },
-  }
-  -- The theme's stateful ground: its hover, its press (the chevron's too)
-  -- and its mark of a tile that is on.
-  ui.reparent(kit.state_surface { id = "utilities-toggle-" .. t.id .. "-shape", area = area, on = on,
-    height = TILE_H, tone = "primary", z = -1,
-    pressed = function() return more ~= nil and more.pressed end }, area)
-  if t.detail then
-    more = kit.action {
-      id = "utilities-more-" .. t.id,
-      accessible_name = "Open " .. (t.name or t.id),
-      anchors = { right = true, top = true, bottom = true, top_margin = 8, bottom_margin = 8, right_margin = 8 },
-      width = 40, cursor = "pointer",
-      on_clicked = function() M.detail:set(t.detail) end,
-      kit.icon("chevron_right", 22, fg, { anchors = { center_in = true } }),
-    }
-    kit.hover(more, function(hovered) return hovered and fg():alpha(0.12) or fg():alpha(0) end, 10)
-    ui.reparent(more, area)
-  end
-  return area
-end
-
-local function toggles()
-  local rows = {}
-  for i = 1, #M.TOGGLES, TILE_COLUMNS do
-    local row = { gap = TILE_GAP }
-    row[#row + 1] = tile(M.TOGGLES[i])
-    if TILE_COLUMNS==2 and M.TOGGLES[i + 1] then row[#row + 1] = tile(M.TOGGLES[i + 1]) end
-    rows[#rows + 1] = ui.Row(row)
-  end
-  return kit.card {
-    id = "utilities-toggles",
-    width = CARD_W, height = TILES_H, radius = kit.round(P.RADIUS),
-    ui.Column { x = P.PAD, y = P.PAD, gap = TILE_GAP, table.unpack(rows) },
-  }
-end
+local tiles = require("themes").view("quick_tiles").build(model, CARD_W,
+  { viewport = function() return overview_viewport end })
 
 -- ----------------------------------------------------------------- sliders --
 
@@ -208,12 +141,38 @@ local capture_button = kit.pill {
     model.capture()
   end,
 }
-local cards = { sliders(), capture_button, toggles() }
+local session_card = require("themes").view("quick_session").build(model, CARD_W)
+local slider_card = sliders()
+local cards = { session_card, slider_card, capture_button, tiles.node }
 
---- The page's height: the cards and their gaps.
-function M.height()
-  return 2 * GAP + (cards[1].layout_height or 0) + (cards[2].layout_height or 0) + TILES_H
+-- While the tiles are edited the cards above them step aside: they fade where
+-- they stand and the tiles rise to the top of the page.
+local function editing() return model.tiles.editing:get() end
+local function card_height(card) return card.layout_height or 0 end
+local function stacked(index)
+  local y = 0
+  for i = 1, index - 1 do y = y + card_height(cards[i]) + GAP end
+  return y
 end
+local function above(card, index)
+  local slot = ui.Item { width = CARD_W, y = function() return stacked(index) end,
+    height = function() return card_height(card) end, behavior = { y = theme.spring.spatial }, card }
+  local claims = ui.claims(slot, {
+    kept = { when = function() return not editing() end, motion = theme.spring.effects, set = { opacity = 1 } },
+    aside = { set = { opacity = 0 } },
+  })
+  slot.visible = function() return not editing() or claims.kept.presence:get() > 0.01 end
+  return slot
+end
+local tiles_slot = ui.Item { width = CARD_W,
+  y = function() return editing() and 0 or stacked(#cards) end,
+  height = tiles.height, behavior = { y = theme.spring.spatial }, tiles.node }
+--- The page's height: the cards and their gaps.
+function M.height() return (editing() and 0 or stacked(#cards)) + tiles.height() end
+--- Whether its cards have been measured.
+function M.laid_out() return card_height(session_card) > 0 and card_height(slider_card) > 0 end
+local stack = ui.Item { width = CARD_W, height = M.height,
+  above(session_card, 1), above(slider_card, 2), above(capture_button, 3), tiles_slot }
 
 
 --- The Settings page of the right panel: the cards, top down, and the
@@ -223,7 +182,7 @@ end
 local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
 function M.page(w, h)
   overview_viewport_node, overview_viewport, overview_viewport_t, overview_viewport_ctl = kit.scroll({id="settings-overview-scroll",width=w,height=h,clip=true,
-    ui.Column {gap=GAP,table.unpack(cards)}})
+    stack})
   local main = ui.Item {
     id = "utilities", width = w, height = h, clip = true,
     overview_viewport_node,
@@ -251,11 +210,29 @@ function M.page(w, h)
       },
     }
   end
+  -- The pencil: edits the tiles, and says done while they are.
+  local pencil = kit.action { id = "utilities-edit", width = 40, height = 40, cursor = "pointer",
+    accessible_name = function() return editing() and "Done" or "Edit quick settings" end,
+    visible = function() return M.detail:get() == "" end,
+    on_clicked = function()
+      model.tiles.editing:set(not editing())
+      if overview_viewport then overview_viewport.content_y = 0 end
+    end,
+    kit.icon(function() return editing() and "check" or "edit" end, 22, kit.ink("hi"), { anchors = { center_in = true } }) }
+  kit.hover(pencil, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
   M.head = {
-    title = function() return names[M.detail:get()] or "Settings" end,
-    subtitle = function() return M.detail:get() ~= "" and model.breadcrumb() or "" end,
+    title = function()
+      if M.detail:get() == "" and editing() then return "Edit tiles" end
+      return names[M.detail:get()] or "Settings"
+    end,
+    subtitle = function()
+      if M.detail:get() ~= "" then return model.breadcrumb() end
+      return editing() and "Drag to arrange" or ""
+    end,
     back = model.back, back_id = "settings-back",
     can_back = function() return M.detail:get() ~= "" end,
+    keep = function() return true end,
+    actions = { pencil },
     -- Read in afresh as the overview or a detail comes on show.
     active = function()
       local key = M.detail:get()
@@ -288,6 +265,6 @@ morf.effect("material.settings.shown",function()
   for _, handle in ipairs(running) do handle:stop() end
   running=kit.bud(cards,model.opened:get())
 end,{owner=node})
-return {node=node,height=M.height,head=M.head}
+return {node=node,height=M.height,head=M.head,laid_out=M.laid_out}
 end
 return V

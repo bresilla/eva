@@ -166,8 +166,19 @@ return function(S, theme, M, hud)
   end
 
   --- A tile that is carried: a square frame, its icon over a caps label;
-  --- lifted, it leaves a hatched print.
+  --- lifted, it leaves a hatched print. With `carrier`, the tile is a
+  --- layout's own and only the offset frame it lifts off and its registration
+  --- brackets are drawn.
   S.sortable_grid = function(t, spec)
+    if spec.carrier then
+      return {
+        handle = ui.Item {},
+        background = ui.Rect { x = 5, y = 5, width = function() return W(t) end, height = function() return H(t) end,
+          color = "transparent", border_width = 1, border_color = function() return C.primary:alpha(0.45) end,
+          opacity = function() return t.active and 1 or 0 end, behavior = { opacity = quick } },
+        drop_indicator = brackets(t, 6, function() return t.active or t.visual_focus end),
+      }
+    end
     return {
       handle = ui.Item {},
       background = ui.Item { anchors = { fill = true }, print_of(t, spec, 88, 100), frame(t) },
