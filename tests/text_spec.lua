@@ -14,8 +14,7 @@ local PIECES = [[
   require("morf.ui").Item { width = 1, height = 1 }
   local transforms = require("transforms")
   local codec = require("lib.shell.launcher.codec")
-  local secrets = require("secrets")
-  local words = require("words")
+  local password = require("lib.shell.launcher.password")
   local latest = {}
   morf.ipc.latest = function() return latest end
   morf.ipc.run = function(id, text)
@@ -27,7 +26,7 @@ local PIECES = [[
   morf.ipc.not_utf8 = function() return codec.upper("ab\xff") == "AB\xff" end
   morf.ipc.counts = function(text) return transforms.counts(text) end
   morf.ipc.lorem = function(count) return codec.lorem(tonumber(count)) end
-  morf.ipc.words = function() return words end
+  morf.ipc.words = function() return password.WORDS end
   -- The transforms that are the launcher's codec itself, by name.
   morf.ipc.shared = function()
     local same = {}
@@ -40,33 +39,32 @@ local PIECES = [[
     same.minify = transforms.find("minify").run == codec.json_minify
     return same
   end
-  -- The bytes each draw of /dev/urandom gives, in turn.
-  morf.ipc.script = function(...)
-    local draws = { ... }
-    local real = secrets.bytes
-    secrets.bytes = function(count, done)
-      local draw = table.remove(draws, 1)
-      if not draw then secrets.bytes = real done(nil) return end
-      local out = {}
-      for number in draw:gmatch("%d+") do out[#out + 1] = tonumber(number) end
-      done(out)
-    end
-    return true
+  -- The picks these random bytes make, the source back in place after.
+  morf.ipc.picks = function(size, bytes, count)
+    local queue = {}
+    for number in bytes:gmatch("%d+") do queue[#queue + 1] = tonumber(number) end
+    local real = password.byte
+    password.byte = function() return table.remove(queue, 1) end
+    local out = {}
+    for index = 1, tonumber(count) do out[index] = password.pick(tonumber(size)) end
+    password.byte = real
+    return out
   end
-  morf.ipc.choices = function(size, count)
-    latest = {}
-    secrets.choices(tonumber(size), tonumber(count), 1, function(list) latest.list = list end)
-    return latest
+  -- How many UUIDs a password of `length` takes from the engine.
+  morf.ipc.drawn = function(length)
+    local real, calls = morf.encoding.uuid, 0
+    morf.encoding.uuid = function() calls = calls + 1 return real() end
+    password.generate(tonumber(length))
+    morf.encoding.uuid = real
+    return calls
   end
   morf.ipc.password = function(length, symbols)
-    latest = {}
-    secrets.password(tonumber(length), symbols == "yes", function(value, bits) latest.value, latest.bits = value, bits end)
-    return true
+    local options = { symbols = symbols == "yes" }
+    return { value = password.generate(tonumber(length), options),
+      bits = password.bits(tonumber(length), #password.alphabet(options)) }
   end
   morf.ipc.passphrase = function(count)
-    latest = {}
-    secrets.passphrase(tonumber(count), function(value, bits) latest.value, latest.bits = value, bits end)
-    return true
+    return { value = password.passphrase(tonumber(count)), bits = password.passphrase_bits(tonumber(count)) }
   end
 ]]
 
@@ -92,15 +90,6 @@ end
 
 local function run(id, text) return test.ipc("run", id, text).answer end
 local function refuse(id, text) return test.ipc("run", id, text).why end
-
--- What real random bytes made, through a real `od`.
-local function drawn(verb, ...)
-  test.ipc(verb, ...)
-  return test.wait(function()
-    local made = test.ipc("latest")
-    return made.value and made
-  end, 4000, "the bytes arrived")
-end
 
 -- ----------------------------------------------------------------------- case --
 
@@ -243,42 +232,33 @@ end)
 
 test.it("throws away the bytes that would favour some choices", function()
   pieces()
-  test.ipc("script", "250 5 255 7 201 9")
-  test.eq(test.ipc("choices", "200", "3").list, { 5, 7, 9 }, "only what falls under 200 counts")
+  test.eq(test.ipc("picks", "200", "250 5 255 7 201 9", "3"), { 6, 8, 10 }, "only what falls under 200 counts")
 end)
 
-test.it("draws again until it has enough", function()
+test.it("draws two bytes for a choice among more than 256", function()
   pieces()
-  test.ipc("script", "255 254", "250 251", "7 255")
-  test.eq(test.ipc("choices", "200", "1").list, { 7 })
+  test.eq(test.ipc("picks", "700", "255 255 1 44", "1"), { 301 })
 end)
 
-test.it("gives up where there are no random bytes", function()
+test.it("draws from the engine's random source, with no program", function()
   pieces()
-  test.ipc("script", "255 254")
-  test.eq(test.ipc("choices", "200", "1").list, nil)
-end)
-
-test.it("reads /dev/urandom, never a generator of its own", function()
-  pieces()
-  test.stub_run("od", { code = 0, stdout = "1 2 3 4 5 6 7 8\n" })
-  test.ipc("password", "4", "yes")
-  test.advance(50)
-  test.eq(test.runs()[#test.runs()], { "od", "-An", "-tu1", "-N", "8", "/dev/urandom" })
+  test.truthy(test.ipc("drawn", "24") >= 1)
+  test.eq(#test.runs(), 0)
 end)
 
 test.it("makes a password from the alphabet asked for, and says its strength", function()
   pieces()
-  local made = drawn("password", "12", "no")
+  local made = test.ipc("password", "12", "no")
   test.eq(#made.value, 12)
   test.truthy(made.value:match("^%w+$"))
-  test.eq(made.bits, 71)
-  test.eq(drawn("password", "24", "yes").bits, 153)
+  test.falsy(made.value:find("[lIO01]"), "no characters that look alike")
+  test.eq(made.bits, 69)
+  test.eq(test.ipc("password", "24", "yes").bits, 151)
 end)
 
 test.it("makes a passphrase of real words", function()
   pieces()
-  local made = drawn("passphrase", "6")
+  local made = test.ipc("passphrase", "6")
   local _, dashes = made.value:gsub("%-", "")
   test.eq(dashes, 5)
   local words = {}
@@ -302,7 +282,6 @@ end)
 
 local function window(style, extra)
   test.clear_stubs()
-  test.stub_run("od", { code = 0, stdout = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48\n" })
   test.load("../apps/text/app.lua", { env = environment(fresh("window"), style, extra) })
   test.settle(300)
 end
@@ -349,8 +328,17 @@ test.it("keeps a generated secret out of its state, on screen only", function()
   local secret = test.get({ id = "text-secret" }).text
   test.eq(#secret, 24)
   test.falsy(morf.json.encode(test.ipc("state")):find(secret, 1, true))
-  test.contains(test.ipc("state").made, "Password, 153 bits")
+  test.contains(test.ipc("state").made, "Password, 151 bits")
   test.truthy(test.ipc("copy_secret"))
+end)
+
+test.it("makes a passphrase from the launcher's own list", function()
+  window()
+  test.ipc("make", "passphrase")
+  test.settle(100)
+  local _, dashes = test.get({ id = "text-secret" }).text:gsub("%-", "")
+  test.eq(dashes, 5)
+  test.contains(test.ipc("state").made, "Passphrase, 56 bits")
 end)
 
 -- ---------------------------------------------------------- the command line --
@@ -401,8 +389,8 @@ test.it("makes things from nothing", function()
   test.clear_stubs()
   test.matches(job { "uuid" }, "^0\n%x+%-%x+%-%x+%-%x+%-%x+\n$")
   test.contains(job { "lorem" }, "Lorem ipsum")
-  test.stub_run("od", { code = 0, stdout = "1 2 3 4 5 6 7 8\n" })
   test.eq(#job({ "password", "4", "--no-symbols" }), #"0\n" + 4 + 1)
+  test.eq(#job({ "password", "1000" }), #"0\n" + 1000 + 1)
 end)
 
 test.it("lists what it does, whatever this machine has", function()

@@ -212,7 +212,7 @@ test.describe("the tools", function()
     test.truthy(host.logged("copied a secret"))
     test.eq(test.ipc("copied"), {}, "it went through the plain clipboard")
     host.search("> pw words 5")
-    test.matches(test.ipc("rows")[1].description, "5 words")
+    test.matches(test.ipc("rows")[1].description, "5 words, 47 bits")
   end)
 
   test.it("keeps a password out of the history", function()

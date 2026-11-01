@@ -1,5 +1,6 @@
-# eva-text on the sealed session: the window's pages, a secret made from the real
-# /dev/urandom, then the transforms from a real pipe, each checked against coreutils.
+# eva-text on the sealed session: the window's pages, a secret made from the
+# kernel's random source, then the transforms from a real pipe, each checked against
+# coreutils.
 unset EVA_DRY_RUN
 state() { appipc state | tr -d ' \n' | cut -c1-220; }
 same() { [ "$2" = "$3" ] && echo "same    $1" || echo "DIFFERS $1: [$2] [$3]"; }
