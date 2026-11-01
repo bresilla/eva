@@ -36,6 +36,11 @@ while [ "$#" -gt 0 ]; do
         exit 1
       fi
       file=$(eva_capture_call record stop | said)
+      tries=0
+      while running && [ "$tries" -lt 100 ]; do
+        sleep 0.1
+        tries=$((tries + 1))
+      done
       if [ -n "$file" ]; then printf '%s\n' "$file"; fi
       exit 0
       ;;

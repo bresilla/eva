@@ -2,7 +2,8 @@
 # A stand-in for morf in the command-line specs: logs each call and the files it
 # was handed to $STUB_LOG, answers `ipc verbs` while $STUB_UP is set, and, named
 # by `-i`, as the capture tool while $STUB_TOOL is set: `record state` from
-# $STUB_RECORD, and a `result=FILE` word filled from $STUB_RESULT.
+# $STUB_RECORD until `record stop`, and a `result=FILE` word filled from
+# $STUB_RESULT.
 printf '%s EVA_SETTINGS=%s EVA_APPEARANCE=%s\n' "$*" "${EVA_SETTINGS:-}" "${EVA_APPEARANCE:-}" >> "$STUB_LOG"
 for word in "$@"; do
   case "$word" in
@@ -12,8 +13,15 @@ done
 if [ "$1" = -i ]; then
   [ "$3 $4" = "ipc verbs" ] && { [ -n "${STUB_TOOL:-}" ] || exit 1; printf '{"n":1,"ok":true,"result":["capture"]}\n'; }
   [ "$3 $4" = "ipc call" ] && [ -z "${STUB_TOOL:-}" ] && exit 1
-  [ "$3 $4 $5 $6" = "ipc call record state" ] && printf '{"n":1,"ok":true,"result":["%s"]}\n' "${STUB_RECORD:-idle}"
-  [ "$3 $4 $5 $6" = "ipc call record stop" ] && printf '{"n":1,"ok":true,"result":["%s"]}\n' "${STUB_RECORD:-}"
+  if [ "$3 $4 $5 $6" = "ipc call record state" ]; then
+    answer=${STUB_RECORD:-idle}
+    [ -e "$STUB_LOG.stopped" ] && answer=idle
+    printf '{"n":1,"ok":true,"result":["%s"]}\n' "$answer"
+  fi
+  if [ "$3 $4 $5 $6" = "ipc call record stop" ]; then
+    : > "$STUB_LOG.stopped"
+    printf '{"n":1,"ok":true,"result":["%s"]}\n' "${STUB_RECORD:-}"
+  fi
   exit 0
 fi
 if [ "$1 $2" = "ipc verbs" ]; then
