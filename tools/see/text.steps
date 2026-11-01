@@ -1,5 +1,6 @@
-# eva-text on the sealed session: the window's pages, a secret made from the real
-# /dev/urandom, then the transforms from a real pipe, each checked against coreutils.
+# eva-text on the sealed session: the window's pages, a secret made from the
+# kernel's random source, then the transforms from a real pipe, each checked against
+# coreutils.
 unset EVA_DRY_RUN
 state() { appipc state | tr -d ' \n' | cut -c1-220; }
 same() { [ "$2" = "$3" ] && echo "same    $1" || echo "DIFFERS $1: [$2] [$3]"; }
@@ -50,7 +51,7 @@ note same sha1 "$(sh apps/text/cli sha1 < "$FILE")" "$(sha1sum "$FILE" | cut -d'
 note same base64 "$(sh apps/text/cli base64 < "$FILE")" "$(base64 -w0 "$FILE")"
 note same sort "$(sh apps/text/cli sort < "$FILE")" "$(LC_ALL=C sort "$FILE")"
 note same reverse "$(sh apps/text/cli reverse < "$FILE")" "$(tac "$FILE")"
-note echo "md5 program: $(sh apps/text/cli md5 < "$FILE" 2>&1) vs $(md5sum "$FILE" | cut -d' ' -f1)"
+note same md5 "$(sh apps/text/cli md5 < "$FILE")" "$(md5sum "$FILE" | cut -d' ' -f1)"
 
 head -c 2048 /dev/urandom > "$XDG_RUNTIME_DIR/binary"
 base64 -w0 "$XDG_RUNTIME_DIR/binary" | sh apps/text/cli base64 -d > "$XDG_RUNTIME_DIR/binary.out"

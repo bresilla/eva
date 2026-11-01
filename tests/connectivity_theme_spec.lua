@@ -86,6 +86,17 @@ local HOST=[[
     answer=function(value) record("pairing-answer",value) agent_request:set(nil) end}
   morf.ipc.pairing=function(kind,code) agent_request:set({kind=kind,device="/bt/3",code=code}) end
   morf.ipc.agent=function() return agent_on end
+  morf.ipc.open_quiet=function()
+    for _,row in ipairs(aps) do if row.ssid=="Quiet" then row.security,row.secure="open",false end end
+    update()
+  end
+  local make_path,share_code=ui.Path,nil
+  ui.Path=function(props)
+    local node=make_path(props)
+    if props.id=="network-share-code" then share_code=node end
+    return node
+  end
+  morf.ipc.share_code=function() return {d=share_code.d,box=share_code.view_box} end
   morf.process.spawn=function(spec) record("spawn",spec.command) return true end
   update()
   local models=require("connectivity_model")
@@ -298,6 +309,18 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("network-forget") test.advance(100)
     test.eq(last().name,"forget-network") test.eq(last().value,"Quiet")
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
+  end)
+  test.it(style.." a saved network is shared as a code the encoder draws",function()
+    load(style,"network") open()
+    test.ipc("open_quiet") test.advance(100)
+    test.click("network-manage-"..index("Quiet")) test.advance(100)
+    test.click("network-share") test.advance(200)
+    local code=test.ipc("share_code")
+    test.matches(code.d,"^M0 0h7v1h%-7z")
+    test.eq(code.box[3],code.box[4])
+    test.truthy(code.box[3]>=21)
+    test.falsy(test.find{id="network-share-failure",visible=true})
+    test.eq(#test.logs("error"),0)
   end)
   test.it(style.." a paired device is forgotten, and discovery stops as the page shuts",function()
     load(style,"bluetooth") open()

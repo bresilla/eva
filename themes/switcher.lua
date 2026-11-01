@@ -4,6 +4,7 @@ local morf = require("morf")
 local ui = require("morf.ui")
 local session = require("themes.session")
 local themes = require("themes")
+local fonts = require("themes.fonts")
 local M = {
   busy = morf.signal("eva.appearance.busy", session.restoring),
   message = morf.signal("eva.appearance.message", ""),
@@ -19,7 +20,7 @@ local function resolve(target)
   if target == "material" or target == "tsugumori" then return target, themes.font or "" end
   if type(target) == "string" and target:sub(1,5) == "font:" then
     local family = target:sub(6)
-    if #family <= 200 and not family:find("[%c]") then return themes.current.id, family end
+    if fonts.fit(family) then return themes.current.id, family end
   end
 end
 local function unchanged(target)

@@ -268,8 +268,7 @@ in
         (lib.hiPrio morfDefault)
         bridge
         pkgs.hyprsunset
-        # Sharing Wi-Fi by code, sticky keys and mouse keys.
-        pkgs.qrencode
+        # Sticky keys and mouse keys.
         (lib.getBin pkgs.libxkbcommon)
         pkgs.wlrctl
         # The assistant's streaming replies, and its keys in the Secret Service.

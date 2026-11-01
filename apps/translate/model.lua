@@ -3,7 +3,7 @@
 -- text is kept on disk: the file holds the choices. No nodes.
 local morf = require("morf")
 local sys = require("common.sys")
-local engines = require("engines")
+local engines = require("lib.services.translate")
 
 local M = {
   input = morf.signal("translate.input", ""),
@@ -17,13 +17,7 @@ local M = {
   found = morf.signal("translate.found", {}),
 }
 
-M.LANGUAGES = {
-  { "ar", "Arabic" }, { "sq", "Albanian" }, { "zh", "Chinese" }, { "cs", "Czech" }, { "da", "Danish" }, { "nl", "Dutch" },
-  { "en", "English" }, { "fi", "Finnish" }, { "fr", "French" }, { "de", "German" }, { "el", "Greek" }, { "he", "Hebrew" },
-  { "hi", "Hindi" }, { "hu", "Hungarian" }, { "it", "Italian" }, { "ja", "Japanese" }, { "ko", "Korean" },
-  { "nb", "Norwegian" }, { "pl", "Polish" }, { "pt", "Portuguese" }, { "ro", "Romanian" }, { "ru", "Russian" },
-  { "sr", "Serbian" }, { "es", "Spanish" }, { "sv", "Swedish" }, { "tr", "Turkish" }, { "uk", "Ukrainian" },
-}
+M.LANGUAGES = engines.LANGUAGES
 
 local function prefs() return sys.state("translate", "prefs.json") end
 
@@ -44,9 +38,7 @@ end
 --- The language this session speaks, by LANG, where it is one listed here.
 local function session_language()
   local code = (morf.env("LANG") or ""):match("^(%l%l)")
-  for _, language in ipairs(M.LANGUAGES) do
-    if language[1] == code then return code end
-  end
+  return engines.name_of(code) and code or nil
 end
 
 --- Reads the choices and which engines there are.
@@ -61,10 +53,7 @@ end
 --- `code`'s name, "" for one not listed.
 function M.name_of(code)
   if code == "auto" then return "Detect" end
-  for _, language in ipairs(M.LANGUAGES) do
-    if language[1] == code then return language[2] end
-  end
-  return ""
+  return engines.name_of(code) or ""
 end
 
 function M.set_source(code) M.source:set(code) keep() end
@@ -81,24 +70,12 @@ end
 
 local asked = 0
 
--- Why `engine` cannot take this request, or nil.
-local function refusal(engine, request)
-  if request.text:match("^%s*$") then return "Nothing to translate" end
-  if not engine then return "No translator here" end
-  if request.source == "auto" and not engine.auto then
-    return engine.name .. " needs the source language named"
-  end
-  if engine.limit and #request.text > engine.limit then
-    return ("%s takes %d bytes at a time"):format(engine.name, engine.limit)
-  end
-end
-
 --- Sends the text to the engine in use: the one way text leaves the machine.
 --- `done(words, why)`.
 function M.translate(done)
   local engine = M.current()
   local request = { text = M.input:get(), source = M.source:get(), target = M.target:get() }
-  local why = refusal(engine, request)
+  local why = engines.refusal(engine, request) or (sys.dry() and not engine.offline and "dry run") or nil
   if why then
     M.message:set(why)
     if done then done(nil, why) end
@@ -108,7 +85,7 @@ function M.translate(done)
   local mine = asked
   M.busy:set(true)
   M.message:set("")
-  engines.LIST[engine.id].run(request, function(words, reason, detected)
+  engines.send(engine, request, function(words, reason, detected)
     if mine ~= asked then return end
     M.busy:set(false)
     if words then

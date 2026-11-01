@@ -1,10 +1,11 @@
 -- eva-qr's state. The password lives in its text input and in `password` below,
--- never in a signal, and goes to qrencode on stdin. The code it makes stays out
--- of the signals with it: `revision` says only that there is a new one. No nodes.
+-- never in a signal, and is encoded in this process by lib/util/qr.lua. The code it
+-- makes stays out of the signals with it: `revision` says only that there is a new
+-- one. No nodes.
 local morf = require("morf")
 local sys = require("common.sys")
 local config = require("config")
-local codes = require("codes")
+local qr = require("lib.util.qr")
 
 local M = {
   mode = morf.signal("qr.mode", 1),
@@ -20,14 +21,16 @@ local M = {
 }
 
 M.MODES = { "Text", "Wi-Fi" }
-M.LEVELS = { "L", "M", "Q", "H" }
+M.LEVELS = qr.LEVELS
+M.SECURITY = qr.SECURITY
 M.WAIT = 150
-M.ENCODE_MS = 3000
+
+local TOO_LONG = "That is too long for a code"
 
 local password = ""
-local code, shape
+local code
 local pending
-local asked = 0
+local making
 
 -- Puts `value` in the password's input: set by the view.
 local fill = function() end
@@ -36,44 +39,31 @@ local fill = function() end
 local function payload()
   if M.mode:get() == 1 then return M.text:get() end
   if M.ssid:get() == "" then return "" end
-  return codes.wifi({ ssid = M.ssid:get(), security = codes.SECURITY[M.security:get()], hidden = M.hidden:get() }, password)
+  return qr.wifi({ ssid = M.ssid:get(), security = M.SECURITY[M.security:get()], hidden = M.hidden:get() }, password)
 end
 
-local function encode_argv(kind, target)
-  return { "qrencode", "-t", kind, "-m", kind == "PNG" and "2" or "0", "-s", "12", "-l", M.LEVELS[M.level:get()], "-o", target }
+local function encoded(data, done)
+  return qr.encode(data, M.LEVELS[M.level:get()], done)
 end
 
 local function show(next_code, words)
   code = next_code
-  shape = next_code and codes.outline(next_code) or nil
   M.message:set(words or "")
   M.revision:set(M.revision:get() + 1)
-end
-
--- The reason in qrencode's words, for a person.
-local function refused(result)
-  if result.error_kind == "not_found" then return "qrencode is not installed" end
-  if (result.stderr or ""):find("too large", 1, true) then return "That is too long for a code" end
-  return "Could not make a code"
 end
 
 --- Makes the code from what the fields hold now.
 function M.encode()
   pending = nil
-  asked = asked + 1
-  local mine, data = asked, payload()
+  if making then making.cancel() end
+  making = nil
+  local data = payload()
   if data == "" then
     show(nil)
     return
   end
-  sys.run(encode_argv("ASCII", "-"), { stdin = data, read = true, timeout_ms = M.ENCODE_MS }, function(result)
-    if mine ~= asked then return end
-    if not result.ok then
-      show(nil, refused(result))
-      return
-    end
-    local next_code = codes.parse(result.stdout)
-    show(next_code, next_code == nil and "Could not read the code" or "")
+  making = encoded(data, function(next_code)
+    show(next_code, next_code == nil and TOO_LONG or "")
   end)
 end
 
@@ -110,19 +100,27 @@ end
 --- The code's outline. A tracked read.
 function M.path()
   M.revision:get()
-  return shape or ""
+  return code and code.path or ""
 end
 
 --- Whether there is a code to do anything with.
 function M.ready() return M.size() > 0 end
 
+-- What the fields hold now as a PNG: `done(bytes)`, nil where it will not fit.
+local function picture(data, done)
+  encoded(data, function(made)
+    if not made then done(nil) return end
+    qr.png(made, { scale = 12, quiet = 2 }, done)
+  end)
+end
+
 --- The code as a PNG on the clipboard.
 function M.copy()
   local data = payload()
   if data == "" then return false end
-  sys.run(encode_argv("PNG", "-"), { stdin = data, read = true, timeout_ms = M.ENCODE_MS }, function(result)
-    if not result.ok then M.message:set(refused(result)) return end
-    if not sys.dry() then morf.clipboard.set(result.stdout, "image/png") end
+  picture(data, function(bytes)
+    if not bytes then M.message:set(TOO_LONG) return end
+    if not sys.dry() then morf.clipboard.set(bytes, "image/png") end
     M.message:set("Copied as an image")
   end)
   return true
@@ -145,11 +143,11 @@ function M.save(path, done)
     if done then done(ok, words) end
   end
   if data == "" then finish(false, "Nothing to make a code of") return end
-  local parent = path:match("^(.*)/[^/]*$")
-  if parent and parent ~= "" and not sys.dry() then pcall(morf.fs.mkdir, parent) end
-  sys.run(encode_argv("PNG", path), { stdin = data, timeout_ms = M.ENCODE_MS }, function(result)
-    if result.dry then finish(true, "Would save " .. path) return end
-    if not result.ok then finish(false, refused(result)) return end
+  picture(data, function(bytes)
+    if not bytes then finish(false, TOO_LONG) return end
+    if sys.dry() then finish(true, "Would save " .. path) return end
+    local ok = pcall(morf.fs.write, path, bytes, { parents = true })
+    if not ok then finish(false, "Could not write " .. path) return end
     finish(true, "Saved " .. path)
   end)
 end
@@ -220,7 +218,7 @@ function M.take(words, input)
       if word == "--hidden" then M.hidden:set(true)
       elseif word == "--security" then
         at = at + 1
-        for number, name in ipairs(codes.SECURITY) do
+        for number, name in ipairs(M.SECURITY) do
           if name == rest[at] then M.security:set(number) end
         end
       else names[#names + 1] = word end
@@ -239,7 +237,7 @@ end
 --- What the tool holds, for a test or a scenario: never the password.
 function M.state()
   return { mode = M.MODES[M.mode:get()], text = M.text:get(), ssid = M.ssid:get(),
-    security = codes.SECURITY[M.security:get()], hidden = M.hidden:get(), level = M.LEVELS[M.level:get()],
+    security = M.SECURITY[M.security:get()], hidden = M.hidden:get(), level = M.LEVELS[M.level:get()],
     size = M.size(), has_password = password ~= "", full = M.full:get(), saved = M.saved:get(),
     message = M.message:get() }
 end

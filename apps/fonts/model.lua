@@ -1,9 +1,7 @@
--- eva-fonts' state: the families of themes/fonts.lua, what a preview of one needs
--- on top of them, and the shell's font set the way the shell's own picker sets
--- it. No nodes.
+-- eva-fonts' state: the families of themes/fonts.lua and what a preview of one needs
+-- on top of them. The shell's font is set by themes/fonts.lua's `set`. No nodes.
 local morf = require("morf")
 local sys = require("common.sys")
-local themes = require("themes")
 local fonts = require("themes.fonts")
 
 local M = {
@@ -153,67 +151,17 @@ function M.has_weight(weight)
   return false
 end
 
--- A family the shell's verb can carry.
-local function fit(family)
-  return type(family) == "string" and #family <= 200 and not family:find("%c")
-end
-
---- The shell's font, "" for the theme's own: the running shell's where one
---- answers, else the file it starts from.
-function M.current(done)
-  sys.shell({ "appearance", "state" }, { read = true }, function(state)
-    if type(state) == "table" then done(state.font or "", true) return end
-    done(themes.preferences.get("font") or "", false)
-  end)
-end
-
---- Sets the shell's font, "" for the theme's own. With the shell up its
---- `appearance font:NAME` verb covers the panels and reloads, and the shell
---- writes the file; with it down the file is written here, for its next start.
---- `done(ok, words)`.
+--- Sets the shell's font, "" for the theme's own: `done(ok, words)`.
 function M.apply(family, done)
-  local function finish(ok, words)
+  fonts.set({ family = family, via = sys }, function(ok, words)
     say(words)
     if done then done(ok, words) end
-  end
-  if not fit(family) then finish(false, "That is not a family's name") return end
-  local name = family ~= "" and family or "the theme's own font"
-  M.current(function(font, up)
-    if not up then
-      if sys.dry() then finish(true, "Would save " .. name) return end
-      themes.preferences.set("font", family)
-      themes.preferences.flush()
-      finish(true, "Saved " .. name .. ": the shell takes it when it starts")
-      return
-    end
-    if font == family then finish(true, "The shell already uses " .. name) return end
-    sys.shell({ "appearance", "font:" .. family }, nil, function(reply, why)
-      if reply == true then
-        finish(true, "The shell is changing to " .. name)
-      elseif why == "dry run" then
-        finish(true, "Would ask the shell for " .. name)
-      else
-        -- A refusal: the reason is in the shell's state.
-        sys.shell({ "appearance", "state" }, { read = true }, function(state)
-          local reason = type(state) == "table" and state.message or ""
-          finish(false, reason ~= "" and reason or "The shell did not take it")
-        end)
-      end
-    end)
   end)
-end
-
--- Whether `family` is installed, the same test themes/fonts.lua makes.
-local function installed(family)
-  for _, have in ipairs(fonts.rows:get()) do
-    if have == family then return true end
-  end
-  return false
 end
 
 --- Sets the shell's font to a family this machine has, by the command line.
 function M.apply_installed(family, done)
-  if family ~= "" and not installed(family) then
+  if family ~= "" and not fonts.has(family) then
     done(false, "No family called " .. family)
     return
   end
@@ -227,7 +175,7 @@ function M.job(args, done)
     if ok then done(words) else done(nil, words) end
   end
   if how == "current" then
-    M.current(function(font) done(font ~= "" and font or "the theme's own font") end)
+    fonts.current(sys, function(font) done(font ~= "" and font or "the theme's own font") end)
   elseif how == "reset" then
     M.apply("", answer)
   elseif how == "list" then

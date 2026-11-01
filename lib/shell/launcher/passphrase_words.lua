@@ -1,4 +1,5 @@
--- The words of a passphrase, each short, plain and spelled one way.
+-- Written for eva, under its MIT License: the words of a passphrase, each short,
+-- plain and spelled one way.
 return {
   "able", "acid", "acorn", "actor", "adapt", "agent", "aisle", "alarm", "album", "alert", "algae", "alley", "alloy",
   "almond", "alpine", "amber", "ample", "anchor", "angle", "ankle", "answer", "apple", "apron", "arbor", "arch", "arena",

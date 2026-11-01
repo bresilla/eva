@@ -8,42 +8,39 @@ local test = morf.test
 local HOST = [==[
   local ui = require("morf.ui")
   ui.Item { width = 10, height = 10 }
-  local qr = require("lib.shell.launcher.qr")
+  local qr = require("lib.util.qr")
   local password = require("lib.shell.launcher.password")
   local codec = require("lib.shell.launcher.codec")
   local dates = require("lib.shell.launcher.dates")
   local ssh = require("lib.shell.launcher.sshconfig")
   local recent = require("lib.shell.launcher.recent")
-  morf.ipc.qr_size = function(text)
-    local code, why = qr.encode(text)
-    if not code then return why end
-    return code.size .. "/" .. code.level
+  local code, why, settled
+  morf.ipc.qr_encode = function(text, level)
+    code, why, settled = nil, nil, false
+    qr.encode(text, level, function(made, reason) code, why, settled = made, reason, true end)
+    return true
   end
-  morf.ipc.qr_finder = function(text)
-    local code = qr.encode(text)
+  morf.ipc.qr_size = function()
+    if not settled then return nil end
+    return code and (code.size .. "/" .. code.level) or why
+  end
+  morf.ipc.qr_finder = function()
     local row = {}
     for x = 0, 6 do row[#row + 1] = code.dark(x, 0) and "1" or "0" end
     return table.concat(row)
   end
-  local code
-  morf.ipc.qr_encode = function(text) code = qr.encode(text) return code ~= nil end
-  morf.ipc.qr_pgm = function(path)
-    local scale, quiet = 4, 4
-    local side = (code.size + 2 * quiet) * scale
-    local white = string.rep("\255", side)
-    local lines = {}
-    for _ = 1, quiet * scale do lines[#lines + 1] = white end
-    for y = 0, code.size - 1 do
-      local cells = { string.rep("\255", quiet * scale) }
-      for x = 0, code.size - 1 do cells[#cells + 1] = string.rep(code.dark(x, y) and "\0" or "\255", scale) end
-      cells[#cells + 1] = string.rep("\255", quiet * scale)
-      local line = table.concat(cells)
-      for _ = 1, scale do lines[#lines + 1] = line end
-    end
-    for _ = 1, quiet * scale do lines[#lines + 1] = white end
-    morf.fs.write(path, ("P5\n%d %d\n255\n"):format(side, side) .. table.concat(lines))
+  morf.ipc.qr_path = function() return code.path end
+  morf.ipc.qr_capacity = function(level) return qr.capacity(level) end
+  local written
+  morf.ipc.qr_png = function(path)
+    written = false
+    qr.png(code, { scale = 4 }, function(bytes)
+      morf.fs.write(path, bytes)
+      written = true
+    end)
     return true
   end
+  morf.ipc.qr_written = function() return written end
   morf.ipc.has_zbar = function() return require("lib.shell.launcher.run").has("zbarimg") end
   local read
   morf.ipc.zbar = function(path)
@@ -103,34 +100,60 @@ local HOST = [==[
 
 local function load() test.load { source = HOST } end
 
+-- What the encoder says of `text`, once it has done: "size/level", or why not.
+local function encoded(text, level)
+  test.ipc("qr_encode", text, level)
+  return test.wait(function()
+    test.advance(5)
+    return test.ipc("qr_size")
+  end, 8000, "the code did not come")
+end
+
 test.describe("qr", function()
   test.it("picks the smallest code that holds the text, and says when none will", function()
     load()
-    test.eq(test.ipc("qr_size", "HELLO"), "21/M")
-    test.eq(test.ipc("qr_size", string.rep("a", 100)), "41/M")
-    test.eq(test.ipc("qr_size", string.rep("a", 400)), "77/M")
-    test.matches(test.ipc("qr_size", string.rep("a", 401)), "too long")
-    test.matches(test.ipc("qr_size", ""), "nothing")
+    test.eq(encoded("HELLO"), "21/M")
+    test.eq(encoded(string.rep("a", 100)), "41/M")
+    test.eq(encoded(string.rep("a", 400)), "77/M")
+    test.matches(encoded(string.rep("a", 2332)), "too long")
+    test.matches(encoded(""), "nothing")
   end)
-  test.it("draws the finder pattern", function()
+  test.it("holds the standard's most at each level, within a handler's fuel", function()
     load()
-    test.eq(test.ipc("qr_finder", "HELLO"), "1111111")
+    for level, most in pairs { L = 2953, M = 2331, Q = 1663, H = 1273 } do
+      test.eq(test.ipc("qr_capacity", level), most)
+      test.eq(encoded(string.rep("a", most), level), "177/" .. level)
+      test.matches(encoded(string.rep("a", most + 1), level), "too long")
+    end
+    test.eq(#test.logs("error"), 0)
+  end)
+  test.it("draws the finder pattern, as modules and as a path", function()
+    load()
+    encoded("HELLO")
+    test.eq(test.ipc("qr_finder"), "1111111")
+    test.matches(test.ipc("qr_path"), "^M0 0h7v1h%-7z")
   end)
   -- A code proves itself by being read: zbarimg decodes what was encoded.
-  test.it("reads back through a real decoder", function()
+  test.it("reads back through a real decoder, at every level", function()
     load()
     local has = test.ipc("has_zbar")
     if not has then test.note("no zbarimg here: nothing read the code back") return end
-    for i, text in ipairs {
-      "HELLO", "https://example.org/a/path?with=query&and=more", "héllo wörld, ünicode ✓",
-      string.rep("0123456789", 12), string.rep("The launcher makes this. ", 16),
+    local long = string.rep("The launcher makes this. ", 40)
+    for i, case in ipairs {
+      { "HELLO" }, { "https://example.org/a/path?with=query&and=more", "L" }, { "héllo wörld, ünicode ✓", "Q" },
+      { string.rep("0123456789", 12), "H" }, { string.rep("The launcher makes this. ", 16) },
+      { long, "L" }, { long, "H" }, { "WIFI:T:WPA;S:Home;P:p\\;w;;", "M" },
     } do
-      local path = morf.env("XDG_STATE_HOME") .. "/qr" .. i .. ".pgm"
-      test.truthy(test.ipc("qr_encode", text))
-      test.ipc("qr_pgm", path)
+      local path = morf.env("XDG_STATE_HOME") .. "/qr" .. i .. ".png"
+      test.matches(encoded(case[1], case[2]), "^%d+/")
+      test.ipc("qr_png", path)
+      test.wait(function()
+        test.advance(5)
+        return test.ipc("qr_written")
+      end, 8000, "the png did not come")
       test.ipc("zbar", path)
       local read = test.wait(function() return test.ipc("zbar_read") end, 5000, "zbarimg did not answer")
-      test.eq(read, text)
+      test.eq(read, case[1])
     end
   end)
 end)
