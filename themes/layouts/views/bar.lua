@@ -309,7 +309,7 @@ function V.build(model)
     return kit.action { id = "bar-clock", cursor = "pointer", accessible_name = "Notifications",
       width = LEFT_CLOCK_W, height = ITEM, on_clicked = model.open_notifications,
       ui.Row { anchors = { vertical_center = true }, gap = S.s, align = "center",
-        kit.text { text = function() return stamp:get()[1] end, font_size = GLYPH, font_weight = 700 },
+        kit.text { text = function() return stamp:get()[1] end, font_size = GLYPH, font_weight = 700, morph = true },
         TABLET and kit.text { text = function() return stamp:get()[2] end, font_size = theme.size.small,
           color = kit.ink("lo") } or nil,
       } }
@@ -323,15 +323,15 @@ function V.build(model)
       wheel("workspace" .. (vertical and "-v" or ""), model.wheel_workspace),
       vertical and ui.Column {
         anchors = { center_in = true }, gap = 0, align = "center",
-        kit.text { text = function() return (stamp:get()[1]:sub(1, 2)) end, font_weight = 700 },
-        kit.text { text = function() return (stamp:get()[1]:sub(4, 5)) end, font_weight = 700 },
+        kit.text { text = function() return (stamp:get()[1]:sub(1, 2)) end, font_weight = 700, morph = true },
+        kit.text { text = function() return (stamp:get()[1]:sub(4, 5)) end, font_weight = 700, morph = true },
         kit.text { text = function() return stamp:get()[3] end,
           font_size = theme.size.small - 3, color = kit.ink("lo") },
       } or ui.Row {
         anchors = { center_in = true }, gap = 8, align = "center",
         kit.text { text = function() return stamp:get()[2] end, font_size = theme.size.small,
           color = kit.ink("lo") },
-        kit.text { text = function() return stamp:get()[1] end, font_weight = 700 },
+        kit.text { text = function() return stamp:get()[1] end, font_weight = 700, morph = true },
       },
     }
     return kit.hover(area, function(hovered)

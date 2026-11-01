@@ -85,8 +85,13 @@ function M.icon(name, size, color, props)
   return ui.Text(props)
 end
 
---- Text in Rubik; `props` as a `ui.Text`'s.
+--- Text in Rubik; `props` as a `ui.Text`'s. `morph` turns each new value out of
+--- the last.
 function M.text(props)
+  if props.morph then
+    return require("themes.text_morph").make(M.text, props,
+      { duration = theme.duration.normal, easing = theme.ease.emphasized_decel })
+  end
   props.font_family = props.font_family or theme.font
   if theme.font_file ~= "" and props.font_source == nil then props.font_source = theme.font_file end
   props.font_size = props.font_size or theme.size.normal
@@ -252,6 +257,14 @@ function M.bud(nodes, coming, opts)
   local entries = {}
   for _, node in ipairs(nodes) do entries[#entries + 1] = { node = node } end
   return theme.motion.entries(entries, coming, opts)
+end
+
+--- How a list's row comes in, as a node's `enter`: it grows into place on the
+--- spatial spring a little after the row above (`index`, from 1).
+function M.enter(index)
+  local spatial = theme.bounce.spatial
+  return { opacity = 0, scale = 0.94, duration = spatial.duration, easing = spatial.easing,
+    delay = math.min((index or 1) - 1, 8) * theme.stagger.step }
 end
 
 -- --------------------------------------------------------------- shapes --
@@ -1246,12 +1259,11 @@ function M.round(r) return r end
 --- it stretches towards the next row and settles round there. `track`,
 --- `color` (a tonal wash of the ink), `radius` (12), `stretch` (false to
 --- leave the track's own motion alone), `id`, `anchors`, `z`.
-local SELECT_STRETCH = { stiffness = 300, damping = 15, scale = 0.1, max = 0.22 }
 function M.selection(spec)
   local track = spec.track
   if track and spec.stretch ~= false then
     local ok, current = pcall(function() return track.stretch end)
-    if ok and not current then track.stretch = spec.stretch or SELECT_STRETCH end
+    if ok and not current then track.stretch = spec.stretch or theme.stretch.selection end
   end
   return ui.Sdf { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = spec.height,
     anchors = spec.anchors or (spec.width == nil and { fill = true } or nil), z = spec.z or -1,

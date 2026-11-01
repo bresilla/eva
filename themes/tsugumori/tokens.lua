@@ -45,6 +45,7 @@ M.springs = {
   press = { stiffness = 1100, ratio = 0.68 },
 }
 M.duration = { small = 140, normal = 240, large = 400, drawer_open = 280, drawer_close = 180 }
+M.stagger = { delay = 180, step = 18 }
 M.ease = {
   standard = "out_cubic", standard_decel = "out_cubic", standard_accel = "in_cubic",
   emphasized_decel = "out_cubic", emphasized_accel = "in_cubic",

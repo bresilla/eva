@@ -41,6 +41,8 @@ local config = settings.open {
       zoom = 0,
       -- How much things bounce: "calm", "balanced" or "playful".
       motion = "balanced",
+      -- Everything lands at once, with no travel.
+      reduce_motion = false,
     },
     wallpaper = {
       -- A picture to paint under everything; "" reads the path the

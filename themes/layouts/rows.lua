@@ -25,7 +25,8 @@ end
 function R.choice(spec)
   local on = spec.on or function() return false end
   local props = { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = spec.height,
-    anchors = spec.anchors, visible = spec.visible, cursor = "pointer", on_clicked = spec.on_clicked }
+    anchors = spec.anchors, visible = spec.visible, cursor = "pointer", on_clicked = spec.on_clicked,
+    enter = spec.enter }
   for _, child in ipairs(spec) do props[#props + 1] = child end
   local area
   if spec.group then

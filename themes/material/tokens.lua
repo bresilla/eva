@@ -58,6 +58,27 @@ M.springs = {
   press = { stiffness = 900, ratio = 0.5 },
 }
 
+-- Squash and stretch by how much of a surface moves: a whole panel leans a few
+-- percent, near critical damping; small things stretch far and settle.
+M.stretch = {
+  drawer = { stiffness = 520, damping = 42, scale = 0.022, max = 0.05 },
+  thumb = { stiffness = 420, damping = 26, scale = 0.9, max = 0.3 },
+  blob = { stiffness = 300, damping = 24, scale = 0.5, max = 0.9 },
+  selection = { stiffness = 300, damping = 22, scale = 0.5, max = 0.3 },
+  tab = { stiffness = 300, damping = 22, scale = 0.5, max = 0.8 },
+}
+
+-- What comes in together comes in turn: the wait before the first, and each
+-- one's wait after the last.
+M.stagger = { delay = 40, step = 26 }
+
+-- How wide a seam opens between shapes that merge while they move.
+M.blend = { rail = 14 }
+
+-- What a press gives: how far a surface sinks under the finger, how much tighter
+-- its corners close, and how much wider a range's handle grows while held.
+M.give = { scale = 0.97, corner = 0.7, handle = 1.8 }
+
 -- Durations and curves fitted to films of the reference in the sandbox
 -- (tools/sandbox/eva-motion.steps): a drawer opens on the spatial
 -- curve over about 470 ms (500 here films as ~470 in the same sandbox), overshooting by about 1 % and settling, and

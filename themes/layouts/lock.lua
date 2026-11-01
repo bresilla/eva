@@ -285,7 +285,7 @@ return function(W, H, NAME)
     behavior = { y = GROW, scale = GROW, opacity = { duration = 320 } },
     weather or ui.Item {visible=false},
     (skin.clock or text) {
-      id = "lock-clock", text = function() return clock:get() end,
+      id = "lock-clock", text = function() return clock:get() end, morph = true,
       font_size = geometry.clock_size, font_weight = skin.clock_weight or 600, color = C.primary,
     },
     text {id="lock-date",text=function() return day:get() end,width=math.max(1,W-s(64)),

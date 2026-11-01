@@ -89,7 +89,25 @@ morf.effect("eva.scale", function()
   elseif morf.window.density then morf.window.density(v ~= 0 and { zoom = 2 ^ v } or nil) end
   if zoom_first then zoom_first = false return end
   if zoom_settle then zoom_settle:cancel() end
-  zoom_settle = morf.time.timer(300, function() zoom_settle = nil morf.reload() end, false)
+  zoom_settle = morf.time.timer(300, function()
+    zoom_settle = nil
+    require("themes.session").hold()
+    morf.reload()
+  end, false)
+end)
+
+-- How things move is read as the theme is built: a change builds the shell
+-- again in place, as the scale does.
+local motion_first, motion_settle = true, nil
+morf.effect("eva.motion", function()
+  local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion") }
+  if motion_first or not style then motion_first = false return end
+  if motion_settle then motion_settle:cancel() end
+  motion_settle = morf.time.timer(120, function()
+    motion_settle = nil
+    require("themes.session").hold()
+    morf.reload()
+  end, false)
 end)
 
 -- --------------------------------------------------------------- rotation --
@@ -98,18 +116,13 @@ end)
 -- output's shell is built again in place for the other layout, and what is
 -- open stays open.
 local built_layout = require("responsive").layout()
-local turned = morf.reloadable("eva.rotation.open", {})
 require("responsive").watch_input()
 morf.effect("eva.rotation", function()
   morf.window.screens_revision()
   local layout = require("responsive").layout()
   if layout ~= built_layout then
     built_layout = layout
-    local open = {}
-    for _, d in ipairs(drawer.all) do
-      if d.is_open() then open[#open + 1] = d.name end
-    end
-    turned:set { open = open, sidebar = require("sidebar").tab:get(), dashboard = require("dashboard").tab:get() }
+    require("themes.session").hold()
     morf.reload { output = true }
   end
 end)
@@ -529,16 +542,3 @@ end
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)
-
--- What was open before a turn of the screen, open again the new way up.
-do
-  local before = turned:get()
-  if before.open then
-    sidebar.tab:set(before.sidebar or 1)
-    dashboard.tab:set(before.dashboard or 1)
-    for _, name in ipairs(before.open) do
-      if drawer[name] then drawer[name].set(true) end
-    end
-    turned:set({})
-  end
-end

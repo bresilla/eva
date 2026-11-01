@@ -57,11 +57,11 @@ function V.build(model)
       radius = PILL_W / 2,
       color = function()
         if lit:get() == id() then return C.primary end
-        return model.occupied(id()) and C.onSurfaceVariant or C.outlineVariant
+        return (model.occupied(id()) and C.onSurfaceVariant or C.outlineVariant):alpha(0.6)
       end,
       -- No easing: the accent does not fade from pill to pill, it moves
-      -- (the bud below), and hands over in a frame where the two are the
-      -- same shape.
+      -- (the blob and the bud below), and hands over in a frame where the
+      -- two are the same shape.
     }
     -- Only to look at: the pointer near them opens the left panel.
     local function at() local g = V.geometry(model) return g.top + (i - 1) * (g.item + g.gap) end
@@ -72,8 +72,36 @@ function V.build(model)
     else
       pill.x, pill.width, pill.y, pill.height = (theme.LEFT - PILL_W) / 2, PILL_W, at, item
     end
-    pill.opacity = function() return lit:get() == id() and 1 or 0.6 end
     pills[i] = pill
+  end
+
+  -- The blob: the active pill, a spring along the rail that stretches with
+  -- its speed. It is the pills' field's last layer, joined to them by a seam
+  -- that opens while it travels and closes when it rests.
+  local function stop_at() return slot_y(V.geometry(model), model.active(), base) end
+  local function slot_length() return V.geometry(model).item end
+  local head = ui.Item { id = "rail-head", stretch = theme.stretch.blob,
+    behavior = { [AX] = theme.spring.spatial } }
+  if B then
+    head.x, head.width, head.height = stop_at, slot_length, PILL_W
+    head.y = function() return model.edge() - (theme.LEFT + PILL_W) / 2 end
+  else
+    head.x, head.width, head.y, head.height = (theme.LEFT - PILL_W) / 2, PILL_W, stop_at, slot_length
+  end
+  local travelling = morf.signal("eva.rail.travelling", false)
+  local blob = ui.SdfShape { id = "rail-blob", shape = "box", radius = PILL_W / 2, track = head,
+    operation = "smooth_union", fill_color = function() return C.primary end,
+    blend = function() return travelling:get() and theme.blend.rail or 0 end,
+    behavior = { blend = theme.spring.effects } }
+  pills[#pills + 1] = blob
+  local resting
+  local function flow()
+    travelling:set(true)
+    if resting then resting:cancel() end
+    resting = morf.time.timer(theme.bounce.spatial.duration, function()
+      resting = nil
+      travelling:set(false)
+    end, false)
   end
 
   -- The swell: a box in the frame's own field (`M.shape`, which init.lua
@@ -346,6 +374,7 @@ function V.build(model)
       return
     end
     if id == last then return end
+    flow()
     pop(id)
   end)
 
@@ -353,7 +382,8 @@ function V.build(model)
     id = "rail", accessible_role = "navigation", accessible_name = "Workspaces",
     anchors = { fill = true },
     visible = enabled,
-    ui.Item { anchors = { fill = true }, table.unpack(pills) },
+    ui.Sdf { id = "rail-pills", anchors = { fill = true }, table.unpack(pills) },
+    head,
     swell,
     field,
     bud,

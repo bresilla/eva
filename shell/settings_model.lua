@@ -524,6 +524,13 @@ function M.set_edge_hover(on)
   for _, key in ipairs(EDGES) do config.set(key, on == true) end
 end
 
+--- How things move: how much they bounce, and whether they travel at all.
+M.MOTIONS = { { "calm", "spa", "Calm" }, { "balanced", "balance", "Balanced" }, { "playful", "celebration", "Playful" } }
+function M.motion_style() return config.get("appearance.motion") or "balanced" end
+function M.set_motion_style(style) config.set("appearance.motion", style) end
+function M.reduce_motion() return config.get("appearance.reduce_motion") == true end
+function M.set_reduce_motion(on) config.set("appearance.reduce_motion", on == true) end
+
 M.opened = morf.signal("eva.settings.opened", false)
 M.displayed = require("themes.session").keep("eva.settings.displayed", "")
 

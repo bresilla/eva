@@ -7,9 +7,8 @@
 -- circular seam, so the frame itself seems to bulge out into the drawer,
 -- with a concave fillet where the drawer's sides meet the frame.
 --
--- Opening and closing each run their own curve and duration, measured off
--- films of the reference: a separate play per direction rather than one
--- behavior, which can only have one.
+-- The theme's motion owns the panel's travel (`theme.motion.drawer`): `move`
+-- when it opens or shuts, and `grab`, `drag`, `release` and `stop` for a finger.
 
 local morf = require("morf")
 local ui = require("morf.ui")
@@ -20,6 +19,8 @@ local M = {}
 M.all = {}
 
 local groups = 0
+-- How far a drawer's background reaches behind the frame's edge.
+local LIP = 160
 -- Every drawer can be typed into with the shared keyboard. Its exact
 -- bounds are an outside-dismiss exception, including drawers constructed
 -- before the keyboard itself. The Item is placed in the keyboard below;
@@ -113,34 +114,27 @@ function M.new(spec)
     return sign * (size + theme.SEAM + theme.BORDER + 2)
   end
   local floating = spec.edge == "center"
-  if not floating then panel[axis] = d.open:get() and 0 or tucked() end
-
-  local move, stop_motion = theme.motion.drawer {
-    panel = panel, spec = spec, drawer = d,
-    axis = axis, floating = floating, tucked = tucked,
-  }
-
-  local was = d.open:get()
-  morf.effect("eva.drawer." .. spec.name, function()
-    local now = d.open:get()
-    require("presentation").set(spec.name, now)
-    if now == was then return end
-    was = now
-    if not d.manual then move(now) end
-  end, { owner = panel })
 
   -- Its background in the frame's field: square on the frame's side (the
   -- seam rounds that join), the reference's rounding on the far side.
   local near, far = 0, theme.ROUNDING
   local e = spec.edge
   local function r(a, b) return (e == a or e == b) and near or far end
+  -- It reaches past the frame's edge, under the frame.
+  local backing = panel
+  if not floating then
+    local reach = { fill = true }
+    reach[e .. "_margin"] = -LIP
+    backing = ui.Item { anchors = reach }
+    ui.reparent(backing, panel)
+  end
   -- A floating one is rounded all round, and apart from the frame's seams.
   d.shape = ui.SdfShape {
     id = "drawer-" .. spec.name .. "-background",
     shape = "box",
     operation = "smooth_union",
-    blend_group = groups,
-    track = panel,
+    blend_group = theme.motion.seam_group and theme.motion.seam_group(spec.name, groups) or groups,
+    track = backing,
     top_left_radius = r("top", "left"),
     top_right_radius = r("top", "right"),
     bottom_left_radius = r("bottom", "left"),
@@ -158,8 +152,19 @@ function M.new(spec)
     end
   end
 
-  -- Shut, a floating panel's background is not drawn at all.
-  if floating then d.shape.opacity = d.open:get() and 1 or 0 end
+  local motion = theme.motion.drawer {
+    panel = panel, spec = spec, drawer = d,
+    axis = axis, floating = floating, tucked = tucked,
+  }
+
+  local was = d.open:get()
+  morf.effect("eva.drawer." .. spec.name, function()
+    local now = d.open:get()
+    require("presentation").set(spec.name, now)
+    if now == was then return end
+    was = now
+    if not d.manual then motion.move(now) end
+  end, { owner = panel })
 
   function d.set(on)
     local switcher = package.loaded["themes.switcher"]
@@ -168,14 +173,12 @@ function M.new(spec)
     if manual and d.interrupt_drag then d.interrupt_drag() end
     local same = d.open:get() == (on and true or false)
     d.open:set(on and true or false)
-    if manual and same then move(on) end
+    if manual and same then motion.move(on) end
   end
   function d.toggle() d.set(not d.open:get()) end
   function d.is_open() return d.open:get() end
 
-  require("drawer_drag").attach(d, {
-    content=spec.content, axis=axis, tucked=tucked, floating=floating,
-  }, stop_motion)
+  require("drawer_drag").attach(d, { axis=axis, tucked=tucked, floating=floating }, motion)
 
   -- While open it is a kit Popup where it stands: the overlay layer shuts
   -- it on a press outside or Escape, by its policy -- no catcher of its own.

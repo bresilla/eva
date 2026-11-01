@@ -59,7 +59,7 @@ return function(S, theme, M, hud)
       local holder = ui.Item { anchors = { fill = true }, z = 40 }
       local wash = ui.Rect { id = id .. "-wash", anchors = { fill = true },
         color = function() return C.primary end, opacity = 0,
-        behavior = { opacity = { duration = 140, easing = "out_cubic" } } }
+        behavior = { opacity = theme.spring.effects } }
       local glint = ui.Path { id = id .. "-glint", x = -36, width = 28,
         height = function() return math.max(1, t.height) end,
         view_box = { 0, 0, 28, 100 }, d = "M20 0 H28 L8 100 H0 Z",
@@ -167,22 +167,24 @@ return function(S, theme, M, hud)
   --- while pressed), and what `legend` takes.
   local function framed(t, spec, o)
     local function ink() return get(o.ink) end
-    local plate = ui.Rect { anchors = { fill = true }, color = o.fill or "transparent",
+    local sink = o.sink or 1
+    local function offset() return t.down and sink or 0 end
+    local plate = ui.Rect { id = spec.id and spec.id .. "-plate", anchors = { fill = true }, color = o.fill or "transparent",
       border_width = o.edge and (o.edge_width or 1) or 0, border_color = o.edge,
-      translate_x = o.sink and function() return t.down and o.sink or 0 end or nil,
-      translate_y = o.sink and function() return t.down and o.sink or 0 end or nil,
-      behavior = { color = quick, border_color = quick, translate_x = quick, translate_y = quick } }
+      translate_x = offset, translate_y = offset,
+      behavior = { color = quick, border_color = quick, translate_x = theme.spring.press,
+        translate_y = theme.spring.press } }
     local ground = { anchors = { fill = true } }
     for _, node in ipairs(o.under or {}) do ground[#ground + 1] = node end
     ground[#ground + 1] = plate
     for _, node in ipairs(o.over or {}) do ground[#ground + 1] = node end
     local body = o.content
     if body == nil then body = legend(t, spec, ink, o) end
-    if o.sink and body then
-      body = ui.Item { anchors = { fill = true },
-        translate_x = function() return t.down and o.sink or 0 end,
-        translate_y = function() return t.down and o.sink or 0 end,
-        behavior = { translate_x = quick, translate_y = quick }, body }
+    -- The built caption sinks with the plate, on the press spring.
+    if body then
+      ui.claims(body, { motion = theme.spring.press,
+        held = { when = function() return t.down end, set = { translate_x = sink, translate_y = sink } },
+        free = { set = { translate_x = 0, translate_y = 0 } } })
     end
     return full {
       background = ui.Item(ground),
