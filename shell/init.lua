@@ -90,12 +90,18 @@ end)
 -- output's shell is built again in place for the other layout, and what is
 -- open stays open.
 local built_layout = require("responsive").layout()
+local turned = morf.reloadable("eva.rotation.open", {})
 require("responsive").watch_input()
 morf.effect("eva.rotation", function()
   morf.window.screens_revision()
   local layout = require("responsive").layout()
   if layout ~= built_layout then
     built_layout = layout
+    local open = {}
+    for _, d in ipairs(drawer.all) do
+      if d.is_open() then open[#open + 1] = d.name end
+    end
+    turned:set { open = open, sidebar = require("sidebar").tab:get(), dashboard = require("dashboard").tab:get() }
     morf.reload { output = true }
   end
 end)
@@ -146,6 +152,10 @@ end)
 local rail_node=rail.build()
 local levels=require("levels")
 local levels_node=levels.build()
+-- Where the panels are sheets the levels show only while one changes.
+if require("responsive").sheets() then
+  levels_node.visible=function() return levels.shown:get()~="" end
+end
 local overlays={
   -- The desk dims under the session menu.
   session.dim(),
@@ -490,3 +500,16 @@ end
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)
+
+-- What was open before a turn of the screen, open again the new way up.
+do
+  local before = turned:get()
+  if before.open then
+    sidebar.tab:set(before.sidebar or 1)
+    dashboard.tab:set(before.dashboard or 1)
+    for _, name in ipairs(before.open) do
+      if drawer[name] then drawer[name].set(true) end
+    end
+    turned:set({})
+  end
+end
