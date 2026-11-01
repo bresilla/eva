@@ -15,8 +15,9 @@ local M = {}
 local ROW_H = 56
 local CPU_W = 68
 local MEMORY_W = 88
-local PID_W = 72
+local PID_W = 88
 local DETAIL_W = 360
+local SHEET_H = 520
 local WIDE = 860
 local MEDIUM = 600
 local CHART_H = 96
@@ -188,6 +189,7 @@ local function detail_card(w, h)
         fact("monitor-detail-threads", "Threads", detail_words("threads", function(v) return tostring(math.floor(v)) end), inner),
         fact("monitor-detail-cpu", "CPU", function() return percent(chosen().cpu) end, inner),
         fact("monitor-detail-memory", "Memory", function() return size(chosen().memory) end, inner),
+        fact("monitor-detail-swap", "Swap", detail_words("swap", size), inner),
         fact("monitor-detail-read", "Disk read", detail_words("read_rate", rate, "Not readable"), inner),
         fact("monitor-detail-write", "Disk write", detail_words("write_rate", rate, "Not readable"), inner),
         fact("monitor-detail-total", "Disk total", function()
@@ -228,7 +230,7 @@ local function header_label(id, text, width)
 end
 
 local function processes_page(w, h)
-  local list_node, handle
+  local list_node
   local function wide() return get(w) >= WIDE end
   local function open() return model.selected:get() ~= 0 end
   local function roomy() return get(w) >= MEDIUM end
@@ -236,21 +238,33 @@ local function processes_page(w, h)
   local function body_h() return math.max(1, get(h) - top()) end
   local function list_w() return math.max(1, get(w) - ((wide() and open()) and DETAIL_W + S.m or 0)) end
   local function list_h() return math.max(1, body_h() - L.lh(P.SUB) - S.xs) end
-  local function sheet_h() return wide() and body_h() or math.min(body_h(), math.max(320, body_h() * 0.62)) end
+  local function sheet_h() return wide() and body_h() or math.min(body_h(), SHEET_H) end
   local function sheet_w() return wide() and DETAIL_W or get(w) end
-  list_node, handle = kit.widgets.virtual_list {
+  local function close()
+    if not open() then return false end
+    model.select(0)
+    return true
+  end
+  list_node = kit.widgets.virtual_list {
     id = "monitor-list", width = list_w, height = list_h, rows = model.rows, row_height = ROW_H,
     delegate = process_row, current = model.selected_index,
     on_current_changed = function(index) model.select_row(index) end,
+    on_key_pressed = function(_, _, _, _, key) return key == "Escape" and close() end,
   }
   local sorts = { "CPU", "Memory", "Name", "PID" }
-  local bar = {
-    id = "monitor-bar", width = w, gap = S.s, align = "center",
-  }
-  local entry = controls.entry {
-    id = "monitor-search", value = model.query, placeholder = "Search name, command, user or PID",
+  local entry = kit.text_field("entry", {
+    id = "monitor-search", height = S.TARGET, placeholder = "Search name, command, user or PID", focus = true,
     width = function() return roomy() and math.max(1, get(w) * 0.5 - S.s) or get(w) end,
-  }
+    color = kit.ink("hi"), placeholder_color = kit.ink("lo"),
+    text = function() return model.query:get() end,
+    on_text_changed = function(value) model.query:set(value) end,
+    on_key_pressed = function(_, _, _, _, key)
+      if key == "Escape" then return close() end
+      if key ~= "Down" then return false end
+      morf.focus.set(list_node, true)
+      return true
+    end,
+  })
   local segments = controls.segments {
     id = "monitor-sort", items = sorts, width = function() return roomy() and get(w) * 0.5 or get(w) end,
     current = function()
@@ -266,21 +280,6 @@ local function processes_page(w, h)
   local list_top = function() return top() + L.lh(P.SUB) + S.xs end
   return ui.Item {
     id = "monitor-processes", width = w, height = h,
-    on_key_pressed = function(_, _, _, _, name)
-      if name == "Down" then
-        morf.focus.set(list_node, true)
-        return true
-      end
-      if name == "Delete" and open() then
-        model.term(model.selected:get())
-        return true
-      end
-      if name == "Escape" and open() then
-        model.select(0)
-        return true
-      end
-      return false
-    end,
     ui.Item { width = w, height = S.TARGET, entry },
     segments_box,
     ui.Item {
