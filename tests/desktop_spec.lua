@@ -222,7 +222,8 @@ test.describe("what widgets say", function()
 
   test.it("runs the custom command while it is shown, and stops", function()
     test.stub_run("sh", { code = 0, stdout = "up 3 days\n" })
-    load { live = true, settings = { desktop = { widgets = { desk = { "command" } }, command = { run = "uptime -p", interval = 30 } } } }
+    load { live = true, settings = { appearance = { sync = false },
+      desktop = { widgets = { desk = { "command" } }, command = { run = "uptime -p", interval = 30 } } } }
     test.wait(function() test.advance(16) return test.ipc("d_output") == "up 3 days" end, 3000, "the command never answered")
     test.ipc("desktop", "hide", "command") test.advance(32)
     test.eq(test.ipc("d_output"), "")

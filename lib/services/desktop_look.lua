@@ -9,7 +9,8 @@ local M = {}
 
 local INTERFACE = "org.gnome.desktop.interface"
 
-local function config_home() return morf.env("XDG_CONFIG_HOME") or (morf.fs.home() .. "/.config") end
+local function home() return morf.env("HOME") or morf.fs.home() end
+local function config_home() return morf.env("XDG_CONFIG_HOME") or (home() .. "/.config") end
 
 --- `text` of an ini file with `key` set to `value` under `[section]`; every
 --- other line stays as it was.
@@ -90,7 +91,7 @@ function M.plan(want)
     set("cursor-size", size)
     gtk("gtk-cursor-theme-name", want.cursor_theme)
     gtk("gtk-cursor-theme-size", size)
-    plan.writes[#plan.writes + 1] = { path = morf.fs.home() .. "/.icons/default/index.theme",
+    plan.writes[#plan.writes + 1] = { path = home() .. "/.icons/default/index.theme",
       text = "[Icon Theme]\nInherits=" .. want.cursor_theme .. "\n" }
     plan.commands[#plan.commands + 1] = { "hyprctl", "setcursor", want.cursor_theme, tostring(size) }
   end
@@ -114,6 +115,10 @@ function M.apply(plan, done)
     if done then done(0) end
     return false
   end
+  local function save(path, text)
+    local ok, why = morf.fs.write(path, text, { atomic = true, parents = true })
+    if not ok then morf.log("warn", "eva: could not write " .. path .. ": " .. tostring(why)) end
+  end
   local by_path, order = {}, {}
   for _, change in ipairs(plan.edits) do
     if not by_path[change.path] then by_path[change.path] = {} order[#order + 1] = change.path end
@@ -123,9 +128,9 @@ function M.apply(plan, done)
     local ok, text = pcall(morf.fs.read, path)
     text = ok and type(text) == "string" and text or ""
     for _, change in ipairs(by_path[path]) do text = M.ini_set(text, change.section, change.key, change.value) end
-    morf.fs.write(path, text, { atomic = true, parents = true })
+    save(path, text)
   end
-  for _, write in ipairs(plan.writes) do morf.fs.write(write.path, write.text, { atomic = true, parents = true }) end
+  for _, write in ipairs(plan.writes) do save(write.path, write.text) end
   local waiting, failed = #plan.commands, 0
   if waiting == 0 and done then done(0) end
   for _, argv in ipairs(plan.commands) do
@@ -176,7 +181,7 @@ end
 -- ------------------------------------------------------------------ lists --
 
 local function data_dirs()
-  local dirs = { morf.fs.home() .. "/.icons", morf.fs.home() .. "/.local/share/icons" }
+  local dirs = { home() .. "/.icons", home() .. "/.local/share/icons" }
   local shared = morf.env("EVA_ICON_DIRS") or morf.env("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
   for dir in shared:gmatch("[^:]+") do
     dirs[#dirs + 1] = morf.env("EVA_ICON_DIRS") and dir or (dir .. "/icons")

@@ -42,9 +42,9 @@ end
 
 -- The engine's reading, where Lule cannot.
 local function ask_engine(art, done)
-  local ok, queued = pcall(morf.image.palette, art, 6, function(success, colors)
-    local first = success and colors and colors[1]
-    done(first and morf.color(first):hex():sub(1, 7) or nil)
+  local ok, queued = pcall(morf.image.palette, art, 32, function(success, swatches)
+    local best = success and require("lib.theme.material").score(swatches)[1]
+    done(best and morf.color(best):hex():sub(1, 7) or nil)
   end)
   if not ok or not queued then done(nil) end
 end
