@@ -29,7 +29,7 @@ function V.build(model)
     tab = model.tab, publish = false,
     close = function() require(model.id).drawer.set(false) end,
     dismiss = ({ top = "up", left = "left", right = "right" })[model.edge],
-    on_present = model.present, icons_only = top and responsive.compact(),
+    on_present = model.present, icons_only = top,
   }
   morf.effect("material." .. model.id .. ".shown", function() panel.shown(model.opened:get()) end)
   local content = panel.content
