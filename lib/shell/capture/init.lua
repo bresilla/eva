@@ -28,7 +28,7 @@ function M.windows_from(kind,data,workspaces,outputs)
     for _,c in ipairs(data or {}) do
       if c.mapped and not c.hidden and c.at and c.size and c.workspace and visible[c.workspace.id] and c.size[1]>0 and c.size[2]>0 then
         found[#found+1]={x=c.at[1],y=c.at[2],w=c.size[1],h=c.size[2],z=c.focusHistoryID or 99,title=c.title or "Window",
-          address=c.address,app=c.class}
+          address=c.address,app=c.class,focused=c.focusHistoryID==0}
       end
     end
   elseif kind=="sway" then
@@ -37,7 +37,7 @@ function M.windows_from(kind,data,workspaces,outputs)
       for _,child in ipairs(node.nodes or {}) do walk(child,visible) end
       for _,child in ipairs(node.floating_nodes or {}) do walk(child,visible) end
       local r=node.rect
-      if visible and node.visible~=false and r and r.width>0 and r.height>0 and
+      if visible and node.type~="workspace" and node.visible~=false and r and r.width>0 and r.height>0 and
         #(node.nodes or {})==0 and #(node.floating_nodes or {})==0 and (node.app_id or node.window or node.pid) then
         found[#found+1]={x=r.x,y=r.y,w=r.width,h=r.height,z=-#found,title=node.name or "Window",
           id=node.id,app=node.app_id,focused=node.focused}
