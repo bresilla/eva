@@ -52,9 +52,11 @@ M.badge = badge
 --- `name`), `width`, `height` (a tile's), `prefix` (of the ids), `card_id`,
 --- `key` (of the signals), `titles` (a zone's caption by its name, for a board
 --- of zones), `columns` (how many slots across its inner width), `note`
---- (`has_spare`: what the Available section says), and `face(item, tile)`, the
---- tile's own node. `tile`: `box`, `shown`, `spare`, `small`, `armed`,
---- `editing`, `slot`, `half`. Returns `{ node, height }`.
+--- (`has_spare`: what the Available section says), `lift` (a board always
+--- arranged: under a finger a tile takes a long press to come loose, so a
+--- drag over the rest scrolls), and `face(item, tile)`, the tile's own node.
+--- `tile`: `box`, `shown`, `spare`, `small`, `armed`, `editing`, `hold` (a long
+--- press's: the board to arranging), `slot`, `half`. Returns `{ node, height }`.
 function M.build(spec)
   local board, w, TILE_H = spec.board, spec.width, spec.height
   local prefix = spec.prefix
@@ -69,6 +71,8 @@ function M.build(spec)
   local cells = morf.signal(key .. "cells." .. stamp, { zones = {}, spare = {}, spare_rows = 0 })
   local carried = morf.signal(key .. "carried." .. stamp, "")
   local edited = morf.signal(key .. "edited." .. stamp, false)
+  local lifted = morf.signal(key .. "lifted." .. stamp, "")
+  local held_down = spec.lift and require("models.touchscreens").attached()
   local function editing() return board.editing:get() end
 
   -- A named zone keeps a row to drop into while it is empty.
@@ -134,11 +138,14 @@ function M.build(spec)
       local cell = shown_cell(id) or cells:get().spare[id]
       return cell ~= nil and cell.span == 1
     end
-    local function armed() return editing() and shown() end
+    local function armed() return editing() and shown() and (not held_down or lifted:get() == id) end
     local function placed() return shown() or (editing() and spare()) end
+    local function hold()
+      if not editing() then board.editing:set(true) elseif held_down then lifted:set(id) end
+    end
 
     local area = spec.face(t, { box = box, shown = shown, spare = spare, small = small, armed = armed,
-      editing = editing, slot = SLOT, half = METRICS.half })
+      editing = editing, hold = hold, slot = SLOT, half = METRICS.half })
 
     local marks = ui.Loader { anchors = { fill = true }, keep = true, active = function() return edited:get() end,
       source = function()
@@ -186,7 +193,11 @@ function M.build(spec)
         origin = { x = b.x - P.PAD + b.width / 2, y = b.y + TILE_H / 2 }
         carried:set(id)
       end,
-      on_dropped = function() carried:set("") end,
+      on_dropped = function()
+        carried:set("")
+        lifted:set("")
+        require("haptics").fire("commit")
+      end,
       on_reorder = function(step) board.step(id, step) end,
     }
     ui.reparent(body, holder)

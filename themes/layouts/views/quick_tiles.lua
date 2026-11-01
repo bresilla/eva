@@ -35,10 +35,12 @@ function V.build(model, w, ctx)
       on_clicked = function()
         if editing() then board.add(id) else t.set(not on()) end
       end,
-      -- A small tile has no chevron: a long press opens what it would.
-      on_long_pressed = t.detail and function()
-        if not editing() then model.detail:set(t.detail) end
-      end or nil,
+      -- A small tile has no chevron: a long press opens what it would. Any
+      -- other long press starts arranging the board.
+      on_long_pressed = function()
+        if editing() then return end
+        if t.detail and small() then model.detail:set(t.detail) else tile.hold() end
+      end,
       kit.icon(t.icon, 22, fg, { anchors = { vertical_center = true }, fill = t.fill or on,
         visible = not t.glyph or function() return not t.glyph().present end,
         x = function() return small() and (tile.half - 22) / 2 or S.l end,

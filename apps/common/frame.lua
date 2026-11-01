@@ -36,6 +36,8 @@ M.EDGE = S.s
 M.REACH = S.xl
 -- The title tab's reach: what the close tab always leaves it.
 M.TITLE_ROOM = S.TARGET + S.xl
+-- How far in from the window's left edge a swipe back may start.
+M.BACK_EDGE = S.xxl
 
 --- The Material scheme and lule's own colours, from what the colour tool made.
 function M.follow_scheme()
@@ -116,8 +118,9 @@ end
 
 --- Opens the tool's window: `id`, `title`, `width`, `height`, `minimum_width`,
 --- `minimum_height`, `actions(w)` (a node at the header's right), `on_close`,
---- `build(w, h)` (the content under the header, `w` and `h` fns). Returns the
---- window.
+--- `back` (fn: goes back a level, true if there was one, for the swipe in from
+--- the left; with none the swipe closes it), `build(w, h)` (the content under
+--- the header, `w` and `h` fns). Returns the window.
 function M.open(spec)
   morf.surface.blend = "srgb"
   morf.surface.namespace = "eva-" .. spec.id
@@ -155,23 +158,39 @@ function M.open(spec)
       local function body_w() return math.max(1, w() - 2 * M.PAD) end
       local area, left, right = header(win, spec, w)
       local opening = M.EDGE
+      local content = ui.Item {
+        x = M.PAD - opening, y = M.HEADER_H - opening, width = body_w, height = h,
+        opacity = 1, translate_y = 0,
+        enter = { opacity = 0, translate_y = S.m },
+        behavior = { opacity = theme.spring.effects, translate_y = theme.spring.spatial },
+        spec.build(body_w, h),
+      }
       local body = ui.ClipRect {
         id = spec.id .. "-opening-clip", anchors = { fill = true, margins = opening }, radius = theme.ROUNDING,
         color = "transparent",
-        ui.Item {
-          x = M.PAD - opening, y = M.HEADER_H - opening, width = body_w, height = h,
-          opacity = 1, translate_y = 0,
-          enter = { opacity = 0, translate_y = S.m },
-          behavior = { opacity = theme.spring.effects, translate_y = theme.spring.spatial },
-          spec.build(body_w, h),
-        },
+        content,
       }
       local field = themes.view("app_frame").build {
         id = spec.id, edge = opening,
         tabs = { { node = left }, { node = right, right = true } },
       }
+      -- A swipe in from the window's left edge takes the content with it:
+      -- back a level, or out of the tool.
+      local swipe
+      swipe = require("swipe_dismiss").new { id = "frame." .. spec.id, node = content, ways = { right = true },
+        extent = function() return w() end,
+        on_dismiss = function()
+          if spec.back and spec.back() then swipe.reset() return end
+          if spec.on_close then spec.on_close() end
+          win:close()
+        end }
       return ui.Rect {
         id = spec.id .. "-root", anchors = { fill = true }, color = function() return C.surface end,
+        on_panned = function(phase, dx, dy, vx, vy, x, y)
+          if phase == "begin" and x > M.BACK_EDGE then return false end
+          return swipe.on_panned(phase, dx, dy, vx, vy, x, y)
+        end,
+        ui.MouseArea { anchors = { fill = true }, z = -1 },
         body, area, field, left, right,
       }
     end,
@@ -179,8 +198,14 @@ function M.open(spec)
 end
 
 --- A surface over everything: `id`, `root` (fills it), `keyboard` ("exclusive"
---- by default), `visible` (true by default). Returns the surface.
+--- by default), `visible` (true by default), `close` (fn: what a swipe in from
+--- an edge does, the finger's Escape). Returns the surface.
 function M.overlay(spec)
+  if spec.close then
+    local swipe = require("swipe_dismiss").new { id = "overlay." .. spec.id, node = spec.root,
+      ways = { left = true, right = true, up = true, down = true }, on_dismiss = spec.close }
+    spec.root.on_edge_panned = function(_, ...) return swipe.on_panned(...) end
+  end
   return morf.window.layer {
     blend = "srgb", namespace = "eva-" .. spec.id, layer = "overlay",
     anchors = { top = true, bottom = true, left = true, right = true },

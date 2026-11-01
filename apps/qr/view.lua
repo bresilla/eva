@@ -163,7 +163,7 @@ local function full_screen(done)
     id = "qr-full-area", anchors = { fill = true }, cursor = "pointer", focus = true, on_clicked = close,
     on_key_pressed = function() close() return true end,
   }, root)
-  return frame.overlay { id = "qr", root = root }
+  return frame.overlay { id = "qr", root = root, close = close }
 end
 
 --- The code alone on the screen while `model.full` holds; a press or a key lets

@@ -283,6 +283,8 @@ local stack = ui.Item { width = CARD_W, height = M.height,
 --- over them as a tile's ">" opens one. The panel's frame draws the head:
 --- "Settings", or a detail's name with the way back (`M.head`).
 local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
+-- How far in from a detail's left edge a swipe back may start.
+local BACK_EDGE = theme.space.xxl + theme.space.s
 function M.page(w, h)
   overview_viewport_node, overview_viewport, overview_viewport_t, overview_viewport_ctl = kit.scroll({id="settings-overview-scroll",width=w,height=h,clip=true,
     stack})
@@ -371,16 +373,28 @@ function M.page(w, h)
     if M.detail:get() == "panels" then return false end
     return pop()
   end
-  return ui.Item {
+  -- A swipe in from a detail's left edge drags it off with the page behind it
+  -- peeking in, and goes back on release.
+  local row = ui.Row { gap = 24, main, detail }
+  local place = { get = function() return M.detail:get() ~= "" and 2 or 1 end,
+    set = function(_, index) if index == 1 and M.detail:get() ~= "" then model.back() end end }
+  local back = require("pager_drag").new { id = "settings.back", track = row, tab = place, count = 2,
+    offset = function(i) return (i - 1) * (w + 24) end, spring = SWITCH }
+  local root
+  root = ui.Item {
     width = w, height = h, clip = true,
     shortcuts = shortcuts,
-    ui.Row {
-      gap = 24,
-      translate_x = function() return M.detail:get() ~= "" and -(w + 24) or 0 end,
-      behavior = { translate_x = SWITCH },
-      main, detail,
-    },
+    on_panned = function(phase, dx, dy, vx, _, x)
+      if phase == "begin" then
+        if M.detail:get() == "" or dx <= 0 or math.abs(dy) >= math.abs(dx)
+          or x > (root.layout_x or 0) + BACK_EDGE then return false end
+        return back.begin()
+      end
+      if phase == "update" then back.update(dx) else back.finish(vx, phase == "cancel") end
+    end,
+    row,
   }
+  return root
 end
 
 

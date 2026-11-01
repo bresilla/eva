@@ -12,7 +12,8 @@
 -- The node's `translate_x` and `translate_y` are the helper's: a view leaves
 -- the ones `ways` moves unset. `ways` is a table or a fn of the start point,
 -- with `axes` then saying which axes it can move; `distance` (72 px, or
--- fn(way)) is how far commits, `extent` (fn(axis)) how far it flies, `reveal`
+-- fn(way)) is how far commits, `extent` (fn(axis)) how far it flies, `stays`
+-- that it springs home instead, its content having moved on, and `reveal`
 -- (`{ left = px }`) and `on_revealed(way)` (nil on shutting) the latch.
 -- `moved` is a signal of how far it stands from rest. A pointer's drag gets
 -- the same through `press`, `drag`, `release` and `fling`.
@@ -111,7 +112,7 @@ function M.new(spec)
     local flung = free and motion.fling(grip.travel or 0, velocity) and velocity * SIGN[way] > 0
     local reveal = way and (spec.reveal or {})[way]
     if free and (math.abs(at) >= distance or flung and math.abs(at) >= (reveal or 0)) then
-      settle(grip.on, flown(way), velocity)
+      settle(grip.on, spec.stays and 0 or flown(way), velocity)
       s.gone(way)
       return
     end

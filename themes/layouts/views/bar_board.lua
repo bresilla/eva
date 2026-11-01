@@ -22,6 +22,7 @@ function V.build(model, w)
       id = "bar-board-toggle-" .. id, accessible_name = name, anchors = { fill = true }, cursor = "pointer",
       enabled = function() return not tile.armed() end,
       on_clicked = function() if tile.editing() then board.add(id) end end,
+      on_long_pressed = tile.hold,
       kit.icon(m.icon, 20, function() return C.onSurface end, { anchors = { vertical_center = true },
         x = function() return tile.small() and (tile.half - 20) / 2 or S.m end,
         behavior = { x = theme.spring.spatial } }),
@@ -37,7 +38,7 @@ function V.build(model, w)
   end
 
   return shared.build { board = board, items = model.items, width = w, height = TILE_H, face = face,
-    prefix = "bar-board", card_id = "bar-board", key = "bar.board", titles = TITLES,
+    prefix = "bar-board", card_id = "bar-board", key = "bar.board", titles = TITLES, lift = true,
     note = function(has_spare) return has_spare and "Tap to add, then drag along the bar" or "Every module is on the bar" end }
 end
 

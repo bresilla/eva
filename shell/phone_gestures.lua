@@ -108,19 +108,25 @@ function M.panel(spec)
   end
 end
 
---- Whether a pull `direction` from (`x`, `y`) drags an open panel shut, so a
---- list under the finger leaves it to the panel.
-function M.pulls_shut(direction, x, y)
+-- The open panel over (`x`, `y`), if there is one.
+local function over_panel(x, y)
+  if not (x and y) then return nil end
   local drawers = package.loaded.drawer
   for _, drawer in ipairs(drawers and drawers.all or {}) do
     local panel = drawer.panel
-    if drawer.pulled == direction and drawer.open:get() and x and y
+    if drawer.name ~= "keyboard" and drawer.open:get()
       and x >= (panel.layout_x or 0) and x < (panel.layout_x or 0) + (panel.layout_width or 0)
       and y >= (panel.layout_y or 0) and y < (panel.layout_y or 0) + (panel.layout_height or 0) then
-      return true
+      return drawer
     end
   end
-  return false
+end
+
+--- Whether a pull `direction` from (`x`, `y`) drags an open panel shut, so a
+--- list under the finger leaves it to the panel.
+function M.pulls_shut(direction, x, y)
+  local drawer = over_panel(x, y)
+  return drawer ~= nil and drawer.pulled == direction
 end
 
 -- Each recognizer owns one contact; its begin can decline to a parent. A
@@ -178,6 +184,8 @@ function M.edge_pan(edge,phase,dx,dy,vx,vy,start_x,start_y)
     local inward = ({top=dy,bottom=-dy,left=dx,right=-dx})[edge]
     if not inward or inward <= 0 then return false end
     edge_across = edge == "left" or edge == "right"
+    -- On an open panel its own gestures come first.
+    if edge_across and over_panel(start_x,start_y) then return false end
     if edge_across then
       local height=(morf.screens[1] or {}).height or morf.surface.height
       local bottom=height-require("themes.keyboard").inset:get()-EDGE

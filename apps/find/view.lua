@@ -178,7 +178,7 @@ function M.overlay()
   morf.effect("find.shown", function()
     if (root.layout_width or 0) > 0 then model.shown() end
   end, { owner = root })
-  return frame.overlay { id = "find", root = root }
+  return frame.overlay { id = "find", root = root, close = model.finish }
 end
 
 return M

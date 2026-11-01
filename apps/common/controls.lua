@@ -24,31 +24,36 @@ M.ROW_H = 56
 local function get(v) if type(v) == "function" then return v() end return v end
 
 --- Tabs over pages side by side, the row of pages sliding on the theme's
---- spring: `id`, `width`, `height` (fns), `tab` (a signal, from 1), `tabs`
---- (`{ key, name, icon, build(w, h) }`). Returns the node, and the signal.
+--- spring and under a finger: `id`, `width`, `height` (fns), `tab` (a signal,
+--- from 1), `tabs` (`{ key, name, icon, build(w, h) }`). Returns the node, and
+--- the signal.
 function M.pages(spec)
   local w, h = spec.width, spec.height
   local tab = spec.tab or morf.signal("eva.app." .. spec.id .. ".tab", 1)
+  local peeking = morf.signal("eva.app." .. spec.id .. ".peeking", false)
   local function page_h() return math.max(1, get(h) - M.TABS_H - S.s) end
   local row = {
     id = spec.id .. "-pages", height = page_h,
     width = function() return get(w) * #spec.tabs end,
-    x = function() return -(tab:get() - 1) * get(w) end,
-    behavior = { x = theme.spring.slow },
   }
   for index, entry in ipairs(spec.tabs) do
     row[#row + 1] = ui.Item {
       id = spec.id .. "-page-" .. entry.key, width = w, height = page_h,
       x = function() return (index - 1) * get(w) end,
-      opacity = function() return tab:get() == index and 1 or 0 end,
+      opacity = function() return (tab:get() == index or peeking:get()) and 1 or 0 end,
       behavior = { opacity = theme.spring.effects },
       entry.build(w, page_h),
     }
   end
+  local track = ui.Item(row)
+  local pager = require("pager_drag").new { id = spec.id, track = track, tab = tab, count = #spec.tabs,
+    offset = function(i) return (i - 1) * get(w) end, spring = theme.spring.slow,
+    peeking = function(on) peeking:set(on) end }
   return ui.Item {
     id = spec.id .. "-paged", width = w, height = h,
     kit.tabs { id = spec.id, tabs = spec.tabs, tab = tab, width = w, height = M.TABS_H },
-    ui.Item { y = M.TABS_H + S.s, width = w, height = page_h, clip = true, ui.Item(row) },
+    ui.Item { y = M.TABS_H + S.s, width = w, height = page_h, clip = true, on_panned = pager.on_panned,
+      ui.MouseArea { anchors = { fill = true }, z = -1 }, track },
   }, tab
 end
 

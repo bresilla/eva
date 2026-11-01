@@ -204,7 +204,7 @@ local function break_screen()
     },
     card,
   }
-  return require("common.frame").overlay { id = "breaks", root = root }
+  return require("common.frame").overlay { id = "breaks", root = root, close = model.skip }
 end
 
 --- The overlay, for as long as a break runs.

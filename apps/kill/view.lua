@@ -136,7 +136,7 @@ function M.overlay()
     },
     chip(), hint(), close,
   }
-  return frame.overlay { id = "kill", root = root }
+  return frame.overlay { id = "kill", root = root, close = model.cancel }
 end
 
 return M

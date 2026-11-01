@@ -140,7 +140,7 @@ local function frozen_screen(done)
     },
     lens, field, label, controls_pill(done),
   }
-  return frame.overlay { id = "zoom", root = root }
+  return frame.overlay { id = "zoom", root = root, close = done }
 end
 
 --- The lens for as long as the screen is held; `done()` when it is let go by
