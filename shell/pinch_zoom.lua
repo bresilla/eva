@@ -9,6 +9,7 @@
 -- zoom (5), `pan` false leaves one finger and a double tap to the node,
 -- `on_start()` runs as two fingers take over, `on_change()` follows.
 local morf = require("morf")
+local ui = require("morf.ui")
 local theme = require("theme")
 local rubber = require("themes.rubber_band")
 local M = {}
@@ -85,13 +86,15 @@ function M.attach(spec)
         settle(z.scale, z.x, z.y)
       end
     end
-    area.on_double_clicked = function(x, y)
-      if z.scale > 1 then settle(1, 0, 0) else
-        local cx, cy = middle()
-        settle(TAPPED, -(x - cx) * (TAPPED - 1), -(y - cy) * (TAPPED - 1))
-      end
-      require("haptics").fire("commit")
-    end
+    -- Under the picture, so the whole of `area` takes a finger.
+    ui.reparent(ui.MouseArea { anchors = { fill = true }, z = -1,
+      on_double_clicked = function(x, y)
+        if z.scale > 1 then settle(1, 0, 0) else
+          local cx, cy = middle()
+          settle(TAPPED, -(x - cx) * (TAPPED - 1), -(y - cy) * (TAPPED - 1))
+        end
+        require("haptics").fire("commit")
+      end }, area)
   end
   local view = {}
   --- Back at rest, as a new picture comes on show.

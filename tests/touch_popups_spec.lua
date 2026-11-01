@@ -22,6 +22,18 @@ local SOURCE = [[
   end
   morf.ipc.q_pop = levels.pop
   morf.ipc.q_spot = function(kind) return { edge = levels.spot(kind).edge } end
+  morf.ipc.q_history = function()
+    for _, entry in ipairs(notifs.list:get()) do notifs.dismiss(entry.id) end
+    local sidebar = require("sidebar")
+    sidebar.select("notifications")
+    sidebar.drawer.set(true)
+  end
+  morf.ipc.q_group_open = function()
+    local history = require("notification_history")
+    local group = history.groups()[1]
+    return group ~= nil and history.is_open(group.key)
+  end
+  morf.ipc.q_records = function() return #notifs.records() end
 ]]
 
 local function card()
@@ -108,6 +120,23 @@ for _, form in ipairs(touch.FORMS) do
       local x, y = bud.x + bud.width / 2, bud.y + bud.height / 2
       touch.drag(x, y, 120, 0)
       test.falsy(test.ipc("q_state").active, "it went")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a row of the history swipes away, and two fingers open its group", function()
+      touch.load(form, style, SOURCE)
+      test.ipc("q_push", "History", "First") test.ipc("q_push", "History", "Second") test.advance(400)
+      test.ipc("q_history") test.advance(1200)
+      local group = test.get("sidebar-group-1")
+      local x, y = group.x + group.width / 2, group.y + group.height / 2
+      pinch(x, y, 40, 120)
+      test.truthy(test.ipc("q_group_open"), "spread, the group opens")
+      test.advance(700)
+      local row = test.find { id = "sidebar-item-title-1-1", visible = true }
+      test.truthy(row, "a row of it is on show")
+      local before = test.ipc("q_records")
+      touch.drag(row.x + 40, row.y + 8, 160, 0)
+      test.eq(test.ipc("q_records"), before - 1, "it went")
       test.eq(test.logs("error"), {})
     end)
   end

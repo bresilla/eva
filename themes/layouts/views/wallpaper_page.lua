@@ -92,7 +92,6 @@ local function pictures_tab(state, pictures, w, h)
         text = function() return state.selected:get() == "" and "Choose a wallpaper" or "Preparing preview…" end } },
   }
   -- Two fingers look closer at the picture.
-  ui.reparent(ui.MouseArea { anchors = { fill = true }, z = -1 }, frame)
   local zoom = require("pinch_zoom").attach { node = swap.node, area = frame }
   morf.effect("eva.wallpaper.preview", function()
     local source = state.preview:get()
