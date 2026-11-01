@@ -1,7 +1,7 @@
 -- eva-keys: the live bindings of the compositor and the shell's own, as one
 -- searchable list. No nodes.
 local morf = require("morf")
-local keybinds = require("keybinds")
+local keybinds = require("key_rows")
 
 local M = {
   rows = morf.signal("keys.rows", {}),

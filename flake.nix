@@ -62,6 +62,13 @@
               morf = engine;
             }
           );
+          # The same: the head of the file says how to run it.
+          windows-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/windows.nix {
+              module = self.nixosModules.default;
+              wallpaper = ./tests/fixtures/wallpaper.png;
+            }
+          );
         };
         checks = {
           inherit eva;
@@ -116,7 +123,6 @@
             # A real text field for tools/see/keyboard-ime.steps.
             pkgs.zenity
             pkgs.libnotify
-            pkgs.qrencode
           ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.

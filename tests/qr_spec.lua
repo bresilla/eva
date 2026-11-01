@@ -1,6 +1,7 @@
--- eva-qr: the `WIFI:` string, qrencode's output read into one outline, where a
--- password may and may not go, the window, and the command line. A code read back
--- off the screen by a real decoder is tools/see/qr.steps'.
+-- eva-qr: the `WIFI:` string, where a password may and may not go, the window, and
+-- the command line, all on the shared encoder (lib/util/qr.lua; tests/launcher_tools_spec.lua
+-- reads its codes back). A code read back off the screen by a real decoder is
+-- tools/see/qr.steps'.
 --
 --     morf test --no-dbus tests/qr_spec.lua
 
@@ -8,20 +9,16 @@ local test = morf.test
 
 local ROOT = morf.fs.join(morf.env("PWD"), "")
 local BIN = ROOT .. "tests/fixtures/bin"
--- A two by two code, as `qrencode -t ASCII -m 0` writes one.
-local TINY = "####  \n  ##  \n      \n"
 local SECRET = "s3cret;pa:ss"
 
 local PIECES = [[
   local morf = require("morf")
   require("morf.ui").Item { width = 1, height = 1 }
-  local codes = require("codes")
+  local qr = require("lib.util.qr")
   local model = require("model")
   morf.ipc.wifi = function(ssid, security, password, hidden)
-    return codes.wifi({ ssid = ssid, security = security, hidden = hidden == "yes" }, password)
+    return qr.wifi({ ssid = ssid, security = security, hidden = hidden == "yes" }, password)
   end
-  morf.ipc.parse = function(ascii) return codes.parse(ascii) end
-  morf.ipc.outline = function(ascii) return codes.outline(codes.parse(ascii)) end
   morf.ipc.saved = function(lines) return model.parse_saved(lines) end
 ]]
 
@@ -46,7 +43,6 @@ end
 
 local function window(style, args, extra)
   test.clear_stubs()
-  test.stub_run("qrencode", { code = 0, stdout = TINY })
   test.load("../apps/qr/app.lua", { args = args, env = environment(fresh("window"), style, extra) })
   test.settle(300)
 end
@@ -58,8 +54,9 @@ local function argv_text()
   return table.concat(all, "\n")
 end
 
--- A host wrapping morf.process.run, to see what is written to a program's stdin.
-local function stdin_host(words)
+-- A host wrapping morf.process.run, to see every program it starts and what it
+-- writes to them.
+local function stdin_host()
   test.clear_stubs()
   test.load("../apps/qr/app.lua", { env = environment(fresh("stdin"), nil, { EVA_DRY_RUN = "0" }), source = [[
     local morf = require("morf")
@@ -93,22 +90,6 @@ test.it("writes the WIFI string, escaping what the format reserves", function()
     'WIFI:T:WPA;S:a\\;b\\,c\\:d\\\\e\\"f;P:p\\;q\\,r\\:s\\\\t\\"u;;')
 end)
 
-test.it("reads qrencode's modules, and refuses what is not a square of them", function()
-  pieces()
-  local code = test.ipc("parse", TINY)
-  test.eq(code.size, 3)
-  test.eq(code.rows[1], { true, true, false })
-  test.eq(code.rows[2], { false, true, false })
-  test.eq(test.ipc("parse", "### \n"), nil)
-  test.eq(test.ipc("parse", "##\n####\n"), nil)
-  test.eq(test.ipc("parse", ""), nil)
-end)
-
-test.it("draws a run of a row as one box", function()
-  pieces()
-  test.eq(test.ipc("outline", TINY), "M0 0h2v1h-2zM1 1h1v1h-1z")
-end)
-
 test.it("reads the saved Wi-Fi networks and leaves the wired ones", function()
   pieces()
   test.eq(test.ipc("saved", "Cafe\\: guest:802-11-wireless\nhome:802-11-wireless\nWired:802-3-ethernet\n"),
@@ -117,17 +98,15 @@ end)
 
 -- ------------------------------------------------------------------ secrets --
 
-test.it("hands the password to qrencode on stdin and nowhere else", function()
+test.it("encodes the password in the tool, and no program hears it", function()
   stdin_host()
   test.ipc("ssid", "home")
   test.ipc("password", SECRET)
   test.advance(300)
-  local fed = test.ipc("fed")
-  local last = fed[#fed]
-  test.eq(last.argv[1], "qrencode")
-  test.contains(last.stdin, "P:s3cret\\;pa\\:ss;")
-  for _, call in ipairs(fed) do
+  test.ne(test.ipc("state").size, 0)
+  for _, call in ipairs(test.ipc("fed")) do
     test.falsy(table.concat(call.argv, " "):find("s3cret", 1, true), "never on a command line")
+    test.falsy((call.stdin or ""):find("s3cret", 1, true), "never on a program's stdin")
   end
 end)
 
@@ -141,19 +120,16 @@ test.it("keeps the password out of its state and off its signals", function()
   test.falsy(morf.json.encode(state):find("s3cret", 1, true))
 end)
 
-test.it("saves a network's PNG with the password on stdin", function()
+test.it("saves a network's PNG with no program", function()
   stdin_host()
   test.ipc("ssid", "home")
   test.ipc("password", SECRET)
   test.advance(300)
-  test.ipc("save", "/nonexistent/out.png")
-  test.advance(100)
-  local fed = test.ipc("fed")
-  local last = fed[#fed]
-  test.contains(table.concat(last.argv, " "), "-t PNG")
-  test.contains(table.concat(last.argv, " "), "-o /nonexistent/out.png")
-  test.contains(last.stdin, "s3cret")
-  test.falsy(table.concat(last.argv, " "):find("s3cret", 1, true))
+  local out = fresh("save") .. "/deep/out.png"
+  test.ipc("save", out)
+  test.advance(300)
+  test.eq(morf.fs.read(out):sub(2, 4), "PNG")
+  test.eq(test.ipc("fed"), {})
 end)
 
 test.it("takes a password piped in and lets its file go", function()
@@ -172,7 +148,6 @@ end)
 
 test.it("fills a saved network's secret into the input, never a signal", function()
   test.clear_stubs()
-  test.stub_run("qrencode", { code = 0, stdout = TINY })
   test.stub_run("nmcli", { code = 0, stdout = "wpa-psk\n" .. SECRET .. "\nyes\n" })
   test.load("../apps/qr/app.lua", { env = environment(fresh("nm")) })
   test.settle(200)
@@ -196,7 +171,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.type("hello")
     test.advance(300)
     test.settle(100)
-    test.eq(test.ipc("state").size, 3)
+    test.eq(test.ipc("state").size, 21)
     test.truthy(test.get({ id = "qr-plate" }).visible)
     test.eq(#test.logs("error"), 0)
   end)
@@ -217,15 +192,30 @@ end
 test.it("keeps a whole number of pixels to a module", function()
   window(nil, { "hello" })
   local plate = test.get({ id = "qr-plate-modules" })
-  test.eq(plate.width % 3, 0)
-  test.truthy(plate.width >= 3)
+  test.eq(plate.width % 21, 0)
+  test.truthy(plate.width >= 21)
+end)
+
+test.it("holds more at a lower level, and says when a level will not fit", function()
+  local function until_state(check)
+    return test.wait(function()
+      test.advance(5)
+      return check(test.ipc("state"))
+    end, 8000, "the code did not come")
+  end
+  window(nil, { string.rep("x", 1500) })
+  test.eq(test.ipc("state").level, "M")
+  until_state(function(state) return state.size > 0 end)
+  test.ipc("level", "4")
+  until_state(function(state) return state.size == 0 end)
+  test.contains(test.ipc("state").message, "too long")
+  test.ipc("level", "1")
+  until_state(function(state) return state.size > 0 end)
+  test.eq(test.ipc("state").message, "")
 end)
 
 test.it("says what is wrong when no code can be made", function()
-  test.clear_stubs()
-  test.stub_run("qrencode", { code = 1, stderr = "Failed to encode the input data: Input data too large" })
-  test.load("../apps/qr/app.lua", { args = { "x" }, env = environment(fresh("large")) })
-  test.settle(200)
+  window(nil, { string.rep("x", 3000) })
   test.contains(test.ipc("state").message, "too long")
   test.eq(test.ipc("state").size, 0)
 end)
@@ -271,14 +261,17 @@ test.it("writes a PNG as a job, and wants a file and a text", function()
   test.eq(cli { "--png", "/tmp/x.png" }, "")
 end)
 
-test.it("really encodes and writes a PNG through qrencode", function()
+test.it("really writes a PNG on a machine with no programs", function()
   test.clear_stubs()
   local state = fresh("real")
   local out = state .. "/code.png"
   local answer = state .. "/answer"
   test.load("../apps/qr/app.lua", { args = { "--png", out, "hello", "world" },
-    env = environment(state, nil, { EVA_DRY_RUN = "0", EVA_JOB_OUT = answer }) })
-  test.wait(function() return morf.fs.exists(answer) end, 5000, "the job answered")
+    env = environment(state, nil, { EVA_DRY_RUN = "0", EVA_JOB_OUT = answer, PATH = "/nonexistent" }) })
+  test.wait(function()
+    test.advance(5)
+    return morf.fs.exists(answer)
+  end, 5000, "the job answered")
   test.contains(morf.fs.read(answer), "0\n" .. out)
   test.eq((morf.fs.read(out) or ""):sub(2, 4), "PNG")
 end)

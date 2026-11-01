@@ -825,9 +825,17 @@ function V.build(M)
       focused = on
       if field then field.focus = on end
     end,
-    props = {
+    props = responsive.sheets() and {
       anchors = { top = true, horizontal_center = true, top_margin = top_margin() },
       behavior = { width = theme.spring.spatial, height = theme.spring.spatial },
+    } or {
+      -- On a desk it keeps clear of the side panels (shell/panel_room.lua).
+      anchors = { top = true, top_margin = top_margin() },
+      x = function()
+        if not M.opened:get() then return 0 end
+        return (require("panel_room").span(width()))
+      end,
+      behavior = { x = theme.spring.spatial, width = theme.spring.spatial, height = theme.spring.spatial },
     },
   }
 end

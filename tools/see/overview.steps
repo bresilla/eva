@@ -1,0 +1,12 @@
+# The overview on the window stand-in, with two real windows of the sealed
+# compositor among the scene's: their pictures come from morf.screencopy.
+export EVA_FAKE_WINDOWS=${EVA_FAKE_WINDOWS:-$SEE_EVA/tests/fixtures/windows.json}
+start shell
+window Editor see.editor "#26547c"
+window Browser see.browser "#7a3b69"
+pause 3
+ipc overview open; pause 2.5; shot spread
+key Right; pause 0.4; shot selected
+text fire; pause 0.8; shot filtered
+key Escape; pause 1
+note morf ipc call windows wire

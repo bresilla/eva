@@ -15,6 +15,7 @@ function M.new(root)
   -- Along the bottom the pages lie side by side ("x"); along a side, where
   -- the rail stands upright, one above the other ("y").
   local axis="x"
+  local by_window=false
   local wallpaper=require("workspace_wallpaper").new()
   -- Keep the real shell frame, rail and its decorations above the preview.
   local viewport=ui.Item {id="phone-workspace-preview",z=-1,clip=true,
@@ -49,9 +50,8 @@ function M.new(root)
     local _,_,w,h=require("bar").desk()
     return math.max(1,axis=="y" and h or w)
   end
-  local function release(source)
-    if source and source~="" and morf.screencopy then pcall(morf.screencopy.release,source) end
-  end
+  local capture=require("window_shots")
+  local release=capture.release
   local function clear()
     generation=generation+1
     if animation then animation:stop() animation=nil end
@@ -70,16 +70,6 @@ function M.new(root)
     local target=id+delta
     while target>0 and other[target] do target=target+delta end
     return math.floor(math.max(1,target))
-  end
-  local function toplevel(client)
-    local found
-    for _,window in ipairs(morf.windows or {}) do
-      if window.app_id==client.class and window.title==client.title then
-        if found then return nil end -- identical titles must not show the wrong window
-        found=window.identifier
-      end
-    end
-    return found
   end
   local function page(id,position,queue)
     local C=require("theme").color
@@ -112,7 +102,8 @@ function M.new(root)
     local count=0
     for i=1,clients:len() do
       local c=clients:get(i)
-      if c.workspace==id and c.mapped~=false and not c.hidden and count<12
+      local here=by_window and c.address==id or (not by_window and c.workspace==id)
+      if here and c.mapped~=false and not c.hidden and count<12
         and (position==0 or id~=state.from) then
         count=count+1
         local source=morf.signal("phone.workspace.shot."..generation.."."..position.."."..i,"")
@@ -135,49 +126,52 @@ function M.new(root)
           },
         }
         ui.reparent(card,node)
-        local identifier=toplevel(c)
-        if identifier then queue[#queue+1]={identifier=identifier,source=source} end
+        local identifier=capture.toplevel(c)
+        if identifier then
+          queue[#queue+1]={identifier=identifier,deliver=function(picture)
+            shots[picture]=true source:set(picture)
+          end}
+        end
       end
     end
   end
   local next_id,previous_id
   local g={state=state}
-  function g.begin(direction)
+  -- What the pages hold: a workspace each, or with `apps` one window each,
+  -- most recently used on the way back.
+  local function current()
+    if not by_window then return services.workspace.active() end
+    return (hypr.state.active_window or {}).address or ""
+  end
+  local function neighbours(from)
+    if not by_window then return neighbor(from,-1),neighbor(from,1) end
+    local list=require("windows_model").recent()
+    local at=1
+    for i,c in ipairs(list) do if c.address==from then at=i end end
+    return (list[at%#list+1] or {}).address or from,(list[(at-2)%#list+1] or {}).address or from
+  end
+  function g.begin(direction,apps)
     direction=direction=="y" and "y" or "x"
     wallpaper.sync()
     -- Catch the displayed pose, retaining the snapshots while settling.
-    if state.active and state.from==services.workspace.active() and direction==axis then
+    if state.active and by_window==(apps==true) and state.from==current() and direction==axis then
       if animation then animation:stop() animation=nil end
       drag_origin=track["translate_"..axis] or 0
       return true
     end
     clear()
     axis=direction
+    by_window=apps==true
     drag_origin=0 track.translate_x=0 track.translate_y=0
     refresh_style()
-    state.from=services.workspace.active()
+    state.from=current()
     state.target=state.from state.offset=0
-    previous_id,next_id=neighbor(state.from,-1),neighbor(state.from,1)
+    previous_id,next_id=neighbours(state.from)
     local queue={}
     page(state.from,0,queue) page(previous_id,-1,queue) page(next_id,1,queue)
     state.active=true
     local token=generation
-    local index=0
-    local function capture_next()
-      if token~=generation then return end
-      index=index+1
-      local item=queue[index]
-      if not item or not morf.screencopy or not morf.screencopy.capture_window then return end
-      local ok=pcall(morf.screencopy.capture_window,item.identifier,function(frame)
-        if frame and frame.source then
-          if token~=generation then release(frame.source) return end
-          shots[frame.source]=true item.source:set(frame.source)
-        end
-        capture_next()
-      end,{gpu=true})
-      if not ok then capture_next() end
-    end
-    capture_next()
+    capture.take(queue,function() return token==generation end)
     return true
   end
   function g.update(delta)
@@ -206,7 +200,10 @@ function M.new(root)
       -- Native broker leases can retire while the preview is settling.
       -- Check at the last point before issuing the workspace command.
       if allowed and not allowed() then clear() return end
-      if commit and hypr.available() then
+      if commit and by_window then
+        require("windows_model").focus(target)
+        clear()
+      elseif commit and hypr.available() then
         -- Keep the destination preview until the compositor has accepted
         -- the switch. Clearing before the asynchronous command completes
         -- exposes the previous workspace for a frame.

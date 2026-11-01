@@ -5,6 +5,7 @@ local config = require("config")
 local registry = require("lib.shell.launcher.registry")
 local rows = require("lib.shell.launcher.rows")
 local run = require("lib.shell.launcher.run")
+local translate = require("lib.services.translate")
 
 local M = {}
 
@@ -28,46 +29,29 @@ end
 
 -- -------------------------------------------------------------- translate --
 
-M.LANGUAGES = {
-  albanian = "sq", arabic = "ar", bulgarian = "bg", chinese = "zh", croatian = "hr", czech = "cs", danish = "da",
-  dutch = "nl", english = "en", estonian = "et", finnish = "fi", french = "fr", german = "de", greek = "el",
-  hebrew = "he", hindi = "hi", hungarian = "hu", indonesian = "id", irish = "ga", italian = "it", japanese = "ja",
-  korean = "ko", latvian = "lv", lithuanian = "lt", norwegian = "no", persian = "fa", polish = "pl", portuguese = "pt",
-  romanian = "ro", russian = "ru", serbian = "sr", slovak = "sk", slovenian = "sl", spanish = "es", swedish = "sv",
-  thai = "th", turkish = "tr", ukrainian = "uk", vietnamese = "vi",
-  ["español"] = "es", ["français"] = "fr", deutsch = "de", shqip = "sq",
-}
-local CODES = {}
-for name, code in pairs(M.LANGUAGES) do CODES[code] = name end
-
---- The language `word` names, as a code, or nil.
-function M.language(word)
-  local key = tostring(word or ""):lower()
-  return M.LANGUAGES[key] or (CODES[key] and key) or nil
-end
-
 --- Splits "es hello world" into its target and its text; a text with no language
 --- first goes to the setting `launcher.translate_to`.
 function M.parse_translation(term)
   local first, rest = term:match("^(%S+)%s+(.+)$")
-  local code = first and M.language(first)
+  local code = first and translate.language(first)
   if code then return code, rest end
   return config.get("launcher.translate_to"), term
 end
 
 local function translated(target, text)
-  local question = target .. ":" .. text
-  if run.has("trans") then
-    return rows.ask_run("translate", question, { "trans", "-brief", ":" .. target, "--", text }, function(stdout)
-      return { text = stdout:match("^%s*(.-)%s*$") }
-    end, { debounce_ms = 350, timeout_ms = 8000, failed = { error = "trans did not answer" } })
-  end
-  local url = "https://api.mymemory.translated.net/get?q=" .. morf.encoding.url_encode(text)
-    .. "&langpair=" .. morf.encoding.url_encode("autodetect|" .. target)
-  return ask_json("translate", question, url, function(body)
-    return { text = body.responseData.translatedText }
-  end)
+  local engine = translate.detecting()
+  local request = { text = text, source = "auto", target = target }
+  local why = translate.refusal(engine, request)
+  if why then return { error = why } end
+  return rows.ask("translate", target .. ":" .. text, function(done)
+    translate.send(engine, request, function(words, reason)
+      done(words and { text = words } or { error = reason })
+    end)
+    return true
+  end, { debounce_ms = 350 })
 end
+
+local function title_of(target) return (translate.name_of(target) or target):lower() end
 
 registry.mode { id = "translate", name = "Translate", material = "translate", shape = "soft_burst",
   words = { "translate", "tr" }, hint = "tr es hello  ·  tr french good morning",
@@ -80,8 +64,8 @@ registry.mode { id = "translate", name = "Translate", material = "translate", sh
     local value = answer.text or ""
     local engine = require("web").engine("tr")
     return { row {
-      id = "translate", name = value, description = (CODES[target] or target) .. "  ·  " .. text .. "  ·  Return copies",
-      material = "translate", copy = value, preview = { text = value, title = CODES[target] or target },
+      id = "translate", name = value, description = title_of(target) .. "  ·  " .. text .. "  ·  Return copies",
+      material = "translate", copy = value, preview = { text = value, title = title_of(target) },
       run = function() return run.copy(value) end,
       actions = { { name = "Paste it", material = "content_paste_go", run = function()
         run.copy(value)

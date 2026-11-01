@@ -10,17 +10,19 @@ local M = {}
 --- The step that ends a window outright.
 M.KILL = { lua = { "window.kill", {} }, conf = { "killwindow", "$W" } }
 
-local function dry_run()
-  local v = morf.env and morf.env("EVA_DRY_RUN")
-  return v ~= nil and v ~= "" and v ~= "0"
-end
-
 local lua_config
-local function flavour(done)
+--- `done(lua)`: whether this Hyprland is configured in Lua, asked once.
+function M.flavour(done)
   if lua_config ~= nil then return done(lua_config) end
   local ok, config = pcall(require, "lib.compositor.hyprland_config")
   if not ok then lua_config = false return done(false) end
   config.flavour(function(kind) lua_config = kind == "lua" done(lua_config) end)
+end
+local flavour = M.flavour
+
+local function dry_run()
+  local v = morf.env and morf.env("EVA_DRY_RUN")
+  return v ~= nil and v ~= "" and v ~= "0"
 end
 
 local function quoted(value) return ("%q"):format(tostring(value)) end
@@ -32,13 +34,15 @@ local function fields(t)
 end
 
 --- Runs `steps` on the window at `address`; `done(ok)` once the compositor has
---- heard the last. False where there is no address.
-function M.run(address, steps, done)
+--- heard the last. False where there is no address. `options.sent(chunk)` hears
+--- what goes to a Lua Hyprland, `options.live` runs under a dry run all the same.
+function M.run(address, steps, done, options)
   done = done or function() end
+  options = options or {}
   if address == "" or address == nil then done(false) return false end
   local hyprland = require("lib.compositor.hyprland")
   local selector = "address:" .. address
-  if dry_run() then
+  if dry_run() and not options.live then
     local names = {}
     for _, s in ipairs(steps) do names[#names + 1] = s.lua[1] end
     morf.log("info", "eva: window menu (dry run): " .. table.concat(names, ", ") .. " on " .. address)
@@ -62,6 +66,7 @@ function M.run(address, steps, done)
         end
         chunk[#chunk + 1] = ("hl.dispatch(hl.dsp.%s(%s))"):format(s.lua[1], args)
       end
+      if options.sent then options.sent(table.concat(chunk, " ")) end
       hyprland.eval(table.concat(chunk, " "), function(reply, err)
         if err or (reply and not reply:match("^%s*ok%s*$")) then
           morf.log("warn", "eva: window menu: " .. tostring(err or reply))

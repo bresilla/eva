@@ -15,7 +15,7 @@ end
 -- its hold in ms (0 for the default) and whether it reads a percentage.
 local osd_kinds={}
 for _,kind in ipairs {"volume","brightness","mic","caps","num","layout","profile","dnd","focus","awake","night",
-  "ring","bluetooth","headphones","media"} do
+  "ring","bluetooth","headphones","media","workspace"} do
   osd_kinds[kind]={position="",enabled=true,hold=0,percent=true}
 end
 
@@ -645,6 +645,54 @@ local config = settings.open {
       correction_kind = "deuteranopia", dim = 0.4 },
     -- Background sounds: rain, ocean or noise, and how loud, 0 to 1.
     sounds = { kind = "rain", level = 0.4 },
+    dock = {
+      -- "auto" keeps it down on a desk, and a taskbar on a tablet; "on" puts
+      -- it up on a desk; "off" takes it away. A phone never has one.
+      enabled = "auto",
+      -- bottom, left or right.
+      edge = "bottom",
+      -- How big an icon is, in logical pixels.
+      size = 48,
+      -- Icons swell near the pointer.
+      magnify = true,
+      -- "off", "on", or "windows": it hides only while a window lies under it.
+      autohide = "windows",
+      -- The taskbar slides away until it is reached for.
+      taskbar_hide = false,
+      -- Only the windows on this screen.
+      isolate = false,
+      -- The launcher's and the overview's buttons at its ends.
+      buttons = true,
+      -- The pinned applications: desktop entry ids, in order.
+      pins = {},
+    },
+    windows = {
+      -- What a phone's bottom edge walks: "apps" or "workspaces".
+      scrub = "apps",
+      -- Each corner's action (shell/hot_corners.lua) and the key it wants held.
+      corners = {
+        top_left = { action = "none", guard = "", command = {} },
+        top_right = { action = "none", guard = "", command = {} },
+        bottom_left = { action = "none", guard = "", command = {} },
+        bottom_right = { action = "none", guard = "", command = {} },
+        -- How long the pointer rests there first, in ms.
+        hold = 150,
+      },
+      -- The other windows are offered for the room a snapped one leaves.
+      snap_assist = true,
+      -- Leaving a playing video's workspace takes it along, small.
+      pip_auto = false,
+      -- Each workspace's name and how it tiles, by id.
+      workspaces = { names = {}, layouts = {} },
+      -- The scratchpads: `name`, `command` to start, `icon`.
+      scratchpads = {},
+      switcher = {
+        -- What Alt+Tab walks: "all", "workspace" or "output".
+        scope = "all",
+        -- One card per application, with its windows stacked.
+        group = true,
+      },
+    },
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
     -- keeps it, a phone or a tablet follows the accelerometer).
     rotation = { lock = "auto" },

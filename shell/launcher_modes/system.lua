@@ -435,7 +435,7 @@ registry.mode { id = "keys", name = "Key bindings", material = "keyboard", shape
       return ok and type(list) == "table" and list or {}
     end, { debounce_ms = 0, ttl_ms = 30000, any_exit = true })
     local list = {}
-    for _, bind in ipairs(require("keybinds").merge(binds or {})) do
+    for _, bind in ipairs(require("key_rows").merge(binds or {})) do
       list[#list + 1] = { name = bind.what, description = bind.keys .. "  ·  " .. bind.group, keys = bind.keys }
     end
     local out = {}

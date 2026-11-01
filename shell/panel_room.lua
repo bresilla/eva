@@ -10,6 +10,10 @@ local M = {}
 -- The bottom panel's width by choice, the dashboard's overview's; the least
 -- any panel is laid out at, a side panel's page.
 M.WANT, M.LEAST = 840, theme.SIDE_W
+-- The least the bottom panel stands at under the dashboard.
+M.LEAST_H = 320
+-- The notification popups' column.
+local POPUPS_W = 430
 
 --- What a side panel takes from the opening while open.
 function M.side() return theme.SIDE_W + theme.STRIP end
@@ -67,7 +71,43 @@ local NEEDS = {
     local dashboard = require("dashboard")
     return (dashboard.size(dashboard.tab:get()))
   end,
+  launcher = function() return require("launcher").width() end,
 }
+
+-- The height of the dashboard while it is open, else 0.
+local function top_taken()
+  if not open("dashboard") then return 0 end
+  local dashboard = require("dashboard")
+  return select(2, dashboard.size(dashboard.tab:get()))
+end
+
+-- What the desk leaves the bottom panel under the dashboard.
+local function under_top()
+  return require("responsive").desk_height() - 2 * theme.BORDER - theme.space.l - top_taken()
+end
+
+--- The bottom panel's height when it wants `want`: under the dashboard while
+--- that is open, down to `LEAST_H`.
+function M.height(want)
+  if not open("dashboard") then return want end
+  return math.max(math.min(want, M.LEAST_H), math.min(want, under_top()))
+end
+
+--- Whether the side panel on `side` stands in a panel `width` wide, centred
+--- on the opening.
+function M.collides(side, width)
+  if not open(side == "left" and "leftbar" or "sidebar") then return false end
+  local x = (M.opening() - width) / 2
+  if side == "left" then return x < M.side() end
+  return x + width > M.opening() - M.side()
+end
+
+--- Shuts the side panels a centred panel `width` wide would stand in.
+function M.clear(width)
+  for side, name in pairs { left = "leftbar", right = "sidebar" } do
+    if M.collides(side, width) then require("drawer")[name].set(false) end
+  end
+end
 
 -- Every panel of the set in the order it opened, oldest first.
 local order, stamp, seen = {}, 0, {}
@@ -85,12 +125,22 @@ local function oldest(names)
   return found
 end
 
+--- Whether the launcher reaches the popups' column, beside any right panel.
+function M.launcher_at_popups()
+  if not open("launcher") then return false end
+  local x, width = M.span(NEEDS.launcher())
+  return x + width > M.opening() - taken("sidebar") - POPUPS_W
+end
+
 --- The panel to shut when those open are too many for the opening, or nil.
 function M.crowded()
-  for _, middle in ipairs { "bottom", "dashboard" } do
+  for _, middle in ipairs { "launcher", "bottom", "dashboard" } do
     if open(middle) and NEEDS[middle]() + taken("leftbar") + taken("sidebar") > M.opening() + 0.5 then
       return oldest { "leftbar", "sidebar", middle }
     end
+  end
+  if open("bottom") and open("dashboard") and under_top() < M.LEAST_H then
+    return oldest { "bottom", "dashboard" }
   end
 end
 
@@ -98,7 +148,8 @@ end
 function M.watch()
   if require("responsive").sheets() then return end
   morf.effect("eva.panels.room", function()
-    for _, name in ipairs { "leftbar", "sidebar", "bottom", "dashboard" } do note(name, open(name)) end
+    for _, name in ipairs { "leftbar", "sidebar", "bottom", "dashboard", "launcher" } do note(name, open(name)) end
+    require("notifs").veiled:set(M.launcher_at_popups())
     local shut = M.crowded()
     -- Shut outside the effect that noticed.
     if shut then morf.time.timer(1, function() require("drawer")[shut].set(false) end, false) end

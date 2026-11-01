@@ -192,20 +192,4 @@ M.installed = morf.signal("eva.appearance.installed", { cursors = {}, icons = {}
 --- Reads what is installed, when the page opens.
 function M.refresh() M.installed:set(look.themes()) end
 
---- The font file: a file that exists, or "" for the installed faces. Applied by
---- building the shell again, as a font is.
-function M.set_font_file(path)
-  path = (path or ""):gsub("^~/", morf.fs.home() .. "/")
-  if path ~= "" and not morf.fs.is_file(path) then return false, "No font file at " .. path end
-  config.set("appearance.font_file", path)
-  if path ~= "" then
-    local kept = require("themes").preferences
-    kept.set("font", "")
-    kept.flush()
-  end
-  require("themes.session").hold()
-  morf.reload()
-  return true
-end
-
 return M

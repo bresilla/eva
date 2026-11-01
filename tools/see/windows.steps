@@ -1,0 +1,42 @@
+# Every window feature, one after another, on the window stand-in with two real
+# windows of the sealed compositor among the scene's. Sway cannot capture a
+# single window, so cards here show icons; the VM test shows real pictures.
+export EVA_FAKE_WINDOWS=${EVA_FAKE_WINDOWS:-$SEE_EVA/tests/fixtures/windows.json}
+export EVA_SETTINGS="$SEE_OUT/settings.json"
+echo '{ "dock": { "enabled": "on", "autohide": "off", "pins": ["files"] },
+  "windows": { "scratchpads": [ { "name": "term", "command": "foot", "icon": "terminal" } ] } }' > "$EVA_SETTINGS"
+start shell
+window Editor see.editor "#26547c"
+window Browser see.browser "#7a3b69"
+pause 6
+shot desk
+ipc overview pull 0.08; pause 0.3; ipc overview pull 0.3; pause 1.6; shot overview-morph
+ipc overview pull 0.6; pause 1.6; shot overview-morph-more
+ipc overview pull 1; pause 2; shot overview
+key Right; pause 0.5; shot overview-selected
+text fire; pause 0.8; shot overview-filter
+key Escape; pause 1.2
+ipc switcher next free; pause 1.2; shot switcher
+ipc switcher cancel; pause 0.6
+ipc snap picker; pause 1; shot snap-picker
+ipc snap picker; pause 0.6
+ipc stand_in_cursor 1900 500
+ipc snap drag; pause 1; shot snap-landing
+ipc stand_in_cursor 10 10; pause 0.8; shot snap-landing-corner
+ipc stand_in_cursor 960 500; pause 0.3
+ipc snap drop; pause 0.6
+ipc snap left; pause 1; shot snap-assist
+key Escape; pause 0.6
+ipc kill_mode; ipc kill_aim 1400 400; pause 1; shot kill-mode
+key Escape; pause 0.6
+ipc workspace 3; pause 0.6; shot workspace-osd
+pause 1.2
+ipc pip; pause 1; shot pip
+ipc pip_controls; pause 0.6; shot pip-controls
+ipc pip_controls; ipc pip; pause 0.6
+ipc workspace 1; pause 1.2
+ipc window_menu open; pause 1.2; shot window-menu
+key Escape; pause 0.8
+ipc settings dock; pause 1.4; shot page-dock
+ipc settings windows; pause 1.4; shot page-windows
+ipc close; pause 1

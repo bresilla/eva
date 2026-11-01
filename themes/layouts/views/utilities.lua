@@ -127,6 +127,16 @@ function V.eva_page(model,w,h)
       P.row {id="settings-eva-keyboard",width=inner,icon="keyboard",title="On-screen keyboard",
         subtitle="Languages, prediction and how it stands",
         trailing=P.chevron(),on_clicked=function() model.request("keyboard") end},
+      P.row {id="settings-eva-dock",width=inner,icon="dock_to_bottom",title="Dock",
+        subtitle=function()
+          local dock=require("dock")
+          if dock.mode()=="taskbar" then return "A taskbar along the edge" end
+          return dock.on() and "On the "..dock.edge().." edge" or "Off"
+        end,
+        trailing=P.chevron(),on_clicked=function() model.request("dock") end},
+      P.row {id="settings-eva-windows",width=inner,icon="select_window",title="Windows",
+        subtitle="Hot corners, the switcher and snapping",
+        trailing=P.chevron(),on_clicked=function() model.request("windows") end},
     },
     P.section {id="settings-eva-panels",width=w,title="Panels",
       P.row {id="settings-eva-arrange",width=inner,icon="dashboard_customize",title="Arrange panels",
@@ -305,6 +315,21 @@ function M.page(w, h)
     local whole = read and read() or 0
     return whole > 0 and whole or nil
   end
+  -- Going back under a finger: how far the page has been pulled, the page it
+  -- goes back to, and whether that is another detail or the overview.
+  local pull_x = model.peek
+  local function pull() return pull_x:get() end
+  local function peek() return math.min(1, pull() / math.max(1, w)) end
+  local function parent_of(key)
+    for _, d in ipairs(M.DETAILS) do if d.key == key then return d.parent or "" end end
+    return ""
+  end
+  local function peek_key()
+    if pull() <= 0 then return nil end
+    local parent = parent_of(M.detail:get())
+    return parent ~= "" and parent or nil
+  end
+  local function nested() return parent_of(M.detail:get()) ~= "" end
   for _, d in ipairs(M.DETAILS) do
     names[d.key] = d.name
     -- Each detail is built the first time it opens, and kept.
@@ -312,13 +337,19 @@ function M.page(w, h)
     morf.effect("eva.settings.build." .. d.key, function()
       if M.detail:get() == d.key and not wanted:get() then wanted:set(true) end
     end)
+    -- Pulled back from a page, the page above it shows beneath, a touch small.
+    local function peeked() return peek_key()==d.key end
     stack[#stack + 1] = ui.Item {
       id = "settings-detail-" .. d.key,
       width = w, height = h,
-      visible = function() return M.detail:get() == d.key end,
-      opacity=function() return M.detail:get()==d.key and 1 or 0 end,
-      translate_x=function() return M.detail:get()==d.key and 0 or 20 end,
-      behavior={opacity={duration=theme.duration.small},translate_x=SWITCH},
+      visible = function() return M.detail:get() == d.key or peeked() end,
+      opacity=function() return M.detail:get()==d.key and 1 or peeked() and .4+.6*peek() or 0 end,
+      scale=function()
+        if M.detail:get()==d.key then return 1-.06*peek() end
+        return peeked() and .94+.06*peek() or 1
+      end,
+      z=function() return M.detail:get()==d.key and 1 or 0 end,
+      behavior={opacity={duration=theme.duration.small}},
       ui.Loader {
         anchors = { fill = true }, keep = true,
         active = function() return wanted:get() end,
@@ -330,6 +361,13 @@ function M.page(w, h)
         end,
       },
     }
+    -- A page pulled back from its parent is the finger's; else it eases in.
+    ui.claims(stack[#stack], { motion = SWITCH,
+      a_hand = { when = function() return pull() > 0 and M.detail:get() == d.key and nested() end,
+        motion = { duration = 0 }, set = { translate_x = pull } },
+      b_rest = { set = { translate_x = function()
+        return (M.detail:get() == d.key or peeked()) and 0 or 20
+      end } } })
   end
   -- The pencil: edits the tiles, and says done while they are.
   local pencil = kit.action { id = "utilities-edit", width = 40, height = 40, cursor = "pointer",
@@ -373,28 +411,44 @@ function M.page(w, h)
     if M.detail:get() == "panels" then return false end
     return pop()
   end
-  -- A swipe in from a detail's left edge drags it off with the page behind it
-  -- peeking in, and goes back on release.
   local row = ui.Row { gap = 24, main, detail }
-  local place = { get = function() return M.detail:get() ~= "" and 2 or 1 end,
-    set = function(_, index) if index == 1 and M.detail:get() ~= "" then model.back() end end }
-  local back = require("pager_drag").new { id = "settings.back", track = row, tab = place, count = 2,
-    offset = function(i) return (i - 1) * (w + 24) end, spring = SWITCH }
-  local root
-  root = ui.Item {
+  -- Under a finger the row is the finger's; on its own it eases there.
+  ui.claims(row, { motion = SWITCH,
+    a_hand = { when = function() return pull() > 0 and not nested() end, motion = { duration = 0 },
+      set = { translate_x = function() return -(w + 24) + pull() end } },
+    b_rest = { set = { translate_x = function() return M.detail:get() == "" and 0 or -(w + 24) end } } })
+  local holder = ui.Item {
     width = w, height = h, clip = true,
     shortcuts = shortcuts,
-    on_panned = function(phase, dx, dy, vx, _, x)
-      if phase == "begin" then
-        if M.detail:get() == "" or dx <= 0 or math.abs(dy) >= math.abs(dx)
-          or x > (root.layout_x or 0) + BACK_EDGE then return false end
-        return back.begin()
-      end
-      if phase == "update" then back.update(dx) else back.finish(vx, phase == "cancel") end
-    end,
     row,
   }
-  return root
+  -- A pull in from the page's left edge goes back, what it goes back to
+  -- showing under the finger; let go early, it stays. Further in, a sideways
+  -- drag is the panel's, for its tabs.
+  local gesture = require("gesture_motion")
+  local COMMIT = .35
+  local pulling
+  holder.on_panned = function(phase, dx, dy, vx, _, start_x)
+    if phase == "begin" then
+      pulling = false
+      if M.detail:get() == "" or dx <= 0 or math.abs(dx) <= math.abs(dy) * 1.2 then return false end
+      if not start_x or start_x - (holder.layout_x or 0) > BACK_EDGE then return false end
+      pulling = true
+      return true
+    end
+    if not pulling then return end
+    if phase == "update" then pull_x:set(math.max(0, dx))
+    else
+      local done = phase == "end" and (dx >= w * COMMIT or gesture.fling(dx, vx) and (vx or 0) > 0)
+      pulling = false
+      pull_x:set(0)
+      if done then
+        require("haptics").fire("commit")
+        model.back()
+      end
+    end
+  end
+  return holder
 end
 
 

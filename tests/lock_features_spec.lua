@@ -393,6 +393,23 @@ test.it("a widget not marked safe is not drawn, and a failing one leaves the loc
   test.eq(#test.logs("error"),0)
 end)
 
+for _,style in ipairs {"material","tsugumori"} do
+  for _,size in ipairs {{868,1932},{412,915},{1920,1080}} do
+    test.it(style.." the card's chip and the phone's Emergency stand clear at "..size[1].."x"..size[2],function()
+      write(SETTINGS,{lock={emergency={text="If found call Sam",numbers={"112"}}}})
+      load{style=style,size=size,env={EVA_FAKE_MODEM="1",EVA_CONTACTS="tests/fixtures/contacts"}}
+      test.ipc("phone","state")
+      local chip,dial=test.find {id="lock-emergency",visible=true},test.find {id="lock-emergency-dial",visible=true}
+      test.truthy(chip,"the card's chip is gone")
+      test.truthy(dial,"the phone's Emergency is gone")
+      local apart=chip.x+chip.width<=dial.x or dial.x+dial.width<=chip.x
+        or chip.y+chip.height<=dial.y or dial.y+dial.height<=chip.y
+      test.truthy(apart,("they overlap: chip %d,%d %dx%d, dial %d,%d %dx%d"):format(chip.x,chip.y,chip.width,chip.height,
+        dial.x,dial.y,dial.width,dial.height))
+    end)
+  end
+end
+
 test.it("the desktop's date and clock stand on the lock, what reads the shell does not",function()
   write(SETTINGS,{lock={widgets={"date","clock","weather","note"}}})
   load{}

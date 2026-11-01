@@ -190,6 +190,26 @@ test.it("says why the shell refused", function()
   test.contains(answer.words, "Finish the capture")
 end)
 
+test.it("goes through the one setter the Look page and the Lule picker use", function()
+  local state = fresh("setter")
+  stubs { code = 1 }
+  test.load("../apps/fonts/app.lua", { env = environment(state), source = [[
+    local morf = require("morf")
+    local fonts = require("themes.fonts")
+    local set, heard = fonts.set, {}
+    fonts.set = function(choice, done)
+      heard[#heard + 1] = choice.family
+      return set(choice, done)
+    end
+    morf.ipc.heard = function() return heard end
+  ]] .. morf.fs.read(ROOT .. "apps/fonts/app.lua") })
+  test.settle(300)
+  test.ipc("apply", "Rubik")
+  test.settle(200)
+  test.eq(test.ipc("heard"), { "Rubik" })
+  test.eq(saved(state).font, "Rubik")
+end)
+
 test.it("does not trouble the shell for the font it already has", function()
   shell_host()
   local answer = test.ipc("apply", "Rubik")

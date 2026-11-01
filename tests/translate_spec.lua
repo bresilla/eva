@@ -37,7 +37,7 @@ end
 local function host(web)
   return ([[
     local morf = require("morf")
-    local engines = require("engines")
+    local engines = require("lib.services.translate")
     local answer = %q
     local asked = {}
     engines.http = {
@@ -52,7 +52,7 @@ local function host(web)
       local words, why = engines.read_trans { ok = code == "0", stdout = out, stderr = err }
       return { words = words, why = why }
     end
-    morf.ipc.unescape = function(text) return engines.unescape(text) end
+    morf.ipc.mymemory = function(words) return engines.read_mymemory { responseStatus = 200, responseData = { translatedText = words } } end
     local frame = require("common.frame")
     local model = require("model")
     local view = require("view")
@@ -109,7 +109,7 @@ end)
 
 test.it("turns the entities a web answer writes back into text", function()
   window()
-  test.eq(test.ipc("unescape", "it&#39;s &amp; &quot;so&quot; &lt;ok&gt; &unknown;"), [[it's & "so" <ok> &unknown;]])
+  test.eq(test.ipc("mymemory", "it&#39;s &amp; &quot;so&quot; &lt;ok&gt; &unknown;"), [[it's & "so" <ok> &unknown;]])
 end)
 
 test.it("reads MyMemory's refusals, which arrive in the translation's own field", function()

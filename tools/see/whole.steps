@@ -1,0 +1,22 @@
+# The shell in one piece, after the streams came together: each panel, the
+# launcher, Settings and StandBy on whatever form the scene is run at.
+start shell
+drawn
+shot desk
+ipc launcher open; pause 1.2; shot launcher
+ipc close; pause 0.6
+ipc notifications open; pause 1.2; shot notifications
+ipc close; pause 0.6
+ipc tasks open; pause 1.2; shot tasks
+ipc close; pause 0.6
+ipc dashboard open; pause 1.4; shot dashboard
+ipc close; pause 0.6
+ipc settings home; pause 1.4; shot settings-home
+ipc settings phone; pause 1.0; shot settings-phone
+ipc settings idle; pause 1.0; shot settings-idle
+ipc settings windows; pause 1.0; shot settings-windows
+ipc close; pause 0.6
+ipc standby on; pause 1.6; shot standby
+ipc standby world; pause 0.8; shot standby-world
+ipc standby off; pause 0.8
+stop

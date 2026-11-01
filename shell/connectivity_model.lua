@@ -241,7 +241,7 @@ function M.new(kind,active)
   function model.dismiss() model.asking:set("") end
   if wireless then
     model.share_shown=morf.signal("eva.network.share.shown",false)
-    --- The code for the asked network: `draw(rows)` or `fail(why)`.
+    --- The code for the asked network: `draw(code)` or `fail(why)`.
     function model.share(draw,fail)
       local row=model.asked()
       if not row then return fail("Choose a network first") end
