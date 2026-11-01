@@ -30,7 +30,9 @@ bottom|HOW [TAB]|The bottom workspace: assistant or drop
 assistant|toggle, open or close|The assistant
 lule|toggle, open or close|The colour tool's panel
 osd|volume, brightness, mic or another kind|Show the on-screen display
-notify|SUMMARY [BODY URGENCY APP]|Post a notification
+notify|SUMMARY [BODY URGENCY APP ICON IMAGE]|Post a notification
+notifications|status, list, invoke, reply, dismiss, clear, clear-app, clear-silent, undo, snooze, mute, unmute|Notifications from a key
+focus|status, list, on MODE [SECONDS], off or toggle|Focus modes
 workspace|N|Go to workspace N
 window_menu|toggle, open or close|The window menu
 appearance|material, tsugumori, font:NAME or state|Change or read the theme

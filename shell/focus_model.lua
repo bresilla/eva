@@ -19,7 +19,7 @@ M.ICONS = { "do_not_disturb_on", "work", "person", "bedtime", "sports_esports", 
   "directions_car", "self_improvement", "movie" }
 -- The lengths a session can be asked for: seconds, 0 until turned off, -1 until
 -- the next morning.
-M.DURATIONS = { { 0, "Until off" }, { 1800, "30 min" }, { 3600, "1 hour" }, { 7200, "2 hours" }, { -1, "Until 8:00" } }
+M.DURATIONS = { { 0, "No end" }, { 1800, "30 min" }, { 3600, "1 h" }, { 7200, "2 h" }, { -1, "8:00" } }
 M.URGENCY = { { 0, "Everything" }, { 1, "Normal up" }, { 2, "Critical" }, { 3, "Nothing" } }
 M.DAYS = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" }
 local REPEAT_CALL = 900

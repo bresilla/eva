@@ -11,12 +11,23 @@ function M.model(settings)
   local model = { active = require("presentation").active("settings.focus"), MAX = focus.MAX,
     controls = settings.focus, DURATIONS = focus.DURATIONS }
   model.modes = focus.modes
+  --- The modes but Do not disturb, which has its row among the interruptions.
+  function model.named()
+    local out = {}
+    for _, mode in ipairs(focus.modes()) do
+      if mode.id ~= "dnd" then out[#out + 1] = mode end
+    end
+    return out
+  end
   function model.on(id) return focus.active_id() == id end
   function model.set_on(id, on)
     if on then focus.start(id, { seconds = config.get("focus.duration") }) elseif focus.active_id() == id then focus.stop() end
   end
   function model.line(mode)
-    if focus.active_id() == mode.id then return focus.status() end
+    if focus.active_id() == mode.id then
+      local ends = focus.ends()
+      return ends > 0 and "On until " .. require("morf").time.format("%H:%M", ends) or "On"
+    end
     local schedule = focus.schedule_text(mode)
     return schedule == "Off" and "Tap the switch to start" or schedule
   end

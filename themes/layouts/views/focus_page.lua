@@ -14,8 +14,9 @@ local V = {}
 local APPS = 8
 
 local function toggle(w, id, icon, name, subtitle, on, set)
-  return P.row { id = id, width = P.inner(w), icon = icon, title = name, subtitle = subtitle, on = on,
-    trailing = P.switch { id = id .. "-switch", name = name, on = on, on_toggled = set } }
+  local function lit() return on() == true end
+  return P.row { id = id, width = P.inner(w), icon = icon, title = name, subtitle = subtitle, on = lit,
+    trailing = P.switch { id = id .. "-switch", name = name, on = lit, on_toggled = set } }
 end
 
 local function caption(w, text)
@@ -34,8 +35,8 @@ end
 function V.build(model, w, h)
   local inner = P.inner(w)
   local modes = { id = "settings-focus-modes", width = w, title = "Modes" }
-  for slot = 1, model.MAX do
-    local function mode() return model.modes()[slot] end
+  for slot = 1, model.MAX - 1 do
+    local function mode() return model.named()[slot] end
     local function on() local m = mode() return m ~= nil and model.on(m.id) end
     modes[#modes + 1] = P.row { id = "focus-mode-" .. slot, width = inner, on = on,
       icon = function() local m = mode() return m and m.icon or "self_improvement" end,
@@ -60,6 +61,7 @@ function V.build(model, w, h)
     end
     section[#section + 1] = P.row { id = "settings-focus-" .. control.id, width = inner, icon = control.icon, on = on,
       title = control.name, trailing = trailing,
+      on_clicked = control.id == "dnd" and function() model.open("dnd") end or nil,
       subtitle = function()
         if control.id == "awake" then return on() and control.status() or "Allow the screen to sleep" end
         if control.id == "ringer" then return "Notification sounds and vibration" end

@@ -30,7 +30,8 @@ function N.chips_of(x, model)
   if not x or not model.smart_on() then return out end
   local code = text_of.otp(x)
   if code then out[#out + 1] = { label = "Copy " .. code, icon = "content_copy", code = code } end
-  local link = text_of.link(x)
+  -- A link in the body's own markup can already be pressed.
+  local link = not tostring(x.body or ""):find("<%s*[aA]%s") and text_of.link(x) or nil
   if link then out[#out + 1] = { label = "Open link", icon = "open_in_new", link = link } end
   return out
 end
@@ -222,7 +223,7 @@ function N.reply(spec)
   return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = P.BUTTON_H, visible = spec.shown,
     kit.surface { width = spec.width - SEND - theme.space.s, height = P.BUTTON_H, radius = kit.round(10),
       color = function() return C.surfaceContainerHighest end, node },
-    L.icon_button { id = spec.id .. "-send", anchors = { right = true }, width = SEND, height = SEND, icon = "send",
+    L.icon_button { id = spec.id .. "-send", x = spec.width - SEND, width = SEND, height = SEND, icon = "send",
       name = "Send", on_clicked = send },
   }
 end

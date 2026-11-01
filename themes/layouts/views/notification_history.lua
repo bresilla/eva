@@ -220,9 +220,10 @@ function V.build(state, width, height)
     end)
     kit.hover(expand, function(hovered) return signal():alpha(hovered and .2 or .07) end, L.control_round(30))
     morf.effect("eva.history.items." .. i, function() if is_open() then ensure_items() end end, { owner = expand })
-    local clear_app = L.icon_button { id = "sidebar-clear-app-" .. i, anchors = { right = true, vertical_center = true,
-      right_margin = 52 + S.xs }, width = 30, height = 30, icon = "delete_sweep", size = 18, name = "Clear this app",
-      on_clicked = function() local x = g() if x then state.clear_app(x.key) end end }
+    local clear_app = ui.Item { anchors = { right = true, vertical_center = true, right_margin = 52 + S.xs },
+      width = 30, height = 30,
+      L.icon_button { id = "sidebar-clear-app-" .. i, width = 30, height = 30, icon = "delete_sweep", size = 18,
+        name = "Clear this app", on_clicked = function() local x = g() if x then state.clear_app(x.key) end end } }
     local text_w = INNER - 40 - 64 - 34
     local head = ui.Item { width = INNER, height = HEAD_H,
       N.avatar { id = "sidebar-group-avatar-" .. i, anchors = { vertical_center = true }, size = 28, kind = kind,
@@ -253,10 +254,10 @@ function V.build(state, width, height)
     end
     local function silent() local x = g() return x ~= nil and x.shelf == 4 end
     local shelf = ui.Item { id = "sidebar-shelf-" .. i, width = W, height = BTN_H, visible = leads,
-      kit.label { x = S.xs, anchors = { vertical_center = true }, width = W - 120, elide = "right",
+      kit.label { x = S.xs, anchors = { vertical_center = true }, width = W - 170, elide = "right",
         text = function() local x = g() return x and state.SHELVES[x.shelf] or "" end },
-      ui.Item { anchors = { right = true, vertical_center = true }, width = 100, height = BTN_H, visible = silent,
-        P.button { id = "sidebar-clear-silent", width = 100, height = BTN_H, label = "Clear silent",
+      ui.Item { anchors = { right = true, vertical_center = true }, width = 150, height = BTN_H, visible = silent,
+        P.button { id = "sidebar-clear-silent", width = 150, height = BTN_H, label = "Clear silent",
           on_clicked = state.clear_silent } },
     }
     return ui.Column { id = "sidebar-slot-" .. i, width = W, gap = S.xs, visible = function() return g() ~= nil end,
