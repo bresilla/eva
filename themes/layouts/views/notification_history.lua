@@ -98,10 +98,9 @@ function V.build(state, width, height)
     end
     local function at(part) return function() return below(part) end end
     local function whole() return below("end") + S.xs end
-    local entry
-    entry = ui.Item {
-      width = IW, height = whole,
-      visible = function() return n_of() ~= nil end,
+    -- What a swipe moves, inside the slot a group's entries bud in.
+    local face = ui.Item {
+      anchors = { fill = true },
       -- A finger holds it for its tools, or swipes it away.
       ui.MouseArea { anchors = { fill = true }, z = -1, on_long_pressed = act(function(n)
         require("haptics").fire("long")
@@ -144,14 +143,14 @@ function V.build(state, width, height)
         shown = tooled },
     }
     local swipe
-    swipe = require("themes.swipe_dismiss").new { id = "history." .. tag, node = entry, ways = { left = true, right = true },
+    swipe = require("themes.swipe_dismiss").new { id = "history." .. tag, node = face, ways = { left = true, right = true },
       on_dismiss = function()
         local n = n_of()
         if n then state.forget(n.id) end
         morf.time.timer(theme.duration.normal, swipe.reset, false)
       end }
-    entry.on_panned = swipe.on_panned
-    return entry
+    face.on_panned = swipe.on_panned
+    return ui.Item { width = IW, height = whole, visible = function() return n_of() ~= nil end, face }
   end
 
   -- An application's card: its head (picture, name, word and time, the
