@@ -135,7 +135,7 @@ local VERBS = {
     return { stage = p.stage:get(), calls = p.rows:get(), seconds = p.seconds:get(), near = M.near:get(),
       rung = M.rung:get(), muted = p.muted(), speaker = p.on_speaker(), unread = M.messages.unread(),
       threads = M.messages.threads(), alert = M.alerts.showing:get().text or "", sim = M.sim.asking(),
-      on_modem = #services.modem.messaging.list:get() }
+      on_modem = #services.modem.messaging.list:get(), held = require("call_posture").held:get() }
   end,
 }
 
