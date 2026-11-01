@@ -64,6 +64,44 @@ local function spring_path(spring, position, speed, target, frames)
   return out
 end
 
+local SHELL = [[
+  require("init")
+  morf.ipc.seams = function()
+    local out, count = {}, 0
+    for _, d in ipairs(require("drawer").all) do
+      count = count + 1
+      out[d.name] = d.shape.blend_group
+    end
+    out.count = count
+    return out
+  end
+]]
+
+test.describe("drawer seams", function()
+  local NEIGHBOURS = { "dashboard", "sidebar", "leftbar", "bottom", "session", "capture" }
+  local APART = { "launcher", "polkit", "keyring", "authsteps", "headphones" }
+
+  test.it("material's working panels melt together and dialogs stand apart", function()
+    test.load("../shell/init.lua", { source = SHELL, size = { 1920, 1080 },
+      env = { EVA_STYLE = "material", EVA_DRY_RUN = "1", EVA_WALLPAPER = "" } })
+    local seams = test.ipc("seams")
+    for _, name in ipairs(NEIGHBOURS) do test.eq(seams[name], seams.dashboard, name) end
+    test.truthy(seams.dashboard ~= 0, "group 0 would melt into everything, the rail included")
+    for _, name in ipairs(APART) do test.truthy(seams[name] ~= seams.dashboard, name .. " melted") end
+  end)
+
+  test.it("tsugumori keeps every panel's edge its own", function()
+    test.load("../shell/init.lua", { source = SHELL, size = { 1920, 1080 },
+      env = { EVA_STYLE = "tsugumori", EVA_DRY_RUN = "1", EVA_WALLPAPER = "" } })
+    local seams, seen = test.ipc("seams"), {}
+    seams.count = nil
+    for name, group in pairs(seams) do
+      test.falsy(seen[group], name .. " shares a seam")
+      seen[group] = true
+    end
+  end)
+end)
+
 test.describe("drawer travel", function()
   for _, edge in ipairs { "top", "right", "bottom", "left" } do
     test.it("material " .. edge .. " keeps its momentum through a reversal", function()

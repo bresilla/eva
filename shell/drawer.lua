@@ -133,7 +133,7 @@ function M.new(spec)
     id = "drawer-" .. spec.name .. "-background",
     shape = "box",
     operation = "smooth_union",
-    blend_group = groups,
+    blend_group = theme.motion.seam_group and theme.motion.seam_group(spec.name, groups) or groups,
     track = backing,
     top_left_radius = r("top", "left"),
     top_right_radius = r("top", "right"),
