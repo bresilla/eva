@@ -14,7 +14,7 @@
 local morf=require("morf")
 local theme=require("theme")
 local motion=require("gesture_motion")
-local rubber=require("rubber_band")
+local rubber=require("themes.rubber_band")
 local M={}
 function M.new(spec)
   local p={}

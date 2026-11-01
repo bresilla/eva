@@ -144,7 +144,7 @@ function V.build(state, width, height)
         shown = tooled },
     }
     local swipe
-    swipe = require("swipe_dismiss").new { id = "history." .. tag, node = entry, ways = { left = true, right = true },
+    swipe = require("themes.swipe_dismiss").new { id = "history." .. tag, node = entry, ways = { left = true, right = true },
       on_dismiss = function()
         local n = n_of()
         if n then state.forget(n.id) end

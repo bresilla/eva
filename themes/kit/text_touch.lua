@@ -18,7 +18,8 @@ function M.attach(input)
     local text = input.text or ""
     local start, stop = word_at(text, input.cursor_position or 0)
     if stop > start then input:select(start, stop) elseif #text > 0 then input:select_all() end
-    require("haptics").fire("long")
+    local haptics = package.loaded.haptics
+    if haptics then haptics.fire("long") end
   end
   input.on_released = function()
     if touching and not selecting then input:deselect() end

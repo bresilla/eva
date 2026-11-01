@@ -343,7 +343,7 @@ function V.build(model)
     })
     -- Swiped toward the edge it swells from, or any way where it floats, it
     -- goes. A meter keeps the drag along it; a pill has none.
-    local swipe = require("swipe_dismiss").new { id = "levels." .. i, node = panel, axes = { x = true, y = true },
+    local swipe = require("themes.swipe_dismiss").new { id = "levels." .. i, node = panel, axes = { x = true, y = true },
       ways = function()
         local edge = place().edge
         if not edge then return { left = true, right = true, up = true, down = true } end

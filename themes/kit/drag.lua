@@ -218,7 +218,7 @@ function M.make(widget, spec)
     morf.effect("kit.drag.pull." .. ctl.id, function()
       if not t.active then return end
       -- 1 at the threshold, slower past it.
-      t.pull = require("rubber_band").band(math.max(0, t.delta_y), REST * 3) / REST
+      t.pull = require("themes.rubber_band").band(math.max(0, t.delta_y), REST * 3) / REST
     end, { owner = root })
   end
   if get(spec.mode) == "transfer" then

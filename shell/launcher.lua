@@ -617,7 +617,7 @@ M.drawer = drawer.new {
   -- Escape is the launcher's own: it backs out of a menu first.
   close_policy = "outside",
 }
-M.swipe = require("swipe_dismiss").new {
+M.swipe = require("themes.swipe_dismiss").new {
   id = "launcher", node = M.drawer.panel, axes = { x = true, y = true },
   ways = function()
     return { down = true, [require("menus").source:get() == "web" and "right" or "left"] = true }

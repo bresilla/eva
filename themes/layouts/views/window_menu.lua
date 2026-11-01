@@ -179,7 +179,7 @@ function V.build(model)
   box_children[#box_children + 1] = ui.MouseArea { anchors = { fill = true }, z = -1 }
   local box = ui.Item(box_children)
   -- Swiped any way it goes, following the finger.
-  local swipe = require("swipe_dismiss").new { id = "window-menu", node = box,
+  local swipe = require("themes.swipe_dismiss").new { id = "window-menu", node = box,
     ways = { left = true, right = true, up = true, down = true }, on_dismiss = model.close }
   box.on_panned = swipe.on_panned
   morf.effect("eva.window-menu.swipe", function()

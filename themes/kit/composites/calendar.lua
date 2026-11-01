@@ -283,7 +283,7 @@ function M.make(spec)
   end
   -- A finger across the days brings the next month in behind it.
   local days
-  local swipe = require("swipe_dismiss").new { id = id and ("calendar." .. id), node = stack,
+  local swipe = require("themes.swipe_dismiss").new { id = id and ("calendar." .. id), node = stack,
     ways = { left = true, right = true }, stays = true, distance = W / 5,
     on_dismiss = function(way) step(way == "left" and 1 or -1) end }
   days = ui.Item { y = HEAD + 4 + WEEK, width = W, height = GRID, stack, on_panned = swipe.on_panned,

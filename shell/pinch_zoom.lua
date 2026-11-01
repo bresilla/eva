@@ -10,7 +10,7 @@
 -- `on_start()` runs as two fingers take over, `on_change()` follows.
 local morf = require("morf")
 local theme = require("theme")
-local rubber = require("rubber_band")
+local rubber = require("themes.rubber_band")
 local M = {}
 
 -- How far a zoom runs past its limits, and a double tap's.

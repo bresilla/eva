@@ -3,7 +3,7 @@
 -- short of them. With `reveal`, a pull short of the distance latches open and
 -- shows what is under it.
 --
---     local swipe = require("swipe_dismiss").new {
+--     local swipe = require("themes.swipe_dismiss").new {
 --       id = "toast", node = card, ways = { left = true, right = true },
 --       on_dismiss = function(way) close() end,
 --     }
@@ -18,10 +18,17 @@
 -- `moved` is a signal of how far it stands from rest. A pointer's drag gets
 -- the same through `press`, `drag`, `release` and `fling`.
 local morf = require("morf")
-local theme = require("theme")
-local motion = require("gesture_motion")
-local rubber = require("rubber_band")
+local motion = require("themes.gesture_motion")
+local rubber = require("themes.rubber_band")
 local M = {}
+
+-- The lock and the greeter have no shell theme: these stand in for it there.
+local SPRING, SLOP, PAST = { duration = 260, easing = "out_cubic" }, 8, 32
+local function spring() local theme = package.loaded.theme return theme and theme.spring.spatial or SPRING end
+local function buzz(kind)
+  local haptics = package.loaded.haptics
+  if haptics then haptics.fire(kind) end
+end
 
 local AXIS = { left = "x", right = "x", up = "y", down = "y" }
 local SIGN = { left = -1, right = 1, up = -1, down = 1 }
@@ -48,7 +55,7 @@ function M.new(spec)
       local rest = morf.signal(name .. "." .. axis, 0)
       axes[axis] = { rest = rest, hand = require("themes.drawer_axis").new {
         node = spec.node, property = "translate_" .. axis, name = name .. "." .. axis,
-        spring = spec.spring or theme.spring.spatial,
+        spring = spec.spring or spring(),
         instant = function() return jumping:get() end,
         out = function() return false end,
         away = function() return rest:get() end,
@@ -74,7 +81,7 @@ function M.new(spec)
     local axis = AXIS[way]
     local far = spec.extent and spec.extent(axis)
       or (axis == "x" and spec.node.layout_width or spec.node.layout_height) or 0
-    return SIGN[way] * (far + theme.space.xxl)
+    return SIGN[way] * (far + PAST)
   end
 
   function s.on_panned(phase, dx, dy, vx, vy, x, y)
@@ -120,7 +127,7 @@ function M.new(spec)
       settle(grip.on, SIGN[way] * reveal, velocity)
       if opened ~= way then
         opened = way
-        require("haptics").fire("toggle")
+        buzz("toggle")
         if spec.on_revealed then spec.on_revealed(way) end
       end
       return
@@ -135,7 +142,7 @@ function M.new(spec)
   --- It is let go `way`: told once, with the buzz of a commit.
   function s.gone(way)
     opened = nil
-    require("haptics").fire("commit")
+    buzz("commit")
     if spec.on_dismiss then spec.on_dismiss(way) end
   end
 
@@ -171,13 +178,18 @@ function M.new(spec)
   end
 
   -- A pointer has no pan: its presses and drags stand in for one.
-  local pressed
-  function s.press(x, y) pressed = { x = x, y = y, live = false } end
+  local pressed, finger
+  --- The press that follows is a finger's, which a pan carries.
+  function s.touched() finger = true end
+  function s.press(x, y)
+    if finger then finger = false return end
+    pressed = { x = x, y = y, live = false }
+  end
   function s.drag(x, y)
     if not pressed then return end
     local dx, dy = x - pressed.x, y - pressed.y
     if not pressed.live then
-      if math.max(math.abs(dx), math.abs(dy)) < theme.space.s then return end
+      if math.max(math.abs(dx), math.abs(dy)) < SLOP then return end
       pressed.live = true
       if s.on_panned("begin", dx, dy, 0, 0, pressed.x, pressed.y) == false then pressed = nil return end
     end

@@ -162,7 +162,7 @@ function V.build(model, desktop)
         return { translate_x = { from = -S.s, to = S.s, duration = 90000, easing = "in_out_sine", alternate = true } }
       end,
       clock_view(), widget_view, world_view, alarm_view } }
-  local swipe = require("swipe_dismiss").new { id = "standby", node = views, ways = { left = true, right = true },
+  local swipe = require("themes.swipe_dismiss").new { id = "standby", node = views, ways = { left = true, right = true },
     stays = true, distance = SWIPE, on_dismiss = function(way) model.step(way == "left" and 1 or -1) end }
   local moved = false
   local root = ui.Rect { id = "standby", anchors = { fill = true }, color = "#000000",
@@ -170,6 +170,7 @@ function V.build(model, desktop)
     ui.MouseArea { anchors = { fill = true }, z = 1,
       on_panned = swipe.on_panned,
       on_pressed = function(x, y) moved = false swipe.press(x, y) end,
+      on_touch_pressed = function() swipe.touched() end,
       on_dragged = function(x, y) swipe.drag(x, y) end,
       on_released = function() moved = swipe.release() end,
       on_clicked = function() if not moved then show_chrome() end end },

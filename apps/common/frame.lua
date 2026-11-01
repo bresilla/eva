@@ -177,7 +177,7 @@ function M.open(spec)
       -- A swipe in from the window's left edge takes the content with it:
       -- back a level, or out of the tool.
       local swipe
-      swipe = require("swipe_dismiss").new { id = "frame." .. spec.id, node = content, ways = { right = true },
+      swipe = require("themes.swipe_dismiss").new { id = "frame." .. spec.id, node = content, ways = { right = true },
         extent = function() return w() end,
         on_dismiss = function()
           if spec.back and spec.back() then swipe.reset() return end
@@ -202,7 +202,7 @@ end
 --- an edge does, the finger's Escape). Returns the surface.
 function M.overlay(spec)
   if spec.close then
-    local swipe = require("swipe_dismiss").new { id = "overlay." .. spec.id, node = spec.root,
+    local swipe = require("themes.swipe_dismiss").new { id = "overlay." .. spec.id, node = spec.root,
       ways = { left = true, right = true, up = true, down = true }, on_dismiss = spec.close }
     spec.root.on_edge_panned = function(_, ...) return swipe.on_panned(...) end
   end

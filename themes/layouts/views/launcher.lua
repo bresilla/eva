@@ -12,7 +12,7 @@ local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
-local rubber = require("rubber_band")
+local rubber = require("themes.rubber_band")
 local C = theme.color
 local S = theme.space
 local V = {}
@@ -565,7 +565,7 @@ function V.build(M)
         end
       end
     end
-    pages = require("swipe_dismiss").new { id = "launcher.pages", node = results, axes = { x = true },
+    pages = require("themes.swipe_dismiss").new { id = "launcher.pages", node = results, axes = { x = true },
       ways = function() return { left = neighbour("left") ~= nil, right = neighbour("right") ~= nil } end,
       on_dismiss = function(way)
         M.choose_category(neighbour(way))

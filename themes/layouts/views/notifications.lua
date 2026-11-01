@@ -291,6 +291,7 @@ function V.build(M)
         swiped, sent = false, false
         swipe.press(sx, sy)
       end,
+      on_touch_pressed = function() swipe.touched() end,
       on_dragged = function(sx, sy) swipe.drag(sx, sy) end,
       on_released = function() swiped = swipe.release() end,
       on_swiped = function(direction) if swiped and not sent then swipe.fling(direction) end end,
@@ -319,7 +320,7 @@ function V.build(M)
       expand_area, tools_area,
     }
     card.stretch = kit.STRETCH
-    swipe = require("swipe_dismiss").new {
+    swipe = require("themes.swipe_dismiss").new {
       id = "notification." .. i, node = card, ways = ways, axes = { x = true, y = true },
       reveal = { left = REVEAL }, distance = function(way) return way == "left" and REVEAL + 72 or 72 end,
       extent = function() return CARD_W end,

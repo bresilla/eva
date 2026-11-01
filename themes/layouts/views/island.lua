@@ -86,7 +86,7 @@ function V.build(model, desk)
   }
   -- A finger down opens it, up shuts it, and across walks its faces; it leans
   -- with the finger and springs home.
-  panel.on_panned = require("swipe_dismiss").new { id = "island", node = panel, axes = { x = true, y = true },
+  panel.on_panned = require("themes.swipe_dismiss").new { id = "island", node = panel, axes = { x = true, y = true },
     stays = true, distance = S.xl,
     ways = function() return { left = true, right = true, [opened() and "up" or "down"] = true } end,
     on_dismiss = function(way)

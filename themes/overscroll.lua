@@ -2,7 +2,7 @@
 -- engine offers a view's parent a drag the view has no room left for, so the
 -- handler goes on the node holding the flickable and only ever sees those.
 --
---     holder.on_panned = require("overscroll").new {
+--     holder.on_panned = require("themes.overscroll").new {
 --       flick = flick, room = function() return content_h - view_h end }.on_panned
 --
 -- A pull that shuts a panel is the panel's, and a pull an enclosing view can
@@ -10,11 +10,12 @@
 -- `on_refresh(done)`, a pull past the start let go past `REST` holds the list
 -- there until `done()`; `on_pull(fraction, refreshing)` follows it, 1 at REST.
 local morf = require("morf")
-local theme = require("theme")
-local rubber = require("rubber_band")
+local rubber = require("themes.rubber_band")
 local M = { REST = 64 }
 -- The most a pull moves a list past its end.
 local REACH = 120
+-- The way back where no shell theme is loaded: the lock's and greeter's.
+local BACK = { duration = 260, easing = "out_cubic" }
 
 local live = setmetatable({}, { __mode = "k" })
 
@@ -48,14 +49,16 @@ function M.new(spec)
   local function along(dx, dy) if s.sideways then return dx end return dy end
   local function pulled(fraction) if spec.on_pull then spec.on_pull(fraction, refreshing) end end
   local function glide(to)
-    local bounce = theme.bounce.spatial
+    local theme = package.loaded.theme
+    local bounce = theme and theme.bounce.spatial or BACK
     settling = morf.animation.play { { node = s.flick, property = s.property, to = to,
       duration = bounce.duration, easing = bounce.easing } }
   end
   local function refresh()
     refreshing = true
     pulled(1)
-    require("haptics").fire("commit")
+    local haptics = package.loaded.haptics
+    if haptics then haptics.fire("commit") end
     glide(-M.REST)
     spec.on_refresh(function()
       refreshing = false

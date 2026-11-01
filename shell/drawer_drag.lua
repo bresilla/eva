@@ -2,7 +2,7 @@
 -- to the moving drawer. The theme's motion owns the panel: this only says
 -- where the finger is and what the release decided.
 local motion = require("gesture_motion")
-local rubber = require("rubber_band")
+local rubber = require("themes.rubber_band")
 local M = {}
 -- The most a pull moves a panel past where it stands open.
 local PAST_OPEN = 32

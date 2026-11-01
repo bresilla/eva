@@ -198,7 +198,7 @@ function V.chips(M, width)
   local flick = ui.Flickable { id = "launcher-chips", width = width, height = V.CHIPS_H, clip = true, row }
   -- Pulled past either end the chips run on elastically.
   return ui.Item { width = width, height = V.CHIPS_H, flick,
-    on_panned = require("overscroll").new { flick = flick, sideways = true,
+    on_panned = require("themes.overscroll").new { flick = flick, sideways = true,
       room = function() return (row.layout_width or 0) - (flick.layout_width or 0) end }.on_panned }
 end
 

@@ -127,10 +127,10 @@ function M.make(widget, spec)
   if spec.on_refresh then
     indicator, pull = require("themes.kit.drag").make("pull_to_refresh", { id = spec.id and spec.id .. "-pull",
       anchors = { fill = true }, accepted_buttons = {}, focus_policy = "none",
-      pull_distance = require("overscroll").REST })
+      pull_distance = require("themes.overscroll").REST })
     children[2] = indicator
   end
-  control_props.on_panned = require("overscroll").new { flick = flick, sideways = sideways,
+  control_props.on_panned = require("themes.overscroll").new { flick = flick, sideways = sideways,
     on_refresh = spec.on_refresh,
     on_pull = pull and function(fraction, refreshing) pull.pull, pull.refreshing = fraction, refreshing end,
     room = function()
