@@ -94,6 +94,14 @@ def send_touch(events: list) -> None:
 tracking_ids = [100]
 
 
+def touchscreen():
+    """The touchscreen's node: its number changes from boot to boot."""
+    return machine.succeed(
+        "for d in /dev/input/event*; do "
+        "udevadm info \"$d\" | grep -q ID_INPUT_TOUCHSCREEN=1 && echo \"$d\" && break; done"
+    ).strip()
+
+
 def stroke(starts, ends, steps=24, pause=0.016, hold=0.0):
     """Lands a finger at each of `starts`, moves all to `ends` together, lifts.
     Positions are 0..1 along the panel's own axes, as the kernel sees them."""
@@ -229,7 +237,7 @@ def run(password):
 
     with subtest("the line format is what this libinput prints"):
         ours = set(reader_pids())
-        run_app("lines", "exec libinput debug-events --device /dev/input/event2 > /tmp/lines.log 2>&1")
+        run_app("lines", f"exec libinput debug-events --device {touchscreen()} > /tmp/lines.log 2>&1")
         machine.wait_until_succeeds("grep -q DEVICE_ADDED /tmp/lines.log", timeout=60)
         stroke(line([(200, 300), (260, 300)]), line([(200, 320), (260, 320)]), steps=4)
         machine.wait_until_succeeds("grep -q TOUCH_UP /tmp/lines.log", timeout=30)
@@ -453,11 +461,12 @@ def run(password):
 
     with subtest("no libinput access is said plainly"):
         pid = reader_pids()[0]
-        machine.succeed("setfacl -b /dev/input/event2")
+        device = touchscreen()
+        machine.succeed(f"setfacl -b {device}")
         machine.succeed(f"kill {pid}")
         said = eventually(lambda: (ipc("touch") or {}).get("state") == "denied", 45)
         check("the reader says it may not read", said, str(ipc("touch")))
-        machine.succeed("setfacl -m u:alice:rw /dev/input/event2")
+        machine.succeed(f"setfacl -m u:alice:rw {device}")
         check("and reads when it may", eventually(lambda: (ipc("touch") or {}).get("state") == "running", 90), str(ipc("touch")))
 
     with subtest("turned"):
