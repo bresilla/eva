@@ -235,7 +235,7 @@ end)
 
 test.it("lights the record tile from what the capture tool publishes",function()
   load()
-  local path=morf.env("XDG_RUNTIME_DIR").."/eva/capture.json"
+  local path=morf.env("XDG_RUNTIME_DIR").."/eva/capture-"..(morf.env("WAYLAND_DISPLAY") or "wayland-0"):match("[^/]+$")..".json"
   local function publish(recording)
     morf.fs.write(path,morf.json.encode {pid=morf.process_id,recording=recording,phase=recording and "recording" or "ready",
       started=morf.time.now_ms()-65000},{atomic=true,parents=true})

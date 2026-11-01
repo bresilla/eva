@@ -94,9 +94,7 @@ M.editor = {
   running = function() return M.editing:get() end,
 }
 
-local function state_path()
-  return (morf.env("XDG_RUNTIME_DIR") or "/tmp") .. "/eva/capture.json"
-end
+local state_path = require("capture_state").path
 
 local function alive()
   return pid ~= nil and morf.fs.is_dir("/proc/" .. tostring(pid))
@@ -144,8 +142,10 @@ end)
 
 require("lib.shell.capture.hotkey").follow(config)
 
--- Ready ahead of the first key, a moment after the shell has come up.
+-- The tool hears the shell is here, and is ready ahead of the first key, a
+-- moment after the shell has come up.
 if not dry_run() and (not morf.window.primary or morf.window.primary()) then
+  morf.fs.write(require("capture_state").shell_path(), tostring(morf.process_id), { atomic = true, parents = true })
   morf.time.timer(2500, function() M.ask("standby") end, false)
 end
 

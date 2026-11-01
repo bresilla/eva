@@ -6,7 +6,7 @@
 --     morf -i wayland-1-screenshot app.lua -- standby           stays, out of sight
 --
 -- The shell keeps it on standby, so a key opens the panel at once. Its state is
--- published for the shell in $XDG_RUNTIME_DIR/eva/capture.json.
+-- published for the shell in $XDG_RUNTIME_DIR/eva/capture-DISPLAY.json.
 local morf = require("morf")
 
 local first = { table.unpack(morf.operands or {}) }
@@ -88,9 +88,7 @@ local owner = morf.shared("eva.capture.owner", "")
 local function claim() owner:set(me) end
 local function mine() return owner:get() == "" or owner:get() == me end
 
-local function state_path()
-  return (morf.env("XDG_RUNTIME_DIR") or "/tmp") .. "/eva/capture.json"
-end
+local state_path = require("capture_state").path
 
 -- A dry run tells the shell nothing.
 local silent = dry()
@@ -149,15 +147,14 @@ morf.effect("eva.capture.rest", function()
 end)
 
 -- Kept ready for the shell, and no longer than the shell.
-local socket = host.shell_socket()
-if socket then
-  host.watch = morf.fs.watch(socket, function(event)
-    if event.kind ~= "deleted" then return end
+if stays then
+  morf.time.timer(5000, function()
+    if not stays or host.shell_up() then return end
     host.framed:set(false)
     stays, orphaned = false, true
     claim()
     watch_rest()
-  end)
+  end, true)
 end
 
 --- `fn` once the surface is whole: at once when it is, a moment later when it
@@ -285,7 +282,7 @@ ipc.quit = function()
   return true
 end
 ipc.state = function()
-  return { panel = capture.drawer.open:get(), phase = capture.phase:get(), recording = capture.recording:get(),
+  return { output = me, panel = capture.drawer.open:get(), phase = capture.phase:get(), recording = capture.recording:get(),
     editing = editor.running(), stage = editor.phase:get(), posture = host.now, framed = host.framed:get() }
 end
 

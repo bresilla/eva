@@ -499,18 +499,19 @@ function M.export(action,direct)
       if current~=generation then return end
       if not ok then complete(false,path) return end
       rendered=path
-      local function copy_done(good,message) complete(good,message) end
       local function save(target,then_copy)
         if not target then M.busy:set(false) M.status:set("Save cancelled") owned.remove(path) M.redraw() return end
         target=backend.expand(target)
         local folder=target:match("^(.*)/[^/]+$") if folder and folder~="" then morf.fs.mkdir(folder) end
-        backend.save(path,target,function(good,message)
+        backend.save(path,target,function(good,saved)
           if current~=generation then return end
-          if good and then_copy then backend.copy(path,copy_done) else complete(good,message) end
+          if good and then_copy then
+            backend.copy(path,function(copied,why) complete(copied,copied and saved or why) end)
+          else complete(good,saved) end
         end)
       end
       if action=="copy" then
-        if config.get("capture.copy_to_disk") then save(output_name(),true) else backend.copy(path,copy_done) end
+        if config.get("capture.copy_to_disk") then save(output_name(),true) else backend.copy(path,complete) end
       elseif action=="save" then
         if config.get("capture.save_dialog") and not direct then M.pick_open("save",output_name(),function(target) if current==generation then save(target,config.get("capture.copy_on_save")) end end)
         else save(output_name(),config.get("capture.copy_on_save")) end

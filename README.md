@@ -267,7 +267,7 @@ are the only ones there are. It stands on every screen as the shell does, so wha
 opens opens on the focused monitor, on a socket of its own
 (`morf -i DISPLAY-screenshot ipc call`). The shell's `capture`, `screenshot`,
 `record`, `capture-editor` and `capture-claim` verbs pass through to it, and it
-publishes its state in `$XDG_RUNTIME_DIR/eva/capture.json`, which is how the record
+publishes its state in `$XDG_RUNTIME_DIR/eva/capture-DISPLAY.json`, which is how the record
 tile stays lit. Kept ready it costs a second morf process and its GPU context,
 which is what opens the panel at once instead of after a second or two.
 

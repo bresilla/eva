@@ -22,17 +22,11 @@ local function screen()
   return s.width or 1920, s.height or 1080
 end
 
---- The shell's socket on this display, whether or not it is there.
-function M.shell_socket()
-  local run = morf.env("XDG_RUNTIME_DIR")
-  local display = (morf.env("WAYLAND_DISPLAY") or ""):match("[^/]+$")
-  return run and display and (run .. "/morf/" .. display .. ".sock") or nil
-end
-
---- Whether the shell is on this display.
+--- Whether the shell is on this display: the process it named is still there.
 function M.shell_up()
-  local socket = M.shell_socket()
-  return socket ~= nil and morf.fs.exists(socket) == true
+  local ok, text = pcall(morf.fs.read, require("capture_state").shell_path())
+  local pid = ok and tostring(text or ""):match("^%d+") or nil
+  return pid ~= nil and morf.fs.is_dir("/proc/" .. pid) == true
 end
 
 local function desk()

@@ -3,10 +3,10 @@
 unset EVA_DRY_RUN
 CLI="sh apps/screenshot/cli"
 FOLDER="$HOME/Pictures/Captures"
-state() { toolipc state | tr -d '\\ \n' | cut -c1-140; }
+state() { toolipc state | tr -d '\\ \n' | sed 's/.*result":\["//' | cut -c1-120; }
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
 
 start shell
-export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
 pause 1
 grim "$EVA_FAKE_SCREEN"
 
@@ -40,6 +40,8 @@ ipc capture-editor cancel > /dev/null
 pause 1
 note echo "cancelled: $(state)"
 stop
+pause 1.5
+note echo "gone with the shell: $(morf -i "$(basename "$WAYLAND_DISPLAY")-screenshot" ipc verbs 2>&1 | head -c 60)"
 
 # Alone, no shell behind it: the same panel, flaring into the screen's edge.
 $CLI &

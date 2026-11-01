@@ -123,13 +123,20 @@ end)
 
 test.it("keeps the tool ready for a verb the shell asks", function()
   host()
-  local _, calls = cli { "--ask", "capture", "toggle" }
+  local _, calls = cli({ "--ask", "capture", "toggle" }, { "STUB_UP=1" })
   test.contains(calls, "-- standby capture toggle")
-  local _, idle = cli { "--ask", "standby" }
+  local _, idle = cli({ "--ask", "standby" }, { "STUB_UP=1" })
   test.contains(idle, "app.lua -- standby")
   test.falsy(idle:find("standby standby", 1, true))
   local _, none = cli { "--ask", "capture", "close" }
   test.falsy(none:find("app.lua", 1, true), "a close started the tool")
+end)
+
+test.it("does one thing and ends when there is no shell to keep it ready", function()
+  host()
+  local _, calls = cli { "--ask", "record", "region" }
+  test.contains(calls, "app.lua -- record region")
+  test.falsy(calls:find("standby", 1, true))
 end)
 
 test.it("refuses what it does not know", function()

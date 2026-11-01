@@ -8,6 +8,11 @@ local test = morf.test
 
 local TOOL = "../apps/screenshot/app.lua"
 
+local function state_file()
+  local display = (morf.env("WAYLAND_DISPLAY") or "wayland-0"):match("[^/]+$")
+  return morf.env("XDG_RUNTIME_DIR") .. "/eva/capture-" .. display .. ".json"
+end
+
 local SOURCE = [[
   local backend = require("lib.shell.capture")
   local fixture = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="1200" height="800" fill="#37474f"/></svg>'
@@ -47,6 +52,7 @@ local SOURCE = [[
   morf.ipc.option = function(key, value) require("config").set("capture." .. key, value == "true") end
   morf.ipc.picking = function() return capture.editor.picker:get() ~= false end
   morf.ipc.screen_name = function() return morf.screens[1].name end
+  morf.ipc.framed = function() return host.framed:get() end
 ]]
 
 local function tool(style, options)
@@ -247,6 +253,15 @@ test.describe("through the selection", function()
     test.contains(morf.fs.read(morf.env("XDG_STATE_HOME") .. "/read.txt"), "No text found")
   end)
 
+  test.it("answers a save with where it went, copied or not", function()
+    tool()
+    local path = morf.env("XDG_STATE_HOME") .. "/saved.txt"
+    test.ipc("screenshot", "screen", "how=save", "result=" .. path) test.advance(800)
+    local answer = morf.fs.read(path)
+    test.contains(answer, "ok\n")
+    test.contains(answer, ".png")
+  end)
+
   test.it("takes the region taken last", function()
     tool()
     test.ipc("screenshot", "region", "how=copy") test.advance(600)
@@ -394,6 +409,18 @@ test.describe("the process", function()
     test.eq(state.posture, "hidden") test.eq(state.quits, 0)
   end)
 
+  test.it("opens a picture as its first order, and ends with the editor", function()
+    tool("material", { args = { "capture-editor", "file", morf.fs.join(morf.env("PWD"), "tests/fixtures/wallpaper.png") } })
+    test.advance(300)
+    local state = test.ipc("flow")
+    test.truthy(state.active, "the editor did not open")
+    test.eq(state.stage, "editing")
+    test.eq(state.quits, 0)
+    test.key("Escape") test.advance(600)
+    test.eq(test.ipc("flow").quits, 1)
+    test.eq(#test.logs("error"), 0)
+  end)
+
   test.it("runs the keyboard the editor needs and lets it go", function()
     tool()
     test.ipc("screenshot", "region") test.advance(600)
@@ -414,7 +441,7 @@ test.describe("the process", function()
   end)
 
   test.it("publishes what the shell shows, and a dry run publishes nothing", function()
-    local path = morf.env("XDG_RUNTIME_DIR") .. "/eva/capture.json"
+    local path = state_file()
     morf.fs.remove(path)
     tool()
     test.ipc("capture", "open") test.settle(1000)
@@ -427,6 +454,20 @@ test.describe("the process", function()
     test.truthy(state.panel) test.eq(state.phase, "ready") test.falsy(state.recording)
     test.truthy(state.pid > 0)
     morf.fs.remove(path)
+  end)
+
+  test.it("reads the shell as gone when its process is, whatever it left behind", function()
+    local display = (morf.env("WAYLAND_DISPLAY") or "wayland-0"):match("[^/]+$")
+    local pid = morf.env("XDG_RUNTIME_DIR") .. "/eva/shell-" .. display .. ".pid"
+    morf.fs.write(pid, tostring(morf.process_id), { atomic = true, parents = true })
+    tool()
+    test.ipc("capture", "open") test.settle(800)
+    test.truthy(test.ipc("framed"), "a live shell did not count")
+    test.ipc("capture", "close") test.settle(800)
+    morf.fs.write(pid, tostring(2 ^ 31 - 1), { atomic = true })
+    test.ipc("capture", "open") test.settle(800)
+    test.falsy(test.ipc("framed"), "a dead shell still counted")
+    morf.fs.remove(pid)
   end)
 
   test.it("lets another screen's order shut this one", function()
@@ -474,7 +515,7 @@ test.describe("the shell", function()
   end
   local function publish(state)
     state.pid = state.pid or morf.process_id
-    morf.fs.write(morf.env("XDG_RUNTIME_DIR") .. "/eva/capture.json", morf.json.encode(state), { atomic = true, parents = true })
+    morf.fs.write(state_file(), morf.json.encode(state), { atomic = true, parents = true })
   end
 
   test.it("holds no panel, no selection and no editor of its own", function()
@@ -557,7 +598,7 @@ test.describe("the shell", function()
     test.truthy(state.elapsed >= 64)
     publish { pid = 2 ^ 31 - 1, recording = true }
     test.wait(function() return not test.ipc("mirrored").recording end, 2000, "a dead tool still reads as recording")
-    morf.fs.remove(morf.env("XDG_RUNTIME_DIR") .. "/eva/capture.json")
+    morf.fs.remove(state_file())
   end)
 
   test.it("gives the edge up to a panel the tool opened", function()
@@ -566,7 +607,7 @@ test.describe("the shell", function()
     test.truthy(test.ipc("mirrored").bottom)
     publish { panel = true, phase = "ready" }
     test.wait(function() return not test.ipc("mirrored").bottom end, 2000, "the assistant stayed under the panel")
-    morf.fs.remove(morf.env("XDG_RUNTIME_DIR") .. "/eva/capture.json")
+    morf.fs.remove(state_file())
   end)
 
   test.it("cancels editing for authentication", function()
@@ -576,6 +617,6 @@ test.describe("the shell", function()
     test.clear_logs()
     test.ipc("polkit", "demo") test.settle(300)
     test.truthy(asked("capture-editor cancel"))
-    morf.fs.remove(morf.env("XDG_RUNTIME_DIR") .. "/eva/capture.json")
+    morf.fs.remove(state_file())
   end)
 end)
