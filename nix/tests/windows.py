@@ -244,9 +244,9 @@ def keys_section():
         tool_focus()
         tool(keys, "record", "verb:kill_mode")
         machine.sleep(2)
-        machine.send_key("meta_l-m")
+        machine.send_key("meta_l-b")
         machine.sleep(2)
-        print("AFTER MENU", tool(keys, "state"), hyprctl("activewindow")[:100])
+        print("AFTER MENU", tool(keys, "state"), hyprctl("activewindow")[:100], hyprctl("submap"))
         tool(keys, "stop")
 
         tool(keys, "reset", verb)

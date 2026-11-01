@@ -102,6 +102,7 @@ end
 
 --- A key press while listening: the chord, or Escape to give up.
 function M.take(_, text, mods, repeating, name)
+  M.seen = (M.seen or "") .. " " .. tostring(name) .. "/" .. tostring(mods) .. "/" .. tostring(repeating)
   local id = M.recording:get()
   if id == "" then return false end
   if repeating then return true end

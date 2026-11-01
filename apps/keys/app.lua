@@ -14,7 +14,7 @@ frame.open {
 
 morf.ipc.state = function()
   return { rows = #model.rows:get(), found = #model.found(), query = model.query:get(), message = model.message:get(),
-    recording = model.recording:get(), pending = model.clash_text() }
+    recording = model.recording:get(), pending = model.clash_text(), seen = model.seen or "" }
 end
 morf.ipc.search = function(query) model.query:set(query or "") return #model.found() end
 -- `row CHORD`: the row a chord is on.
