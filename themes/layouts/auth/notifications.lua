@@ -78,7 +78,7 @@ function M.build(view, spec)
     end,
     text = function()
       local count, shown = model.count(), #model.items()
-      if shown == 0 then return count == 1 and "1 notification" or (count .. " notifications") end
+      if shown == 0 or spec.rows == 0 then return count == 1 and "1 notification" or (count .. " notifications") end
       return ("%d more"):format(shown - spec.rows)
     end,
   }

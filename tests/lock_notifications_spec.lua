@@ -2,6 +2,8 @@
 -- out of the shell. No level may carry more than it says.
 local test=morf.test
 local NOW=1000
+local RUN=morf.env("XDG_CACHE_HOME").."/lock-notifications-run"
+morf.fs.mkdir(RUN,{parents=true})
 local ENTRIES={
   {app="Signal",summary="Mira",body="the code is 4471",urgency=1,time=NOW-30},
   {app="Bank",summary="Card used",body="42.00 at the shop",urgency=2,time=NOW-20},
@@ -9,7 +11,7 @@ local ENTRIES={
   {app="Updater",summary="Quiet",body="low",urgency=0,time=NOW-5},
 }
 local function rig()
-  test.load("../lock/init.lua",{size={40,40},env={EVA_DRY_RUN="1"},source=[[
+  test.load("../lock/init.lua",{size={40,40},env={EVA_DRY_RUN="1",XDG_RUNTIME_DIR=RUN},source=[[
     local n=require("models.lock_notifications")
     morf.ipc.project=function(raw)
       local v=morf.json.decode(raw)
@@ -124,7 +126,7 @@ test.it("the shell writes only the chosen level, and honours the rule seam",func
   local settings=morf.env("XDG_CACHE_HOME").."/lock-bridge.json"
   morf.fs.write(settings,morf.json.encode {lock={notifications={level="count",new_only=false}}})
   test.stub_run("task",{code=0,stdout="[]"})
-  test.load("../shell/init.lua",{size={1200,800},env={EVA_DRY_RUN="1",EVA_SETTINGS=settings,EVA_STYLE="material",
+  test.load("../shell/init.lua",{size={1200,800},env={EVA_DRY_RUN="1",EVA_SETTINGS=settings,EVA_STYLE="material",XDG_RUNTIME_DIR=RUN,
     EVA_WALLPAPER="",EVA_FONT_FILE="",LULE_A="/nonexistent/lule",EVA_FAKE_LOCK_RULES=morf.json.encode{Spam="none"}},
     source=[[
       require("init")
@@ -147,8 +149,8 @@ test.it("the shell writes only the chosen level, and honours the rule seam",func
   test.eq(#shot.notifications.items,0)
   test.eq(morf.json.encode(shot):find("Mira",1,true),nil)
   test.eq(morf.json.encode(shot):find("the code",1,true),nil)
-  local path=morf.env("XDG_RUNTIME_DIR").."/eva/lock-view.json"
+  local path=RUN.."/eva/lock-view.json"
   local text=morf.fs.read(path)
   test.eq(text:find("Mira",1,true),nil,"nothing past the level reaches the file")
-  test.eq((morf.fs.stat(path) or {}).mode and ((morf.fs.stat(path).mode)&63)==0 or true,true)
+  test.eq(text:find("buy",1,true),nil)
 end)

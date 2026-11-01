@@ -6,7 +6,8 @@ local dir=morf.env("XDG_CACHE_HOME").."/lock-features"
 morf.fs.mkdir(dir,{parents=true})
 local SETTINGS=dir.."/eva.json"
 local POLICY=dir.."/policy.json"
-local RUN=morf.env("XDG_RUNTIME_DIR")
+local RUN=dir.."/run"
+morf.fs.mkdir(RUN,{parents=true})
 local VIEW=RUN.."/eva/lock-view.json"
 local REASON=RUN.."/eva/lock-reason"
 local SOURCE=[[
@@ -64,7 +65,7 @@ local function mark(reason) write(REASON,{reason=reason,at=uptime()}) end
 
 local function load(options)
   options=options or {}
-  local env={EVA_STYLE=options.style or "material",EVA_SCALE_MODE="compositor",EVA_DRY_RUN="1",
+  local env={EVA_STYLE=options.style or "material",EVA_SCALE_MODE="compositor",EVA_DRY_RUN="1",XDG_RUNTIME_DIR=RUN,
     EVA_SETTINGS=SETTINGS,EVA_LOCK_POLICY=POLICY,
     EVA_FAKE_LOGIND=morf.json.encode(options.logind or {can={suspend="yes",reboot="yes",power_off="yes"}})}
   for k,v in pairs(options.env or {}) do env[k]=v end

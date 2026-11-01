@@ -58,7 +58,7 @@ local function load(options)
   morf.fs.write(policy,morf.json.encode(options.policy or {}))
   test.stub_run("task",{code=0,stdout="[]"})
   local env={EVA_DRY_RUN="1",EVA_SETTINGS=settings,EVA_STYLE=options.style or "material",EVA_WALLPAPER="",EVA_FONT_FILE="",
-    LULE_A="/nonexistent/lule",HOME=morf.env("XDG_CACHE_HOME"),EVA_IDLE_POLICY=policy,
+    LULE_A="/nonexistent/lule",HOME=morf.env("XDG_CACHE_HOME"),EVA_IDLE_POLICY=policy,XDG_RUNTIME_DIR=dir,
     EVA_FAKE_LOGIND=morf.json.encode(options.logind or {can={suspend="yes"}})}
   for k,v in pairs(options.env or {}) do env[k]=v end
   test.load("../shell/init.lua",{source=HOST,size=options.size or {1600,1000},env=env})

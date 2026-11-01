@@ -37,16 +37,18 @@ local function stand_in(spec)
 end
 
 local function real()
-  local ok, login = pcall(function() return require("lib.services.logind").connect() end)
+  local ok, login = pcall(function() return require("lib.services.logind").connect { udev = false } end)
   if not ok or not login then return nil end
   local client = require("lib.services.dbus").new { bus = "system" }
   local function call(method, arguments) return client.call1(NAME, MANAGER_PATH, MANAGER, method, arguments) end
 
   --- `{ what, who, why, mode, uid, pid }` for each inhibitor held now.
   function login.inhibitors()
-    login.refresh()
-    local rows, model = {}, login.state.inhibitors
-    for i = 1, model:len() do rows[i] = model:get(i) end
+    local rows, list = {}, call("ListInhibitors")
+    for _, entry in ipairs(type(list) == "table" and list or {}) do
+      rows[#rows + 1] = { what = entry[1] or "", who = entry[2] or "", why = entry[3] or "",
+        mode = entry[4] or "", uid = entry[5] or -1, pid = entry[6] or -1 }
+    end
     return rows
   end
 

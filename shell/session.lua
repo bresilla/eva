@@ -69,8 +69,23 @@ local SPECIAL = {
     if not target then return false end
     lock_now()
     local bus = require("models.logind").connect()
-    if dry_run() then morf.log("info", "eva: session switch to " .. target.user .. " (dry run)") end
-    return bus.activate(target.id)
+    if dry_run() then
+      morf.log("info", "eva: session switch to " .. target.user .. " (dry run)")
+      return bus.activate(target.id)
+    end
+    -- This session is left only once it is locked. If it never locks, it stays.
+    local waited = 0
+    local function go()
+      if bus.state.session.locked then bus.activate(target.id) return end
+      waited = waited + 1
+      if waited >= 50 then
+        morf.log("warn", "eva: not switching user: the session did not lock")
+        return
+      end
+      morf.time.timer(100, go, false)
+    end
+    go()
+    return true
   end,
   firmware = function()
     local bus = require("models.logind").connect()

@@ -138,10 +138,10 @@ function V.build(M)
         text = function() return detail_of(item) end,
         color = function() return counting() and signal() or kit.ink("lo")() end },
       -- Its letter, in the corner.
-      kit.label { id = "session-" .. item.id .. "-key", anchors = { right = true, right_margin = 10 }, y = 4 + NAME_H,
+      kit.label { id = "session-" .. item.id .. "-key", anchors = { right = true, right_margin = 12 }, y = 4 + NAME_H,
         width = 16, horizontal_alignment = "right", text = (item.key or ""):upper(),
         color = kit.stroke("mark") },
-      kit.action { id = "session-" .. item.id .. "-cancel", anchors = { right = true, right_margin = 6 },
+      kit.action { id = "session-" .. item.id .. "-cancel", anchors = { right = true, right_margin = 8 },
         y = 2, width = 76, height = NAME_H + 2, cursor = "pointer", visible = counting,
         accessible_name = "Cancel", on_clicked = M.cancel,
         kit.label { anchors = { center_in = true }, text = "Cancel", color = kit.ink("hi") } },

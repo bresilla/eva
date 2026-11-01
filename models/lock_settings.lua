@@ -6,7 +6,7 @@
 --   local prefs = require("models.lock_settings").load()
 --   prefs.notifications.level
 --
--- EVA_LOCK_POLICY names another policy file (specs).
+-- Under EVA_DRY_RUN, EVA_LOCK_POLICY names another policy file (specs).
 local morf = require("morf")
 local defaults = require("models.lock_defaults")
 local M = { LEVELS = { "all", "senders", "count", "none" }, GRACE_MAX = 60 }
@@ -57,7 +57,10 @@ function M.path()
   return morf.paths.state("eva.json")
 end
 
-function M.policy_path() return morf.env("EVA_LOCK_POLICY") or "/etc/eva/lock.json" end
+function M.policy_path()
+  local named = morf.env("EVA_DRY_RUN") == "1" and morf.env("EVA_LOCK_POLICY")
+  return named or "/etc/eva/lock.json"
+end
 
 --- The system's policy, as written.
 function M.policy() return decode(M.policy_path()) or {} end

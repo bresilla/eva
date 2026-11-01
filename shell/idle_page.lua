@@ -82,18 +82,23 @@ function M.model(active)
     set("idle.apps", out)
   end
 
-  --- Who holds it awake or blocks sleep now, as lines.
-  function model.holding()
-    if not active() then return {} end
+  -- Who holds it awake or blocks sleep, asked as the page opens and as its own
+  -- reasons move: logind is a bus call, and a binding may run often.
+  local holding = morf.signal("eva.idle.holding", {})
+  morf.effect("eva.idle.holding", function()
+    local reasons = idle.reasons()
+    if not active() then return end
     local out = {}
-    for _, row in ipairs(idle.reasons()) do
+    for _, row in ipairs(reasons) do
       out[#out + 1] = row.name .. (row.why ~= "" and (": " .. row.why) or "")
     end
     for _, row in ipairs(idle.inhibitors()) do
       out[#out + 1] = row.who .. (row.why ~= "" and (": " .. row.why) or "")
     end
-    return out
-  end
+    holding:set(out)
+  end)
+  --- What holds it now, as lines.
+  function model.holding() return holding:get() end
 
   function model.command(key) return table.concat(config.get("idle." .. key) or {}, " ") end
   function model.set_command(key, text)

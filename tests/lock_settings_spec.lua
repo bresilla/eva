@@ -5,7 +5,7 @@ local dir=morf.env("XDG_CACHE_HOME").."/lock-settings-spec"
 morf.fs.mkdir(dir,{parents=true})
 local SETTINGS,POLICY=dir.."/eva.json",dir.."/policy.json"
 local function env(extra)
-  local out={EVA_SETTINGS=SETTINGS,EVA_LOCK_POLICY=POLICY,EVA_DRY_RUN="1"}
+  local out={EVA_SETTINGS=SETTINGS,EVA_LOCK_POLICY=POLICY,EVA_DRY_RUN="1",XDG_RUNTIME_DIR=dir}
   for k,v in pairs(extra or {}) do out[k]=v end
   return out
 end
@@ -74,6 +74,16 @@ test.it("the system's policy wins over the person",function()
   test.eq(p.grace_seconds,0)
   test.eq(p.power_buttons,false)
   test.eq(p.notifications.level,"none")
+end)
+
+test.it("outside a dry run no variable can point the policy elsewhere",function()
+  clear()
+  write(SETTINGS,{lock={power_buttons=true}})
+  write(POLICY,{power_buttons=false})
+  test.load("../lock/init.lua",{size={40,40},env=env{EVA_DRY_RUN="0"},source=[[
+    morf.ipc.path=function() return require("models.lock_settings").policy_path() end
+  ]]})
+  test.eq(test.ipc("path"),"/etc/eva/lock.json")
 end)
 
 test.it("a lockdown leaves nothing but the password",function()

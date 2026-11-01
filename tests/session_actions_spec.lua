@@ -2,6 +2,8 @@
 -- the way, the countdown and its cancel. EVA_FAKE_LOGIND stands in for the bus;
 -- nothing reaches a machine.
 local test=morf.test
+local RUN=morf.env("XDG_CACHE_HOME").."/session-actions-run"
+morf.fs.mkdir(RUN,{parents=true})
 local HOST=[[
   local ui=require("morf.ui")
   local W,H=1280,tonumber(morf.env("TEST_HEIGHT") or "1000")
@@ -24,7 +26,7 @@ local HOST=[[
   morf.ipc.calls=function() return require("models.logind").connect().calls end
 ]]
 local function load(style,logind,height)
-  test.load("../shell/init.lua",{source=HOST,size={1280,height or 1000},env={EVA_STYLE=style,EVA_DRY_RUN="1",USER="me",
+  test.load("../shell/init.lua",{source=HOST,size={1280,height or 1000},env={EVA_STYLE=style,EVA_DRY_RUN="1",USER="me",XDG_RUNTIME_DIR=RUN,
     TEST_HEIGHT=tostring(height or 1000),EVA_FAKE_LOGIND=morf.json.encode(logind or {})}})
 end
 local function open() test.ipc("open","yes") test.advance(2200) end
@@ -134,9 +136,9 @@ for _,style in ipairs {"material","tsugumori"} do
     load(style,{can=YES}) open()
     test.click("session-lockdown") test.advance(600)
     test.truthy(logged("session lock (lockdown) (dry run)"))
-    local reason=morf.fs.read(morf.env("XDG_RUNTIME_DIR").."/eva/lock-reason")
+    local reason=morf.fs.read(RUN.."/eva/lock-reason")
     test.contains(reason,"lockdown")
-    morf.fs.remove(morf.env("XDG_RUNTIME_DIR").."/eva/lock-reason")
+    morf.fs.remove(RUN.."/eva/lock-reason")
   end)
   test.it(style.." suspend then hibernate stands only on logind's plain yes",function()
     load(style,{can=YES}) test.falsy(ids().suspend_hibernate)
