@@ -33,6 +33,14 @@ function V.eva_page(model,w,h)
   local inner=P.inner(w)
   local bar=model.CONTROLS.bar
   local hover=model.edge_hover
+  local reduced=model.reduce_motion
+  local styles={width=inner}
+  for _,style in ipairs(model.MOTIONS) do
+    styles[#styles+1]={id="settings-motion-"..style[1],icon=style[2],label=style[3],group="settings-motion",
+      enabled=function() return not reduced() end,
+      selected=function() return model.motion_style()==style[1] end,
+      on_clicked=function() model.set_motion_style(style[1]) end}
+  end
   return P.page {id="settings-eva-scroll",width=w,height=h,
     P.section {id="settings-eva",width=w,title="Shell",
       P.row {id="settings-eva-bar",width=inner,icon="toolbar",title="Bar",
@@ -44,6 +52,13 @@ function V.eva_page(model,w,h)
         subtitle=function() return hover() and "Reaching an edge opens its panel" or "A press at an edge opens its panel" end,
         trailing=P.switch {id="utilities-toggle-edge-hover",name="Open panels on hover",on=hover,
           on_toggled=model.set_edge_hover}},
+    },
+    P.section {id="settings-eva-motion",width=w,title="Motion",
+      P.buttons(styles),
+      P.row {id="settings-eva-reduce",width=inner,icon="animation",title="Reduce motion",on=reduced,
+        subtitle=function() return reduced() and "Everything lands at once" or "Things travel on springs" end,
+        trailing=P.switch {id="utilities-toggle-reduce-motion",name="Reduce motion",on=reduced,
+          on_toggled=model.set_reduce_motion}},
     },
   }
 end
