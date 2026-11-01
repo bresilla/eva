@@ -62,6 +62,13 @@
           module = machine { };
           module-plymouth = machine { programs.eva.seamless.plymouth = true; };
           module-plain = machine { programs.eva.seamless.enable = false; };
+          module-hardware = machine {
+            programs.eva.hardware = {
+              tabletSwitch = { enable = true; name = "Intel HID switches"; };
+              chargeLimit = true;
+              usbTether = true;
+            };
+          };
         };
         devShells.default = pkgs.mkShell {
           packages = [

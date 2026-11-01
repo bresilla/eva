@@ -179,6 +179,7 @@ in
   imports = [
     ./authentication.nix
     ./compositor.nix
+    ./hardware.nix
     ./idle.nix
     ./phone.nix
     ./seamless.nix
