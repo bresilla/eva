@@ -1,11 +1,12 @@
 -- One connection's page, the Proxy page, and sharing a Wi-Fi network by code.
 -- The page shows whichever connection Network or Wired asked for. A Wi-Fi
--- password goes from NetworkManager to qrencode without touching a signal.
+-- password goes from NetworkManager to the encoder without touching a signal.
 local morf = require("morf")
 local config = require("config")
 local services = require("services")
 local connection = require("lib.services.connection")
 local host = require("lib.services.host")
+local qr = require("lib.util.qr")
 local page_model = require("page_model")
 
 local M = {}
@@ -70,8 +71,8 @@ function M.new(active)
   return model
 end
 
---- The code for the network `row` (an access point row) to `draw(rows)`:
---- rows of booleans, never kept. `fail(why)` hears why not.
+--- The code for the network `row` (an access point row) to `draw(code)`, never
+--- kept. `fail(why)` hears why not.
 function M.share(row, draw, fail)
   local net = services.net
   local known
@@ -79,9 +80,9 @@ function M.share(row, draw, fail)
     if each.ssid == row.ssid then known = each end
   end
   local function encode(password)
-    connection.qr(connection.wifi_uri(row.ssid, row.security, password, row.hidden), function(rows, why)
-      if not rows then return fail(why) end
-      draw(rows)
+    qr.encode(connection.wifi_uri(row.ssid, row.security, password, row.hidden), "M", function(code, why)
+      if not code then return fail(why) end
+      draw(code)
     end)
   end
   if row.security == "open" or row.security == "owe" then return encode(nil) end
@@ -91,8 +92,6 @@ function M.share(row, draw, fail)
     encode(password)
   end)
 end
-
-M.qr_path = connection.qr_path
 
 -- ------------------------------------------------------------------ proxy --
 

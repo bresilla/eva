@@ -1,7 +1,6 @@
 #!/bin/sh
 # eva-large: Large Type. Shows words huge across the screen, fitted to it, with a
-# QR beside them where qrencode is installed. A press or Escape ends it, and so
-# does a second launch.
+# QR beside them. A press or Escape ends it, and so does a second launch.
 #
 #   eva-large WORDS            the words
 #   echo words | eva-large     what comes on stdin

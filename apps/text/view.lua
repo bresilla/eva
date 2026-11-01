@@ -20,11 +20,9 @@ local function grid(group, w)
   local function cell_w() return math.max(1, math.floor((w() - S.s * (COLUMNS - 1)) / COLUMNS)) end
   local cells = { width = w, columns = COLUMNS, gap = S.s, id = "text-" .. group.key .. "-grid" }
   for _, item in ipairs(group.items) do
-    if transforms.present(item) then
-      cells[#cells + 1] = P.button {
-        id = "text-do-" .. item.id, label = item.name, width = cell_w, on_clicked = function() model.apply(item.id) end,
-      }
-    end
+    cells[#cells + 1] = P.button {
+      id = "text-do-" .. item.id, label = item.name, width = cell_w, on_clicked = function() model.apply(item.id) end,
+    }
   end
   return ui.Grid(cells)
 end

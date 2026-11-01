@@ -212,7 +212,7 @@ test.describe("the tools", function()
     test.truthy(host.logged("copied a secret"))
     test.eq(test.ipc("copied"), {}, "it went through the plain clipboard")
     host.search("> pw words 5")
-    test.matches(test.ipc("rows")[1].description, "5 words")
+    test.matches(test.ipc("rows")[1].description, "5 words, 47 bits")
   end)
 
   test.it("keeps a password out of the history", function()
@@ -271,6 +271,23 @@ test.describe("the tools", function()
     test.matches(test.ipc("rows")[1].description, "2 paragraphs")
     host.search("> char U+00E9")
     test.eq(test.ipc("rows")[1].name, "é")
+  end)
+
+  test.it("writes text the way eva-text does: one codec behind both", function()
+    host.load()
+    host.search('> json {"zebra":1.50, "apple":[1]}')
+    test.truthy(host.row('{"zebra":1.50,"apple":[1]}'), "keys kept in their order, numbers as written")
+    host.search("> case élève ÉCOLE")
+    test.truthy(host.row("ÉLÈVE ÉCOLE"), "letters past ASCII")
+    host.search("> case a1b")
+    test.truthy(host.row("a1_b"), "the words split as eva-text splits them")
+    host.search("> b64 it's")
+    test.truthy(host.row("it&#39;s"))
+    host.search("> lorem 30")
+    test.ipc("activate")
+    test.settle(200)
+    local _, breaks = test.ipc("copied")[1]:gsub("\n\n", "")
+    test.eq(breaks, 29)
   end)
 
   test.it("makes a QR code off the search, and shows it", function()
@@ -506,7 +523,7 @@ test.describe("words and text", function()
     for _, argv in ipairs(test.runs()) do
       if argv[1] == "trans" then asked = argv end
     end
-    test.contains(asked, ":es")
+    test.eq(asked, { "trans", "-b", "-no-ansi", ":es" }, "eva-translate's engine, the text on stdin")
     test.ipc("activate")
     test.settle(200)
     test.eq(test.ipc("copied"), { "Hola mundo" })
@@ -520,6 +537,20 @@ test.describe("words and text", function()
         end
       end
     end, 2000, "the language name was not read")
+  end)
+
+  test.it("reads the languages of eva-translate's list, and their other names", function()
+    for _, case in ipairs { { "norwegian", ":no" }, { "no", ":no" }, { "español", ":es" }, { "zh", ":zh-CN" } } do
+      host.load { path = { "trans" } }
+      test.stub_run("trans", "Hola\n")
+      host.search("> tr " .. case[1] .. " hello", 500)
+      landed("Hola")
+      local asked
+      for _, argv in ipairs(test.runs()) do
+        if argv[1] == "trans" then asked = argv end
+      end
+      test.eq(asked[4], case[2])
+    end
   end)
 
   test.it("defines a word through dict", function()

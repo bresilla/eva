@@ -7,6 +7,13 @@ local test = morf.test
 local ROOT = morf.fs.join(morf.env("PWD") or ".", "tests/fixtures/wallpapers")
 
 local SOURCE = [[
+  local fonts = require("themes.fonts")
+  local set_font, font_calls = fonts.set, {}
+  fonts.set = function(choice, done)
+    font_calls[#font_calls + 1] = choice.file
+    return set_font(choice, done)
+  end
+  morf.ipc.l_font_calls = function() return font_calls end
   require("init")
   local config = require("config")
   local theme = require("theme")
@@ -48,7 +55,11 @@ local SOURCE = [[
   morf.ipc.l_qt = function() return look.qt_palette(model.qt_colors()) end
   morf.ipc.l_local = function(utc, zone) return model.local_time(utc, zone) end
   morf.ipc.l_sun = function() model.find_sun() end
-  morf.ipc.l_font = function(path) return model.set_font_file(path) end
+  morf.ipc.l_font = function(path)
+    local taken
+    fonts.set({ file = path }, function(ok) taken = ok end)
+    return taken
+  end
   morf.ipc.l_scheme = function(id, value) local f = schemes.flavour(id, value) return f and f.ground end
   morf.ipc.l_schemes = function() local out = {} for i, s in ipairs(schemes.LIST) do out[i] = s.id end return out end
   morf.ipc.l_accent = function(text) return require("song_theme").accent_of(text) end
@@ -352,6 +363,16 @@ test.describe("the font file", function()
     test.eq(test.ipc("l_get", "appearance.font_file"), "")
     test.truthy(test.ipc("l_font", face))
     test.eq(test.ipc("l_get", "appearance.font_file"), face)
+  end)
+
+  test.it("reaches the one setter from the Look page's field", function()
+    load {}
+    test.ipc("settings", "theme/look") test.settle(2500)
+    local field = test.get("look-font-file")
+    test.wheel(0, field.y - 400, { x = field.x + 8, y = 400 }) test.advance(300)
+    test.click("look-font-file") test.type("/nonexistent/face.ttf") test.key("Return") test.settle(200)
+    test.eq(test.ipc("l_font_calls"), { "/nonexistent/face.ttf" })
+    test.truthy(test.find { text = "No font file at /nonexistent/face.ttf", visible = true })
   end)
 end)
 

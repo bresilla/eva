@@ -15,7 +15,7 @@ function M.nixos() return NIXOS end
 function M.declared() return NIXOS end
 function M.managed() return false end
 
-local PROGRAMS = { qrencode = true, ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
+local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
   scanimage = not NIXOS, lpstat = not NIXOS, ["firewall-cmd"] = not NIXOS, gsettings = true, lspci = true, ["xdg-open"] = true,
   gio = true, ["eva-battery"] = true }
 
@@ -97,19 +97,6 @@ local function answer(argv, options)
       "ipv4.gateway:--", "ipv4.dns:", "ipv4.ignore-auto-dns:no", "ipv6.method:auto", "802-11-wireless.hidden:no",
       "802-11-wireless.cloned-mac-address:", "IP4.ADDRESS[1]:192.168.1.23/24", "IP4.GATEWAY:192.168.1.1", "IP4.DNS[1]:192.168.1.1",
       "IP4.DNS[2]:9.9.9.9", "IP6.ADDRESS[1]:fe80\\:\\:1/64", "GENERAL.DEVICES:wlan0" }, "\n") .. "\n" }
-  end
-  if argv[1] == "qrencode" then
-    local rows = {}
-    for y = 1, 25 do
-      local row = {}
-      for x = 1, 25 do
-        local corner = (x <= 7 or x > 18) and y <= 7 or (x <= 7 and y > 18)
-        local lit = corner and (x % 6 ~= 2 and y % 6 ~= 2) or (not corner and (x * y + x) % 3 == 0)
-        row[x] = lit and "##" or "  "
-      end
-      rows[y] = table.concat(row)
-    end
-    return { ok = true, stdout = table.concat(rows, "\n") .. "\n" }
   end
   if argv[1] == "xkbcli" then
     return { ok = true, stdout = "interpret Any+AnyOf(all) {\n action= SetMods(modifiers=modMapMods,clearLocks);\n};\n" }

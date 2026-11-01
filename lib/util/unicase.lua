@@ -30,7 +30,7 @@ for cp = 0x410, 0x42F do pair(cp, cp + 32) end
 pair(0x490, 0x491)
 
 local function map(text, ascii, table_of)
-  if not text:find("[\128-\255]") then return ascii(text) end
+  if not text:find("[\128-\255]") or not utf8.len(text) then return ascii(text) end
   local out = {}
   for _, cp in utf8.codes(text, true) do
     if cp < 128 then out[#out + 1] = ascii(string.char(cp))

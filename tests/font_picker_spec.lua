@@ -10,11 +10,13 @@ local function load(style, fail)
     appearance.request_font=function(family) chosen=family return true end
     local active=morf.signal("font-test.active",true)
     local fonts=require("themes.fonts")
+    local set,heard=fonts.set,{}
+    fonts.set=function(choice,done) heard[#heard+1]=choice.family return set(choice,done) end
     ui.Rect {width=960,height=545,color=function() return theme.color.surface end,
       kit.pill {id="open-fonts",x=582,y=484,width=362,height=34,label="Choose font",on_clicked=fonts.open},
       require("themes.layouts.font_picker") {active=active,busy=morf.signal("font-test.busy",false),appearance=appearance},
     }
-    morf.ipc.state=function() return {chosen=chosen,opened=fonts.opened:get(),rows=fonts.rows:get(),page=fonts.page:get(),status=fonts.status:get()} end
+    morf.ipc.state=function() return {chosen=chosen,heard=heard,opened=fonts.opened:get(),rows=fonts.rows:get(),page=fonts.page:get(),status=fonts.status:get()} end
     morf.ipc.hide=function() active:set(false) end
     morf.ipc.current=function(family) require("themes").font=family end
   ]]})
@@ -41,6 +43,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.ipc("current","Goku") test.click("open-fonts") test.advance(50)
     test.click("lule-font-default") test.advance(100)
     test.eq(test.ipc("state").chosen,"")
+    test.eq(test.ipc("state").heard,{"Goku",""},"the one setter hears both")
     test.click("open-fonts") test.advance(50) test.ipc("hide") test.advance(100)
     test.falsy(test.ipc("state").opened)
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)

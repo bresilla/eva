@@ -10,7 +10,6 @@ local L = require("themes.layouts.parts")
 local controls = require("common.controls")
 local composites = require("themes.kit.composites")
 local frame = require("common.frame")
-local codes = require("codes")
 local model = require("model")
 local C, S = theme.color, theme.space
 
@@ -70,7 +69,7 @@ end
 
 local function wifi_fields(w)
   local security = {}
-  for index, name in ipairs(codes.SECURITY) do security[index] = name == "nopass" and "Open" or name end
+  for index, name in ipairs(model.SECURITY) do security[index] = name == "nopass" and "Open" or name end
   local field, input = kit.text_field("password", {
     id = "qr-password", width = w, height = S.TARGET, placeholder = "Password", color = kit.ink("hi"),
     placeholder_color = kit.ink("lo"), on_text_changed = model.set_password,

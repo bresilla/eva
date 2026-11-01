@@ -1,5 +1,5 @@
 -- eva-large: where the words come from, how they fit the screen, the QR, and how
--- it ends. The clipboard and qrencode for real are tools/see/large.steps'.
+-- it ends. The clipboard for real is tools/see/large.steps'.
 --
 --     morf test --no-dbus tests/large_spec.lua
 
@@ -94,26 +94,17 @@ test.it("fits a phone upright", function()
   test.truthy(test.get("large-card").x >= 0)
 end)
 
-test.it("writes the QR from stdin, never the command line", function()
-  test.clear_stubs()
-  test.stub_run("qrencode", { code = 0 })
-  test.load("../apps/large/app.lua", { source = [[
-    package.loaded["common.sys"] = nil
-    local sys = require("common.sys")
-    sys.has = function() return true end
-  ]] .. morf.fs.read(ROOT .. "apps/large/app.lua"), args = { "s3cret" }, env = env(), size = { 1280, 800 } })
-  test.settle(1500)
-  local run = test.runs()[1]
-  test.eq(run[1], "qrencode")
-  test.falsy(table.concat(run, " "):find("s3cret", 1, true), "the words are on a command line")
-  test.truthy(state().qr ~= "")
+test.it("draws the QR in the tool, with no program on a machine that has none", function()
+  tool { "s3cret" }
+  test.eq(#test.runs(), 0, "the words left the tool")
+  test.matches(state().qr, "^<svg")
   local card, words = test.get("large-qr-card"), test.get("large-card")
   test.truthy(card.visible)
   test.truthy(card.x >= words.x + words.width, "the QR is not beside the words")
 end)
 
-test.it("leaves the QR out when it has none", function()
-  tool { "no qrencode here" }
+test.it("leaves the QR out when the words are too many for one", function()
+  tool { string.rep("word ", 300) }
   test.eq(state().qr, "")
   test.falsy(test.get("large-qr-card").visible)
 end)

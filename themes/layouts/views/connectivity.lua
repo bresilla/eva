@@ -156,9 +156,9 @@ local function share_panel(model, w)
   local function clear() code.d = "" code.view_box = { 0, 0, 1, 1 } end
   morf.effect("eva.network.share", function()
     if not model.share_shown:get() then clear() failure:set("") return end
-    model.share(function(rows)
-      code.view_box = { 0, 0, #rows, #rows }
-      code.d = require("connection_model").qr_path(rows)
+    model.share(function(made)
+      code.view_box = { 0, 0, made.size, made.size }
+      code.d = made.path
     end, function(why) failure:set(tostring(why)) end)
   end)
   return ui.Column { id = "network-share-panel", width = inner, gap = theme.space.s, align = "center",

@@ -2,10 +2,11 @@
 -- metered, and the code that shares a Wi-Fi network.
 --
 -- A profile is changed with `nmcli connection modify`. A Wi-Fi password is read
--- over the bus by `secret`, goes to its caller alone, and reaches `qrencode`
--- on stdin.
+-- over the bus by `secret`, goes to its caller alone, and is encoded in this
+-- process by lib/util/qr.lua.
 local host = require("lib.services.host")
 local dbus_client = require("lib.services.dbus")
+local qr = require("lib.util.qr")
 
 local M = {}
 
@@ -160,49 +161,10 @@ function M.secret(path, done)
   if not sent then done(nil, why) end
 end
 
-local function escaped(text) return (tostring(text):gsub('([\\;,:"])', "\\%1")) end
-
 --- The text a phone's camera reads as this network.
 function M.wifi_uri(ssid, security, password, hidden)
   local auth = (security == "open" or security == "owe") and "nopass" or (security == "wep" and "WEP" or "WPA")
-  local parts = { "WIFI:T:", auth, ";S:", escaped(ssid), ";" }
-  if auth ~= "nopass" then parts[#parts + 1] = "P:" .. escaped(password or "") .. ";" end
-  if hidden then parts[#parts + 1] = "H:true;" end
-  parts[#parts + 1] = ";"
-  return table.concat(parts)
-end
-
---- `qrencode -t ASCII`'s text as rows of booleans.
-function M.parse_qr(text)
-  local rows = {}
-  for line in tostring(text or ""):gmatch("[^\n]+") do
-    local row = {}
-    for pair in line:gmatch("..") do row[#row + 1] = pair == "##" end
-    if #row > 0 then rows[#rows + 1] = row end
-  end
-  return rows
-end
-
---- SVG path data for a code: a square per lit module, one unit each.
-function M.qr_path(rows)
-  local parts = {}
-  for y, row in ipairs(rows) do
-    for x, lit in ipairs(row) do
-      if lit then parts[#parts + 1] = ("M%d %dh1v1h-1z"):format(x - 1, y - 1) end
-    end
-  end
-  return table.concat(parts)
-end
-
---- `done(rows, err)`: `text` as a QR code, given on stdin.
-function M.qr(text, done)
-  if not host.installed("qrencode") then return done(nil, "Sharing by code needs qrencode") end
-  host.read({ "qrencode", "-t", "ASCII", "-m", "0", "-l", "M" }, function(out, why)
-    if not out then return done(nil, why) end
-    local rows = M.parse_qr(out)
-    if #rows == 0 then return done(nil, "No code came back") end
-    done(rows)
-  end, { stdin = text })
+  return qr.wifi({ ssid = ssid, security = auth, hidden = hidden }, password)
 end
 
 return M
