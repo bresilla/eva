@@ -22,6 +22,26 @@ local HOST = [[
   morf.ipc.utc = function(y, m, d, H, N) return morf.time.time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = tonumber(H), minute = tonumber(N or 0) }, { utc = true }) end
   morf.ipc.duration = function(text) return ical.parse_duration(text) end
   morf.ipc.civil = function(y, m, d) return { ical.civil_from_days(ical.days_from_civil(tonumber(y), tonumber(m), tonumber(d))) } end
+  local NOW = 1793520000
+  morf.ipc.edit = function(text, uid, json) return ical.edit_event(text, uid, nil, morf.json.decode(json), NOW) end
+  morf.ipc.fold = function(line) return ical.fold(line) end
+  morf.ipc.round = function(text)
+    local start = { year = 2026, month = 11, day = 2, hour = 9, minute = 0, second = 0, zone = "utc" }
+    local out = ical.parse(ical.new_file({ summary = text, location = "a;b,c", description = "one\ntwo", start = start }, "u", NOW, "Mine"))
+    return { name = out.name, summary = out.events[1].summary, location = out.events[1].location, description = out.events[1].description }
+  end
+  morf.ipc.time_line = function(json) return ical.time_line("DTSTART", morf.json.decode(json)) end
+  morf.ipc.rule = function(freq, last, json) return ical.rule_text(freq, last, morf.json.decode(json)) end
+  morf.ipc.no_alarm = function(text) return ical.parse(text).events[1].no_alarm == true end
+  morf.ipc.rule_text = function(text) return ical.parse(text).events[1].rule_text end
+  morf.ipc.moved = function(text, at, like_json, json)
+    return ical.override_event(text, "u", tonumber(at), morf.json.decode(like_json), morf.json.decode(json), NOW)
+  end
+  morf.ipc.except = function(text, at, like_json) return ical.except_event(text, "u", tonumber(at), morf.json.decode(like_json), NOW) end
+  morf.ipc.remove = function(text, uid)
+    local out, left = ical.remove_event(text, uid)
+    return { text = out or false, left = left }
+  end
 ]]
 local function wrap(body) return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" .. body .. "\r\nEND:VCALENDAR\r\n" end
 local function event(lines) return wrap("BEGIN:VEVENT\r\n" .. table.concat(lines, "\r\n") .. "\r\nEND:VEVENT") end
@@ -173,5 +193,93 @@ test.describe("ical", function()
     test.eq(test.ipc("civil", 2024, 2, 29), { 2024, 2, 29 })
     test.eq(test.ipc("civil", 1969, 12, 31), { 1969, 12, 31 })
     test.eq(test.ipc("civil", 2100, 3, 1), { 2100, 3, 1 })
+  end)
+
+  test.it("writes text it reads back, and folds on a character's edge", function()
+    test.eq(test.ipc("round", "Tea, then a walk; maybe"), { name = "Mine", summary = "Tea, then a walk; maybe",
+      location = "a;b,c", description = "one\ntwo" })
+    local folded = test.ipc("fold", "SUMMARY:" .. string.rep("é", 60))
+    for line in (folded .. "\r\n"):gmatch("(.-)\r\n") do test.truthy(#line <= 75, "a line of " .. #line) end
+    test.truthy(utf8.len((folded:gsub("\r\n ", ""))) ~= nil, "a character was cut")
+  end)
+
+  test.it("writes each kind of time as DTSTART should be", function()
+    test.eq(test.ipc("time_line", '{"year":2026,"month":11,"day":2,"date":true}'), "DTSTART;VALUE=DATE:20261102")
+    test.eq(test.ipc("time_line", '{"year":2026,"month":11,"day":2,"hour":9,"minute":30,"second":0,"zone":"utc"}'), "DTSTART:20261102T093000Z")
+    test.eq(test.ipc("time_line", '{"year":2026,"month":11,"day":2,"hour":9,"minute":30,"second":0,"zone":"Europe/Rome"}'), "DTSTART;TZID=Europe/Rome:20261102T093000")
+    test.eq(test.ipc("time_line", '{"year":2026,"month":11,"day":2,"hour":9,"minute":30,"second":0}'), "DTSTART:20261102T093000")
+  end)
+
+  test.it("gives UNTIL the value type of DTSTART", function()
+    test.eq(test.ipc("rule", "WEEKLY", "", "{}"), "FREQ=WEEKLY")
+    test.eq(test.ipc("rule", "WEEKLY", "2026-12-31", '{"date":true}'), "FREQ=WEEKLY;UNTIL=20261231")
+    test.eq(test.ipc("rule", "DAILY", "2026-12-31", "{}"), "FREQ=DAILY;UNTIL=20261231T235959")
+    test.truthy(test.ipc("rule", "DAILY", "2026-12-31", '{"zone":"utc"}'):match("UNTIL=%d+T%d+Z$"))
+  end)
+
+  test.it("changes only what it is told, and keeps what it does not know", function()
+    local text = event { "UID:u", "SUMMARY:Old", "ATTENDEE;CN=K:mailto:k@example.test", "X-THING;P=1:v", "DTSTART:20261102T090000Z", "DURATION:PT1H",
+      "SEQUENCE:2", "BEGIN:VALARM", "ACTION:AUDIO", "TRIGGER:-PT5M", "END:VALARM" }
+    local out = test.ipc("edit", text, "u", '{"summary":"New"}')
+    test.truthy(out:find("SUMMARY:New", 1, true))
+    test.falsy(out:find("SUMMARY:Old", 1, true))
+    test.truthy(out:find("ATTENDEE;CN=K:mailto:k@example.test", 1, true))
+    test.truthy(out:find("X-THING;P=1:v", 1, true))
+    test.truthy(out:find("DURATION:PT1H", 1, true))
+    test.truthy(out:find("ACTION:AUDIO", 1, true))
+    test.truthy(out:find("SEQUENCE:3", 1, true))
+    test.truthy(out:find("END:VALARM\r\nEND:VEVENT", 1, true), "reminders stand last")
+    test.eq(test.ipc("edit", text, "other", '{"summary":"New"}'), nil)
+  end)
+
+  test.it("keeps a folded line whole through an edit", function()
+    local text = event { "UID:u", "SUMMARY:Old", "DESCRIPTION:one two", " three four", "DTSTART:20261102T090000Z" }
+    local out = test.ipc("edit", text, "u", '{"summary":"New"}')
+    test.truthy(out:find("DESCRIPTION:one two\r\n three four", 1, true))
+  end)
+
+  test.it("drops a property told to, an end with its duration", function()
+    local text = event { "UID:u", "SUMMARY:S", "LOCATION:Room", "RRULE:FREQ=DAILY", "DTSTART:20261102T090000Z", "DURATION:PT1H" }
+    local out = test.ipc("edit", text, "u", '{"location":"","rule":"","finish":false}')
+    test.falsy(out:find("LOCATION", 1, true))
+    test.falsy(out:find("RRULE", 1, true))
+    test.falsy(out:find("DURATION", 1, true))
+  end)
+
+  test.it("turns the default reminder off so that it reads back off", function()
+    local text = event { "UID:u", "SUMMARY:S", "DTSTART:20261102T090000Z", "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT5M", "END:VALARM" }
+    local out = test.ipc("edit", text, "u", '{"alarms":false}')
+    test.falsy(out:find("PT5M", 1, true))
+    test.eq(test.ipc("no_alarm", out), true)
+    test.eq(test.ipc("no_alarm", text), false)
+  end)
+
+  test.it("moves one instance as a copy that stands in for it", function()
+    local text = event { "UID:u", "SUMMARY:S", "DTSTART:20261102T090000Z", "DTEND:20261102T100000Z", "RRULE:FREQ=DAILY", "EXDATE:20261105T090000Z" }
+    local at = utc(2026, 11, 4, 9)
+    local out = test.ipc("moved", text, at, '{"zone":"utc"}', '{"summary":"Later","start":{"year":2026,"month":11,"day":4,"hour":12,"minute":0,"second":0,"zone":"utc"}}')
+    local rows = test.ipc("times", out, utc(2026, 11, 4), utc(2026, 11, 5))
+    test.eq(#rows, 1)
+    test.eq(rows[1].summary, "Later")
+    test.eq(rows[1].at, utc(2026, 11, 4, 12))
+    local _, rules = out:gsub("RRULE", "")
+    test.eq(rules, 1, "the copy does not repeat")
+  end)
+
+  test.it("takes one instance out, its moved copy with it", function()
+    local text = event { "UID:u", "SUMMARY:S", "DTSTART;VALUE=DATE:20261102", "RRULE:FREQ=DAILY" }
+    local at = test.ipc("times", text, utc(2026, 11, 3, 12), utc(2026, 11, 4, 12))[1].at
+    local out = test.ipc("except", text, at, '{"date":true}')
+    test.truthy(out:find("EXDATE;VALUE=DATE:20261103", 1, true) or out:find("EXDATE;VALUE=DATE:20261104", 1, true), out)
+    test.eq(#test.ipc("times", out, at, at + 3600), 0)
+  end)
+
+  test.it("removes an event and says what is left", function()
+    local text = wrap("BEGIN:VEVENT\r\nUID:a\r\nDTSTART:20261102T090000Z\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:b\r\nDTSTART:20261102T090000Z\r\nEND:VEVENT")
+    local out = test.ipc("remove", text, "a")
+    test.eq(out.left, 1)
+    test.falsy(out.text:find("UID:a", 1, true))
+    test.truthy(out.text:find("UID:b", 1, true))
+    test.eq(test.ipc("remove", text, "c").text, false)
   end)
 end)

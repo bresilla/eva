@@ -42,17 +42,28 @@ function M.host_of(url) return tostring(url):match("^%a+://([^/]+)") or tostring
 
 -- -------------------------------------------------------------- discovering --
 
--- The `path = ...` lines of a khal or vdirsyncer config.
+-- The `path = ...` lines of a khal or vdirsyncer config, and which of them the
+-- same section marks read-only (`readonly = True`, `read_only = true`).
 local function configured_paths(file)
-  local out = {}
-  if not morf.fs.exists(file) then return out end
+  local out, locked = {}, {}
+  if not morf.fs.exists(file) then return out, locked end
   local ok, text = pcall(morf.fs.read, file)
-  if not ok or type(text) ~= "string" then return out end
+  if not ok or type(text) ~= "string" then return out, locked end
+  local path, frozen = nil, false
+  local function close_section()
+    if path and frozen then locked[path] = true end
+    path, frozen = nil, false
+  end
   for line in text:gmatch("[^\n]+") do
     local value = line:match("^%s*path%s*=%s*[\"']?([^\"'#]+)[\"']?%s*$")
-    if value then out[#out + 1] = (expand(value:match("^(.-)%s*$"):gsub("/%*?$", ""))) end
+    if line:match("^%s*%[") then close_section()
+    elseif value then
+      path = expand(value:match("^(.-)%s*$"):gsub("/%*?$", ""))
+      out[#out + 1] = path
+    elseif line:lower():match("^%s*read_?only%s*=%s*true") then frozen = true end
   end
-  return out
+  close_section()
+  return out, locked
 end
 
 -- Holds `.ics` files itself, or one folder down.
@@ -82,39 +93,67 @@ local function calendar_folders(root, out, seen)
   end
 end
 
--- Where vdirsyncer and khal keep calendars on this machine.
+-- Where vdirsyncer and khal keep calendars on this machine, and the folders
+-- their configs mark read-only.
 local function discovered()
-  local out, seen = {}, {}
-  if config.get("calendar.discover") == false then return out end
+  local out, seen, locked = {}, {}, {}
+  if config.get("calendar.discover") == false then return out, locked end
   local function env(name) local value = morf.env and morf.env(name) return value and value ~= "" and value or nil end
   local home = env("HOME") or morf.fs.home()
   local data, settings = env("XDG_DATA_HOME") or (home .. "/.local/share"), env("XDG_CONFIG_HOME") or (home .. "/.config")
   local roots = { data .. "/khal/calendars", data .. "/vdirsyncer", home .. "/.calendars" }
   for _, file in ipairs { settings .. "/khal/config", settings .. "/vdirsyncer/config" } do
-    for _, path in ipairs(configured_paths(file)) do roots[#roots + 1] = path end
+    local paths, frozen = configured_paths(file)
+    for _, path in ipairs(paths) do roots[#roots + 1] = path end
+    for path in pairs(frozen) do locked[path] = true end
   end
-  for _, root in ipairs(roots) do calendar_folders(root, out, seen) end
-  return out
+  for _, root in ipairs(roots) do
+    local before = #out
+    calendar_folders(root, out, seen)
+    for index = before + 1, #out do locked[out[index]] = locked[out[index]] or locked[root] end
+  end
+  return out, locked
 end
 
---- Everything to read: `{ id, kind, name, path }`.
+-- Why a file or folder cannot be written, or nil. A folder is asked for
+-- owner-write the way a file is; a write that fails anyway says so itself.
+local function locked_by_disk(path)
+  if require("lib.services.host").managed(path) then return "Your Nix configuration writes this file." end
+  local ok, entry = pcall(morf.fs.stat, path)
+  if ok and type(entry) == "table" and entry.mode and (entry.mode & 128) == 0 then return "You do not have write permission here." end
+end
+
+--- Everything to read: `{ id, kind, name, path, locked }`; `locked` is why the
+--- calendar cannot be written, nil where it can.
 function M.gather()
   local out, seen = {}, {}
-  local function add(kind, path, name, value)
+  local found, frozen = discovered()
+  local function add(kind, path, name, value, locked)
     if seen[path] then return end
     seen[path] = true
-    out[#out + 1] = { id = path, kind = kind, path = path, name = name, value = value }
+    out[#out + 1] = { id = path, kind = kind, path = path, name = name, value = value, locked = locked }
   end
-  for _, file in ipairs(list("files")) do add("file", expand(file), tostring(file):match("([^/]+)$") or file, file) end
-  for _, folder in ipairs(list("folders")) do add("folder", expand(folder), tostring(folder):match("([^/]+)/?$") or folder, folder) end
-  for _, folder in ipairs(discovered()) do add("found", folder, folder:match("([^/]+)/?$") or folder) end
-  for _, url in ipairs(list("urls")) do add("url", cache_path(url), M.host_of(url), url) end
+  for _, file in ipairs(list("files")) do
+    local path = expand(file)
+    add("file", path, tostring(file):match("([^/]+)$") or file, file, locked_by_disk(path))
+  end
+  for _, folder in ipairs(list("folders")) do
+    local path = expand(folder)
+    add("folder", path, tostring(folder):match("([^/]+)/?$") or folder, folder, locked_by_disk(path))
+  end
+  for _, folder in ipairs(found) do
+    add("found", folder, folder:match("([^/]+)/?$") or folder, nil,
+      frozen[folder] and "vdirsyncer or khal marks this one read-only." or locked_by_disk(folder))
+  end
+  for _, url in ipairs(list("urls")) do
+    add("url", cache_path(url), M.host_of(url), url, "An address is a copy of someone else's calendar.")
+  end
   return out
 end
 
 --- Whether any calendar is set up or found.
 function M.configured()
-  return #list("files") + #list("folders") + #list("urls") > 0 or #discovered() > 0
+  return #list("files") + #list("folders") + #list("urls") > 0 or #(discovered()) > 0
 end
 
 --- A line for the settings.
@@ -201,7 +240,7 @@ local function read_source(source, spend)
       if fine then
         name, color = name or calendar.name, color or calendar.color
         for _, event in ipairs(calendar.events) do
-          event.calendar, event.calendar_color = source.id, nil
+          event.calendar, event.calendar_color, event.file = source.id, nil, path
           events[#events + 1] = event
         end
       else
@@ -242,7 +281,8 @@ function M.load()
     for _, source in ipairs(sources) do
       local read = found[source.id]
       local state = read.failed or (source.kind == "url" and url_state[source.value]) or ""
-      rows[#rows + 1] = { id = source.id, kind = source.kind, name = read.name, events = #read.events, state = state, value = source.value or "" }
+      rows[#rows + 1] = { id = source.id, kind = source.kind, name = read.name, events = #read.events, state = state,
+        value = source.value or "", locked = source.locked or "" }
     end
     M.sources:replace(rows, "id")
     expand_window()
@@ -261,8 +301,8 @@ end
 --- Fetches every address into the cache; a failed one keeps what it had.
 function M.fetch()
   for _, url in ipairs(list("urls")) do
-    local address = M.fetchable(url)
-    morf.http.get(address, { timeout_ms = M.URL_TIMEOUT_MS, max_bytes = 16 * 1024 * 1024 }, function(response)
+    local request = { url = M.fetchable(url), timeout_ms = M.URL_TIMEOUT_MS, max_bytes = 16 * 1024 * 1024 }
+    require("lib.services.host").http(request, function(response)
       if response and response.ok and type(response.body) == "string" and response.body:find("BEGIN:VCALENDAR", 1, true) then
         morf.fs.write(cache_path(url), response.body, { mode = 384 })
         url_state[url] = ""
@@ -327,6 +367,164 @@ function M.next_event(now)
   for _, item in ipairs(instances) do
     if not item.all_day and item.ends > now then return item end
   end
+end
+
+--- The instance of event `uid` at `at`, or nil.
+function M.instance(uid, at)
+  M.revision:get()
+  for _, item in ipairs(instances) do
+    if (item.event.uid or "") == uid and item.at == at then return item end
+  end
+end
+
+--- The event itself behind `event`: a moved instance's repeating original.
+function M.master(event)
+  if not event.recurrence then return event end
+  for _, other in ipairs(all_events()) do
+    if other.uid == event.uid and other.file == event.file and not other.recurrence then return other end
+  end
+  return event
+end
+
+--- Why calendar `id` cannot be written, or nil where it can.
+function M.locked(id)
+  M.revision:get()
+  for index = 1, M.sources:len() do
+    local row = M.sources:get(index)
+    if row.id == id then return row.locked ~= "" and row.locked or nil end
+  end
+  return "This calendar is gone."
+end
+
+--- The calendars a new event can go in: `{ id, name, kind }`.
+function M.writable()
+  M.revision:get()
+  local out = {}
+  for index = 1, M.sources:len() do
+    local row = M.sources:get(index)
+    if row.locked == "" then out[#out + 1] = { id = row.id, name = row.name, kind = row.kind } end
+  end
+  return out
+end
+
+--- How many calendars can only be read.
+function M.read_only()
+  M.revision:get()
+  return M.sources:len() - #M.writable()
+end
+
+-- ---------------------------------------------------------------- the events --
+
+local PREVIEW = "Calendar changes are disabled in this preview."
+
+local function now() return morf.time.now() end
+
+local function new_uid()
+  return ("%d-%08x@eva"):format(math.floor(now()), math.random(0, 0xffffffff))
+end
+
+local function changed()
+  M.load()
+  return true
+end
+
+-- A new file is its owner's alone; a replaced one keeps its permissions.
+local function put(path, text)
+  local options = morf.fs.exists(path) and { atomic = true } or { atomic = true, parents = true, mode = 384 }
+  local ok, why = morf.fs.write(path, text, options)
+  if not ok then return nil, "It could not be saved: " .. tostring(why) end
+  return changed()
+end
+
+local function fresh(path)
+  local ok, text = pcall(morf.fs.read, path)
+  if not ok or type(text) ~= "string" then return nil, "Its file could not be read." end
+  return text
+end
+
+--- The calendar made the first time a person with none adds an event.
+function M.personal_path() return morf.paths.state("calendars/personal.ics") end
+
+-- The event in eva's own calendar, the calendar added to the settings.
+local function create_personal(uid, change)
+  local path = M.personal_path()
+  local text = morf.fs.exists(path) and fresh(path)
+  local updated = text and ical.add_event(text, change, uid, now()) or ical.new_file(change, uid, now(), "Personal")
+  local ok, why = put(path, updated)
+  if not ok then return nil, why end
+  M.add_path(path)
+  require("calendar_reminders").start()
+  return uid
+end
+
+--- Puts a new event in calendar `id`, or in a calendar of eva's own where `id`
+--- is nil. The uid, or nil and why.
+function M.create(id, change)
+  if require("lib.services.host").held("calendar event") then return nil, PREVIEW end
+  local uid = new_uid()
+  if not id then return create_personal(uid, change) end
+  local locked = M.locked(id)
+  if locked then return nil, locked end
+  if morf.fs.is_dir(id) then
+    local name = uid:gsub("[^%w%-_.]", "-") .. ".ics"
+    local ok, why = put(id .. "/" .. name, ical.new_file(change, uid, now()))
+    if not ok then return nil, why end
+    return uid
+  end
+  local text, why = fresh(id)
+  if not text then return nil, why end
+  local updated, refused = ical.add_event(text, change, uid, now())
+  if not updated then return nil, refused end
+  local ok, failed = put(id, updated)
+  if not ok then return nil, failed end
+  return uid
+end
+
+--- Changes the event behind `item`. `one`: only this instance of a repeating
+--- event. True, or nil and why.
+function M.change(item, change, one)
+  if require("lib.services.host").held("calendar event") then return nil, PREVIEW end
+  local event = item.event
+  local locked = M.locked(event.calendar)
+  if locked then return nil, locked end
+  local text, why = fresh(event.file)
+  if not text then return nil, why end
+  local updated, refused
+  if one and event.recurrence then
+    updated, refused = ical.edit_event(text, event.uid, ical.epoch(event.recurrence), change, now())
+  elseif one and event.rule then
+    updated, refused = ical.override_event(text, event.uid, item.at, event.start, change, now())
+  else
+    updated, refused = ical.edit_event(text, event.uid, nil, change, now())
+  end
+  if not updated then return nil, refused end
+  return put(event.file, updated)
+end
+
+--- Takes the event behind `item` out. `one`: only this instance of a repeating
+--- event. A vdir's file goes with its last event. True, or nil and why.
+function M.delete(item, one)
+  if require("lib.services.host").held("calendar event") then return nil, PREVIEW end
+  local event = item.event
+  local locked = M.locked(event.calendar)
+  if locked then return nil, locked end
+  local text, why = fresh(event.file)
+  if not text then return nil, why end
+  if one and (event.rule or event.recurrence) then
+    local master = M.master(event)
+    local original = event.recurrence and ical.epoch(event.recurrence) or item.at
+    local updated, refused = ical.except_event(text, event.uid, original, master.start, now())
+    if not updated then return nil, refused end
+    return put(event.file, updated)
+  end
+  local updated, left = ical.remove_event(text, event.uid)
+  if not updated then return nil, left end
+  if left == 0 and event.file ~= event.calendar then
+    local ok, failed = pcall(morf.fs.remove, event.file)
+    if not ok then return nil, tostring(failed) end
+    return changed()
+  end
+  return put(event.file, updated)
 end
 
 -- ------------------------------------------------------------------- editing --

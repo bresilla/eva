@@ -51,7 +51,7 @@ local function themed(name) return require("themes").view(name) end
 builders.home=function(w,h)
   return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
 end
-for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard","lock/more","windows/more","phone"} do
+for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard","lock/more","windows/more","phone","backups/more"} do
   builders[name]=function(w,h) return themed("settings_form").build(name,w,h) end
 end
 
@@ -83,6 +83,11 @@ end
 builders["network/proxy"]=function(w,h)
   return themed("settings_net").proxy_page(with_request(require("connection_model").proxy()),w,h)
 end
+builders["network/help"]=function(w,h)
+  return themed("net_help").page(with_request(require("net_help_model").new()),w,h)
+end
+builders.welcome=function(w,h) return themed("welcome").page(require("welcome_model"),M,w,h) end
+builders.backups=function(w,h) return themed("backups_page").page(with_request(require("backups_model").new()),w,h) end
 function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end
 --- Whether page `key` has a builder.
 function M.has_page(key) return builders[key]~=nil end

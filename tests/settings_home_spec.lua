@@ -85,7 +85,7 @@ local HOST = [[
       "shell/profiles_model.lua", "shell/focus_model.lua", "shell/focus_page.lua", "shell/notification_settings.lua",
       "shell/notification_rules.lua", "shell/bar_store.lua", "shell/bar_page.lua", "shell/bar_custom.lua", "shell/panels_board.lua",
       "lib/shell/launcher/pins.lua", "shell/launcher_modes/web.lua",
-      "shell/assistant_model.lua", "shell/calendar_sources.lua", "shell/notes_model.lua",
+      "shell/assistant_model.lua", "shell/calendar_sources.lua", "shell/notes_model.lua", "shell/net_help_model.lua",
       "shell/charge_limit_model.lua",
       "shell/haptics.lua", "shell/mobile_model.lua", "themes/layouts/views/connectivity.lua", "shell/keyboard.lua",
       "shell/quick_tiles.lua", "shell/idle_model.lua", "shell/idle_page.lua", "shell/lock_page.lua",

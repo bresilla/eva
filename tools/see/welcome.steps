@@ -1,0 +1,8 @@
+# The welcome, as a first login has it: it opens by itself, then each step in
+# turn. EVA_WELCOME=1 brings it to the sealed session, which holds it back.
+export EVA_WELCOME=1
+start shell
+pause 2.2; shot welcome-look
+ipc welcome next; pause 1; shot welcome-network
+ipc welcome next; pause 1; shot welcome-gestures
+ipc welcome next; pause 1; shot welcome-keys

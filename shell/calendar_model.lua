@@ -15,7 +15,8 @@ function M.merge(tasks,instances,when)
     local event=item.event
     rows[#rows+1]={uuid="event-"..i.."-"..tostring(math.floor(item.at)),event=true,description=event.summary or "Event",
       project=event.location or "",time=when(item),kind=event.calendar_name or "Calendar",
-      link=ical.meeting_link(event) or "",order=item.all_day and "00" or morf.time.format("%H:%M",item.at)}
+      link=ical.meeting_link(event) or "",order=item.all_day and "00" or morf.time.format("%H:%M",item.at),
+      uid=event.uid or "",at=item.at}
   end
   table.sort(rows,function(a,b) if a.order~=b.order then return a.order<b.order end return a.uuid<b.uuid end)
   return rows
@@ -27,6 +28,7 @@ function M.new(ctx)
   local model={key="calendar",active=ctx.active,can_plan=ctx.can_plan,days=morf.list_model({}),agenda=morf.list_model({}),
     month=morf.signal("eva.calendar.title",""),selected_day=planner.selected_day,error=planner.client.error,
     weekdays={"M","T","W","T","F","S","S"},sources=sources}
+  model.events=require("calendar_event_model").new {active=ctx.active,sources=sources,day=function() return planner.selected_day:get() end}
   morf.effect("eva.calendar.month",function()
     if not model.active() then return end
     morf.time.minute_clock:get()

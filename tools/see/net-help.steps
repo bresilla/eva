@@ -1,0 +1,9 @@
+# Connection help on the stand-in machine (run with EVA_FAKE_SYSTEM=1): a network
+# that wants a sign-in. The stand-in answers every request, so nothing leaves
+# this session. The walk and the speed test take a press: their pictures come
+# from EVA_THEME_SNAPSHOTS=1 tools/test.sh tests/net_help_spec.lua.
+export EVA_FAKE_NET=portal
+start shell
+pause 0.8; shot portal-notice
+ipc settings network; pause 1.2; shot network-page
+ipc settings network/help; pause 1.2; shot help-portal

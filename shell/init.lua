@@ -185,6 +185,8 @@ local keyboard = require("keyboard")
 local bar = require("bar")
 local window_menu = require("window_menu")
 require("calendar_reminders").start()
+require("net_portal").start()
+require("welcome_model").start()
 require("panel_room").watch()
 require("phone")
 local overview = require("overview")
@@ -667,6 +669,20 @@ ipc.note = function(name)
   require("notes_model").create(name)
   return true
 end
+-- `welcome [next|back]`: the first-run welcome again, or a step along it.
+ipc.welcome = function(how)
+  if not here() then return end
+  local welcome = require("welcome_model")
+  if how == "next" then welcome.next() elseif how == "back" then welcome.back() else welcome.open() end
+  return true
+end
+-- `event [DAY]`: the calendar's form for a new event, on DAY or the day on show.
+ipc.event = function(day)
+  if not here() then return end
+  pages.reach("calendar")
+  morf.time.timer(1, function() require("calendar_page").new_event(day) end, false)
+  return true
+end
 -- `keyboard [how]`: the on-screen keyboard, for a key to bind. `how` is
 -- open, close, toggle or state, or a mode to open it in: full, dev,
 -- letters, numbers, phone or pattern.
@@ -783,6 +799,7 @@ ipc.notifications = function(how, a, b)
   if how == "clear" then return notifs.clear() end
   if how == "clear-app" then return notifs.clear_app(a) end
   if how == "clear-silent" then return notifs.clear_silent() end
+  if how == "digest" then require("notification_history").digest_now() return true end
   if how == "undo" then return notifs.restore() end
   if how == "snooze" then return notifs.snooze(tonumber(a) or newest(), b or 900) end
   if how == "mute" then notifs.mute_app(a, tonumber(b) or 0) return true end

@@ -441,9 +441,34 @@ such as `2026-10-01T09:00`. A repeating task needs a due date. Editing one
 occurrence does not propagate changes to its siblings. The editor also
 offers start/stop, completion, and deletion with a second click to confirm.
 
-Calendar shows a month and tasks scheduled or due on the selected day, in
-local time. “Plan a task” preselects that day. Work-mail meetings are not
-connected yet; the calendar explicitly shows that state.
+Calendar shows a month with the selected day's tasks and events, in local
+time. “Task” and “Event” preselect that day, and `eva event` or `morf ipc call
+event` open the same form from a key. An event goes in the file it came from:
+a line of a `.ics` file, or a file of its own in a vdir folder. Pressing one
+opens it to change or delete, with all-day, repeat and reminder; a repeating
+one asks whether that means this one or all of them. eva changes only the
+fields on the form, so a server's attendees and its own properties stay in the
+file. An event with no calendar to go in makes one, Personal, on this machine.
+
+What cannot be written shows the event and says why: an ICS address, a file
+without write permission, one your Nix configuration links in, and a folder
+khal or vdirsyncer marks read-only. An edit to a synced folder reaches the
+server at the next `vdirsyncer sync`; eva does not run it. Replying to an
+invitation, moving an event between calendars and changing “this and later”
+of a repeating event are not offered. A rule the form cannot say, such as every
+second Monday, stays as it is unless another is picked.
+
+An app set to “In the summary” (its page in Settings, under Notifications) makes
+no sound and no popup. What it sends waits in the history until a time in
+`notifications.digest_times`, 08:00 and 18:00 by default, unless it is critical.
+Then one notice says how many, and a card heads the history: conversations
+first, one row to a person, then each app with its last line. Pressing a row
+runs the sender's own action, or opens its group. Done puts the card away and
+keeps them in the history; Clear them can be undone. “Show now”, or `eva
+notifications digest`, gives it early.
+A time slept through comes on waking, once; a Focus holds it until it ends.
+Nothing of the summary's content reaches its file, and a hidden preview stays
+hidden on the card.
 
 Performance and battery graphs collect the latest 60 samples while their
 tabs are closed, except while a phone display is blanked. Old samples are
@@ -1127,6 +1152,67 @@ only what was changed in Settings is sent.
 `EVA_FAKE_CAN="suspend=no"` answers logind's questions. The service code above
 it runs unchanged, against `lib.testing.dbus`. `tools/see/settings.steps` walks
 every page: `EVA_FAKE_SYSTEM=1 tools/see.sh settings`.
+
+## Welcome
+
+The first login opens **Welcome** in Settings, wherever Settings stands on that
+form: the right panel on a desk, the sheet on a tablet or phone. It is four short
+steps, three without a keyboard: dark or light, getting online, the gestures
+this device answers to, and the keys to learn first. Each step leads to the real
+page, and Back returns to the step. Skip leaves it. It comes once; Settings has
+it after that (Eva, Welcome, or search), and `eva welcome` opens it too.
+
+Someone who already used eva before this page existed is not shown it: past
+notifications or reminders in the state folder, or a settings file, mark a
+returning person. The mark itself is `welcome-seen` in that folder. Only the
+shell loads it, so the lock and the greeter never can. `EVA_WELCOME=0` keeps it
+away, as the VM tests do, and `=1` brings it to `tools/see.sh`.
+
+## Connection help
+
+Network and Wired each lead to **Connection help**.
+
+**Troubleshoot** walks link, address, router, names (DNS) and internet in order
+and says in plain words which one failed. A router that ignores ping is only
+called the fault if names fail too. It runs when pressed, and asks your router
+(`ping`), your DNS servers (`getent`) and the sign-in check's server.
+
+**Sign-in pages**: when NetworkManager reports a captive portal, eva says so
+with a notice and a row on this page, and pressing either opens the login page
+in the browser. It never opens one by itself. NetworkManager only knows if its
+own connectivity check is set up, so `network.portal_probe` (off by default) has
+eva ask one server, once, each time a connection comes up: `nmcheck.gnome.org`
+(GNOME), `detectportal.firefox.com` (Mozilla) or
+`connectivitycheck.gstatic.com` (Google), by `network.portal_server`. Off, eva
+sends nothing.
+
+**Speed test** runs only when pressed, against `speed.cloudflare.com`, and uses
+about 35 MB. The page says so before it starts, and warns on mobile data.
+Everything outside goes through `lib/services/net_check.lua`, which names each
+address, and `host.http`, which a headless run and `EVA_FAKE_SYSTEM` keep off
+the network. `EVA_FAKE_NET` picks how the stand-in network breaks: `portal`,
+`no-address`, `self-assigned`, `no-gateway`, `no-dns`, `no-internet`,
+`quiet-router`.
+
+## Backups
+
+The **Backups** page works over whichever of snapper, btrbk and restic is
+installed: it lists snapshots newest first, makes one on a press, and gets one
+file back. With none installed it says so and what would do. Its settings pick
+the tool, the snapper config, and restic's repository, password file and
+folders; the password stays in its file and only that path reaches restic, in
+its environment.
+
+A restored copy lands beside the file with `.restored` on its name and
+overwrites nothing. Replacing the file itself takes a second press that names
+it. Snapper replaces through `undochange`, btrbk by copying from the snapshot,
+and restic by restoring in place. Snapshots are often root's: a copy that
+cannot read one says so. btrbk needs root even to list, so that waits for a
+press and goes through polkit; `btrbk snapshot --preserve` keeps whatever a
+retention policy would have pruned. Snapper uses your own rights, which its
+`ALLOW_USERS` grants.
+
+`EVA_FAKE_BACKUPS=snapper,btrbk,restic` puts stand-ins on the fake machine.
 
 ## Sound and nested settings
 

@@ -110,6 +110,8 @@ function M.new(kind,active)
     end)
   end
   function model.available() return snapshot:get().available end
+  --- Connection help, one level in.
+  function model.help() return require("settings_model").request("network/help") end
   function model.has_network() return snapshot:get().network end
   function model.network_available() return snapshot:get().network_available end
   function model.loaded() return snapshot:get().loaded end

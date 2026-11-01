@@ -33,6 +33,20 @@ local function session_commands(ids)
 end
 
 M.PAGES = {
+  ["backups/more"] = { sections = {
+    { title = "Which tool", fields = {
+      { key = "backups.tool", kind = "choice", title = "Use", items = {
+        { "", "auto_mode", "First found" }, { "snapper", "backup", "Snapper" }, { "btrbk", "backup", "btrbk" }, { "restic", "backup", "restic" } } },
+      { key = "backups.snapper_config", kind = "text", title = "Snapper config", icon = "settings",
+        note = "The config to show: root, home, or one of your own" },
+    } },
+    { title = "restic", note = "The password stays in its file, and only the file's path reaches restic.", fields = {
+      { key = "backups.restic_repository", kind = "text", title = "Repository", icon = "storage",
+        note = "A folder, or sftp:, s3:, rest: and the like" },
+      { key = "backups.restic_password_file", kind = "text", title = "Password file", icon = "key" },
+      { key = "backups.restic_paths", kind = "list", title = "What to back up", icon = "folder" },
+    } },
+  } },
   launcher = { sections = {
     { title = "Results", fields = {
       { key = "launcher.max_shown", kind = "number", title = "Results shown", icon = "format_list_numbered",

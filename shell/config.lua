@@ -122,6 +122,24 @@ local config = settings.open {
       mode = "none",
       http = "", https = "", socks = "", exclude = "localhost,127.0.0.1", pac = "",
     },
+    backups = {
+      -- snapper, btrbk or restic; "" takes the first one here.
+      tool = "",
+      -- The snapper config the page shows.
+      snapper_config = "root",
+      -- restic's repository, the file holding its password, and what it
+      -- backs up. The password itself is never kept here.
+      restic_repository = "",
+      restic_password_file = "",
+      restic_paths = { "~" },
+    },
+    network = {
+      -- Ask a server, each time a connection comes up, whether the network
+      -- wants a sign-in first. Off, nothing is sent.
+      portal_probe = false,
+      -- Which: "gnome", "mozilla" or "google" (lib/services/net_check.lua).
+      portal_server = "gnome",
+    },
     wallpaper = {
       -- A picture to paint under everything; "" reads the path the
       -- eva tools keep in ~/.local/state/eva/wallpaper/path.txt.

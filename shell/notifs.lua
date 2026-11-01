@@ -425,7 +425,8 @@ local function admit(n, was)
   local urgency = out.urgency >= 0 and out.urgency or (n.urgency or 1)
   local through = focus.allows(setmetatable({ urgency = urgency }, { __index = n }), out)
   local muted = rules.muted(out, at)
-  local digest = out.digest == true and urgency < 2
+  -- Only what the history keeps can wait for the summary.
+  local digest = out.digest == true and urgency < 2 and out.history and config.get("notifications.history.enabled")
   local m = was or { time = at }
   stop_all(m)
   m.entry, m.out, m.urgency, m.key = n, out, urgency, rules.key(n)
@@ -1034,26 +1035,8 @@ local function hush()
   if changed then publish() end
 end
 
-local digest_fired = ""
 local function digest_tick()
-  local at = morf.time.format("%H:%M", now())
-  local due = false
-  for _, time in ipairs(config.get("notifications.digest_times") or {}) do due = due or time == at end
-  if not due or digest_fired == at then return end
-  digest_fired = at
-  local count, apps, names = 0, {}, {}
-  for _, e in ipairs(M.history:get()) do
-    if e.digest and (e.time or 0) > last_read then
-      count = count + 1
-      if not apps[e.key or e.app] then
-        apps[e.key or e.app] = true
-        names[#names + 1] = e.app
-      end
-    end
-  end
-  if count == 0 then return end
-  act.push { app = "Eva", summary = ("%d notification%s for you"):format(count, count == 1 and "" or "s"),
-    body = table.concat(names, ", "), icon = "notifications", transient = true, category = "eva.digest" }
+  require("notification_digest").tick(M.history:get(), last_read, act.push)
 end
 
 local function start_primary()
@@ -1067,6 +1050,7 @@ local function start_primary()
       category = "eva.focus", transient = true }
   end
   require("focus_triggers").start()
+  require("notification_digest").start()
   morf.time.timer(TICK_MS, digest_tick, true)
   morf.effect("eva.notifications.badge", function()
     M.history:get()
