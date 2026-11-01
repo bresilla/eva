@@ -76,7 +76,7 @@ function M.privacy()
   local engine = M.current()
   if not engine then return "No translator here: install argos-translate or translate-shell" end
   if engine.offline then return "Offline: " .. engine.name .. ". Your text stays on this machine" end
-  return "Online: your text goes to " .. engine.name .. " when you press Send"
+  return "Online: Send gives your text to " .. engine.name
 end
 
 local asked = 0

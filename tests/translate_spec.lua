@@ -190,10 +190,10 @@ end)
 test.it("falls to an online engine and says that it is one", function()
   window { programs = { "trans" } }
   test.eq(test.ipc("state").engine, "trans")
-  test.contains(test.ipc("state").privacy, "Online: your text goes to translate-shell")
+  test.contains(test.ipc("state").privacy, "Online: Send gives your text to translate-shell")
   window()
   test.eq(test.ipc("state").engine, "mymemory")
-  test.contains(test.ipc("state").privacy, "Online: your text goes to MyMemory")
+  test.contains(test.ipc("state").privacy, "Online: Send gives your text to MyMemory")
 end)
 
 test.it("keeps the engine chosen, and leaves it when it is gone", function()

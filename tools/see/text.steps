@@ -1,0 +1,64 @@
+# eva-text on the sealed session: the window's pages, a secret made from the real
+# /dev/urandom, then the transforms from a real pipe, each checked against coreutils.
+unset EVA_DRY_RUN
+state() { appipc state | tr -d ' \n' | cut -c1-220; }
+same() { [ "$2" = "$3" ] && echo "same    $1" || echo "DIFFERS $1: [$2] [$3]"; }
+
+BOOT=4 start app text
+appipc text '{"zebra":1.50,"apple":[1,{"x":null}]}' > /dev/null
+pause 0.5
+shot pad
+appipc apply json > /dev/null
+pause 0.5
+shot json
+note echo "--- json: $(state)"
+appipc undo > /dev/null
+appipc tab 2 > /dev/null
+pause 0.8
+appipc text 'pear
+apple
+pear
+mango' > /dev/null
+appipc apply dedupe > /dev/null
+appipc apply sort > /dev/null
+pause 0.5
+shot lines
+note echo "--- lines: $(state)"
+appipc tab 3 > /dev/null
+pause 0.8
+shot codes
+appipc tab 4 > /dev/null
+pause 0.8
+shot data
+appipc tab 5 > /dev/null
+pause 0.8
+appipc make password > /dev/null
+pause 0.6
+shot make
+note echo "--- password: $(state)"
+appipc make passphrase > /dev/null
+pause 0.6
+shot phrase
+note echo "--- passphrase: $(state)"
+stop
+
+note echo "--- against coreutils, through a real pipe"
+FILE=$XDG_RUNTIME_DIR/sample
+printf 'pear\napple\npear\nmango ëç\n' > "$FILE"
+note same sha256 "$(sh apps/text/cli sha256 < "$FILE")" "$(sha256sum "$FILE" | cut -d' ' -f1)"
+note same sha1 "$(sh apps/text/cli sha1 < "$FILE")" "$(sha1sum "$FILE" | cut -d' ' -f1)"
+note same base64 "$(sh apps/text/cli base64 < "$FILE")" "$(base64 -w0 "$FILE")"
+note same sort "$(sh apps/text/cli sort < "$FILE")" "$(LC_ALL=C sort "$FILE")"
+note same reverse "$(sh apps/text/cli reverse < "$FILE")" "$(tac "$FILE")"
+note echo "md5 program: $(sh apps/text/cli md5 < "$FILE" 2>&1) vs $(md5sum "$FILE" | cut -d' ' -f1)"
+
+head -c 2048 /dev/urandom > "$XDG_RUNTIME_DIR/binary"
+base64 -w0 "$XDG_RUNTIME_DIR/binary" | sh apps/text/cli base64 -d > "$XDG_RUNTIME_DIR/binary.out"
+note same "binary through base64 -d" "$(sha256sum < "$XDG_RUNTIME_DIR/binary")" "$(sha256sum < "$XDG_RUNTIME_DIR/binary.out")"
+
+note echo "--- generators"
+note sh apps/text/cli password 20
+note sh apps/text/cli passphrase 5
+note sh apps/text/cli uuid
+note sh apps/text/cli list
+note sh -c 'printf "{nope" | sh apps/text/cli json'

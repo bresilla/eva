@@ -118,8 +118,8 @@ function M.build(w, h)
       },
       P.buttons {
         width = w,
-        { id = "translate-clipboard", icon = "content_paste", label = "Clipboard", on_clicked = function() model.paste(false) end },
-        { id = "translate-selection", icon = "select_all", label = "Selection", on_clicked = function() model.paste(true) end },
+        { id = "translate-clipboard", icon = "content_paste", label = "Paste", on_clicked = function() model.paste(false) end },
+        { id = "translate-selection", icon = "select_all", label = "Selected", on_clicked = function() model.paste(true) end },
         { id = "translate-go", icon = "translate", tone = "primary",
           label = function()
             local now = engine()
