@@ -1303,6 +1303,7 @@ return function(theme)
   -- The gauges: the instrument rings (themes/tsugumori/gauges.lua).
   local gauges = require("themes.tsugumori.gauges")(theme, M)
   M.gauge, M.ring, M.mini_ring = gauges.gauge, gauges.ring, gauges.mini_ring
+  M.battery = require("themes.tsugumori.battery")(theme, M)
 
   -- Lists and keys wear the instrument pieces (themes/tsugumori/hud.lua).
   M.selection, M.keycap = hud().selection, hud().keycap
