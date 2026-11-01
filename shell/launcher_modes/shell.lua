@@ -48,7 +48,9 @@ registry.mode { id = "hidden", name = "Hidden apps", material = "visibility_off"
   hint = "what you hid; Return brings it back", search = function(term)
     local out = {}
     for _, id in ipairs(config.get("launcher.hidden")) do
-      out[#out + 1] = row { id = "hidden:" .. id, name = id, description = "Return shows it again", material = "visibility",
+      local app = require("apps").row(id)
+      out[#out + 1] = row { id = "hidden:" .. id, name = app and app.name or id, description = "Return shows it again",
+        material = "visibility", icon = app and app.icon or nil,
         run = function()
           pins.set_hidden(id, false)
           require("apps").refresh(true)
@@ -119,9 +121,13 @@ registry.mode { id = "folder", name = "Folders", material = "folder_special", sh
     local id, name = M.filing, term
     if not id then return { note("folder", "Choose an app first", "Its actions file it", "folder_special") } end
     local out = {}
-    if name ~= "" then
-      out[1] = row { id = "folder:new", name = "Put it in “" .. name .. "”", material = "create_new_folder",
-        run = function() pins.file_under(id, name) return "close" end }
+    local apps = require("apps")
+    -- The app's own category, until a name is typed.
+    local suggested = name == "" and apps.row(id) and pins.free_name(apps.category_of(apps.row(id))) or name
+    if suggested ~= "" then
+      out[1] = row { id = "folder:new", name = "Put it in “" .. suggested .. "”", material = "create_new_folder",
+        description = name == "" and "Or type another name" or nil,
+        run = function() pins.file_under(id, suggested) return "close" end }
     end
     for _, folder in ipairs(pins.folders()) do
       if folder.name ~= name then
@@ -141,6 +147,25 @@ registry.mode { id = "folder", name = "Folders", material = "folder_special", sh
 function M.file(id)
   M.filing = id
   return "> appfolder "
+end
+
+registry.mode { id = "folder_name", name = "Rename folder", material = "edit", shape = "cookie9", words = { "foldername" }, hidden = true,
+  bare = false, search = function(term)
+    local name = M.renaming
+    if not name then return { note("folder_name", "Choose a folder first", "Its actions rename it", "edit") } end
+    if term == "" then return { note("folder_name", "Type its new name", "It is called " .. name, "edit") } end
+    return { row { id = "folder_name:new", name = "Call it “" .. term .. "”", description = "It was " .. name, material = "edit",
+      run = function()
+        pins.rename_folder(name, term)
+        rows.bump()
+        return "close"
+      end } }
+  end }
+
+--- Asks what folder `name` is to be called. Returns the query that does.
+function M.rename(name)
+  M.renaming = name
+  return "> foldername "
 end
 
 -- ---------------------------------------------------------------- scripts --

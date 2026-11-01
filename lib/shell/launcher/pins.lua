@@ -114,6 +114,48 @@ function M.file_under(id, name)
   config.set("launcher.folders", out)
 end
 
+--- Folder `name` called `new`; a folder already called that takes its apps in.
+function M.rename_folder(name, new)
+  if name == new or new == "" then return end
+  local out, into = {}, nil
+  for _, folder in ipairs(M.folders()) do
+    if folder.name == new then into = folder end
+  end
+  for _, folder in ipairs(M.folders()) do
+    if folder.name == name then
+      if into then
+        for _, app in ipairs(folder.apps) do into.apps[#into.apps + 1] = app end
+      else
+        out[#out + 1] = { name = new, apps = folder.apps }
+      end
+    else
+      out[#out + 1] = folder
+    end
+  end
+  config.set("launcher.folders", out)
+end
+
+--- Folder `name` gone, its apps back among the rest.
+function M.dissolve(name)
+  local out = {}
+  for _, folder in ipairs(M.folders()) do
+    if folder.name ~= name then out[#out + 1] = folder end
+  end
+  config.set("launcher.folders", out)
+end
+
+--- A name no folder has yet: `base`, else `base 2`, `base 3`.
+function M.free_name(base)
+  local taken = {}
+  for _, folder in ipairs(M.folders()) do taken[folder.name] = true end
+  local name, count = base, 1
+  while taken[name] do
+    count = count + 1
+    name = base .. " " .. count
+  end
+  return name
+end
+
 --- The aliases: `{ name, target }` each; a target is what the field is set to.
 function M.aliases()
   local out = {}

@@ -605,6 +605,7 @@ function M.resolve(name)
   local kind, rest = name:match("^(%a+):(.*)$")
   if not kind then return nil end
   if kind == "app" then return require("apps").row(rest) end
+  if kind == "folder" then return require("apps").folder(rest) end
   if kind == "file" then
     if not morf.fs.exists(rest) then return nil end
     return rows.file(rest, morf.fs.is_dir(rest))

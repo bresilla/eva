@@ -17,7 +17,7 @@ function M.managed() return false end
 
 local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
   scanimage = not NIXOS, lpstat = not NIXOS, ["firewall-cmd"] = not NIXOS, gsettings = true, lspci = true, ["xdg-open"] = true,
-  gio = true, ["eva-battery"] = true }
+  gio = true, ["eva-battery"] = true, nix = true, flatpak = true }
 
 function M.installed(program) return PROGRAMS[program] == true end
 function M.tool(name)
@@ -100,6 +100,14 @@ local function answer(argv, options)
   end
   if argv[1] == "xkbcli" then
     return { ok = true, stdout = "interpret Any+AnyOf(all) {\n action= SetMods(modifiers=modMapMods,clearLocks);\n};\n" }
+  end
+  if argv[1] == "nix" and line:find("profile list", 1, true) then
+    return { ok = true, stdout = morf.json.encode { version = 3, elements = {
+      ripgrep = { storePaths = { "/nix/store/aaaa-ripgrep-14.1" } }, helix = { storePaths = { "/nix/store/bbbb-helix-25.1" } } } } }
+  end
+  if argv[1] == "flatpak" and argv[2] == "search" then
+    return { ok = true, stdout = "org.gnome.Chess\tChess\tPlay the classic two-player game\t48.0\tflathub\n"
+      .. "org.mozilla.firefox\tFirefox\tBrowse the web\t140.0\tflathub,fedora\n" }
   end
   return nil
 end

@@ -17,18 +17,46 @@ V.CELL_H = 104
 V.CHIPS_H = 40
 local ICON = 48
 
---- One tile's art: its app's icon, or a glyph on a tinted ground.
-local function art(M, tile)
-  local hit = tile.icon and tile.icon ~= "" and M.icon(tile.icon) or nil
-  if tile.kind == "folder" or not hit then
-    return kit.surface { width = ICON, height = ICON, radius = kit.round(ICON / 3),
-      color = function() return tile.kind == "folder" and C.secondaryContainer or C.surfaceContainerHighest end,
-      kit.icon(tile.material or "apps", 26, function() return C.onSurfaceVariant end, { anchors = { center_in = true } }) }
-  end
+--- `name`'s icon at `size`, or nil where `icon_of` finds none.
+local function picture(icon_of, name, size)
+  local hit = name and name ~= "" and icon_of(name) or nil
+  if not hit then return nil end
   if hit.name then
-    return ui.Icon { width = ICON, height = ICON, name = hit.name, source_width = 96, source_height = 96 }
+    return ui.Icon { width = size, height = size, name = hit.name, source_width = 96, source_height = 96 }
   end
-  return ui.Image { width = ICON, height = ICON, source = hit.path, fill_mode = "preserve_aspect_fit" }
+  return ui.Image { width = size, height = size, source = hit.path, fill_mode = "preserve_aspect_fit" }
+end
+
+--- A folder's art: up to four of its apps on a tinted ground.
+local function folder_art(icon_of, tile, size)
+  local mini = (size - 3 * S.xs) // 2
+  local ground = kit.surface { width = size, height = size, radius = kit.round(size / 3),
+    color = function() return C.secondaryContainer end }
+  for i, name in ipairs(tile.members or {}) do
+    local node = picture(icon_of, name, mini)
+      or kit.surface { width = mini, height = mini, radius = kit.round(mini / 3),
+        color = function() return C.surfaceContainerHighest end }
+    node.x = S.xs + ((i - 1) % 2) * (mini + S.xs)
+    node.y = S.xs + ((i - 1) // 2) * (mini + S.xs)
+    ui.reparent(node, ground)
+  end
+  if #(tile.members or {}) == 0 then
+    ui.reparent(kit.icon("folder", size // 2, function() return C.onSecondaryContainer end,
+      { anchors = { center_in = true } }), ground)
+  end
+  return ground
+end
+
+--- One tile's art at `size`: its app's icon, a folder's apps, or a glyph on a
+--- tinted ground. `icon_of(name)` finds an icon (apps.icon).
+function V.art(icon_of, tile, size)
+  size = size or ICON
+  if tile.kind == "folder" then return folder_art(icon_of, tile, size) end
+  return picture(icon_of, tile.icon, size)
+    or kit.surface { width = size, height = size, radius = kit.round(size / 3),
+      color = function() return C.surfaceContainerHighest end,
+      kit.icon(tile.material or "apps", size // 2, function() return C.onSurfaceVariant end,
+        { anchors = { center_in = true } }) }
 end
 
 --- A row of `columns` tiles, `ctx.cell` wide each, rebindable as the list scrolls.
@@ -57,7 +85,7 @@ function V.row(M, entry, columns, ctx)
       if cell.key ~= key then
         if cell.art then ui.destroy(cell.art, true) cell.art = nil end
         if tile then
-          cell.art = art(M, tile)
+          cell.art = V.art(M.icon, tile)
           ui.reparent(cell.art, cell.box)
         end
         cell.key = key
@@ -112,25 +140,56 @@ function V.row(M, entry, columns, ctx)
   end
 end
 
---- What a held app becomes: a chip under the finger and a place over the grid
---- to drop it on, `width` wide. Let go where it was, its actions open; dropped
---- on the place, it is pinned. Returns `node`, `held`, `lift(tile, x, y)`,
---- `carry(x, y)`, `drop(x, y)`, points being the surface's.
+--- What a held app becomes: a chip under the finger and places over the grid
+--- to drop it on, together `width` wide. Let go where it was, its actions open;
+--- dropped on a place, that place's action runs; dropped on another tile, the
+--- two go in a folder, where `carrier.under(x, y)` says what tile is there.
+--- Returns `node`, `held`, `lift(tile, x, y)`, `carry(x, y)`, `drop(x, y)`,
+--- points being the surface's.
 function V.carrier(M, width)
   local held = morf.signal("eva.launcher.held", false)
   local C_H = S.TARGET
   local holding = function() return held:get() ~= false end
-  local target, root
-  local function over(y) return y < (target.layout_y or 0) + (target.layout_height or 0) end
-  target = kit.surface { id = "launcher-pin-target", width = width, height = S.TOUCH, radius = kit.round(S.m),
-    visible = holding,
-    color = function()
-      local now = held:get()
-      return now and now.moved and over(now.y) and C.primaryContainer or C.surfaceContainerHigh
-    end,
-    ui.Row { anchors = { center_in = true }, gap = S.xs, align = "center",
-      kit.icon("keep", 18, function() return C.primary end),
-      kit.text { text = "Pin to favourites", font_size = theme.size.small, color = function() return C.onSurface end } } }
+  local target, root, carrier
+  local PLACES = {
+    { id = "launcher-pin-target", icon = "keep", label = "Pin to favourites", wanted = function() return true end,
+      run = function(key) return M.pin(key) end },
+    { id = "launcher-out-target", icon = "folder_off", label = "Take out of folder",
+      wanted = function() return M.folder:get() ~= "" end, run = function(key) return M.unfile(key) end },
+  }
+  local function places()
+    local out = {}
+    for _, place in ipairs(PLACES) do
+      if place.wanted() then out[#out + 1] = place end
+    end
+    return out
+  end
+  -- The place a point is over: any height above the strip's foot, by column.
+  local function over(x, y)
+    if y >= (target.layout_y or 0) + (target.layout_height or 0) then return nil end
+    local list = places()
+    local at = math.floor((x - (target.layout_x or 0)) / (width / #list)) + 1
+    return list[math.max(1, math.min(#list, at))]
+  end
+  local strip = {}
+  for _, place in ipairs(PLACES) do
+    local function index()
+      for i, shown in ipairs(places()) do if shown == place then return i end end
+    end
+    strip[#strip + 1] = kit.surface { id = place.id, height = S.TOUCH, radius = kit.round(S.m),
+      visible = function() return index() ~= nil end,
+      x = function() return ((index() or 1) - 1) * width / #places() end,
+      width = function() return width / #places() - (#places() > 1 and S.xs or 0) end,
+      color = function()
+        local now = held:get()
+        return now and now.moved and over(now.x, now.y) == place and C.primaryContainer or C.surfaceContainerHigh
+      end,
+      ui.Row { anchors = { center_in = true }, gap = S.xs, align = "center",
+        kit.icon(place.icon, 18, function() return C.primary end),
+        kit.text { text = place.label, font_size = theme.size.small, color = function() return C.onSurface end } } }
+  end
+  strip.width, strip.height, strip.visible = width, S.TOUCH, holding
+  target = ui.Item(strip)
   local chip = kit.surface { id = "launcher-held", z = 1, width = S.xxl * 4, height = C_H, radius = C_H / 2, visible = holding,
     x = function() local now = held:get() return now and now.x - (root.layout_x or 0) - S.xxl * 2 or 0 end,
     y = function() local now = held:get() return now and now.y - (root.layout_y or 0) - C_H or 0 end,
@@ -139,7 +198,7 @@ function V.carrier(M, width)
       font_size = theme.size.small, color = function() return C.onSecondaryContainer end,
       text = function() local now = held:get() return now and now.name or "" end } }
   root = ui.Item { anchors = { fill = true }, z = 20, target, chip }
-  local carrier = { node = root, target = target, held = holding }
+  carrier = { node = root, target = target, held = holding }
   function carrier.lift(tile, x, y)
     require("haptics").fire("long")
     held:set { key = tile.key, name = tile.name, x = x, y = y, from_x = x, from_y = y, moved = false }
@@ -149,13 +208,17 @@ function V.carrier(M, width)
     if not now then return end
     local moved = now.moved or math.max(math.abs(x - now.from_x), math.abs(y - now.from_y)) >= S.s
     held:set { key = now.key, name = now.name, x = x, y = y, from_x = now.from_x, from_y = now.from_y, moved = moved }
+    if carrier.hover and not over(x, y) then carrier.hover(x, y) end
   end
-  function carrier.drop(_, y)
+  function carrier.drop(x, y)
     local now = held:get()
     if not now then return end
     held:set(false)
-    if not now.moved then M.act_on(now.key)
-    elseif over(y) and M.pin(now.key) then require("haptics").fire("commit") end
+    if not now.moved then M.act_on(now.key) return end
+    local place = over(x, y)
+    local under = not place and carrier.under and carrier.under(x, y)
+    local done = place and place.run(now.key) or under and under ~= now.key and M.gather(now.key, under)
+    if done then require("haptics").fire("commit") end
   end
   return carrier
 end
@@ -171,6 +234,7 @@ function V.chips(M, width)
     else
       for _, chip in ipairs(M.chips()) do rows[#rows + 1] = { key = "c:" .. chip.key, name = chip.name, category = chip.key } end
       table.insert(rows, 2, { key = "modes", name = "Modes", icon = "category" })
+      if M.can_install() then rows[#rows + 1] = { key = "get", name = "Get apps", icon = "add_circle" } end
     end
     model:replace(rows, "key")
   end)
@@ -186,6 +250,7 @@ function V.chips(M, width)
       on_clicked = function()
         if chip.key == "back" then M.open_folder("")
         elseif chip.key == "modes" then M.set_query("> ")
+        elseif chip.key == "get" then M.activate_query("> get ")
         else M.choose_category(chip.category) end
       end,
       kit.surface { anchors = { fill = true }, radius = kit.round((V.CHIPS_H - S.s) / 2),

@@ -168,6 +168,13 @@ M.SHELL = [==[
     end
     return false
   end
+  morf.ipc.do_action_row = function(name)
+    for i = 1, launcher.results:len() do
+      local entry = launcher.results:get(i)
+      if entry.name == name then launcher.activate(launcher.row_of(entry)) return true end
+    end
+    return false
+  end
   morf.ipc.copied = function() return copied end
   morf.ipc.setting = function(key, value)
     if value ~= nil then

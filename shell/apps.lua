@@ -213,20 +213,47 @@ function M.actions_for(row)
   end
   out[#out + 1] = { name = "Put it in a folder…", material = "create_new_folder",
     run = function() return require("launcher_modes.shell").file(row.id) end }
-  out[#out + 1] = { name = "Hide it", material = "visibility_off", run = function()
-    pins.set_hidden(row.id, true)
-    M.refresh(true)
-    rowkit.bump()
-    return "keep"
-  end }
+  local filed = pins.folder_of(row.id)
+  if filed then
+    out[#out + 1] = { name = "Take it out of " .. filed.name, material = "folder_off", run = function()
+      pins.file_under(row.id, "")
+      rowkit.bump()
+      return "keep"
+    end }
+  end
+  local hidden = pins.hidden(row.id)
+  out[#out + 1] = { name = hidden and "Show it again" or "Hide it", material = hidden and "visibility" or "visibility_off",
+    run = function()
+      pins.set_hidden(row.id, not hidden)
+      M.refresh(true)
+      rowkit.bump()
+      return "keep"
+    end }
   out[#out + 1] = { name = "Copy its command", material = "content_copy",
     run = function() return run.copy(table.concat(row.command, " ")) end }
-  if row.origin == "Flatpak" then
-    local app_id = row.id:gsub("%.desktop$", "")
-    out[#out + 1] = { name = "Uninstall it", material = "delete",
-      run = function() return run.shell_terminal("flatpak uninstall " .. app_id) end }
-  end
+  out[#out + 1] = M.removal(row)
   return out
+end
+
+--- The action panel's last word on `row`: uninstalling it, in two presses, or a
+--- line saying why that is not this shell's to do.
+function M.removal(row)
+  local software = require("software_model")
+  local source = software.source(row)
+  if not source.removable then
+    return { name = "Cannot be removed here", material = "lock", description = source.why,
+      run = function() return "stay" end }
+  end
+  local confirm = require("providers").confirmed("uninstall:" .. row.id, function()
+    software.uninstall(row)
+    return "close"
+  end)
+  local armed = require("providers").armed("uninstall:" .. row.id)
+  return { name = armed and "Press again to uninstall" or "Uninstall it", material = "delete", description = source.what,
+    run = function()
+      local step = confirm()
+      return step == "keep" and "stay" or step
+    end }
 end
 
 --- Runs the desktop action `id` of `row`'s application.
@@ -294,6 +321,58 @@ function M.categories()
   return out
 end
 
+-- The chip of what the person hid.
+M.HIDDEN = "Hidden"
+
+--- The apps the person hid, by name.
+function M.hidden_rows()
+  local out = {}
+  for _, id in ipairs(config.get("launcher.hidden")) do
+    if by_id[id] then out[#out + 1] = by_id[id] end
+  end
+  table.sort(out, function(a, b) return a.name:lower() < b.name:lower() end)
+  return out
+end
+
+--- Files app `id` with the app of `row`, or in the folder `row` is: dropped on an
+--- app it makes a folder named for that app's category. The folder's name.
+function M.gather(id, row)
+  if id == row.id then return nil end
+  if row.kind == "folder" then pins.file_under(id, row.id) return row.id end
+  local filed = pins.folder_of(row.id)
+  local name = filed and filed.name or pins.free_name(M.category_of(row))
+  if not filed then pins.file_under(row.id, name) end
+  pins.file_under(id, name)
+  return name
+end
+
+--- A folder as the grid shows it: its icons, and what can be done to it.
+local function folder_row(folder)
+  local shell = "launcher_modes.shell"
+  local members = {}
+  for _, id in ipairs(folder.apps) do
+    local app = by_id[id]
+    if app and #members < 4 then members[#members + 1] = app.icon end
+  end
+  local actions = {
+    { name = "Rename it…", material = "edit", run = function() return require(shell).rename(folder.name) end },
+    { name = "Take everything out", material = "folder_off", run = function()
+      pins.dissolve(folder.name)
+      rowkit.bump()
+      return "keep"
+    end },
+  }
+  return { kind = "folder", id = folder.name, name = folder.name, count = #folder.apps, material = "folder",
+    members = members, private = true, actions = actions, pin = "folder:" .. folder.name }
+end
+
+--- The folder called `name` as a row, or nil.
+function M.folder(name)
+  for _, folder in ipairs(pins.folders()) do
+    if folder.name == name then return folder_row(folder) end
+  end
+end
+
 --- What the grid shows: a list of `{ name, rows }`. Inside `folder`, its apps;
 --- within `category`, that category's; else the favourites, what is used most,
 --- the folders, and every app.
@@ -310,6 +389,7 @@ function M.grid(folder, category)
     end
     return {}
   end
+  if category == M.HIDDEN then return { { rows = M.hidden_rows() } } end
   if category ~= "" then
     for _, c in ipairs(M.categories()) do
       if c.name == category then return { { rows = c.apps } } end
@@ -337,7 +417,7 @@ function M.grid(folder, category)
   if #suggested > 0 then out[#out + 1] = { name = "Suggested", rows = suggested } end
   local filed, folders = {}, {}
   for _, f in ipairs(pins.folders()) do
-    folders[#folders + 1] = { kind = "folder", id = f.name, name = f.name, count = #f.apps, material = "folder" }
+    folders[#folders + 1] = folder_row(f)
     for _, id in ipairs(f.apps) do filed[id] = true end
   end
   local loose = {}

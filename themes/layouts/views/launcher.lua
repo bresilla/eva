@@ -573,6 +573,33 @@ function V.build(M)
       end,
     }
 
+    -- The row and column of the grid at a point of the surface: the tile's
+    -- entry index and its place in the row.
+    local function grid_cell(x, y)
+      local inside = y - (results.layout_y or 0) + scroll:get()
+      local column = math.floor((x - (results.layout_x or 0)) / CELL) + 1
+      for i = 1, M.results:len() do
+        local start, h = entry_span(i)
+        if inside >= start and inside < start + h then
+          local entry = M.results:get(i)
+          local tile = entry.cells and entry.cells[column]
+          if tile then return i, column, tile end
+          return nil
+        end
+      end
+    end
+    function carrier.under(x, y)
+      local _, _, tile = grid_cell(x, y)
+      return tile and tile.key
+    end
+    function carrier.hover(x, y)
+      local at, column = grid_cell(x, y)
+      if at then
+        M.selected:set(at)
+        M.cell:set(column)
+      end
+    end
+
     --- Goes to the first app of the grid whose name starts at `letter` or later.
     local function jump_to(letter)
       for i = 1, M.results:len() do

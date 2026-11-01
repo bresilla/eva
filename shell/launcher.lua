@@ -117,7 +117,7 @@ end
 local function tile_of(row)
   by_key["tile:" .. row.id] = row
   return { key = "tile:" .. row.id, name = row.name, icon = row.icon, material = row.material, pinned = row.pinned,
-    fresh = row.fresh, kind = row.kind, count = row.count }
+    fresh = row.fresh, kind = row.kind, count = row.count, members = row.members }
 end
 
 local function tiles_of(list)
@@ -134,18 +134,50 @@ local function grid_entries(columns)
   return out
 end
 
---- The chips over the grid: "All" and each category.
+--- The chips over the grid: "All", each category, and what is hidden if any is.
 function M.chips()
   local out = { { name = "All", key = "" } }
   for _, category in ipairs(apps.categories and apps.categories() or {}) do
     out[#out + 1] = { name = category.name, key = category.name }
   end
+  if #config.get("launcher.hidden") > 0 then out[#out + 1] = { name = apps.HIDDEN, key = apps.HIDDEN } end
   return out
 end
 
 --- Opens a folder of the grid ("" for none) or chooses a category.
 function M.open_folder(name) M.folder:set(name) M.cell:set(1) end
 function M.choose_category(name) M.category:set(name) M.folder:set("") M.cell:set(1) end
+
+--- Files the app at `key` with the tile at `target`. True when it was.
+function M.gather(key, target)
+  local row, under = by_key[key], by_key[target]
+  if not row or not under or row.kind ~= "app" or key == target then return false end
+  if under.kind ~= "app" and under.kind ~= "folder" then return false end
+  return apps.gather(row.id, under) ~= nil
+end
+
+--- Takes the app at `key` out of its folder. Whether it was in one.
+function M.unfile(key)
+  local row = by_key[key]
+  if not row or row.kind ~= "app" then return false end
+  local pins = require("lib.shell.launcher.pins")
+  if not pins.folder_of(row.id) then return false end
+  pins.file_under(row.id, "")
+  return true
+end
+
+--- Whether anything on this machine can install: the grid's chip asks.
+function M.can_install()
+  local machine = require("software_model").machine()
+  return machine.nix == true or machine.flatpak == true
+end
+
+--- Turns the field to `query`, focused, as an action that asks a question does.
+function M.activate_query(query)
+  M.set_query(query)
+  if view then view.focus(true) end
+  M.bring_keyboard()
+end
 
 -- ----------------------------------------------------------------- search --
 
@@ -177,11 +209,12 @@ morf.effect("eva.launcher.search", function()
   if owner then
     -- The action panel: the chosen row's actions, filtered by the field.
     found, mode = {}, "apps"
+    require("lib.shell.launcher.rows").revision:get()
     local list = M.actions_of(owner)
     for i, a in ipairs(list) do
       if q == "" or a.name:lower():find(q:lower(), 1, true) then
         found[#found + 1] = { kind = "menu", id = acting .. ":action:" .. i, name = a.name,
-          description = owner.name, material = a.material, icon = a.icon, run = a.run }
+          description = a.description or owner.name, material = a.material, icon = a.icon, run = a.run }
       end
     end
     found.cap = #found
@@ -307,14 +340,17 @@ end
 
 function M.activate(row)
   if row and row.kind == "folder" then M.open_folder(row.id) return end
+  local acting = M.acting:get()
   M.acting:set("")
   if row then remember(row) end
   local next_step = apps.activate(row)
   if row and package.loaded.launcher_api then package.loaded.launcher_api.chosen(row, M.query:get()) end
   if next_step == "close" then
     M.drawer.set(false)
+  elseif next_step == "stay" then
+    M.acting:set(acting)
   elseif type(next_step) == "string" and next_step ~= "keep" then
-    M.set_query(next_step)
+    M.activate_query(next_step)
   end
 end
 
@@ -654,6 +690,7 @@ morf.effect("eva.launcher.open", function()
   was_open = open
   if open then
     apps.refresh()
+    require("software_model").scan()
     if opening_query then M.set_query(opening_query)
     elseif config.get("launcher.keep_query") then view.set_query(M.query:get(), true)
     else M.set_query("") end
