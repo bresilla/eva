@@ -117,6 +117,13 @@ local net = quiet_connect("networkmanager")
 local bt = quiet_connect("bluez")
 local power = quiet_connect("upower")
 
+-- EVA_FAKE_BATTERY=57,charging: a stand-in, to see a battery without a bus
+-- (battery_status_model.lua says what it takes).
+do
+  local fake = morf.env and morf.env("EVA_FAKE_BATTERY")
+  if fake and fake ~= "" and fake ~= "0" then power = require("battery_status_model").stand_in(fake) end
+end
+
 -- The services themselves, for the popouts (nil when absent).
 M.net, M.bt, M.upower = net, bt, power
 
