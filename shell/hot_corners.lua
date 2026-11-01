@@ -69,9 +69,12 @@ function M.fire(corner)
   if key == "none" or not action then return false end
   if key == "command" then
     local words = setting(corner, "command")
-    if type(words) == "table" and #words > 0 and not require("windows_model").dry_run() then
-      morf.process.run(words, {}, function() end)
+    if type(words) ~= "table" or #words == 0 then return false end
+    if require("windows_model").held_back() then
+      morf.log("info", "eva: hot corner (dry run): " .. table.concat(words, " "))
+      return true
     end
+    morf.process.run(words, {}, function() end)
     return true
   end
   if ipc and ipc[action.verb] then ipc[action.verb](table.unpack(action.args)) return true end
@@ -104,7 +107,7 @@ function M.build()
         waiting = nil
         spent = true
         local snap = package.loaded.snap
-        if M.guarded(key, held) and not (snap and snap.dragging:get()) then M.fire(key) end
+        if M.guarded(key, held) and not (snap and snap.busy:get()) then M.fire(key) end
       end, false)
     end, { owner = area })
     children[#children + 1] = area

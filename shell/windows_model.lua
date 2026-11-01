@@ -10,10 +10,15 @@ local services = require("services")
 local hyprland = services.hyprland
 local M = {}
 
-local function dry_run()
-  if hyprland.stand_in then return false end
+--- Whether EVA_DRY_RUN holds back what would start or touch anything real.
+local function held_back()
   local v = morf.env and morf.env("EVA_DRY_RUN")
-  return v ~= nil and v ~= "" and v ~= "0"
+  return (v and v ~= "" and v ~= "0") == true
+end
+M.held_back = held_back
+
+local function dry_run()
+  return not hyprland.stand_in and held_back()
 end
 M.dry_run = dry_run
 
@@ -59,10 +64,16 @@ function M.get(address)
   end
 end
 
---- The focused window, or nil.
+--- The focused window, or nil. When the compositor names none, as while a
+--- panel holds the keys, the last focused on the workspace in view.
 function M.active()
   local a = hyprland.state.active_window
-  return M.get(a and a.address or "")
+  local found = M.get(a and a.address or "")
+  if found then return found end
+  local shown = M.int(hyprland.state.active_workspace.id)
+  for _, c in ipairs(M.recent()) do
+    if M.int(c.workspace) == shown then return c end
+  end
 end
 
 -- The order windows took the focus in: the compositor's list says so only

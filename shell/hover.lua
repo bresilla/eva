@@ -67,7 +67,7 @@ function M.edge(opts)
   local dragged_here = false
   local function dragging()
     local snap = package.loaded.snap
-    return snap ~= nil and snap.dragging:get()
+    return snap ~= nil and snap.busy:get()
   end
   local function enabled()
     return (not opts.enabled or opts.enabled())

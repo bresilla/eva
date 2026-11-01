@@ -20,6 +20,9 @@ local GAP = theme.space.s
 -- The cell the pointer is over while dragging, "" for none.
 M.zone = morf.signal("eva.snap.zone", "")
 M.dragging = morf.signal("eva.snap.dragging", false)
+-- True from a drag's start until a moment after it lands.
+M.busy = morf.signal("eva.snap.busy", false)
+local SETTLE, settling = 1200, nil
 -- The picker is open.
 M.picking = morf.signal("eva.snap.picking", false)
 -- Snap assist: the cells on offer, and the windows to fill them.
@@ -151,6 +154,8 @@ function M.drag()
   if M.dragging:get() then return true end
   local c = windows.active()
   target = c and c.address or nil
+  if settling then settling:cancel() settling = nil end
+  M.busy:set(true)
   M.dragging:set(true)
   M.zone:set("")
   if poll then poll:cancel() end
@@ -165,6 +170,11 @@ function M.drop()
   local zone = M.zone:get()
   M.dragging:set(false)
   M.zone:set("")
+  if settling then settling:cancel() end
+  settling = morf.time.timer(SETTLE, function()
+    settling = nil
+    M.busy:set(false)
+  end, false)
   if zone == "" or not target then return false end
   local c = windows.get(target)
   if not c then return false end

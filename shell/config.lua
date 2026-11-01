@@ -226,10 +226,10 @@ local config = settings.open {
       scrub = "apps",
       -- Each corner's action (shell/hot_corners.lua) and the key it wants held.
       corners = {
-        top_left = { action = "none", guard = "" },
-        top_right = { action = "none", guard = "" },
-        bottom_left = { action = "none", guard = "" },
-        bottom_right = { action = "none", guard = "" },
+        top_left = { action = "none", guard = "", command = {} },
+        top_right = { action = "none", guard = "", command = {} },
+        bottom_left = { action = "none", guard = "", command = {} },
+        bottom_right = { action = "none", guard = "", command = {} },
         -- How long the pointer rests there first, in ms.
         hold = 150,
       },

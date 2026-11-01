@@ -377,6 +377,7 @@ function M.new(scene)
   function hl.config() end
   function hl.bind() end
   function hl.gesture() end
+  function hl.exec_cmd() end
 
   local function reply(fn, ...)
     local ok, why = pcall(fn, ...)

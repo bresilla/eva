@@ -175,6 +175,22 @@ test.it("its ends hold the launcher and the overview, and a pin dragged counts p
   test.truthy(test.ipc("overview", "state"), "the overview's button")
 end)
 
+test.it("in a dry run nothing is started: not an application, not a desktop action", function()
+  test.stub_run("task", { code = 0, stdout = "[]" })
+  test.load("../shell/init.lua", { source = [[
+    local root = require("init")
+    morf.ipc.action = function() return require("apps").launch_action("zzapp", "new") end
+    return root
+  ]], env = { EVA_FAKE_WINDOWS = SCENE, EVA_DRY_RUN = "1" } })
+  test.advance(200)
+  test.ipc("dock_launch", "zzapp")
+  test.eq(test.ipc("action"), false)
+  local said = {}
+  for _, line in ipairs(test.logs("info")) do said[#said + 1] = line.message end
+  test.contains(said, "eva: launch (dry run): zzapp", "the launch was not held back")
+  test.contains(said, "eva: launch (dry run): zzapp new", "the desktop action was not held back")
+end)
+
 test.it("past what a field can hold the rest are counted", function()
   local clients = {}
   for i = 1, 18 do clients[i] = ('{"class":"app%d","title":"t","workspace":1}'):format(i) end

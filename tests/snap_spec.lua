@@ -107,10 +107,13 @@ test.it("while a window is dragged the edges and corners leave it alone", functi
   test.eq(test.ipc("drawers"), "", "dragging to an edge opened a panel")
   test.move(3, 3) test.advance(500)
   test.falsy(test.ipc("overview", "state"), "dragging to a corner ran its action")
-  test.move(1918, 500)
-  test.ipc("snap", "drop") test.advance(50)
-  test.move(1918, 501) test.advance(1000)
+  test.move(900, 500)
+  test.ipc("snap", "drop")
+  -- The compositor gives the pointer back only now, on the edge.
+  test.move(1918, 500) test.advance(1000)
   test.eq(test.ipc("drawers"), "", "the pointer resting where the window was dropped opened a panel")
+  test.advance(2000)
+  test.eq(test.ipc("drawers"), "", "the panel opened once the landing had settled")
   test.key("Escape")
   test.ipc("close") test.advance(100)
   test.move(900, 500) test.advance(100)
@@ -119,6 +122,23 @@ test.it("while a window is dragged the edges and corners leave it alone", functi
   test.ipc("corner", "top_left", "none", "")
   test.ipc("dock", "auto")
   test.advance(400)
+end)
+
+test.it("when the compositor names no window, the last focused one stands for it", function()
+  test.stub_run("task", { code = 0, stdout = "[]" })
+  test.load("../shell/init.lua", { size = { 1920, 1080 }, source = [[
+    local root = require("init")
+    morf.ipc.blur = function() require("services").hyprland.state.active_window.address = "" end
+    return root
+  ]], env = { EVA_FAKE_WINDOWS = SCENE, EVA_DRY_RUN = "1" } })
+  test.advance(200)
+  test.ipc("blur")
+  test.eq(test.ipc("snap", "left"), true, "no window for the shell to act on")
+  test.advance(16)
+  test.truthy(window("one").floating)
+  test.ipc("workspace", "2") test.advance(100)
+  test.ipc("blur")
+  test.eq(test.ipc("keep_above"), false, "an empty workspace has no window to stand in")
 end)
 
 test.it("the picker places a window in a cell, or the whole workspace in a layout", function()

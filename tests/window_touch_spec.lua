@@ -171,6 +171,25 @@ test.it("a corner does what it is set to, only with its key held", function()
   test.advance(400)
 end)
 
+test.it("a corner's command is held back in a dry run, even on the stand-in", function()
+  test.stub_run("task", { code = 0, stdout = "[]" })
+  test.load("../shell/init.lua", { size = { 1920, 1080 }, source = [[
+    require("init")
+    morf.ipc.fire = function()
+      require("config").set("windows.corners.bottom_left.action", "command")
+      require("config").set("windows.corners.bottom_left.command", { "evadoesnotexist", "run" })
+      return require("hot_corners").fire("bottom_left")
+    end
+  ]], env = { EVA_FAKE_WINDOWS = SCENE, EVA_DRY_RUN = "1" } })
+  test.advance(100)
+  test.eq(test.ipc("fire"), true)
+  for _, words in ipairs(test.runs()) do
+    test.truthy(words[1] ~= "evadoesnotexist", "a process started in a dry run")
+  end
+  test.ipc("corner", "bottom_left", "none", "")
+  test.advance(400)
+end)
+
 test.it("the pages open in both themes, and their controls set what they say", function()
   for _, style in ipairs { "material", "tsugumori" } do
     load(1920, 1080, { EVA_STYLE = style }, false)

@@ -335,12 +335,22 @@ function M.entry(id)
   return nil
 end
 
+local function held_back(what)
+  local v = morf.env and morf.env("EVA_DRY_RUN")
+  if not (v and v ~= "" and v ~= "0") then return false end
+  morf.log("info", "eva: launch (dry run): " .. what)
+  return true
+end
+
 --- Starts the application `id`, as the launcher does.
-function M.launch(id) return M.activate { kind = "app", id = id } end
+function M.launch(id)
+  if held_back(id) then return "close" end
+  return M.activate { kind = "app", id = id }
+end
 
 --- Runs a desktop action of the application `id`.
 function M.launch_action(id, action)
-  if not index then return false end
+  if held_back(id .. " " .. tostring(action)) or not index then return false end
   local ok, err = pcall(index.launch_action, index, id, action)
   if not ok then morf.log("warn", "eva: could not run " .. tostring(action) .. ": " .. tostring(err)) end
   return ok

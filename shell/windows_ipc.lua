@@ -123,6 +123,7 @@ function M.register(ipc)
     local row = dock.rows:get(tonumber(index) or 1)
     if row then dock.open_menu(row.key) end
   end
+  ipc.dock_launch = function(key) return require("dock").launch(key) end
   ipc.dock_reserve = function() return require("dock").reserve() end
   ipc.dock_order = function()
     local out, dock = {}, require("dock")
