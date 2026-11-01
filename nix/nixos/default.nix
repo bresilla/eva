@@ -266,6 +266,8 @@ in
         pkgs.libnotify
         pkgs.pipewire
         pkgs.qrencode
+        pkgs.wl-clipboard
+        pkgs.xdg-utils
         tools
       ];
       environment.sessionVariables.EVA_ALARM_SOUND =
