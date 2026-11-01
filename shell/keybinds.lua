@@ -1,53 +1,64 @@
--- The live bindings of the compositor and the shell's own, as rows: what
--- eva-keys lists and the launcher's `keys` mode searches.
-local shortcuts = require("shortcuts")
-
+-- The compositor keys that reach the window features: one table, which the
+-- NixOS module binds into a session with no compositor configuration of its
+-- own (nix/nixos/compositor.nix) and eva-keys lists. Plain Lua: the compositor
+-- loads this file too, with no shell around it.
 local M = {}
 
-M.MODIFIERS = { { 64, "SUPER" }, { 8, "ALT" }, { 4, "CTRL" }, { 1, "SHIFT" } }
+-- `keys`, as Hyprland spells them with modifiers in eva-keys' order; `verb`,
+-- the shell's IPC call; `label`, what it does. `opts` go to `hl.bind`.
+M.BINDS = {
+  { keys = "SUPER + Tab", verb = "overview toggle", label = "Show every workspace and window" },
+  { keys = "ALT + Tab", verb = "switcher next", label = "Switch to the next window" },
+  { keys = "ALT + SHIFT + Tab", verb = "switcher prev", label = "Switch to the previous window" },
+  { keys = "ALT + grave", verb = "switcher same", label = "Walk this application's windows" },
+  { keys = "ALT + ALT_L", verb = "switcher commit", label = "Go to the window chosen",
+    opts = { release = true, non_consuming = true, transparent = true }, quiet = true },
+  { keys = "SUPER + W", verb = "window_menu toggle", label = "Open the window menu" },
+  { keys = "SUPER + Z", verb = "snap picker", label = "Pick a snap layout" },
+  { keys = "SUPER + CTRL + left", verb = "snap left", label = "Snap to the left half" },
+  { keys = "SUPER + CTRL + right", verb = "snap right", label = "Snap to the right half" },
+  { keys = "SUPER + CTRL + up", verb = "snap full", label = "Snap to the whole screen" },
+  { keys = "SUPER + CTRL + down", verb = "snap bottom", label = "Snap to the bottom half" },
+  { keys = "SUPER + mouse:272", verb = "snap drag", label = "Show where a dragged window lands",
+    opts = { non_consuming = true }, quiet = true },
+  { keys = "SUPER + mouse:272", verb = "snap drop", label = "Land the dragged window",
+    opts = { non_consuming = true, release = true }, quiet = true },
+  { keys = "SUPER + X", verb = "kill_mode", label = "Force quit the window pressed" },
+  { keys = "SUPER + A", verb = "keep_above", label = "Keep the window above the others" },
+  { keys = "SUPER + O", verb = "opacity", label = "Step the window's opacity" },
+  { keys = "SUPER + I", verb = "pip", label = "Picture in picture" },
+  { keys = "SUPER + SHIFT + V", verb = "float", label = "Float the window, or tile it" },
+  { keys = "SUPER + SHIFT + E", verb = "split", label = "Split the screen with the last window" },
+  { keys = "SUPER + BackSpace", verb = "show_desktop", label = "Show the desktop" },
+  { keys = "SUPER + SHIFT + N", verb = "workspace_empty", label = "Go to an empty workspace" },
+  { keys = "SUPER + SHIFT + Tab", verb = "overview app", label = "Show this application's windows" },
+  { keys = "SUPER + SHIFT + L", verb = "workspace_layout next", label = "Next layout on this workspace" },
+  { keys = "SUPER + grave", verb = "scratchpad scratch", label = "Show the scratchpad" },
+  { keys = "SUPER + SHIFT + grave", verb = "scratchpad send scratch", label = "Send the window to the scratchpad" },
+  { keys = "SUPER + SPACE", verb = "launcher toggle", label = "Open the launcher" },
+  { keys = "SUPER + D", verb = "dashboard toggle", label = "Open the dashboard" },
+  { keys = "SUPER + N", verb = "sidebar toggle notifications", label = "Open the notifications" },
+  { keys = "SUPER + comma", verb = "utilities toggle", label = "Open the quick settings" },
+}
 
---- A Hyprland bind's chord: "SUPER + SHIFT + T".
-function M.chord(bind)
-  local parts = {}
-  local mask = tonumber(bind.modmask) or 0
-  for _, modifier in ipairs(M.MODIFIERS) do
-    if mask & modifier[1] ~= 0 then parts[#parts + 1] = modifier[2] end
-  end
-  local key = tostring(bind.key or "")
-  if key ~= "" then parts[#parts + 1] = key end
-  return table.concat(parts, " + ")
-end
+-- Swipes on a touchpad: `action` is the verb.
+M.GESTURES = {
+  { fingers = 4, direction = "up", verb = "overview toggle", label = "Show every workspace and window" },
+}
 
---- What a Hyprland bind does, in the fewest words it offers.
-function M.action(bind)
-  local words = tostring(bind.description or "")
-  if words ~= "" then return words end
-  local arg = tostring(bind.arg or "")
-  local dispatcher = tostring(bind.dispatcher or "")
-  if arg == "" then return dispatcher end
-  return dispatcher .. " " .. arg
-end
-
---- A shell chord as binds are spelled: "CTRL + SHIFT + C".
-local function spelled(chord)
-  local parts = {}
-  for part in chord:gmatch("[^+]+") do parts[#parts + 1] = #part > 1 and part or part:upper() end
-  for i, part in ipairs(parts) do
-    if part == "ctrl" or part == "alt" or part == "shift" then parts[i] = part:upper() end
+--- The bindings, for `hl` (Hyprland's Lua API), calling `morf` for the shell.
+function M.apply(hl, morf)
+  local function call(verb) return ("%s ipc call %s"):format(morf, verb) end
+  for _, bind in ipairs(M.BINDS) do
+    local opts = {}
+    for k, v in pairs(bind.opts or {}) do opts[k] = v end
+    opts.description = bind.label
+    hl.bind(bind.keys, hl.dsp.exec_cmd(call(bind.verb)), opts)
   end
-  return table.concat(parts, " + ")
-end
-
---- The rows for `binds` (hyprctl's list) and the shell's own shortcuts.
-function M.merge(binds)
-  local rows = {}
-  for _, bind in ipairs(binds or {}) do
-    rows[#rows + 1] = { group = "Compositor", keys = M.chord(bind), what = M.action(bind) }
+  for _, gesture in ipairs(M.GESTURES) do
+    hl.gesture { fingers = gesture.fingers, direction = gesture.direction,
+      action = function() hl.dispatch(hl.dsp.exec_cmd(call(gesture.verb))) end }
   end
-  for _, label in ipairs(shortcuts.LABELS) do
-    rows[#rows + 1] = { group = "Shell", keys = spelled(label[1]), what = label[2] }
-  end
-  return rows
 end
 
 return M

@@ -9,7 +9,7 @@
 -- Escape shuts it. EVA_DRY_RUN=1 logs what would be dispatched instead.
 local morf = require("morf")
 local services = require("services")
-local dispatch = require("lib.shell.window_dispatch")
+local windows = require("windows_model")
 local hyprland = services.hyprland
 local M = {}
 
@@ -20,24 +20,13 @@ M.focus = morf.signal("eva.window_menu.focus", "")
 -- Whether moving the window to a workspace goes there with it.
 M.follow = require("themes.session").keep("eva.window_menu.follow", true)
 
-local function client(address)
-  if address == "" then return nil end
-  local model = hyprland.state.clients
-  for i = 1, model:len() do
-    local row = model:get(i)
-    if row.address == address then return row end
-  end
-end
+local client = windows.get
 --- The window the menu is about, as the compositor has it now.
 function M.window() return client(M.address:get()) end
 
--- ------------------------------------------------------------- dispatch --
-
-local function run(steps) return dispatch.run(M.address:get(), steps) end
-
-local function S(lua, conf) return { lua = lua, conf = conf } end
+local function run(steps) return windows.run(M.address:get(), steps) end
+local S, G, steps_of = windows.step, windows.global, windows.steps
 local function toggle(name, conf) return S({ "window." .. name, { action = "toggle" } }, conf) end
-local function G(lua, conf) return { global = true, lua = lua, conf = conf } end
 
 -- --------------------------------------------------------------- cards --
 
@@ -90,6 +79,12 @@ M.CARDS = {
       { key = "half", label = "50%", stay = true, steps = sized(0.5) },
       { key = "two_thirds", label = "66%", stay = true, steps = sized(0.66) },
       { key = "most", label = "85%", stay = true, steps = sized(0.85) },
+      { key = "above", label = "On top", on = windows.kept_above(w.address), stay = true,
+        press = function() windows.keep_above(w.address) end },
+      { key = "opacity", label = windows.opacity_of(w.address) < 1
+          and ("Fade %d%%"):format(math.floor(windows.opacity_of(w.address) * 100 + .5)) or "Fade",
+        on = windows.opacity_of(w.address) < 1, stay = true, press = function() windows.next_opacity(w.address) end },
+      { key = "snap", label = "Snap", press = function() require("snap").pick() end },
     }
   end },
   { key = "left", number = "02", title = "Workspace", buttons = function()
@@ -121,8 +116,9 @@ M.CARDS = {
   end },
   { key = "bottom", number = "04", title = "Close", buttons = function()
     return {
-      { key = "close", label = "Close", primary = true, steps = { S({ "window.close", {} }, { "closewindow", "$W" }) } },
-      { key = "kill", label = "Force quit", steps = { dispatch.KILL } },
+      { key = "close", label = "Close", primary = true, steps = steps_of.close() },
+      { key = "kill", label = "Force quit", steps = steps_of.kill() },
+      { key = "kill_mode", label = "Kill mode", span = 2, press = function() require("kill_mode").start() end },
     }
   end },
 }
@@ -231,6 +227,7 @@ end
 --- none, nothing while it asks the compositor which window that is.
 local FOLD_MS, closed_at, waiting = 280, -1e9, nil
 function M.open()
+  windows.refresh()
   local function show(address, folded)
     if not client(address) then return false end
     if waiting then waiting:cancel() waiting = nil end

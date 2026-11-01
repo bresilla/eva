@@ -1,0 +1,22 @@
+{
+  "second_monitor": true,
+  "focus": 1,
+  "workspaces": [
+    { "id": 1, "layout": "dwindle" },
+    { "id": 2, "layout": "master", "name": "web" },
+    { "id": 3, "layout": "dwindle" }
+  ],
+  "clients": [
+    { "class": "kitty", "title": "~/code/eva", "workspace": 1, "pid": 4101 },
+    { "class": "firefox", "title": "Hyprland Wiki", "workspace": 2, "pid": 4102 },
+    { "class": "kitty", "title": "btop", "workspace": 2, "pid": 4104 },
+    { "class": "mpv", "title": "lecture.mkv", "workspace": 3, "pid": 4105, "content": "video" },
+    { "class": "org.gnome.Nautilus", "title": "Pictures", "workspace": 3, "pid": 4107, "floating": true,
+      "x": 420, "y": 180, "width": 720, "height": 480 },
+    { "class": "spotify", "title": "Spotify", "workspace": "special:music", "pid": 4108 }
+  ],
+  "places": {
+    "Editor": { "workspace": 1 },
+    "Browser": { "workspace": 1 }
+  }
+}

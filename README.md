@@ -725,6 +725,38 @@ One plugin raising is reported in `> plugins` and the rest still load. `EVA_NO_P
 or `launcher.plugins` off starts without them, which answers whether a problem is a
 plugin's.
 
+## Windows
+
+Everything between a person and their open windows goes through
+`shell/windows_model.lua`, which reads the compositor's lists and sends it
+commands, and `shell/window_shots.lua`, which keeps a picture of each window.
+
+| Verb | What it does |
+|------|--------------|
+| `overview [open\|close\|toggle\|state\|app]` | every workspace along the top with a map of its windows, and the windows of the one looked at spread out beneath, each flying out of where it really is; typing filters across all of them, a card dragged onto a desk or a scratchpad goes there, the middle button closes, the right one offers more. On a phone a row of cards, swiped along and thrown away |
+| `switcher next\|prev\|same\|commit\|cancel` | Alt+Tab: a quick tap flips to the last window, held it shows them by application |
+| `snap CELL`, `snap layout KEY`, `snap picker` | a window into a half, a quarter or a third, or a whole workspace into a layout; a snapped window offers the others for the room left. `snap drag` and `snap drop` come from the drag's button |
+| `workspace_name`, `workspace_layout`, `workspace_empty` | a name kept across sessions; dwindle, master, scrolling or monocle, one workspace at a time |
+| `scratchpad NAME\|list`, `scratchpad send NAME` | Hyprland's special workspaces, started from `windows.scratchpads` |
+| `pip`, `float`, `split`, `keep_above`, `opacity`, `show_desktop`, `kill_mode` | what happens to the focused window, or the one pressed |
+| `dock on\|off\|auto`, `dock pin ID` | the dock on a desk; a tablet has it as a taskbar, a phone not at all |
+| `corner NAME ACTION GUARD` | a hot corner's action, and the key that must be held |
+
+Under a finger, a pull up from the bottom that stops and holds is recents, and a
+quick one is still the dashboard. A phone's bottom edge walks the apps
+(`windows.scrub`). A pull in from the left of a settings page goes back, with the
+page it goes back to in view.
+
+The compositor keys are in `shell/keybinds.lua`. A session with no
+`~/.config/hypr/hyprland.lua` gets them; `programs.eva.hyprland.binds` is `auto`,
+`always` or `never`, and `eva-keys` lists the ones that are not bound with the
+verb to bind.
+
+`EVA_FAKE_WINDOWS=1`, or a JSON file like `tests/fixtures/windows.json`, stands in
+for Hyprland: `shell/windows_stand_in.lua` is the same library over a list of its
+own, evaluating the same `hl.*` chunks, with what the compositor really has among
+its windows. `nix build .#windows-test` runs these against a real Hyprland in a VM.
+
 ## Phone, tablet and desk
 
 Each output is classed from its logical size: compact below 600 wide, medium to

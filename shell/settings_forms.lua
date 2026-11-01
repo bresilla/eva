@@ -102,6 +102,12 @@ M.PAGES = {
       { "open", "Open a capture", "open_in_new" },
     }) },
   } },
+  ["windows/more"] = { sections = {
+    { title = "Scratchpads", fields = {
+      { key = "windows.scratchpads", kind = "records", fields = { "name", "command", "icon" }, title = "Scratchpads",
+        icon = "stacks", note = "name, the command in quotes and an icon, one after another" },
+    } },
+  } },
   ["lock/more"] = { sections = {
     { title = "Readers", fields = {
       { key = "lock.reader_tries", kind = "number", title = "Tries on a reader", icon = "fingerprint", from = 0, to = 10, step = 1,
