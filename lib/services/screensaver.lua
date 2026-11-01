@@ -1,12 +1,5 @@
--- `org.freedesktop.ScreenSaver`: how a browser or a video player asks the
--- desktop not to go idle. Each request is held until it is undone or the app
--- leaves the bus, and the list says who asked and why.
---
---   local saver = require("lib.services.screensaver").serve {
---     on_change = function(holders) end,   -- { { cookie, app, reason } }
---   }
---
--- Nil and a reason when something else holds the name.
+-- `org.freedesktop.ScreenSaver`: holds each request not to go idle until it is
+-- undone or the app leaves the bus, and lists who asked and why.
 local morf = require("morf")
 local dbus_client = require("lib.services.dbus")
 local M = {}

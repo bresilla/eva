@@ -1,12 +1,5 @@
--- The lights of the lock keys, read from the LEDs a keyboard's driver exports:
--- every Linux keyboard has `inputN::capslock` and `inputN::numlock`, each with
--- a `brightness` file. No keyboard, no lights, and nobody is told otherwise.
---
---   local lights = require("lib.services.key_lights")
---   local found = lights.scan()     -- { caps = { paths }, num = { paths } }
---   lights.lit(found.caps)          -- true while any of them is on
---
--- EVA_LEDS names another folder.
+-- The lights of the lock keys, read from `inputN::capslock` and `inputN::numlock`
+-- under /sys/class/leds, or EVA_LEDS.
 local morf = require("morf")
 local M = {}
 

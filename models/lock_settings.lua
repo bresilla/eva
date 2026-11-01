@@ -1,12 +1,7 @@
--- What the lock reads of its settings: the defaults, then the `lock` table of
--- the person's settings file, then the system's policy over both. Read once as
--- the lock starts, and never written. Anything missing, unreadable or of the
--- wrong type stands at its default.
---
---   local prefs = require("models.lock_settings").load()
---   prefs.notifications.level
---
--- Under EVA_DRY_RUN, EVA_LOCK_POLICY names another policy file (specs).
+-- The lock's settings: the defaults, the `lock` table of the person's file, then
+-- the system's policy over both. Read once and never written; anything missing or
+-- of the wrong type stands at its default. Under EVA_DRY_RUN, EVA_LOCK_POLICY names
+-- another policy file.
 local morf = require("morf")
 local defaults = require("models.lock_defaults")
 local M = { LEVELS = { "all", "senders", "count", "none" }, GRACE_MAX = 60 }

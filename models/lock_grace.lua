@@ -1,23 +1,8 @@
--- A moment after an idle lock in which any key opens it again.
---
--- It starts shut and fails shut. It arms only for a lock the idle timer asked
--- for, with a number of seconds set, off a phone, on a machine that can say
--- when it sleeps. Each of these ends it for good: the time running out, the
--- machine preparing to sleep or found to have slept, the lid shutting, another
--- lock request, a wrong password, or the sensor it watches going unreadable. A
--- key is the only thing that uses it, and it opens once.
---
--- Three witnesses of sleep, any one enough: logind's PrepareForSleep, the
--- kernel's count of suspends, and a gap in the boot-time clock between ticks
--- (user processes stop while the machine sleeps, the clock does not).
---
---   local grace = require("models.lock_grace").new {
---     seconds = 15, reason = "idle", phone = false,
---     guard = login,                 -- models.logind's, or nil
---     clock = fn, suspends = fn, timer = fn,   -- seams, for specs
---   }
---   grace.arm()        -- the compositor has confirmed the lock
---   grace.take()       -- a key: true means open
+-- A moment after an idle lock in which any key opens it, once. It arms only for
+-- a lock the idle timer asked for, with seconds set, off a phone, where sleep can
+-- be heard and counted. Time running out, sleep, the lid, another lock request, a
+-- wrong password or a lost sensor end it for good. Sleep has three witnesses:
+-- logind, the kernel's suspend count, and a gap in the boot-time clock.
 local morf = require("morf")
 local M = { GAP = 2.5, STATS = "/sys/power/suspend_stats/success" }
 

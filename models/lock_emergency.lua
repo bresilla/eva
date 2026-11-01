@@ -1,10 +1,7 @@
--- What a stranger may need from a locked phone: a line of text, a medical card,
--- and a way to call for help. All of it is what the person chose to show. The
--- only numbers that can be dialled are the listed ones; there is no keypad.
---
--- The call goes through `dialer()`, the phone stream's seam: a module
--- `lib.services.emergency_call` with `present()` and `dial(number)`. Until it
--- lands EVA_FAKE_DIAL=1 stands in, and without either no call is offered.
+-- A line of text, a medical card and a way to call for help, all as the person
+-- set them. Only the listed numbers can be dialled, through `dialer()`: the phone
+-- stream's `lib.services.emergency_call`, with `present()` and `dial(number)`.
+-- EVA_FAKE_DIAL=1 stands in under a dry run.
 local morf = require("morf")
 local M = {}
 

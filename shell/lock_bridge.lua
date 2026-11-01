@@ -1,9 +1,6 @@
--- The one way out of the shell for what the lock shows: a small file under the
--- runtime directory, written here, read there, filtered to the chosen level
--- before it leaves. The lock asks the shell for nothing, so nothing on the
--- locked side can reach into it.
---
--- Per-app rules come from the notifications stream through `rules()`.
+-- What the lock shows of the shell: a small file under the runtime directory,
+-- filtered to the chosen level before it is written. Per-app rules come from the
+-- notifications stream through `rules()`.
 local morf = require("morf")
 local config = require("config")
 local view = require("models.lock_notifications")

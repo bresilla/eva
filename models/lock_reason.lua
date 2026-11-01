@@ -1,10 +1,5 @@
--- Why the session is being locked, handed from whoever asks to the lock that
--- starts: one small file under the runtime directory, used once. A lock that
--- finds no fresh mark is a manual one, and everything that depends on the
--- reason treats it as the strictest.
---
---   reason.mark("idle")       -- before asking for the lock
---   reason.take()             -- "idle", "lockdown" or "manual"; the file goes
+-- Why the session is being locked: one small file under the runtime directory,
+-- used once. `take` answers "idle", "lockdown", or "manual" with no fresh mark.
 local morf = require("morf")
 local M = { FRESH = 20 }
 local KNOWN = { idle = true, lockdown = true }
