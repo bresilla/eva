@@ -80,10 +80,9 @@ end
 -- ------------------------------------------------------------------ state --
 
 local me = accounts.me() or { name = "", label = "", initial = "?" }
--- The password is a plain local: never a signal, never kept. The screen
--- needs only how many characters it has.
-local password = ""
-local typed = morf.signal("lock.typed", 0)
+local MAX_DOTS = 18
+local password = require("models.password").new("lock", MAX_DOTS)
+local typed = password.typed
 local busy = morf.signal("lock.busy", false)
 local message = morf.signal("lock.message", "")
 local bad = morf.signal("lock.bad", false)
@@ -98,10 +97,7 @@ local function say(words, wrong)
   message:set(words or "")
   bad:set(wrong == true)
 end
-local function clear()
-  password = ""
-  typed:set(0)
-end
+local clear = password.clear
 
 local door
 local function lift()
@@ -161,31 +157,25 @@ end
 
 local function submit()
   if busy:get() or stage:get() ~= "sheet" then return end
-  if password == "" then
+  if password.empty() then
     say("Type your password", false)
     return
   end
   say("")
-  local secret = password
-  password = ""
-  door:submit(secret)
+  door:submit(password.take())
 end
 
-local MAX_DOTS = 18
 local function type_text(t)
-  if #password >= 256 then return end
-  password = password .. t
-  typed:set(math.min(#password, MAX_DOTS))
+  if not password.add(t) then return end
   if bad:get() then say("") end
   poke()
 end
 local function backspace()
-  password = password:sub(1, -2)
-  typed:set(math.min(#password, MAX_DOTS))
+  password.erase()
   poke()
 end
 local function escape()
-  if #password == 0 then
+  if password.empty() then
     -- Looked at in a window, it holds nothing: Escape at rest is the way
     -- out, in case the door will not open.
     if stage:get() == "rest" and not HELD then morf.quit() return end

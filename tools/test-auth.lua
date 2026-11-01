@@ -52,3 +52,34 @@ last.emit{kind='failed',text='connection lost'}
 assert(not busy and disconnected.held==nil and disconnected.login==nil)
 assert(#sessions==count,'transport error must stop without retrying')
 print('PASS: transport failure releases busy state without retrying')
+
+-- A stack that asks twice: the second question reaches the person, and their
+-- answer goes to the same conversation.
+local prompts={}
+local asked=auth.greeter{user='test-user',session={command={'true'},environment={}},
+  on_busy=function(value) busy=value end,on_prompt=function(text) prompts[#prompts+1]=text end,
+  on_failed=function() failures=failures+1 end,on_open=function() opened=opened+1 end}
+asked:submit('password')
+local twice=sessions[#sessions]
+twice.emit{kind='auth',auth_type='secret',text='Password:'}
+assert(twice.answers[1]=='password' and busy,'the password goes first')
+twice.emit{kind='auth',auth_type='visible',text='Verification code:'}
+assert(prompts[1]=='Verification code:' and not busy,'the second question is shown')
+asked:submit('123456')
+assert(twice.answers[2]=='123456' and busy,'the answer continues the conversation')
+print('PASS: a second question reaches the person and continues the conversation')
+
+-- greetd refusing the conversation still gives an answer, and a later try can
+-- reach it.
+local refused=door()
+local converse=package.loaded.morf.greetd.converse
+package.loaded.morf.greetd.converse=function() error('socket refused') end
+local before=failures
+busy=false
+refused:submit('answer')
+assert(failures==before+1,'a refused conversation is reported')
+assert(not busy,'a refused conversation leaves nothing busy')
+package.loaded.morf.greetd.converse=converse
+refused:submit('answer')
+assert(refused.login~=nil,'a later try reaches greetd again')
+print('PASS: a refused conversation is reported and can be retried')

@@ -68,8 +68,9 @@ local list = sessions.list()
 
 local who = morf.signal("greet.who", 1)
 local which = morf.signal("greet.session", sessions.default_index(list))
-local password = ""
-local typed = morf.signal("greet.typed", 0)
+local MAX_DOTS = 20
+local password = require("models.password").new("greet", MAX_DOTS)
+local typed = password.typed
 local busy = morf.signal("greet.busy", false)
 local message = morf.signal("greet.message", "")
 local bad = morf.signal("greet.bad", false)
@@ -87,10 +88,7 @@ local function say(words, wrong)
   message:set(words or "")
   bad:set(wrong == true)
 end
-local function clear()
-  password = ""
-  typed:set(0)
-end
+local clear = password.clear
 
 local door = auth.greeter {
   enabled = not PREVIEW and morf.env("EVA_DRY_RUN") ~= "1",
@@ -103,6 +101,12 @@ local door = auth.greeter {
     clear()
     shake:set(1)
     morf.time.timer(70, function() shake:set(0) end, false)
+    if outputs then outputs.release() end
+  end,
+  -- The stack asks for something more (a code, a new password).
+  on_prompt = function(words)
+    say(words, false)
+    clear()
     if outputs then outputs.release() end
   end,
   -- The session is starting: everything sinks away while greetd replaces
@@ -152,7 +156,7 @@ end
 local function submit_owned()
   -- A pointer handoff or Escape can clear a draft while the public grant
   -- travels between output runtimes. Release it without contacting greetd.
-  if stage:get()~="sheet" or password=="" then outputs.release() return end
+  if stage:get()~="sheet" or password.empty() then outputs.release() return end
   if not session() then
     say("No session installed to start", true)
     outputs.release()
@@ -160,30 +164,24 @@ local function submit_owned()
   end
   door.session = session()
   say("")
-  local secret = password
-  password = ""
-  door:submit(secret)
+  door:submit(password.take())
 end
 local function submit()
-  if busy:get() or stage:get() ~= "sheet" or password=="" then return end
+  if busy:get() or stage:get() ~= "sheet" or password.empty() then return end
   outputs.submit()
 end
 
-local MAX_DOTS = 20
 local function type_text(t)
-  if #password >= 256 then return end
-  password = password .. t
-  typed:set(math.min(#password, MAX_DOTS))
+  if not password.add(t) then return end
   if bad:get() then say("") end
   poke()
 end
 local function backspace()
-  password = password:sub(1, -2)
-  typed:set(math.min(#password, MAX_DOTS))
+  password.erase()
   poke()
 end
 local function escape()
-  if #password > 0 then clear() say("") return end
+  if not password.empty() then clear() say("") return end
   if stage:get() == "sheet" then stage:set("rest") say("") end
 end
 

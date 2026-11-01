@@ -35,6 +35,7 @@ local function handlers(options)
   return {
     busy = options.on_busy or noop,
     info = options.on_info or noop,
+    prompt = options.on_prompt or noop,
     failed = options.on_failed or noop,
     open = options.on_open or noop,
   }
@@ -206,10 +207,7 @@ end
 function Greeter:begin()
   if self.login or not self.user or not self.available then return end
   local ok, login = pcall(morf.greetd.converse, self.user)
-  if not ok or not login then
-    self.available = false
-    return
-  end
+  if not ok or not login then return end
   self.login, self.wanting, self.held, self.started = login, false, nil, false
   login:on_message(function(m)
     if self.login ~= login then return end
@@ -220,7 +218,10 @@ function Greeter:begin()
           self.held = nil
           login:respond(answer)
         else
-          self.wanting = true
+          -- A second question: the person answers it, not the password.
+          self.wanting, self.working = true, false
+          self.on.busy(false)
+          self.on.prompt(m.text ~= "" and m.text or "Answer needed")
         end
       else
         self.on.info(m.text, m.auth_type == "error")
@@ -256,7 +257,10 @@ function Greeter:submit(password)
     return
   end
   if not self.login then self:begin() end
-  if not self.login then return end
+  if not self.login then
+    self.on.failed("Cannot reach the login service")
+    return
+  end
   self.working = true
   self.on.busy(true)
   if self.wanting then
