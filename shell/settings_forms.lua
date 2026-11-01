@@ -35,7 +35,7 @@ end
 M.PAGES = {
   ["backups/more"] = { sections = {
     { title = "Which tool", fields = {
-      { key = "backups.tool", kind = "choice", title = "Use", items = {
+      { key = "backups.tool", kind = "choice", title = "Use", per_row = 2, items = {
         { "", "auto_mode", "First found" }, { "snapper", "backup", "Snapper" }, { "btrbk", "backup", "btrbk" }, { "restic", "backup", "restic" } } },
       { key = "backups.snapper_config", kind = "text", title = "Snapper config", icon = "settings",
         note = "The config to show: root, home, or one of your own" },
@@ -143,7 +143,7 @@ M.PAGES = {
   } },
   ["input/remap"] = { status = "remap_model", sections = {
     { title = "Caps Lock", fields = {
-      { key = "remap.caps", kind = "choice", title = "It acts as", per_row = 2, items = {
+      { key = "remap.caps", kind = "choice", title = "It acts as", per_row = 1, items = {
         { "", "keyboard_capslock", "Caps Lock" }, { "escape", "keyboard", "Escape" },
         { "control", "keyboard_control_key", "Control" }, { "hyper", "star", "Hyper" },
         { "tap_escape_hold_control", "touch_app", "Tap Esc, hold Ctrl" },
