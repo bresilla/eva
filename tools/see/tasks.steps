@@ -3,5 +3,8 @@
 start shell
 ipc tasks open; pause 1.6; shot tasks-full
 ipc calendar open; pause 1.6; shot calendar-full
-ipc tasks open; pause 0.8
-ipc close; pause 0.6
+stop
+for uuid in $(task rc.verbose=nothing _uuids); do task rc.verbose=nothing rc.confirmation=off "$uuid" delete > /dev/null; done
+start shell
+ipc tasks open; pause 1.6; shot tasks-none
+ipc calendar open; pause 1.2; shot calendar-none

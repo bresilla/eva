@@ -27,8 +27,8 @@ local COMPACT = responsive.compact()
 local CW, VIEW_H = responsive.dashboard()
 local PANEL_W = COMPACT and (responsive.sheets() and responsive.sheet_width()
   or responsive.desk_width() - 2 * theme.BORDER) or nil
--- The tabs by the edge it comes from: the bottom one, on a phone.
-local TABS_BELOW = COMPACT and responsive.sheets()
+-- The tabs by the edge it comes from: the bottom one, under a finger.
+local TABS_BELOW = responsive.sheets()
 local PHONE=responsive.sheets()
 -- Swiped shut toward the edge it hangs from: the bottom on a phone, the top on a desk.
 local DISMISS=PHONE and "down" or "up"
@@ -98,7 +98,7 @@ local function tabs()
     width = width, height = TABS_H, pad = PAD, ids = "name", growing = true, reorderable = REORDER,
     icons_only = responsive.width_class() == "compact" }
   if not TABS_BELOW then return row end
-  return ui.Item { y = function() return panel_height()-TABS_H end, width = PANEL_W, height = TABS_H, row }
+  return ui.Item { y = function() return height()-TABS_H end, width = width, height = TABS_H, row }
 end
 
 -- ---------------------------------------------------------------- cards --

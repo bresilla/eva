@@ -1,0 +1,16 @@
+# The Tasks page when things are not fine: a fresh machine with no rc, an rc
+# that cannot be read, and no `task` at all. The real `task` in all but the last.
+start shell
+ipc tasks open; pause 1.6; shot tasks-fresh
+ipc calendar open; pause 1.2; shot calendar-fresh
+stop
+printf 'include /nonexistent/rc\n' > "$HOME/.taskrc"
+start shell
+ipc tasks open; pause 1.6; shot tasks-broken-rc
+ipc calendar open; pause 1.2; shot calendar-broken-rc
+stop
+rm "$HOME/.taskrc"
+dir=$(dirname "$(command -v task)")
+PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vx "$dir" | paste -sd:)
+start shell
+ipc tasks open; pause 1.6; shot tasks-not-installed
