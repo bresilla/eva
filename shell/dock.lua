@@ -36,7 +36,7 @@ end
 local function panel_in_the_way()
   local sheets = require("responsive").sheets()
   for _, d in ipairs(require("drawer").all) do
-    if d.name ~= "keyboard" and d.open:get() and (sheets or d.edge == model.edge()) then return true end
+    if d.open:get() and (sheets or d.edge == model.edge()) then return true end
   end
   return false
 end
