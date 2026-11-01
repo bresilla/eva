@@ -9,9 +9,10 @@ local function load(style,page)
     local shown=morf.signal("planner.fixture.shown",true)
     local content=require(page.."_page").build(430,function() return 420 end)
     ui.Item {x=10,y=10,width=430,height=420,visible=function() return shown:get() end,content}
-    presentation.set("leftbar."..page,true)
+    local scope=require("pages").panel_name(page).."."..page
+    presentation.set(scope,true)
     morf.ipc.show=function(on)
-      shown:set(on=="yes") presentation.set("leftbar."..page,on=="yes")
+      shown:set(on=="yes") presentation.set(scope,on=="yes")
     end
   ]]})
   test.advance(2400)

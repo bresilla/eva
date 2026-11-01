@@ -110,23 +110,19 @@ function M.new(ctx)
   end
   function model.open_settings()
     if not model.on() then return end
-    local sidebar=require("sidebar")
-    sidebar.select("settings")
     require("utilities").detail:set("")
-    sidebar.drawer.set(true)
+    require("pages").open("settings")
   end
   function model.open_notifications()
     if not model.on() then return end
-    local sidebar=require("sidebar")
-    sidebar.select("notifications")
-    sidebar.drawer.set(true)
+    require("pages").open("notifications")
   end
   function model.toggle_dashboard()
     if not model.on() then return end
     local d=require("dashboard").drawer d.set(not d.open:get())
   end
   function model.settings_open()
-    local s=package.loaded.sidebar
+    local s=package.loaded.sidebar and require("pages").holder("settings")
     return s and s.drawer and s.drawer.open:get() or false
   end
   function model.dashboard_open()

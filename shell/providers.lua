@@ -338,12 +338,18 @@ local function session(name)
   end
 end
 
-local function drawer(name, tab)
+local function drawer(name)
   return function()
     local d = require("drawer")[name]
-    if tab and name == "sidebar" then require("sidebar").select(tab) end
-    if tab and (name == "leftbar" or name == "bottom") then require(name).panel.select(tab) end
     if d then d.set(true) end
+    return "close"
+  end
+end
+
+-- A page, in whichever panel holds it.
+local function page(key)
+  return function()
+    require("pages").open(key)
     return "close"
   end
 end
@@ -357,20 +363,26 @@ local function system(term)
     { id = "reboot", name = "Restart", material = "restart_alt", run = confirmed("reboot", session("reboot")) },
     { id = "shutdown", name = "Power off", material = "power_settings_new", run = confirmed("shutdown", session("shutdown")) },
     { id = "dashboard", name = "Dashboard", material = "dashboard", run = drawer("dashboard") },
-    { id = "settings", name = "Settings", material = "tune", run = drawer("sidebar", "settings") },
-    { id = "notifications", name = "Notifications", material = "notifications", run = drawer("sidebar", "notifications") },
+    { id = "settings", name = "Settings", material = "tune", run = page("settings") },
+    { id = "notifications", name = "Notifications", material = "notifications", run = page("notifications") },
     { id = "capture", name = "Screenshot or record", material = "screenshot_monitor", run = drawer("capture") },
-    { id = "assistant", name = "Assistant", material = "auto_awesome", run = drawer("bottom", "assistant") },
-    { id = "tasks", name = "Tasks", material = "checklist", run = drawer("leftbar", "tasks") },
-    { id = "calendar", name = "Calendar", material = "calendar_month", run = drawer("leftbar", "calendar") },
+    { id = "assistant", name = "Assistant", material = "auto_awesome", run = page("assistant") },
+    { id = "drop", name = "Drop", material = "forum", run = page("drop") },
+    { id = "tasks", name = "Tasks", material = "checklist", run = page("tasks") },
+    { id = "calendar", name = "Calendar", material = "calendar_month", run = page("calendar") },
     { id = "screenshot", name = "Screenshot a region", material = "screenshot_region",
       run = function() require("capture").shoot("region") return "close" end },
     { id = "dnd", name = "Do not disturb", material = "notifications_off",
       run = function() local n = require("notifs") n.dnd:set(not n.dnd:get()) return "close" end },
     { id = "session", name = "Session menu", material = "power", run = drawer("session") },
   }
+  -- A page no panel holds has no row: there is nowhere for it to land.
+  local reachable = {}
+  for _, s in ipairs(SYSTEM) do
+    if not require("pages").all[s.id] or require("pages").panel_name(s.id) then reachable[#reachable + 1] = s end
+  end
   local out = {}
-  for _, s in ipairs(fuzzy(SYSTEM, term)) do
+  for _, s in ipairs(fuzzy(reachable, term)) do
     out[#out + 1] = row {
       id = "system:" .. s.id, name = s.name, material = s.material, run = s.run,
       description = armed == s.id and "Press Return again to confirm" or ("!" .. s.id),

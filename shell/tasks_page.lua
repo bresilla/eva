@@ -1,7 +1,8 @@
+local pages=require("pages")
 local model=require("tasks_model").new {
-  active=require("presentation").active("leftbar.tasks"),
-  close=function() require("leftbar").drawer.set(false) end,
+  active=pages.active("tasks"),
+  close=function() pages.close("tasks") end,
 }
-local M={edit=model.edit}
+local M={edit=model.edit,editing=function() return model.editing:get() end}
 function M.build(w,h) return require("themes").view("tasks_page").build(model,w,h) end
 return M

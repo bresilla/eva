@@ -35,8 +35,10 @@ local keyboard_input = ui.Item { anchors = { fill = true } }
 --- -- a press anywhere else on the surface --, "escape", both joined by
 --- "+", or "none": a popup still, in the stack, that only its own controls
 --- shut), `modal` (Tab stays inside it while open), `on_dismiss` (what
---- shutting it that way does; `set(false)` by default). A drawer with no
---- policy is not a popup at all.
+--- shutting it that way does; `set(false)` by default), `can_open` (fn:
+--- whether it may open, a panel left with no pages may not), `corners` (its
+--- background's radii where they change, and their `behavior`). A drawer
+--- with no policy is not a popup at all.
 -- Each drawer as a screen reader's landmark: role and name.
 local LANDMARKS = {
   launcher = { "dialog", "Launcher" }, session = { "dialog", "Session" }, capture = { "dialog", "Capture" },
@@ -129,16 +131,18 @@ function M.new(spec)
     ui.reparent(backing, panel)
   end
   -- A floating one is rounded all round, and apart from the frame's seams.
+  local corners = spec.corners or {}
   d.shape = ui.SdfShape {
     id = "drawer-" .. spec.name .. "-background",
     shape = "box",
     operation = "smooth_union",
     blend_group = theme.motion.seam_group and theme.motion.seam_group(spec.name, groups) or groups,
     track = backing,
-    top_left_radius = r("top", "left"),
-    top_right_radius = r("top", "right"),
-    bottom_left_radius = r("bottom", "left"),
-    bottom_right_radius = r("bottom", "right"),
+    top_left_radius = corners.top_left_radius or r("top", "left"),
+    top_right_radius = corners.top_right_radius or r("top", "right"),
+    bottom_left_radius = corners.bottom_left_radius or r("bottom", "left"),
+    bottom_right_radius = corners.bottom_right_radius or r("bottom", "right"),
+    behavior = corners.behavior,
   }
   local transition = require("themes.session").transition
   if transition and transition.rounding then
@@ -169,6 +173,7 @@ function M.new(spec)
   function d.set(on)
     local switcher = package.loaded["themes.switcher"]
     if not authentication and switcher and switcher.busy:get() then return end
+    if on and spec.can_open and not spec.can_open() then return end
     local manual = d.manual
     if manual and d.interrupt_drag then d.interrupt_drag() end
     local same = d.open:get() == (on and true or false)

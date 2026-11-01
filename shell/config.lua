@@ -68,12 +68,13 @@ local config = settings.open {
       -- Opens when the pointer reaches the middle of the right edge.
       hover = true,
     },
-    -- Which pages each edge's panel holds (shell/pages.lua): a desk's right
-    -- and left panels, and a phone's sheet from the top. A page moves by
-    -- moving its key.
+    -- Which pages each edge's panel holds (shell/pages.lua): a desk's right,
+    -- left and bottom panels, and the sheet from the top on a phone or a
+    -- tablet. A page moves by moving its key.
     panels = {
       right = { "settings", "notifications" },
       left = { "tasks", "calendar" },
+      bottom = { "assistant", "drop" },
       top = { "notifications", "tasks", "calendar", "assistant", "drop", "settings" },
     },
     leftbar = {

@@ -52,7 +52,7 @@ function M.can_run(name)
 end
 
 --- The quick settings' panel shut, as what a tile starts takes the screen.
-function M.close_panel() require("sidebar").drawer.set(false) end
+function M.close_panel() require("pages").close("settings") end
 
 --- A screenshot of a region, once the panel is out of the way.
 function M.shoot()
@@ -555,7 +555,7 @@ function M.request(key)
   return M.navigation.request(key)
 end
 function M.capture()
-  require("sidebar").drawer.set(false)
+  require("pages").close("settings")
   require("capture").drawer.set(true)
 end
 -- Retain the last displayed values while hidden, without refreshing sources.
