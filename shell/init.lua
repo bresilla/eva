@@ -126,9 +126,12 @@ morf.effect("eva.rotation", function()
     morf.reload { output = true }
   end
 end)
--- Auto-rotation while the rotation is not locked, and a night light left on.
+-- Auto-rotation while the rotation is not locked, a night light left on, and
+-- the battery's charge limit.
 require("auto_rotate").start()
 require("quick_hardware").nightlight()
+require("quick_hardware").start()
+require("charge_limit_model").start()
 
 -- ---------------------------------------------------------------- drawers --
 
@@ -171,6 +174,7 @@ local bar = require("bar")
 local window_menu = require("window_menu")
 require("calendar_reminders").start()
 require("panel_room").watch()
+require("phone")
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
@@ -376,7 +380,11 @@ ipc.launcher = function(how, ...)
   end
   return verb(launcher.drawer)(how)
 end
-ipc.dashboard = verb(dashboard.drawer)
+-- `dashboard [how [TAB]]`: TAB is one of its tabs by name, such as battery.
+ipc.dashboard = function(how, tab)
+  if tab and here() then require("dashboard_state").show(tab) end
+  return verb(dashboard.drawer)(how)
+end
 -- Builds the shell again from its files, in place.
 ipc.reload = function() morf.reload() return true end
 -- The frame, the rail and the bar come in again: a lock lifting.
@@ -507,6 +515,17 @@ ipc["settings-search"] = function(query)
   if query and query ~= "" then return require("settings_registry").search(query) end
   return require("settings_registry").list()
 end
+-- `tablet on` or `tablet off`: the hinge moved, as Hyprland's switch binds say;
+-- the kernel is asked before it counts. `tablet pin on|off` holds the posture
+-- whatever the switch says, `tablet auto` lets it go, `tablet state` reads it.
+ipc.tablet = function(how, value)
+  local posture = require("models.posture")
+  if how == "on" or how == "off" then posture.report(how == "on")
+  elseif how == "pin" and (value == "on" or value == "off") then posture.pin(value == "on")
+  elseif how == "auto" then posture.pin(nil)
+  elseif how ~= nil and how ~= "state" then error("`" .. tostring(how) .. "`: on, off, pin on|off, auto or state") end
+  return posture.state()
+end
 -- `quick edit` or `quick done`: the quick settings' tiles being arranged.
 ipc.quick = function(how)
   if how ~= "edit" and how ~= "done" then error("`" .. tostring(how) .. "`: edit or done") end
@@ -591,15 +610,22 @@ ipc.note = function(name)
 end
 -- `keyboard [how]`: the on-screen keyboard, for a key to bind. `how` is
 -- open, close, toggle or state, or a mode to open it in: full, dev,
--- letters, numbers, phone or pattern.
+-- letters, numbers, phone or pattern. `keyboard VERB VALUE` is
+-- shell/keyboard.lua's control: purpose, language, pane, tray, hand, floating,
+-- split, private.
 do
   local open_close = verb {set=keyboard.set,toggle=keyboard.toggle,is_open=keyboard.drawer.is_open}
   local MODES = { full = true, dev = true, letters = true, numbers = true, phone = true, pattern = true }
-  ipc.keyboard = function(how)
+  ipc.keyboard = function(how, value)
     if MODES[how] then
       if not here() then return nil end
       keyboard.show(how)
       return true
+    end
+    if value ~= nil then
+      if not here() then return nil end
+      local done = keyboard.control(how, value)
+      if done ~= nil then return done end
     end
     return open_close(how)
   end
@@ -720,6 +746,8 @@ ipc.close = function()
   drawer.close_all()
   return true
 end
+-- `phone VERB ARGS`: calls and what stands in for a modem (shell/phone.lua).
+ipc.phone = function(...) return require("phone").ipc(...) end
 -- `drawers` lists the open drawers; `drawers toggle NAME` (open, close)
 -- acts on one by name, as the reference's IPC does.
 ipc.drawers = function(how, name)

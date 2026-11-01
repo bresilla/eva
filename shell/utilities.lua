@@ -19,7 +19,8 @@ local builders={
   assistant=function(w,h) return require("themes").view("assistant_settings").page(require("assistant_model"),w,h) end,
   calendars=function(w,h) return require("themes").view("calendar_settings").page(require("calendar_sources"),w,h) end,
   notes=function(w,h) return require("notes_page").build(require("pages").shown("notes"),w,h) end,
-  phone=function(w,h) return require("phone_page").build(require("pages").shown("phone"),w,h) end,
+  linked_phone=function(w,h) return require("linked_phone_page").build(require("pages").shown("linked_phone"),w,h) end,
+  keyboard=function(w,h) return require("keyboard_page").page(w,h) end,
   wired=function(w,h) return require("net_pages").wired_page(w,h) end,
   mesh=function(w,h) return require("net_pages").vpn_page("mesh",w,h,M.displayed) end,
   tunnel=function(w,h) return require("net_pages").vpn_page("tunnel",w,h,M.displayed) end,
@@ -31,6 +32,9 @@ local builders={
   eva=function(w,h) return view.eva_page(M,w,h) end,
   hotspot=function(w,h) return require("themes").view("quick_pages").hotspot_page(M,w,h) end,
   nightlight=function(w,h) return require("themes").view("quick_pages").nightlight_page(M,w,h) end,
+  flashlight=function(w,h) return require("themes").view("quick_pages").flashlight_page(M,w,h) end,
+  filters=function(w,h) return require("themes").view("quick_pages").filters_page(M,w,h) end,
+  sounds=function(w,h) return require("themes").view("quick_pages").sounds_page(M,w,h) end,
   ["theme/lule"]=function(w,h) return require("lule_page").build(w,h) end,
   ["theme/wallpaper"]=function(w,h) return require("wallpaper_page").build(w,h) end,
   ["theme/desktop"]=function(w,h) return require("themes").view("desktop_page").build(require("desktop_model"),w,h) end,
@@ -44,7 +48,7 @@ local function themed(name) return require("themes").view(name) end
 builders.home=function(w,h)
   return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
 end
-for _,name in ipairs {"launcher","rail","capture","osk","weather","commands","bar/more"} do
+for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard/more","phone"} do
   builders[name]=function(w,h) return themed("settings_form").build(name,w,h) end
 end
 

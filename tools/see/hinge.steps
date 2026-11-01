@@ -1,0 +1,17 @@
+# A convertible with its keyboard still on: open as a laptop, folded into a
+# tablet through the stand-in switch, and opened again.
+BOOT=12
+export EVA_INPUT_DEVICES=$SEE_EVA/tests/fixtures/input-devices-convertible
+export EVA_FAKE_TABLET=off EVA_FAKE_HARDWARE=1 EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging,fast,watts=22}
+start shell
+note echo "open"
+note ipc tablet state
+ipc settings; pause 1.6; shot laptop
+ipc close; pause 0.8
+ipc tablet on; pause 3
+note echo "folded"
+note ipc tablet state
+ipc settings; pause 1.6; shot folded
+ipc close; pause 0.8
+ipc tablet off; pause 3
+ipc settings; pause 1.6; shot opened

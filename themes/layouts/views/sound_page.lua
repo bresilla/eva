@@ -344,9 +344,21 @@ if more then
       cards_section("Bluetooth codec", "sound-codec", model.bluetooth_cards, "sound-codec"),
       cards_section("Card profile", "sound-profile", model.other_cards, "sound-profile"), theme_section() } }
 end
+
+local function touch_section()
+  local haptics = require("haptics")
+  return P.section { id = "sound-touch", width = w, title = "Touch", visible = haptics.present,
+    P.row { id = "sound-haptics", width = INNER, icon = "vibration", title = "Touch feedback",
+      subtitle = "A buzz on keys, gestures and tiles", on = haptics.on,
+      trailing = P.switch { id = "sound-haptics-switch", name = "Touch feedback", on = haptics.on,
+        on_toggled = haptics.set } },
+  }
+end
+
 if model.kind == "output" then
   return ui.Item { id = "sound-page", width = w, height = h, clip = true,
-    P.page { id = "sound-scroll", width = w, height = h, output_section(), devices_section(), apps_section() } }
+    P.page { id = "sound-scroll", width = w, height = h, output_section(), devices_section(), apps_section(),
+      touch_section() } }
 end
 return ui.Item { id = "microphone-page", width = w, height = h, clip = true,
   P.page { id = "microphone-scroll", width = w, height = h, input_section(), test_section(), inputs_section(),

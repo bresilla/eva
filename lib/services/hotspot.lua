@@ -12,7 +12,7 @@
 local morf = require("morf")
 local dbus_client = require("lib.services.dbus")
 
-local M = { ID = "eva-hotspot", MIN_PASSWORD = 8, MAX_PASSWORD = 63, MAX_SSID = 32 }
+local M = { ID = "eva-hotspot", USB_ID = "eva-usb-tether", MIN_PASSWORD = 8, MAX_PASSWORD = 63, MAX_SSID = 32 }
 
 local NM, ROOT = "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager"
 local WIRELESS = NM .. ".Device.Wireless"
@@ -62,26 +62,73 @@ local function fresh_uuid()
   return ("%s-%s-4%s-a%s-%s"):format(hex:sub(1, 8), hex:sub(9, 12), hex:sub(14, 16), hex:sub(18, 20), hex:sub(21, 32))
 end
 
+-- What a shared connection on `net` has, under the profile `id`: the saved
+-- profile, the active row, and bringing it up and down. `pick()` is the device,
+-- `missing` what to say without one.
+local function sharing(net, client, id, pick, missing)
+  local shared = {}
+
+  local function snapshot() return net and net.snapshot and net.snapshot() or {} end
+  shared.snapshot = snapshot
+
+  --- The saved profile's row, or nil.
+  function shared.profile()
+    for _, row in ipairs(snapshot().known or {}) do
+      if row.id == id then return row end
+    end
+  end
+
+  --- The active connection's row: `state` says how far along it is.
+  function shared.active()
+    local model = net and net.state and net.state.active_connections
+    if not model then return nil end
+    for i = 1, model:len() do
+      local row = model:get(i)
+      if row.id == id then return row end
+    end
+  end
+
+  --- Brings the saved profile up. `done(active_path, err)`.
+  function shared.start(done)
+    done = done or function() end
+    local profile, device = shared.profile(), pick()
+    if not profile then return nil, "no profile" end
+    if not device then return nil, missing end
+    return client.call_async(NM, ROOT, NM, "ActivateConnection",
+      { o(profile.path), o(device.path), o("/") }, TIMEOUT, function(reply, err)
+        if net and net.refresh then pcall(net.refresh) end
+        if reply == nil then return done(nil, err or "no active connection") end
+        done(dbus_client.first(reply))
+      end)
+  end
+
+  --- Takes it down. `done(ok, err)`.
+  function shared.stop(done)
+    done = done or function() end
+    local active = shared.active()
+    if not active then done(true) return true end
+    return client.call_async(NM, ROOT, NM, "DeactivateConnection", { o(active.path) }, TIMEOUT,
+      function(reply, err)
+        if net and net.refresh then pcall(net.refresh) end
+        done(reply ~= nil or nil, err)
+      end)
+  end
+
+  return shared
+end
+
 --- A hotspot on `net` (lib.services.networkmanager). `options.dbus` is the
 --- bus seam.
 function M.new(net, options)
   options = options or {}
   local client = dbus_client.new({ dbus = options.dbus, bus = "system" })
-  local hotspot = {}
   local capable = {}
-
-  local function snapshot() return net and net.snapshot and net.snapshot() or {} end
-
-  --- The saved profile's row, or nil.
-  function hotspot.profile()
-    for _, row in ipairs(snapshot().known or {}) do
-      if row.id == M.ID then return row end
-    end
-  end
+  local hotspot
+  hotspot = sharing(net, client, M.ID, function() return hotspot.device() end, "no Wi-Fi radio can be an access point")
 
   --- The first Wi-Fi device that can be an access point, or nil.
   function hotspot.device()
-    for _, device in ipairs(snapshot().devices or {}) do
+    for _, device in ipairs(hotspot.snapshot().devices or {}) do
       if device.type == "wifi" and device.managed ~= false then
         if capable[device.path] == nil then
           local caps = client.get(NM, device.path, WIRELESS, "WirelessCapabilities")
@@ -89,16 +136,6 @@ function M.new(net, options)
         end
         if capable[device.path] then return device end
       end
-    end
-  end
-
-  --- The active connection's row: `state` says how far along it is.
-  function hotspot.active()
-    local model = net and net.state and net.state.active_connections
-    if not model then return nil end
-    for i = 1, model:len() do
-      local row = model:get(i)
-      if row.id == M.ID then return row end
     end
   end
 
@@ -121,33 +158,71 @@ function M.new(net, options)
       { typed("a{sa{sv}}", M.settings(ssid, password, fresh_uuid())) }, TIMEOUT, finish)
   end
 
-  --- Brings the saved profile up. `done(active_path, err)`.
-  function hotspot.start(done)
-    done = done or function() end
-    local profile, device = hotspot.profile(), hotspot.device()
-    if not profile then return nil, "no profile" end
-    if not device then return nil, "no Wi-Fi radio can be an access point" end
-    return client.call_async(NM, ROOT, NM, "ActivateConnection",
-      { o(profile.path), o(device.path), o("/") }, TIMEOUT, function(reply, err)
-        if net and net.refresh then pcall(net.refresh) end
-        if reply == nil then return done(nil, err or "no active connection") end
-        done(dbus_client.first(reply))
-      end)
-  end
-
-  --- Takes it down. `done(ok, err)`.
-  function hotspot.stop(done)
-    done = done or function() end
-    local active = hotspot.active()
-    if not active then done(true) return true end
-    return client.call_async(NM, ROOT, NM, "DeactivateConnection", { o(active.path) }, TIMEOUT,
-      function(reply, err)
-        if net and net.refresh then pcall(net.refresh) end
-        done(reply ~= nil or nil, err)
-      end)
-  end
-
   return hotspot
+end
+
+-- ---------------------------------------------------------- USB tethering --
+
+-- The names a USB gadget's network port goes by.
+local GADGET = { "^usb%d", "^ncm%d", "^rndis%d" }
+local function gadget(name)
+  for _, pattern in ipairs(GADGET) do if name:match(pattern) then return true end end
+  return false
+end
+
+--- The profile that shares the connection over the gadget port `interface`.
+function M.usb_settings(interface, uuid)
+  return {
+    connection = { id = M.USB_ID, uuid = uuid, type = "802-3-ethernet", autoconnect = false,
+      ["interface-name"] = interface },
+    ipv4 = { method = "shared" },
+    ipv6 = { method = "ignore" },
+  }
+end
+
+--- Sharing the connection over USB, on a gadget port a kernel has made
+--- (nix/nixos/convertible.nix makes one). NetworkManager leaves gadgets
+--- unmanaged until told. `options.dbus` is the bus seam.
+function M.usb(net, options)
+  options = options or {}
+  local client = dbus_client.new({ dbus = options.dbus, bus = "system" })
+  local tether
+  tether = sharing(net, client, M.USB_ID, function() return tether.device() end, "no USB port to share over")
+  local bring_up = tether.start
+
+  --- The gadget port, or nil.
+  function tether.device()
+    for _, device in ipairs(tether.snapshot().devices or {}) do
+      if device.type == "ethernet" and gadget(device.interface or "") then return device end
+    end
+  end
+
+  --- Makes the profile if it must, then brings it up. `done(active_path, err)`.
+  function tether.start(done)
+    done = done or function() end
+    local device = tether.device()
+    if not device then return nil, "no USB port to share over" end
+    local function activate()
+      local ok, why = bring_up(done)
+      if not ok then done(nil, why) end
+    end
+    local function saved()
+      if tether.profile() then return activate() end
+      client.call_async(NM, SETTINGS_PATH, SETTINGS, "AddConnection",
+        { typed("a{sa{sv}}", M.usb_settings(device.interface, fresh_uuid())) }, TIMEOUT, function(reply, err)
+          if net and net.refresh then pcall(net.refresh) end
+          if reply == nil then return done(nil, err or "NetworkManager refused it") end
+          activate()
+        end)
+    end
+    if device.managed then saved() return true end
+    return client.set_async(NM, device.path, NM .. ".Device", "Managed", true, TIMEOUT, function(reply, err)
+      if reply == nil then return done(nil, err or "NetworkManager refused it") end
+      saved()
+    end)
+  end
+
+  return tether
 end
 
 return M

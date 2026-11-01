@@ -1,6 +1,5 @@
 -- What the Power page changes beyond the profile: logind's lid and button
--- defaults as read, the shell's own idle timeouts, the battery's charge limit
--- and the graphics mode.
+-- defaults as read, the shell's own idle timeouts and the graphics mode.
 local morf = require("morf")
 local host = require("lib.services.host")
 
@@ -104,40 +103,6 @@ function M.idle_reset(done)
   if host.held("idle timeouts reset") then return done(true) end
   pcall(morf.fs.remove, M.idle_path())
   host.act({ "systemctl", "--user", "restart", "hypridle.service" }, done)
-end
-
--- ------------------------------------------------------------ charge limit --
-
---- `done(state)`: `supported`, `on`, `limit`, read as eva-battery prints it.
-function M.charge(done)
-  local argv = host.tool("battery") or (host.installed("eva-battery") and { "eva-battery" })
-    or M.battery_tool()
-  if not argv then return done { supported = false } end
-  local words = {}
-  for index, word in ipairs(argv) do words[index] = word end
-  words[#words + 1] = "status"
-  host.read(words, function(text)
-    text = text or ""
-    local on = text:match("limit (%a+)")
-    done { supported = on ~= nil, on = on == "true", limit = tonumber(text:match("between %S+ and (%d+)")) }
-  end)
-end
-
---- `apps/bin/eva-battery` beside the shell.
-function M.battery_tool()
-  local ok, root = pcall(morf.paths.shell, "../apps/bin/eva-battery")
-  if ok and root and morf.fs.exists(root) then return { root } end
-end
-
---- Turns the limit on or off. `done(ok, why)`.
-function M.set_charge(on, done)
-  local argv = host.installed("eva-battery") and { "eva-battery" } or M.battery_tool()
-  if not argv then return done(nil, "eva-battery is not installed") end
-  local words = {}
-  for index, word in ipairs(argv) do words[index] = word end
-  words[#words + 1] = "limit"
-  words[#words + 1] = on and "on" or "off"
-  host.act(words, done)
 end
 
 -- -------------------------------------------------------------------- GPU --

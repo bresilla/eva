@@ -62,6 +62,20 @@
           module = machine { };
           module-plymouth = machine { programs.eva.seamless.plymouth = true; };
           module-plain = machine { programs.eva.seamless.enable = false; };
+          module-phone = machine {
+            programs.eva.phone = {
+              enable = true;
+              suspendTimeout = 900;
+              wakeDevices = [ "/sys/devices/platform/modem" ];
+            };
+          };
+          module-hardware = machine {
+            programs.eva.hardware = {
+              tabletSwitch = { enable = true; name = "Intel HID switches"; };
+              chargeLimit = true;
+              usbTether = true;
+            };
+          };
         };
         devShells.default = pkgs.mkShell {
           packages = [
@@ -84,6 +98,8 @@
             # The assistant's transport, and the fake provider its specs ask.
             pkgs.curl
             pkgs.python3
+            # A real text field for tools/see/keyboard-ime.steps.
+            pkgs.zenity
           ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.

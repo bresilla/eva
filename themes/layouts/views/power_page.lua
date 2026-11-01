@@ -82,6 +82,70 @@ function M.build(model, w, h)
       end },
   }
 
+  -- What is charging it, how fast and for how long, and where it stops: a
+  -- limit of the person's where the kernel lets this session set one.
+  local charge = model.charge
+  local function route(kind) return function() return charge.route() == kind end end
+  local by_file = route("file")
+  local function limit() return charge.limit(first().charge_limit) end
+  local function limit_on() return charge.on(first().charge_limit) end
+  local function adaptive_on() return charge.adaptive() end
+  local function can_adapt() return by_file() and limit() > charge.HOLD end
+  local function mark(key, spec)
+    local chip = kit.chip(spec)
+    chip.visible = function() return model.charging() and model.feed()[key] == true end
+    return chip
+  end
+  local marks = ui.Row { gap = theme.space.xs, align = "center",
+    mark("fast", { id = "power-mark-fast", text = "Fast", filled = true }),
+    mark("wireless", { id = "power-mark-wireless", text = "Wireless" }),
+    mark("slow", { id = "power-mark-slow", text = "Slow", color = kit.signal("warn") }),
+  }
+  local limit_slider = kit.slider { id = "power-limit", accessible_name = "Charge limit", width = inner, icon = "battery_saver",
+    value = function() return (limit() - charge.LOWEST) / (100 - charge.LOWEST) end,
+    set = function(value) charge.set_limit(charge.LOWEST + value * (100 - charge.LOWEST)) end,
+    reading = function(value)
+      local level = charge.LOWEST + value * (100 - charge.LOWEST)
+      return ("%d%%"):format(math.floor(level / charge.STEP + 0.5) * charge.STEP)
+    end }
+  limit_slider.visible = function() return by_file() and limit_on() end
+  local charging = P.section { id = "power-charging", caption_id = "power-heading-charging", width = w, title = "Charging",
+    visible = model.charging_shown,
+    P.row { id = "power-charger", width = inner, icon = model.charger_icon, on = model.charging,
+      title = model.charge_title, subtitle = model.charge_detail, trailing = marks },
+    kit.subtitle { id = "power-charger-note", width = inner, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
+      visible = function() return model.charge_hint() ~= "" end, text = model.charge_hint },
+    P.row { id = "power-limit-state", width = inner, icon = "battery_saver", on = limit_on, title = "Charge limit",
+      visible = function() return by_file() or route("upower")() end,
+      subtitle = function()
+        if not limit_on() then return "Charges to full" end
+        if by_file() then return ("Stops at %d%%"):format(limit()) end
+        return "Held by UPower"
+      end,
+      trailing = P.switch { id = "power-limit-switch", name = "Charge limit", on = limit_on, on_toggled = charge.set_on } },
+    limit_slider,
+    P.row { id = "power-adaptive", width = inner, icon = "schedule", on = adaptive_on, title = "Adaptive charging",
+      visible = can_adapt,
+      subtitle = function()
+        return adaptive_on() and ("Waits at %d%%, done by %s"):format(charge.HOLD, charge.ready_text()) or "Off"
+      end,
+      trailing = P.switch { id = "power-adaptive-switch", name = "Adaptive charging", on = adaptive_on,
+        on_toggled = charge.set_adaptive } },
+    P.buttons { id = "power-ready", width = inner,
+      { id = "power-ready-earlier", icon = "remove", accessible_name = "Earlier", visible = function() return can_adapt() and adaptive_on() end,
+        on_clicked = function() charge.step_ready(-charge.READY_STEP) end },
+      { id = "power-ready-time", label = charge.ready_text, visible = function() return can_adapt() and adaptive_on() end },
+      { id = "power-ready-later", icon = "add", accessible_name = "Later", visible = function() return can_adapt() and adaptive_on() end,
+        on_clicked = function() charge.step_ready(charge.READY_STEP) end },
+    },
+    kit.subtitle { id = "power-limit-note", width = inner, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
+      visible = function() return charge.note() ~= "" or charge.message:get() ~= "" end,
+      text = function()
+        local said = charge.message:get()
+        return said ~= "" and said or charge.note()
+      end },
+  }
+
   -- The battery's health, and how it is charged -- set by the firmware
   -- (and root), shown here; its graphs are the dashboard's.
   local rows = {}
@@ -135,17 +199,6 @@ function M.build(model, w, h)
   idle[#idle + 1] = P.button { id = "power-idle-reset", label = "Back to the system's", width = inner,
     visible = model.idle_changed, on_clicked = model.idle_reset }
 
-  local limit = P.section { id = "power-limit", caption_id = "power-heading-limit", width = w, title = "Charging",
-    visible = function() return model.charge().supported == true end,
-    F.toggle { id = "power-charge-limit", width = inner, icon = "battery_saver", title = "Limit charging",
-      subtitle = function()
-        local c = model.charge()
-        if c.limit then return ("Stops at %d%%, which keeps the battery healthy"):format(c.limit) end
-        return "Stops short of full, which keeps the battery healthy"
-      end,
-      on = function() return model.charge().on == true end, set = model.set_charge },
-  }
-
   local graphics = { id = "power-gpu", caption_id = "power-heading-gpu", width = w, title = "Graphics",
     visible = function() return model.gpu().tool ~= "" end }
   for slot = 1, 4 do
@@ -157,7 +210,7 @@ function M.build(model, w, h)
       on_clicked = function() if row() then model.set_gpu(row()) end end }
   end
 
-  return P.page { id = "power-scroll", width = w, height = h, active = model.active, summary, profile, health, limit, buttons,
+  return P.page { id = "power-scroll", width = w, height = h, active = model.active, summary, charging, profile, health, buttons,
     P.section(idle), P.section(graphics), F.status("power-status", w, { message = model.note, failed = model.failed }) }
 end
 

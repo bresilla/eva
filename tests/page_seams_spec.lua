@@ -15,7 +15,7 @@ local HOST = [[
       bottom = require("bottom").drawer.open:get(), bottom_assistant = require("bottom").panel.showing("assistant"),
       sidebar = require("sidebar").drawer.open:get(), settings_page = utilities.displayed:get(), route = utilities.detail:get(),
       keyboard = morf.surface.keyboard_focus, typing = pages.typing(), tile_notes = utilities.CONTROLS.notes ~= nil,
-      tile_phone = utilities.CONTROLS.phone ~= nil, phone_present = utilities.CONTROLS.phone.present() }
+      tile_phone = utilities.CONTROLS.linked_phone ~= nil, phone_present = utilities.CONTROLS.linked_phone.present() }
   end
   morf.ipc.seam_open = function(key) return require("pages").reach(key) end
   morf.ipc.seam_calendar_active = function() return require("pages").active("calendar")() end
@@ -148,7 +148,7 @@ test.describe("page seams", function()
 
   test.it("opens a settings page for each new route", function()
     load()
-    for _, route in ipairs { "assistant", "calendars", "notes", "phone" } do
+    for _, route in ipairs { "assistant", "calendars", "notes", "linked_phone" } do
       test.ipc("seam_open", route == "assistant" and "notes" or route)
       test.settle(600)
     end

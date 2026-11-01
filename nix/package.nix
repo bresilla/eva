@@ -9,6 +9,7 @@
   material-symbols,
   ibm-plex,
   nerd-fonts,
+  noto-fonts-color-emoji,
   runtimeShell,
   src,
   version,
@@ -23,6 +24,7 @@ let
     { package = ibm-plex; name = "IBMPlexMono-Regular.otf"; }
     { package = nerd-fonts."m+"; name = "M+1NerdFont-Regular.ttf"; }
     { package = nerd-fonts.caskaydia-cove; name = "CaskaydiaCoveNerdFont-Regular.ttf"; }
+    { package = noto-fonts-color-emoji; name = "NotoColorEmoji.ttf"; }
   ];
 in
 # Everything eva installs, in one output:
@@ -44,7 +46,7 @@ runCommandCC "eva-${version}"
     meta = {
       description = "A desktop shell, lock screen and greeter for morf";
       homepage = "https://github.com/bresilla/eva";
-      license = lib.licenses.mit;
+      license = with lib.licenses; [ mit asl20 ];
       platforms = lib.platforms.linux;
     };
   }

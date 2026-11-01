@@ -131,12 +131,15 @@ function M.tool(name)
   return nil
 end
 
---- Starts a tool on its own. True once it is on its way.
-function M.open_tool(name)
+--- Starts a tool on its own, with `args` if any. True once it is on its way.
+function M.open_tool(name, args)
   local argv = M.tool(name)
   if not argv then return false end
   if M.held("open " .. name) or M.fake() then return true end
-  local child = morf.process.spawn { command = argv, detached = true }
+  local command = {}
+  for _, word in ipairs(argv) do command[#command + 1] = word end
+  for _, word in ipairs(args or {}) do command[#command + 1] = word end
+  local child = morf.process.spawn { command = command, detached = true }
   return child ~= nil and child ~= false
 end
 

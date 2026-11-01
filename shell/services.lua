@@ -137,16 +137,14 @@ M.net, M.bt, M.upower = net, bt, power
 -- The ring mode (lib/util/ringer.lua): feedbackd's profile on a phone, the shell's own
 -- setting elsewhere.
 do
+  -- EVA_FAKE_MODEM=1: the real service against ModemManager on a made-up bus,
+  -- to see a phone's parts on a laptop.
   local ok, modem = pcall(require, "lib.services.modem")
-  local mobile = ok and select(2, pcall(modem.connect)) or nil
-  if type(mobile) == "table" and mobile.state then M.modem = mobile end
-  -- EVA_FAKE_MODEM=1: a stand-in, to see a phone's parts on a laptop.
-  local fake = morf.env and morf.env("EVA_FAKE_MODEM")
-  if fake and fake ~= "" and fake ~= "0" and not (M.modem and M.modem.state.available) then
-    local state = morf.state { available = true, signal = 72, technology = "5G", operator = "Vodafone NL",
-      registered = true, connected = true, enabled = true, locked = false, data = true,
-      sim_present = true, roaming = false, path = "/fake" }
-    M.modem = { state = state, set_data = function(on) state.data = on == true end }
+  if ok and modem.session then
+    M.modem, M.modem_standin = modem.session()
+  elseif ok then
+    local mobile = select(2, pcall(modem.connect))
+    if type(mobile) == "table" and mobile.state then M.modem = mobile end
   end
 end
 do
@@ -155,6 +153,7 @@ do
   local ring = ok and select(2, pcall(ringer.connect, { mode = config.get("ringer.mode") })) or nil
   if type(ring) == "table" and ring.state then
     M.ringer = ring
+    if ring.activate then pcall(ring.activate) end
     morf.effect("eva.ringer.remember", function()
       local mode = ring.state.mode
       if config.get("ringer.mode") ~= mode then config.set("ringer.mode", mode) end

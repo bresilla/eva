@@ -32,12 +32,9 @@ function M.extend(model)
   model.note = page.message
   model.ACTIONS, model.IDLE, model.idle_format = M.ACTIONS, M.IDLE, M.duration
   local logind = morf.signal("eva.power.logind", {})
-  local charge = morf.signal("eva.power.charge", { supported = false })
   local gpu = morf.signal("eva.power.gpu", { tool = "", modes = {} })
-  local function read_charge() extras.charge(function(state) charge:set(state) end) end
   page.on_show(function()
     extras.logind(function(reply) logind:set(reply) end)
-    read_charge()
     extras.gpu(function(state) gpu:set(state) end)
   end)
 
@@ -80,10 +77,6 @@ function M.extend(model)
     return model.action(function(done) extras.idle_reset(done) return true end)
   end
 
-  function model.charge() return charge:get() end
-  function model.set_charge(on)
-    return model.action(function(done) extras.set_charge(on, done) return true end, read_charge)
-  end
   function model.gpu() return gpu:get() end
   function model.set_gpu(row)
     return model.action(function(done) extras.set_gpu(gpu:get().tool, row.key, done) return true end, function()

@@ -33,7 +33,7 @@ local function counts(device)
   return handlers:find("kbd", 1, true) ~= nil and handlers:find("leds", 1, true) ~= nil
 end
 
---- The keyboards that count, each `{ name, handlers }`.
+--- The keyboards that count, each `{ name, handlers, bus }`.
 function keyboards.list(path)
   local ok, text = pcall(morf.fs.read, path or "/proc/bus/input/devices")
   if not ok or type(text) ~= "string" then return {} end
@@ -42,6 +42,7 @@ function keyboards.list(path)
     local device = {
       name = block:match('N: Name="([^"]*)"'),
       handlers = block:match("H: Handlers=([^\n]*)"),
+      bus = block:match("I: Bus=(%x+)"),
     }
     if device.name and counts(device) then found[#found + 1] = device end
   end
@@ -51,6 +52,17 @@ end
 --- Whether one is attached now.
 function keyboards.attached(path)
   return #keyboards.list(path) > 0
+end
+
+-- Input buses a keyboard is plugged or paired over: USB and Bluetooth.
+local OUTSIDE = { ["0003"] = true, ["0005"] = true }
+
+--- Whether one is attached from outside the machine.
+function keyboards.external(path)
+  for _, device in ipairs(keyboards.list(path)) do
+    if OUTSIDE[device.bus] then return true end
+  end
+  return false
 end
 
 return keyboards

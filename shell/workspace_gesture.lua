@@ -198,6 +198,7 @@ function M.new(root)
       commit=state.offset*(velocity or 0)>0 and state.target~=state.from
     end
     local target=state.target
+    if commit then require("haptics").fire("commit") end
     local final=commit and (state.offset<0 and -span() or span()) or 0
     animation=morf.animation.play {motion.step(track,"translate_"..axis,final,
       canceled and 0 or velocity,span()),on_finished=function(reason)

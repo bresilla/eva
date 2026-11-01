@@ -2,9 +2,9 @@
 local morf = require("morf")
 local M = {}
 function M.build(active, w, h)
-  local model = require("phone_model")
-  local node, head = require("themes").view("phone").build(model, active, w, h)
-  morf.effect("eva.phone.watch", function()
+  local model = require("linked_phone_model")
+  local node, head = require("themes").view("linked_phone").build(model, active, w, h)
+  morf.effect("eva.linked_phone.watch", function()
     local on = active()
     morf.time.timer(1, function() model.watch(on) end, false)
   end, { owner = node })

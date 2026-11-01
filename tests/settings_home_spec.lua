@@ -86,6 +86,9 @@ local HOST = [[
       "shell/notification_rules.lua", "shell/bar_store.lua", "shell/bar_page.lua", "shell/bar_custom.lua", "shell/panels_board.lua",
       "lib/shell/launcher/pins.lua", "shell/launcher_modes/web.lua",
       "shell/assistant_model.lua", "shell/calendar_sources.lua", "shell/notes_model.lua",
+      "shell/charge_limit_model.lua", "shell/keyboard_page.lua", "themes/layouts/views/keyboard_page.lua",
+      "shell/haptics.lua", "shell/mobile_model.lua", "themes/layouts/views/connectivity.lua", "shell/keyboard.lua",
+      "shell/quick_tiles.lua",
       "themes/layouts/views/assistant_settings.lua", "themes/layouts/views/calendar_settings.lua",
       "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",
@@ -96,12 +99,14 @@ local HOST = [[
     local sources = table.concat(pages, "\n")
     local reached = require("settings_forms").keys()
     -- Kept by the shell itself: what it remembers, not what a person sets.
-    -- `bar.workspaces.shown` is read by nothing.
+    -- `bar.workspaces.shown` is read by nothing. `keyboard.layouts` holds whole
+    -- layouts, nested tables no field can edit.
     local kept = { "airplane.on", "airplane.was", "ringer.mode", "capture.tools", "bar.workspaces.shown", "bar.modules", "bar.small",
-      "bar.outputs", "wallpaper.fits", "notifications.digest_times", "notifications.keep_actions" }
+      "bar.outputs", "wallpaper.fits", "notifications.digest_times", "notifications.keep_actions", "keyboard.layouts" }
     local groups = { "osd.kinds", "lule", "quick", "input", "accessibility", "sound", "power", "storage", "proxy", "nightlight",
       "edgebar", "dashboard", "sidebar", "leftbar", "bottom", "capture.tools", "appearance", "rotation", "polkit", "osd",
-      "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels", "assistant", "calendar" }
+      "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels", "assistant", "calendar",
+      "keyboard", "filters", "phone" }
     local function covered(key)
       if reached[key] then return true end
       for _, each in ipairs(kept) do if key == each or key:sub(1, #each + 1) == each .. "." then return true end end
@@ -173,5 +178,5 @@ end)
 test.it("every setting a person might want is reachable from a page", function()
   test.load("../shell/init.lua", { size = { 300, 200 }, env = { EVA_DRY_RUN = "1" }, source = HOST })
   test.advance(100)
-  test.eq(test.ipc("unreached"), {})
+  test.eq(table.concat(test.ipc("unreached"), " "), "")
 end)

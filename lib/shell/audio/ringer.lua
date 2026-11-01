@@ -7,6 +7,8 @@
 --   ring.modes()             -- the ones this machine has, in order
 --   ring.set("silent")
 --   ring.next()              -- sound -> vibrate -> silent -> sound
+--   ring.trigger("phone-incoming-call", { timeout = 0 }, function(id) end)
+--   ring.stop(id)            -- feedback a trigger left running
 --
 -- On a phone it is feedbackd's profile (org.sigxcpu.Feedback, the event
 -- sounds and haptics phosh and the phone apps use): full, quiet (vibration
@@ -22,6 +24,8 @@ local ringer = {}
 local NAME = "org.sigxcpu.Feedback"
 local PATH = "/org/sigxcpu/Feedback"
 local IFACE = "org.sigxcpu.Feedback"
+local APP = "org.eva.Shell"
+local TIMEOUT = 3000
 local TO_PROFILE = { sound = "full", vibrate = "quiet", silent = "silent" }
 local FROM_PROFILE = { full = "sound", quiet = "vibrate", silent = "silent" }
 
@@ -62,6 +66,33 @@ function ringer.connect(options)
       return client.set(NAME, PATH, IFACE, "Profile", TO_PROFILE[mode])
     end
     return true
+  end
+
+  --- Asks the bus to start feedbackd where it is installed: it has a bus
+  --- activation file and no unit. Its name appearing is what `read` hears.
+  function ring.activate()
+    return client.call_async("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+      "StartServiceByName", { NAME, dbus_client.u(0) }, TIMEOUT)
+  end
+
+  --- Plays a feedback event from feedbackd's theme, the profile's choice of
+  --- sound, vibration and light. `options.timeout` is seconds, 0 until
+  --- `stop`, -1 (the default) once; `options.important` plays it through a
+  --- quieter profile. `done(id)` hears the event's id. False without feedbackd.
+  function ring.trigger(event, options, done)
+    if not state.feedbackd then return false end
+    options = options or {}
+    local hints = {}
+    if options.important then hints.important = true end
+    return client.call1_async(NAME, PATH, IFACE, "TriggerFeedback",
+      { APP, event, dbus_client.typed("a{sv}", hints), dbus_client.i(options.timeout or -1) }, TIMEOUT,
+      function(id) if done then done(id) end end) == true
+  end
+
+  --- Ends the feedback of the event `id`.
+  function ring.stop(id)
+    if not state.feedbackd or id == nil then return false end
+    return client.call_async(NAME, PATH, IFACE, "EndFeedback", { dbus_client.u(id) }, TIMEOUT) == true
   end
 
   --- The next mode round.

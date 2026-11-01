@@ -1,14 +1,14 @@
 -- The Phone page over a stand-in for kdeconnect-cli, with its real flags.
---     morf test --no-dbus tests/phone_page_spec.lua
+--     morf test --no-dbus tests/linked_phone_page_spec.lua
 local test = morf.test
 local BIN = morf.env("PWD") .. "/tests/fixtures/bin-stand-in"
 local HOST = [[
   local ui = require("morf.ui")
   local W, H = tonumber(morf.env("TEST_WIDTH")), tonumber(morf.env("TEST_HEIGHT"))
   morf.surface.height = H
-  local model = require("phone_model")
+  local model = require("linked_phone_model")
   local shown = morf.signal("phone.spec.shown", false)
-  ui.Item { width = W, height = H, require("phone_page").build(function() return shown:get() end, W, function() return H end) }
+  ui.Item { width = W, height = H, require("linked_phone_page").build(function() return shown:get() end, W, function() return H end) }
   morf.ipc.show = function(on) shown:set(on == "yes") end
   morf.ipc.state = function()
     local devices, notes = {}, {}

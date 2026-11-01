@@ -4,6 +4,8 @@ local theme = require("theme")
 local kit = require(theme.appearance.components)(theme)
 local widgets = require("themes.kit.widgets")
 
+require("haptics").attach(require("lib.kit.control"))
+
 -- The theme's skins draw the kit's archetypes (lib.kit.skin).
 if kit.skins then
   local skin = require("lib.kit.skin")

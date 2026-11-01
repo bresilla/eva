@@ -11,7 +11,6 @@ local HOST = [[
     return cli.diagnose(m, list)
   end
   morf.ipc.networks = function(text) return cli.networks(cli.json(text)) end
-  morf.ipc.sms = function(text) return cli.sms(cli.json(text)) end
   morf.ipc.profile = function(uuid, change) return cli.profile_args(uuid, change) end
   morf.ipc.ip_type = function(row) return cli.ip_type(row) end
   morf.ipc.ussd = function(text) return cli.ussd(text) end
@@ -77,7 +76,7 @@ test.it("explains each roaming failure seen at the airport and offers its fix", 
   test.eq(test.ipc("diagnose", modem("locked", { ["unlock-required"] = "sim-pin" }), {}).fix, "unlock")
 end)
 
-test.it("reads the SIM, nearby networks, messages and USSD replies", function()
+test.it("reads the SIM, nearby networks and USSD replies", function()
   test.load("../shell/init.lua", { source = HOST, size = { 100, 100 } })
   local sim = test.ipc("sim", morf.json.encode { sim = { properties = { ["operator-code"] = "20404",
     ["operator-name"] = "--", iccid = "8931440302055992842", active = "yes" } } })
@@ -86,10 +85,6 @@ test.it("reads the SIM, nearby networks, messages and USSD replies", function()
     "operator-code: 26202, operator-name: vodafone.de, access-technologies: lte, availability: current",
     "operator-code: 26201, operator-name: Telekom.de, access-technologies: lte, availability: forbidden" } } } })
   test.eq(#nets, 2) test.eq(nets[1].code, "26202") test.eq(nets[2].availability, "forbidden")
-  local sms = test.ipc("sms", morf.json.encode { sms = { ["dbus-path"] = "/org/freedesktop/ModemManager1/SMS/0",
-    content = { number = "+31600000000", text = "Welcome to Germany" }, properties = { state = "received",
-      timestamp = "2026-10-10T08:55:00+02:00" } } })
-  test.eq(sms.text, "Welcome to Germany") test.eq(sms.path, "/org/freedesktop/ModemManager1/SMS/0")
   test.eq(test.ipc("ussd", "USSD session initiated; new reply from network: 'Your balance is 12.34'"),
     "Your balance is 12.34")
 end)

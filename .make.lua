@@ -18,6 +18,9 @@ make.alias("t", "test")
 make.recipe{ name = "check", desc = "the shell, lock screen, greeter and tools load under morf check",
              run = function() sh.sh("tools/check.sh") end }
 
+make.recipe{ name = "phone-wire", desc = "the phone layer's D-Bus types on a real bus, against the daemons' XML",
+             run = function() sh.sh("tools/phone-wire.sh") end }
+
 make.recipe{ name = "see", desc = "a scenario of tools/see/ on a virtual screen, into .see/",
              run = function(args) sh.bash("tools/see.sh", args[1] or "quick") end }
 

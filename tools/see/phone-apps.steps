@@ -1,0 +1,12 @@
+# eva-phone and eva-messages against the modem stand-in, with a call history and
+# some threads laid out in the state folder.
+export EVA_FAKE_MODEM=1 EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
+mkdir -p "$XDG_STATE_HOME/eva/phone"
+cp tests/fixtures/phone/calls.jsonl tests/fixtures/phone/messages.jsonl "$XDG_STATE_HOME/eva/phone/"
+start app phone
+appipc press 266; pause 0.8; shot phone-keypad
+appipc tab 2; pause 0.6; shot phone-recents
+appipc tab 3; pause 0.6; shot phone-contacts
+start app messages
+pause 0.4; shot messages-threads
+appipc show +31612345678; pause 0.8; shot messages-thread

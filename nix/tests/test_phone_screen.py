@@ -107,6 +107,25 @@ class ScreenTests(unittest.TestCase):
         self.run_action("off", success=False)
         self.assertEqual((Path(self.tmp.name) / "phone-screen-test.status").read_text(), "on\n")
 
+    def test_blank_darkens_for_a_call_without_locking(self):
+        s = self.run_action("blank")
+        self.assertFalse(s["powered"])
+        self.assertFalse(s["locked"])
+        self.assertTrue(s["shield_before_blank"])
+        self.assertFalse(any(c[0] == "systemctl" for c in s["calls"]))
+
+    def test_unblank_brings_the_screen_back_unlocked(self):
+        self.run_action("blank")
+        s = self.run_action("unblank")
+        self.assertTrue(s["powered"])
+        self.assertFalse(s["locked"])
+        self.assertEqual((Path(self.tmp.name) / "phone-screen-test.status").read_text(), "on\n")
+
+    def test_failed_blank_removes_the_input_shield(self):
+        self.update(dpms_failed=True)
+        self.run_action("blank")
+        self.assertEqual((Path(self.tmp.name) / "phone-screen-test.status").read_text(), "on\n")
+
     def test_repeated_wake_repairs_a_stale_sleeping_marker(self):
         marker = Path(self.tmp.name) / "phone-screen-test.status"
         marker.write_text("off\n")

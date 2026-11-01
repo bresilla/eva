@@ -72,7 +72,7 @@ local function keyboard_page(model, w, h)
       F.link { id = "input-open-devices", width = inner, icon = "devices", title = "Input devices",
         subtitle = "Settings for one device alone", go = function() model.request("input/devices") end },
       F.link { id = "input-open-osk", width = inner, icon = "keyboard_alt", title = "On-screen keyboard",
-        subtitle = "When it comes up", go = function() model.request("osk") end },
+        subtitle = "When it comes up", go = function() model.request("keyboard") end },
     },
     F.status("input-status", w, model),
   }

@@ -276,8 +276,8 @@ local function system_entries()
     { id = "session", name = "Session menu", material = "power", run = drawer("session") },
     { id = "notes", name = "Notes", material = "sticky_note_2", stands = true,
       run = function() require("pages").reach("notes") return "close" end },
-    { id = "phone", name = "Phone", material = "smartphone", stands = true,
-      run = function() require("pages").reach("phone") return "close" end },
+    { id = "linked_phone", name = "Linked phone", material = "smartphone", stands = true,
+      run = function() require("pages").reach("linked_phone") return "close" end },
   }
   -- A page no panel holds has no row, unless it `stands` as a settings page too.
   local reachable = {}

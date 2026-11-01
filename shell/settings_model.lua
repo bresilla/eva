@@ -156,6 +156,7 @@ end
 --- off, what was on comes back.
 function M.set_airplane(on)
   local net, bt, modem = services.net, services.bt, services.modem
+  local nfc = require("quick_hardware").nfc()
   if dry_run() then
     morf.log("info", "eva: airplane mode " .. (on and "on" or "off") .. " (dry run)")
     config.set("airplane.on", on == true)
@@ -166,9 +167,11 @@ function M.set_airplane(on)
       wifi = net ~= nil and net.state.available and net.state.wifi_enabled == true,
       bluetooth = bt ~= nil and bt.state.available and bt.state.powered == true,
       mobile = modem ~= nil and modem.state.data == true,
+      nfc = nfc.present() and nfc.on(),
     })
     if net and net.state.available then pcall(net.set_wifi, false) pcall(net.set_wwan, false) end
     if bt and bt.state.available then pcall(bt.set_powered, false) end
+    if nfc.present() then pcall(nfc.set, false) end
   else
     local was = config.get("airplane.was") or {}
     if net and net.state.available then
@@ -176,6 +179,7 @@ function M.set_airplane(on)
       if was.mobile then pcall(net.set_wwan, true) end
     end
     if bt and bt.state.available and was.bluetooth then pcall(bt.set_powered, true) end
+    if was.nfc and nfc.present() then pcall(nfc.set, true) end
   end
   config.set("airplane.on", on == true)
 end
@@ -476,7 +480,16 @@ if M.detail:get()=="tor" then M.detail:set("tunnel") end
 M.CONTROLS={}
 do
   for _, t in ipairs(require("quick_tiles").list(M, local_state.gamemode)) do M.TOGGLES[#M.TOGGLES + 1] = t end
-  for _, t in ipairs(M.TOGGLES) do M.CONTROLS[t.id]=t end
+  for _, t in ipairs(M.TOGGLES) do
+    M.CONTROLS[t.id]=t
+    local set=t.set
+    if set then
+      t.set=function(...)
+        require("haptics").fire("toggle")
+        return set(...)
+      end
+    end
+  end
   -- Focus is one entry point; each setting remains independent inside it.
   local focus=require("focus_model")
   M.TOGGLES[#M.TOGGLES + 1] = {id="focus",name="Focus",detail="focus",
@@ -562,10 +575,14 @@ M.DETAILS={}
 for index,page in ipairs(M.registry.PAGES) do
   M.DETAILS[index]={key=page.key,name=page.name,parent=page.parent}
 end
-M.navigation=require("lib.shell.settings.pages").new(M.DETAILS,M.detail,{tor="tunnel"})
+M.navigation=require("lib.shell.settings.pages").new(M.DETAILS,M.detail,{tor="tunnel",osk="keyboard"})
 M.back=M.navigation.back
 M.breadcrumb=M.navigation.breadcrumb
 function M.overview() return M.opened:get() and M.displayed:get()=="" end
+-- What the tiles read rather than watch is looked at again as they come on show.
+morf.effect("eva.settings.look",function()
+  if M.overview() then require("quick_hardware").refresh() end
+end)
 function M.present(key) if key==M.detail:get() then M.displayed:set(key) end end
 --- Opens page `key`; `from` is the page Back returns to, for a page without
 --- a parent of its own.

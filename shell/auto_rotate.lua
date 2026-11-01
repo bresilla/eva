@@ -64,6 +64,8 @@ function M.start(options)
     if wanted ~= claimed then
       claimed = wanted
       if wanted then sensors.claim() else sensors.release() end
+      -- A convertible opened back into a laptop stands upright again.
+      if not wanted and rotation.hinged and rotation.hinged() then M.apply("normal", name) end
     end
     if wanted then M.apply(sensors.state.orientation, name) end
   end)

@@ -41,12 +41,12 @@ M.all = {
   notes = { name = "Notes", icon = "sticky_note_2", title_id = "notes-title", typed = true,
     build = function(_, w, h) return require("notes_page").build(M.shown("notes"), w, h) end,
     tall = function() return require("notes_model").selected:get() ~= "" end },
-  phone = { name = "Phone", icon = "smartphone", title_id = "phone-title", typed = true,
-    build = function(_, w, h) return require("phone_page").build(M.shown("phone"), w, h) end },
+  linked_phone = { name = "Linked phone", icon = "smartphone", title_id = "phone-title", typed = true,
+    build = function(_, w, h) return require("linked_phone_page").build(M.shown("linked_phone"), w, h) end },
 }
 
 -- The order pages are offered in, where order matters and no setting says.
-M.ORDER = { "settings", "notifications", "tasks", "calendar", "assistant", "drop", "notes", "phone" }
+M.ORDER = { "settings", "notifications", "tasks", "calendar", "assistant", "drop", "notes", "linked_phone" }
 
 -- The panel an edge's pages hang in.
 local PANELS = { right = "sidebar", left = "leftbar", bottom = "bottom", top = "sidebar" }
@@ -156,7 +156,7 @@ function M.reach(key) return M.open(key) or M.settings(key) end
 do
   local KEYWORDS = { settings = "quick tiles toggles", notifications = "history alerts", tasks = "taskwarrior todo",
     calendar = "agenda dates schedule", assistant = "ai chat ask", drop = "share files send", notes = "jot write markdown",
-    phone = "kde connect android" }
+    linked_phone = "phone kde connect android" }
   local index = require("lib.shell.launcher.search_index")
   for key, page in pairs(M.all) do
     index.register { id = "page:" .. key, name = page.name, keywords = KEYWORDS[key], material = page.icon, tag = "Panel",

@@ -137,7 +137,6 @@ function M.new(active)
   model.networks=morf.signal("eva.mobile.networks",{})
   model.scanning=morf.signal("eva.mobile.scanning",false)
   model.ussd_reply=morf.signal("eva.mobile.ussd",{text="",open=false})
-  model.messages=morf.signal("eva.mobile.messages",{})
   local reading=false
   function model.refresh()
     if reading or not model.available() then return end
@@ -295,37 +294,86 @@ function M.new(active)
     return steps("Ending the USSD session…",{{"mmcli","-m","any","--3gpp-ussd-cancel"}})
   end
 
-  --- Messages on the modem: read, delete, send.
-  function model.load_messages()
-    cli.run({"mmcli","-J","-m","any","--messaging-list-sms"},function(ok,out)
-      local paths=ok and cli.sms_paths(cli.json(out)) or {}
-      local got,waiting={},#paths
-      if waiting==0 then model.messages:set({}) return end
-      for _,path in ipairs(paths) do
-        cli.run({"mmcli","-J","-s",path},function(fine,text)
-          local sms=fine and cli.sms(cli.json(text))
-          if sms then got[#got+1]=sms end
-          waiting=waiting-1
-          if waiting==0 then
-            table.sort(got,function(a,b) return a.timestamp>b.timestamp end)
-            model.messages:set(got)
-          end
-        end)
-      end
-    end)
+  --- The phone's conversations (shell/phone.lua), newest first.
+  local function phone() return require("phone") end
+  function model.threads()
+    local p=phone()
+    return p.ready:get() and p.messages.threads() or {}
   end
-  function model.delete_message(path)
-    return steps("Deleting the message…",{{"mmcli","-m","any","--messaging-delete-sms="..path}},model.load_messages)
+  function model.has_messages() return phone().ready:get() end
+  function model.delete_thread(number)
+    local p=phone()
+    if p.messages then p.messages.forget(number) end
   end
   function model.send_message(number,text)
     number=(number or ""):gsub("[%s%-]","")
     if not number:match("^%+?%d+$") or (text or "")=="" then
       model.failed:set(true) model.message:set("Enter a phone number and a message") return false
     end
-    local file=morf.paths.state("eva-sms.txt")
-    morf.fs.write(file,text)
-    local create={"sh","-c",'p=$(mmcli -m any --messaging-create-sms="number=\'$1\'" --messaging-create-sms-with-text="$2" | grep -o "/org/freedesktop/ModemManager1/SMS/[0-9]*") && mmcli -s "$p" --send',"sms",number,file,timeout=90000}
-    return steps("Sending the message…",{create},model.load_messages,function() pcall(morf.fs.remove,file) end)
+    model.failed:set(false) model.message:set("")
+    return phone().reply(number,text)
+  end
+
+  --- What the radio measures, while the page is open.
+  local function levels_source() return services.modem end
+  morf.effect("eva.mobile.levels",function()
+    local modem=levels_source()
+    if modem and modem.watch_levels then modem.watch_levels(active() and model.available() and 5 or 0) end
+  end)
+  function model.levels()
+    local modem=levels_source()
+    if not modem or not modem.levels then return "" end
+    local _=modem.state.level_stamp
+    local l=modem.levels()
+    if not l then return "" end
+    local parts={l.radio}
+    for _,entry in ipairs {{"rsrp","RSRP","dBm"},{"rsrq","RSRQ","dB"},{"snr","SNR","dB"},{"rscp","RSCP","dBm"},
+      {"ecio","Ec/Io","dB"},{"rssi","RSSI","dBm"}} do
+      local value=l[entry[1]]
+      if value and #parts<4 then parts[#parts+1]=("%s %.0f %s"):format(entry[2],value,entry[3]) end
+    end
+    return table.concat(parts," · ")
+  end
+  function model.number()
+    local modem=levels_source()
+    return modem and modem.levels and modem.state.number or ""
+  end
+
+  --- Bytes this month (shell/data_usage.lua), by interface.
+  function model.usage() return require("data_usage").rows:get() end
+  function model.usage_size(bytes) return require("data_usage").size(bytes) end
+  function model.usage_reset() require("data_usage").reset() end
+  function model.limit() return tonumber(require("config").get("phone.data_limit")) or 0 end
+  function model.set_limit(megabytes) require("config").set("phone.data_limit",tonumber(megabytes) or 0) end
+
+  --- Call waiting, as the network has it.
+  model.call_waiting=morf.signal("eva.mobile.waiting",false)
+  function model.has_voice()
+    local modem=levels_source()
+    return modem~=nil and modem.voice~=nil and modem.voice.present:get()
+  end
+  function model.set_call_waiting(on)
+    model.call_waiting:set(on==true)
+    return services.modem.voice.waiting(on)
+  end
+
+  --- Public warnings: which come through, and what has.
+  function model.alert_kinds()
+    local out={}
+    for _,kind in ipairs(require("models.phone_alerts").KINDS) do
+      if not kind.locked then out[#out+1]=kind end
+    end
+    return out
+  end
+  function model.alert_on(id) return (require("config").get("phone.alerts") or {})[id]~=false end
+  function model.set_alert(id,on)
+    require("config").set("phone.alerts."..id,on==true)
+    local p=phone()
+    if p.alerts then p.alerts.apply() end
+  end
+  function model.alert_history()
+    local p=phone()
+    return p.ready:get() and p.alerts.history() or {}
   end
   return model
 end

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Phone
+Comment=Make calls: a dial pad, recent calls and contacts
+Exec=eva-phone
+Icon=call-start
+Terminal=false
+Categories=Utility;Telephony;
+MimeType=x-scheme-handler/tel;
+StartupWMClass=eva.phone

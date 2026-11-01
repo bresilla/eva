@@ -104,10 +104,37 @@ M.PAGES = {
       { "open", "Open a capture", "open_in_new" },
     }) },
   } },
-  osk = { sections = {
-    { title = "On-screen keyboard", fields = {
-      { key = "keyboard.auto", kind = "bool", title = "Up by itself", icon = "keyboard_alt",
-        note = "When a program asks for text and no real keyboard is attached" },
+  ["keyboard/more"] = { sections = {
+    { title = "Typing", fields = {
+      { key = "keyboard.replacements", kind = "records", fields = { 1, 2 }, title = "Text shortcuts", icon = "short_text",
+        note = "What you type and what it becomes, one after another" },
+      { key = "keyboard.voice", kind = "words", title = "Voice typing", icon = "mic",
+        note = "A command that listens and prints what it heard" },
+    } },
+    { title = "Apps", fields = {
+      { key = "keyboard.classes", kind = "records", fields = { 1, 2 }, title = "Per app", icon = "apps",
+        note = "A window's class and what it asks of the keyboard, one after another" },
+    } },
+  } },
+  phone = { sections = {
+    { title = "Calls and texts", fields = {
+      { key = "phone.contacts", kind = "text", title = "Contacts folder", icon = "contacts", note = "A folder of vCards" },
+      { key = "phone.country", kind = "text", title = "Country code", icon = "flag", note = "What a bare number gets: +31" },
+      { key = "phone.silence_unknown", kind = "bool", title = "Silence unknown callers", icon = "phone_disabled",
+        note = "Numbers not in your contacts do not ring" },
+      { key = "phone.delivery_reports", kind = "bool", title = "Delivery reports", icon = "mark_chat_read",
+        note = "A text asks the network to say when it lands" },
+    } },
+    { title = "Power key", fields = {
+      { key = "phone.power_ends_call", kind = "bool", title = "Ends a call", icon = "call_end" },
+      { key = "phone.double_power", kind = "words", title = "Pressed twice", icon = "double_arrow",
+        note = "The command it runs: the camera, say" },
+      { key = "phone.sos", kind = "bool", title = "Five presses for an emergency call", icon = "emergency",
+        note = "A countdown, then the call" },
+    } },
+    { title = "Emergency", fields = {
+      { key = "phone.medical", kind = "text", title = "Medical information", icon = "medical_information",
+        note = "Blood type, allergies, medication: on the lock's emergency pad, for a stranger to read" },
     } },
   } },
   weather = { sections = {

@@ -37,11 +37,13 @@ osd|volume, brightness, mic or another kind|Show the on-screen display
 notify|SUMMARY [BODY URGENCY APP ICON IMAGE]|Post a notification
 notifications|open, close, toggle, state, status, list, invoke, reply, dismiss, clear, clear-app, clear-silent, undo, snooze, mute, unmute|The page, and notifications from a key
 focus|status, list, on MODE [SECONDS], off or toggle|Focus modes
+phone|answer, decline, hangup, mute, speaker, hold, dial N or state|The call in progress
 workspace|N|Go to workspace N
 window_menu|toggle, open or close|The window menu
 appearance|material, tsugumori, font:NAME or state|Change or read the theme
 scale|VALUE|The interface scale, from -1 to 1
 screen|-|The screen the shell runs on
+tablet|on, off, pin on or off, auto or state|A convertible's hinge
 drawers|list, or HOW NAME|The open drawers, or one drawer by name
 close|-|Shut every drawer
 reload|-|Reload the shell

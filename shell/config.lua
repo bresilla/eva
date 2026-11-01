@@ -373,7 +373,7 @@ local config = settings.open {
       wheel_workspace = false,
     },
     -- Airplane mode, and what was on before it (to bring back).
-    airplane = { on = false, was = { wifi = false, bluetooth = false, mobile = false } },
+    airplane = { on = false, was = { wifi = false, bluetooth = false, mobile = false, nfc = false } },
     -- sound, vibrate or silent (lib/util/ringer.lua; vibrate where feedbackd is).
     ringer = { mode = "sound" },
     -- The notification server and how it behaves (shell/notifs.lua).
@@ -467,6 +467,31 @@ local config = settings.open {
           hide_badges = false, on_enter = {}, on_exit = {} },
       },
     },
+    -- Whether touches and gestures buzz (shell/haptics.lua).
+    haptics = { on = true },
+    phone = {
+      -- A folder of vCards, and the code bare numbers get: "+31".
+      contacts = "~/.local/share/contacts",
+      country = "",
+      -- Whether a text asks the network to say when it lands.
+      delivery_reports = false,
+      -- Which public warnings come through: national alerts always do.
+      alerts = { extreme = true, severe = true, amber = true, test = false },
+      -- Mobile data in a calendar month, in megabytes, before a warning; 0
+      -- for none.
+      data_limit = 0,
+      -- Calls from numbers not in the address book do not ring.
+      silence_unknown = false,
+      -- What a stranger should know, shown on the lock's emergency pad: blood
+      -- type, allergies, medication.
+      medical = "",
+      -- The power key ends a call that is up.
+      power_ends_call = false,
+      -- What pressing power twice runs: a command, as a list.
+      double_power = {},
+      -- Five presses of power count down to an emergency call.
+      sos = false,
+    },
     -- The shell as the session's polkit agent (polkit.lua): "on", or "off"
     -- to leave the job to another (hyprpolkitagent, polkit-gnome).
     polkit = { agent = "on" },
@@ -474,6 +499,55 @@ local config = settings.open {
       -- Up by itself when a program asks for text and no real keyboard
       -- is attached (a tablet, a detached keyboard); by hand either way.
       auto = true,
+      -- A permanent row of digits over the letters.
+      number_row = false,
+      -- Language ids from shell/keyboard_layouts.lua, in order; empty takes
+      -- the locale's, then English. `layouts` adds languages of your own.
+      languages = {},
+      language = "",
+      layouts = {},
+      -- The keys' height, as a multiple, and a gap under them, in pixels.
+      height = 1.0,
+      bottom_gap = 0,
+      -- Word prediction, from the offline lists in shell/assets/words.
+      predict = true,
+      -- A capital at the start of a sentence.
+      autocaps = true,
+      -- Two spaces make a full stop.
+      double_space = true,
+      -- A space after a picked word, and punctuation pulled back over it.
+      auto_space = true,
+      -- A prediction that spells an emoji's name offers the emoji.
+      emoji_names = true,
+      -- "today", "now" and "date" offer the date or the time.
+      keywords = true,
+      -- A strip of what eva-clipboard holds.
+      clipboard = true,
+      -- A buzz with each key.
+      haptics = true,
+      -- Replaces a misspelt word on space (README: off by default).
+      autocorrect = false,
+      -- Remembers typed words on disk to predict them (README: off by default).
+      learn = false,
+      -- "both", "left" or "right": squeezed to one side for one thumb.
+      hand = "both",
+      -- Two halves, on a screen wide enough to hold them.
+      split = false,
+      -- Free of the edge, and where it was left, as fractions of the screen.
+      floating = false,
+      float_x = 0.5,
+      float_y = 0.6,
+      -- Shortcuts typed that expand, as { "omw", "on my way" } pairs.
+      replacements = {},
+      -- A command that listens and prints what it heard, for a microphone
+      -- in the strip: empty shows none.
+      voice = {},
+      -- What a window's class asks of the keyboard, as { "class", "purpose" }
+      -- pairs: a purpose from shell/keyboard_model.lua.
+      classes = {
+        { "kitty", "dev" }, { "foot", "dev" }, { "alacritty", "dev" }, { "wezterm", "dev" }, { "ghostty", "dev" },
+        { "org.wezfurlong.wezterm", "dev" }, { "com.mitchellh.ghostty", "dev" },
+      },
     },
     services = {
       weather_location = "",
@@ -525,19 +599,37 @@ local config = settings.open {
     quick = {
       tiles = {
         desk = { "wifi", "bluetooth", "wired", "mobile", "mesh", "tunnel", "airplane", "hotspot", "sound", "mic",
-          "nightlight", "powersaver", "battery", "focus", "theme", "eva", "notes", "phone" },
-        tablet = { "wifi", "bluetooth", "rotation", "keyboard", "airplane", "hotspot", "sound", "mic", "nightlight",
-          "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva", "notes", "phone" },
-        phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "airplane", "nightlight",
-          "powersaver", "sound", "mic", "battery", "mesh", "tunnel", "focus", "theme", "eva", "notes", "phone" },
+          "nightlight", "powersaver", "battery", "focus", "theme", "eva", "notes", "linked_phone" },
+        tablet = { "wifi", "bluetooth", "rotation", "keyboard", "autobrightness", "airplane", "hotspot", "sound", "mic",
+          "nightlight", "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva", "notes", "linked_phone" },
+        phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "autobrightness", "nfc", "airplane",
+          "nightlight", "powersaver", "location", "datasaver", "sound", "mic", "battery", "mesh", "tunnel", "focus",
+          "theme", "eva", "camera", "calculator", "voicenote", "alarm", "notes", "linked_phone" },
       },
-      small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "nightlight", "powersaver" } },
+      small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "autobrightness", "nfc", "nightlight",
+        "powersaver", "location", "datasaver", "camera", "calculator", "voicenote", "alarm" } },
     },
     -- The night light (hyprsunset): whether it is on, and how warm, in kelvin.
     nightlight = { on = false, temperature = 4500 },
+    -- The flashlight's strength, 0 to 1 of what the LED can do.
+    flashlight = { level = 1 },
+    -- The screen following the light sensor.
+    autobrightness = { on = false },
+    -- Connections marked metered, and which of them were marked here.
+    datasaver = { on = false, marked = {} },
+    -- Colour filters over the screen; `correction_kind` is protanopia,
+    -- deuteranopia or tritanopia, `dim` how much light extra dim leaves.
+    filters = { grayscale = false, invert = false, extradim = false, reading = false, correction = false,
+      correction_kind = "deuteranopia", dim = 0.4 },
+    -- Background sounds: rain, ocean or noise, and how loud, 0 to 1.
+    sounds = { kind = "rain", level = 0.4 },
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
     -- keeps it, a phone or a tablet follows the accelerometer).
     rotation = { lock = "auto" },
+    -- Charging stops at `limit` percent: 100 for none, 0 leaves the kernel's
+    -- as it is. With `adaptive` it waits lower overnight and is done by
+    -- `ready`, in minutes after midnight.
+    battery = { limit = 0, adaptive = false, ready = 420 },
   },
 }
 return require("themes.motion_style").link(require("themes.ui_scale").link(config))

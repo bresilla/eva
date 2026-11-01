@@ -12,7 +12,7 @@ ipc page drop; pause 1.4; shot drop-first-run
 ipc close; pause 0.6
 ipc page calendar; pause 1.4; shot calendar-none
 ipc close; pause 0.6
-ipc page phone; pause 1.4; shot phone-present
+ipc page linked_phone; pause 1.4; shot phone-present
 stop
 
 python3 "$SEE_EVA/tests/fixtures/fake_llm.py" "$SEE_OUT/requests.log" "$PORT" > /dev/null &
@@ -69,7 +69,7 @@ ipc close; pause 0.6
 ipc page notes; pause 1.4; shot notes-list
 ipc note "Week plan"; pause 1.4; shot notes-note
 ipc close; pause 0.6
-ipc page phone; pause 2.0; shot phone-page
+ipc page linked_phone; pause 2.0; shot phone-page
 ipc close; pause 0.6
 ipc page calendar; pause 2.0; shot calendar-page
 ipc close; pause 0.6

@@ -107,7 +107,7 @@ local function public(n, m)
     category = n.category or "", desktop_entry = n.desktop_entry or "", actions = offered(n, m.out),
     hints = scalars(n.hints), resident = n.resident == true, transient = n.transient == true, own = n.own,
     time = m.time, hide = m.out.hide or nil, highlight = m.out.highlight or nil, eta = m.eta,
-    no_buttons = (m.out.actions == false) or nil }
+    no_buttons = (m.out.actions == false) or nil, reply = n.reply }
 end
 
 -- How long a job has left, by how fast its `value` hint moved.
@@ -505,13 +505,29 @@ end
 -- timeout_ms }`; they expire as the server's do. `on_action(key, text)` hears
 -- what is pressed, on the screen that raised it when that is the primary.
 local own = 100000
+--- What a text from `number` answers to: Reply goes back to it, a press opens
+--- its thread.
+local function text_actions(number, on_action)
+  return function(key, words)
+    if key == "inline-reply" then require("phone").reply(number, words)
+    elseif key == "default" then require("lib.services.host").open_tool("messages", { "sms:" .. number }) end
+    if on_action then on_action(key, words) end
+  end
+end
+
 function act.push(entry)
   own = own + 1
+  local actions = entry.actions or {}
+  if entry.reply then
+    actions = { { key = "default", label = "" }, { key = "inline-reply", label = "Reply" } }
+    for _, action in ipairs(entry.actions or {}) do actions[#actions + 1] = action end
+  end
   local n = { id = own, app = entry.app or "eva", summary = entry.summary or "", body = entry.body or "",
     urgency = entry.urgency or 1, icon = entry.icon or "", image_path = entry.image or "", own = true,
-    category = entry.category or "", desktop_entry = "", actions = entry.actions or {}, hints = entry.hints or {},
-    transient = entry.transient == true, resident = entry.resident == true, timeout_ms = entry.timeout_ms }
-  handlers[n.id] = entry.on_action
+    category = entry.category or "", desktop_entry = "", actions = actions, hints = entry.hints or {},
+    transient = entry.transient == true, resident = entry.resident == true, timeout_ms = entry.timeout_ms,
+    reply = entry.reply }
+  handlers[n.id] = entry.reply and text_actions(entry.reply, entry.on_action) or entry.on_action
   admit(n)
   publish()
   return n.id

@@ -129,8 +129,8 @@ for _,style in ipairs {"material","tsugumori"} do
     end
     shot(style.."-battery")
     test.ipc("update","charging") test.advance(2400)
-    test.truthy(test.find {text=style=="tsugumori" and "FULL IN" or "Full in",visible=true})
-    test.truthy(test.find {text="59m",visible=true})
+    test.truthy(test.find {text=style=="tsugumori" and "80% IN" or "80% in",visible=true})
+    test.truthy(test.find {text="14m",visible=true})
     test.eq(#test.logs("error"),0)
   end)
   test.it(style.." battery retains bounded history while hidden without updating its UI",function()

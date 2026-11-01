@@ -44,6 +44,7 @@ function M.attach(d, ctx, theme_motion)
     elseif motion.fling(drag.delta, opening_velocity) then
       opening = opening_velocity > 0
     end
+    if not canceled and opening ~= drag.was_open then require("haptics").fire("commit") end
     drag = nil
     d.open:set(opening)
     theme_motion.release(canceled and 0 or velocity, function() d.manual = false end)

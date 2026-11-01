@@ -120,7 +120,9 @@ the shell is not running. On NixOS they are on `PATH`, each with a desktop entry
 | `eva-keys` | a searchable sheet of the live bindings and the shell's own |
 | `eva-nightlight on\|off\|toggle\|auto\|daemon\|times` | warmer light over `hyprsunset`, by the sun at `services.weather_location` |
 | `eva-clipboard [--watch]` | a history of text and pictures with pins, skipping what a password manager marks; on NixOS `--watch` runs as a user service |
-| `eva-battery status`, `eva-battery limit on\|off` | the charge limit, through UPower's `EnableChargeThreshold` |
+| `eva-battery status`, `eva-battery limit on\|off\|NN` | what feeds the battery and how fast, and the charge limit: UPower's `EnableChargeThreshold`, or a level in the kernel's own threshold file |
+| `eva-phone [tel:NUMBER]` | a dial pad that finds people by their letters, recent calls and contacts; the shell shows the call |
+| `eva-messages [sms:NUMBER]` | text threads with delivery marks; the shell receives them and notifies |
 
 `make app displays` runs one from a checkout.
 
@@ -672,7 +674,186 @@ a tray nobody can see.
 `EVA_FAKE_BATTERY=57,charging,saver`, `EVA_FAKE_STATUS=wifi,bluetooth,vpn,dnd`
 and `EVA_FAKE_CUTOUT=400,68,34` stand in for hardware; a `tools/see/` scenario
 exports them, as `tools/see/bar.steps` and `cutout.steps` do, and
-`morf ipc call fake-battery 12` moves the battery while it runs.
+`morf ipc call fake-battery 12` moves the battery while it runs. The battery's
+stand-in also takes `wireless`, `fast`, `slow`, `watts=N` and `limit=N`.
+
+### Convertibles
+
+A convertible folded back reads as a tablet with its keyboard still attached:
+sheets, a finger's targets, the on-screen keyboard, and the screen following
+the accelerometer. libinput ignores the keyboard and touchpad by itself while
+the switch is on. Opened again the rotation is held by the hinge and the panel
+stands upright. A keyboard plugged in or paired still counts while folded.
+
+The state comes from the kernel's `SW_TABLET_MODE`, found through
+`/proc/bus/input/devices` and read with `evtest`: its events as a stream, and
+the switch asked outright at the start, after a resume, after each event, and
+every 20 seconds while folded. `eva tablet on|off` is a hint the same question
+follows; `eva tablet pin on|off` holds the posture over a switch that sticks,
+`eva tablet auto` lets it go. `EVA_FAKE_TABLET=on|off` stands in for the switch.
+
+```nix
+programs.eva.hardware = {
+  # evtest, and read access to switch devices alone. `name` is what
+  # `hyprctl devices` calls the switch, and adds Hyprland's switch binds.
+  tabletSwitch = { enable = true; name = "Intel HID switches"; };
+  # The session may write the kernel's charge thresholds.
+  chargeLimit = true;
+  # A USB network port for the USB tethering tile.
+  usbTether = true;
+};
+```
+
+### Charging
+
+The Power page says what feeds the battery (USB PD, a wireless pad, a weak
+port), how fast and how long until it stops. A charge limit and adaptive
+charging, which waits at 80% overnight and finishes by the time you set, need
+`charge_control_end_threshold` from the driver and the right to write it:
+`programs.eva.hardware.chargeLimit` grants that. Without the grant UPower's own
+fixed thresholds can still be switched, where the driver and UPower have them;
+adaptive charging runs in the shell, so a phone asleep through the night wakes
+to its release late.
+
+## Calls, texts and the modem
+
+With `programs.eva.phone.enable` the module brings up ModemManager, callaudiod,
+feedbackd and iio-sensor-proxy, and adds the user to `networkmanager` and
+`feedbackd`. ModemManager's Voice and Messaging ask polkit for a password by
+default, which nothing on a locked screen could answer; that group's rule is what
+lets a call be taken there. `programs.eva.phone.calls = false` leaves all of it
+out.
+
+A call comes up on a surface of its own in the overlay layer: the whole screen on
+a phone or tablet, a card on a desk. Pull the orb to a side of its rail, or press
+that side. A locked session shows only the lock's surfaces, so the lock hosts the
+same screen (`themes/phone_lock.lua`), along with the SIM's PIN and PUK and
+emergency dialling, which takes only numbers that reach the emergency services:
+the SIM's, 112 and 911, and six more with no SIM. The shell stays the owner either
+way: it rings, routes the sound through callaudiod, holds suspend off through
+logind and keeps the history. On the earpiece the proximity sensor blanks the
+panel and takes every touch; the speaker stops that.
+
+Texts go to `$XDG_STATE_HOME/eva/phone/`, private files that the shell and the
+tools share, and come off the modem. A notification from one carries `reply` with
+the number; `require("phone").reply(number, text)` answers it, which is what a
+notification's inline reply calls. MMS is not done.
+
+Contacts are vCards in `phone.contacts` (`~/.local/share/contacts`), which is
+what vdirsyncer keeps. `phone.country` is the code bare numbers get. Favourites
+and blocked numbers are eva's own, beside the history, and the cards are never
+written to. A blocked call is ended before it rings.
+
+Public warnings come by cell broadcast with ModemManager 1.24 or later. National
+alerts always come through; the Mobile page turns the others off and lists what
+has come. That page also shows the radio's levels, data by interface this month,
+and takes `phone.data_limit` in megabytes, warning at 80% and at 100%.
+
+The side keys reach the shell through Hyprland binds. A volume key or power
+silences a call that rings. `phone.power_ends_call` ends one on power,
+`phone.double_power` is a command for power pressed twice, power and volume down
+takes a screenshot, and `phone.sos` counts down from five presses of power to an
+emergency call. Set it on purpose: on a locked screen the countdown cannot show,
+because only the lock draws there, and the call still goes.
+
+`programs.eva.phone.suspendTimeout` is zero by default, so a phone stays awake.
+Whether a call can wake a sleeping phone depends on its kernel and modem: name
+what rings it in `programs.eva.phone.wakeDevices`, then call it while it sleeps
+before setting a timeout. ModemManager and NetworkManager bring the modem back
+after resume by themselves.
+
+All of this comes down to one haptic seam, `require("haptics").fire(kind)`, with
+one setting, `haptics.on` (Sound, Touch). Kit presses and tile toggles reach it by
+themselves.
+
+`EVA_FAKE_MODEM=1` runs the real service against ModemManager on a bus of Lua
+tables (`lib/services/modem_standin.lua`). That bus knows only what ModemManager's
+XML declares (`tests/fixtures/phone-bus.txt`), so a wrong name fails a spec, but
+it says nothing about real timing, real errors or real audio. `phone fake ring
++316...`, `text`, `alert CHANNEL WORDS`, `lock sim-pin` and `near on` move it;
+`EVA_CONTACTS`, `EVA_FAKE_HAPTICS`, `EVA_FAKE_PROXIMITY` and `EVA_FAKE_NET` stand
+in for the rest. `tools/phone-wire.sh` sends every typed call through the engine's
+encoder onto a real `dbus-daemon` and reads the types back off the wire, which no
+spec can: it checks what goes out, not what a modem does with it.
+`FEEDBACKD=... tools/phone-daemons.sh` runs the ringer against the real feedbackd.
+
+## On-screen keyboard
+
+The keyboard comes up by itself when a program asks for text and no real
+keyboard is attached, and two fingers bring it up or take it away anywhere. It
+is in the settings under Eva, On-screen keyboard; `keyboard` over IPC opens it,
+and `keyboard language sq`, `keyboard hand left`, `keyboard floating on`,
+`keyboard purpose phone` drive the rest.
+
+The strip over the keys offers what the word at the cursor might be, from
+offline lists in `shell/assets/words`; a list of your own at
+`$XDG_DATA_HOME/eva/words/<language>.txt` comes first, one word a line, the most
+common at the top. It offers corrections in the accent colour, an emoji when
+the word names one, the date for `today`, `date` and `now`, your shortcuts
+(`keyboard.replacements`, as `{ "omw", "on my way" }` pairs) and, between words
+in English, what tends to come next. The chevron swaps the strip for the tools:
+the clipboard, emoji, the cursor keys, the boards, the next language, one hand,
+floating, split, private typing, the settings and hide.
+
+Holding a key offers its accents; holding shift locks capitals; holding
+backspace moves on to whole words; a finger along the space bar moves the cursor
+(with shift, it selects). Two spaces make a full stop, a sentence starts with a
+capital, and punctuation after a picked word pulls over its space. The handle
+over the strip takes a finger down to shut the keyboard, or carries it about
+while it floats.
+
+Languages: English, Shqip, Deutsch, Nederlands, Français, Español, Italiano,
+Português, Svenska, Suomi, Norsk, Dansk, Polski, Čeština, Türkçe, Русский,
+Українська and Ελληνικά, with Dvorak and Colemak. Ukrainian has no word list.
+`keyboard.languages` picks those to switch between; empty takes the locale's,
+then English. `keyboard.layouts` adds your own, as `{ id, name, short, rows,
+alts, words }`. Letters past QWERTY's 26 stand on the digit keys, so with the
+number row on such a language keeps its extra letters on a long press, and
+Russian and Ukrainian go without the row.
+
+**What it cannot tell.** A program's text field says what it is for (a password,
+a phone number, a URL) in the protocol, but morf 0.6.2 drops that message
+(NEEDS.md). So the keyboard cannot recognise a password field in another program.
+It reads a masked field (`••••`) as private, but not an empty one, and an empty
+password field gets a capital like any other: shift lights up, and a tap takes
+it off. For the same reason two things that would rewrite or keep what you type
+are **off** until you turn them on, under Privacy on the settings page:
+
+- **Autocorrect** would rewrite a password on space.
+- **Learn new words** would write a password to disk, in
+  `~/.local/state/morf/*/eva-keyboard-words.json`, readable by you alone.
+  Forget learned words deletes it.
+
+Prediction only reads the field's text in memory, and keeps nothing. Private
+typing in the tools turns all of it off by hand. Emoji picked stay in memory
+until the shell stops.
+
+The window's class stands in for the field: `keyboard.classes` says a terminal
+wants the `dev` board, and a tool of eva's own can say `keyboard purpose phone`.
+When the engine reports a field's purpose, that goes first, with no change to
+anything that asks.
+
+The clipboard strip reads what `eva-clipboard` holds and never writes to it. It
+lives in the shell's own view: the lock screen and the greeter share only the
+panel of keys (`themes/keyboard.lua`), so a locked screen cannot show it, and it
+reads nothing while the session is locked.
+
+`keyboard.voice` names a command that listens and prints what it heard, for a
+microphone in the tools; eva ships no speech engine. Swipe typing is not here:
+there is no free decoder to build on yet.
+
+`EVA_FAKE_IME=1` stands in for a text field: `keyboard field TEXT`, `keyboard
+type TEXT` and `keyboard pick N` drive the keyboard, as `tools/see/keyboard.steps`
+does. `tools/see/keyboard-ime.steps` runs it against a real GTK field, with
+zenity on PATH.
+
+**Sources.** The word lists in `shell/assets/words` are cut from the Android Open
+Source Project's LatinIME dictionaries, under the Apache License 2.0, with
+offensive entries removed. `en.next.txt` was written for eva. `tools/words.lua`
+makes them from the published lists, and `shell/assets/words-LICENSE.md` holds the
+licences: eva's code is MIT, and these lists stay under Apache-2.0. Albanian has no
+list shipped, so it predicts from `$XDG_DATA_HOME/eva/words/sq.txt` where a person
+keeps one. The emoji pane uses Noto Color Emoji.
 
 ## The bar's modules
 

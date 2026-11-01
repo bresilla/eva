@@ -1,0 +1,191 @@
+# The D-Bus names eva's phone layer may use, generated from the interface XML
+# of ModemManager 1.25.95, callaudiod 0.1.10 and feedbackd 0.8.5.
+org.freedesktop.ModemManager1.Modem method Enable
+org.freedesktop.ModemManager1.Modem method ListBearers
+org.freedesktop.ModemManager1.Modem method CreateBearer
+org.freedesktop.ModemManager1.Modem method DeleteBearer
+org.freedesktop.ModemManager1.Modem method Reset
+org.freedesktop.ModemManager1.Modem method FactoryReset
+org.freedesktop.ModemManager1.Modem method SetPowerState
+org.freedesktop.ModemManager1.Modem method SetCurrentCapabilities
+org.freedesktop.ModemManager1.Modem method SetCurrentModes
+org.freedesktop.ModemManager1.Modem method SetCurrentBands
+org.freedesktop.ModemManager1.Modem method SetPrimarySimSlot
+org.freedesktop.ModemManager1.Modem method GetCellInfo
+org.freedesktop.ModemManager1.Modem method Command
+org.freedesktop.ModemManager1.Modem signal StateChanged
+org.freedesktop.ModemManager1.Modem property Sim o
+org.freedesktop.ModemManager1.Modem property SimSlots ao
+org.freedesktop.ModemManager1.Modem property PrimarySimSlot u
+org.freedesktop.ModemManager1.Modem property Bearers ao
+org.freedesktop.ModemManager1.Modem property SupportedCapabilities au
+org.freedesktop.ModemManager1.Modem property CurrentCapabilities u
+org.freedesktop.ModemManager1.Modem property MaxBearers u
+org.freedesktop.ModemManager1.Modem property MaxActiveBearers u
+org.freedesktop.ModemManager1.Modem property MaxActiveMultiplexedBearers u
+org.freedesktop.ModemManager1.Modem property Manufacturer s
+org.freedesktop.ModemManager1.Modem property Model s
+org.freedesktop.ModemManager1.Modem property Revision s
+org.freedesktop.ModemManager1.Modem property CarrierConfiguration s
+org.freedesktop.ModemManager1.Modem property CarrierConfigurationRevision s
+org.freedesktop.ModemManager1.Modem property HardwareRevision s
+org.freedesktop.ModemManager1.Modem property DeviceIdentifier s
+org.freedesktop.ModemManager1.Modem property Device s
+org.freedesktop.ModemManager1.Modem property Physdev s
+org.freedesktop.ModemManager1.Modem property Drivers as
+org.freedesktop.ModemManager1.Modem property Plugin s
+org.freedesktop.ModemManager1.Modem property PrimaryPort s
+org.freedesktop.ModemManager1.Modem property Ports a(su)
+org.freedesktop.ModemManager1.Modem property IgnoredPorts a(su)
+org.freedesktop.ModemManager1.Modem property EquipmentIdentifier s
+org.freedesktop.ModemManager1.Modem property UnlockRequired u
+org.freedesktop.ModemManager1.Modem property UnlockRetries a{uu}
+org.freedesktop.ModemManager1.Modem property State i
+org.freedesktop.ModemManager1.Modem property StateFailedReason u
+org.freedesktop.ModemManager1.Modem property AccessTechnologies u
+org.freedesktop.ModemManager1.Modem property SignalQuality (ub)
+org.freedesktop.ModemManager1.Modem property OwnNumbers as
+org.freedesktop.ModemManager1.Modem property PowerState u
+org.freedesktop.ModemManager1.Modem property SupportedModes a(uu)
+org.freedesktop.ModemManager1.Modem property CurrentModes (uu)
+org.freedesktop.ModemManager1.Modem property SupportedBands au
+org.freedesktop.ModemManager1.Modem property CurrentBands au
+org.freedesktop.ModemManager1.Modem property SupportedIpFamilies u
+org.freedesktop.ModemManager1.Modem.Modem3gpp method Register
+org.freedesktop.ModemManager1.Modem.Modem3gpp method Scan
+org.freedesktop.ModemManager1.Modem.Modem3gpp method SetEpsUeModeOperation
+org.freedesktop.ModemManager1.Modem.Modem3gpp method SetInitialEpsBearerSettings
+org.freedesktop.ModemManager1.Modem.Modem3gpp method SetNr5gRegistrationSettings
+org.freedesktop.ModemManager1.Modem.Modem3gpp property Imei s
+org.freedesktop.ModemManager1.Modem.Modem3gpp property RegistrationState u
+org.freedesktop.ModemManager1.Modem.Modem3gpp property NetworkRejection a{sv}
+org.freedesktop.ModemManager1.Modem.Modem3gpp property OperatorCode s
+org.freedesktop.ModemManager1.Modem.Modem3gpp property OperatorName s
+org.freedesktop.ModemManager1.Modem.Modem3gpp property EnabledFacilityLocks u
+org.freedesktop.ModemManager1.Modem.Modem3gpp method DisableFacilityLock
+org.freedesktop.ModemManager1.Modem.Modem3gpp method SetCarrierLock
+org.freedesktop.ModemManager1.Modem.Modem3gpp method SetPacketServiceState
+org.freedesktop.ModemManager1.Modem.Modem3gpp property SubscriptionState u
+org.freedesktop.ModemManager1.Modem.Modem3gpp property EpsUeModeOperation u
+org.freedesktop.ModemManager1.Modem.Modem3gpp property Pco a(ubay)
+org.freedesktop.ModemManager1.Modem.Modem3gpp property InitialEpsBearer o
+org.freedesktop.ModemManager1.Modem.Modem3gpp property InitialEpsBearerSettings a{sv}
+org.freedesktop.ModemManager1.Modem.Modem3gpp property PacketServiceState u
+org.freedesktop.ModemManager1.Modem.Modem3gpp property Nr5gRegistrationSettings a{sv}
+org.freedesktop.ModemManager1.Modem.Voice method ListCalls
+org.freedesktop.ModemManager1.Modem.Voice method DeleteCall
+org.freedesktop.ModemManager1.Modem.Voice method CreateCall
+org.freedesktop.ModemManager1.Modem.Voice method HoldAndAccept
+org.freedesktop.ModemManager1.Modem.Voice method HangupAndAccept
+org.freedesktop.ModemManager1.Modem.Voice method HangupAll
+org.freedesktop.ModemManager1.Modem.Voice method Transfer
+org.freedesktop.ModemManager1.Modem.Voice method CallWaitingSetup
+org.freedesktop.ModemManager1.Modem.Voice method CallWaitingQuery
+org.freedesktop.ModemManager1.Modem.Voice signal CallAdded
+org.freedesktop.ModemManager1.Modem.Voice signal CallDeleted
+org.freedesktop.ModemManager1.Modem.Voice property Calls ao
+org.freedesktop.ModemManager1.Modem.Voice property EmergencyOnly b
+org.freedesktop.ModemManager1.Call method Start
+org.freedesktop.ModemManager1.Call method Accept
+org.freedesktop.ModemManager1.Call method Deflect
+org.freedesktop.ModemManager1.Call method JoinMultiparty
+org.freedesktop.ModemManager1.Call method LeaveMultiparty
+org.freedesktop.ModemManager1.Call method Hangup
+org.freedesktop.ModemManager1.Call method SendDtmf
+org.freedesktop.ModemManager1.Call signal DtmfReceived
+org.freedesktop.ModemManager1.Call signal StateChanged
+org.freedesktop.ModemManager1.Call property State i
+org.freedesktop.ModemManager1.Call property StateReason i
+org.freedesktop.ModemManager1.Call property Direction i
+org.freedesktop.ModemManager1.Call property Number s
+org.freedesktop.ModemManager1.Call property Multiparty b
+org.freedesktop.ModemManager1.Call property AudioPort s
+org.freedesktop.ModemManager1.Call property AudioFormat a{sv}
+org.freedesktop.ModemManager1.Call property DtmfToneDuration u
+org.freedesktop.ModemManager1.Modem.Messaging method List
+org.freedesktop.ModemManager1.Modem.Messaging method SetDefaultStorage
+org.freedesktop.ModemManager1.Modem.Messaging method Delete
+org.freedesktop.ModemManager1.Modem.Messaging method Create
+org.freedesktop.ModemManager1.Modem.Messaging signal Added
+org.freedesktop.ModemManager1.Modem.Messaging signal Deleted
+org.freedesktop.ModemManager1.Modem.Messaging property Messages ao
+org.freedesktop.ModemManager1.Modem.Messaging property SupportedStorages au
+org.freedesktop.ModemManager1.Modem.Messaging property DefaultStorage u
+org.freedesktop.ModemManager1.Sms method Send
+org.freedesktop.ModemManager1.Sms method Store
+org.freedesktop.ModemManager1.Sms property State u
+org.freedesktop.ModemManager1.Sms property PduType u
+org.freedesktop.ModemManager1.Sms property Number s
+org.freedesktop.ModemManager1.Sms property Text s
+org.freedesktop.ModemManager1.Sms property Data ay
+org.freedesktop.ModemManager1.Sms property SMSC s
+org.freedesktop.ModemManager1.Sms property Validity (uv)
+org.freedesktop.ModemManager1.Sms property Class i
+org.freedesktop.ModemManager1.Sms property TeleserviceId u
+org.freedesktop.ModemManager1.Sms property ServiceCategory u
+org.freedesktop.ModemManager1.Sms property DeliveryReportRequest b
+org.freedesktop.ModemManager1.Sms property MessageReference u
+org.freedesktop.ModemManager1.Sms property Timestamp s
+org.freedesktop.ModemManager1.Sms property DischargeTimestamp s
+org.freedesktop.ModemManager1.Sms property DeliveryState u
+org.freedesktop.ModemManager1.Sms property Storage u
+org.freedesktop.ModemManager1.Modem.CellBroadcast method List
+org.freedesktop.ModemManager1.Modem.CellBroadcast method Delete
+org.freedesktop.ModemManager1.Modem.CellBroadcast signal Added
+org.freedesktop.ModemManager1.Modem.CellBroadcast signal Deleted
+org.freedesktop.ModemManager1.Modem.CellBroadcast property CellBroadcasts ao
+org.freedesktop.ModemManager1.Modem.CellBroadcast method SetChannels
+org.freedesktop.ModemManager1.Modem.CellBroadcast property Channels a(uu)
+org.freedesktop.ModemManager1.Cbm property State u
+org.freedesktop.ModemManager1.Cbm property Text s
+org.freedesktop.ModemManager1.Cbm property Channel u
+org.freedesktop.ModemManager1.Cbm property MessageCode u
+org.freedesktop.ModemManager1.Cbm property Update u
+org.freedesktop.ModemManager1.Cbm property Language s
+org.freedesktop.ModemManager1.Modem.Signal method Setup
+org.freedesktop.ModemManager1.Modem.Signal method SetupThresholds
+org.freedesktop.ModemManager1.Modem.Signal property Rate u
+org.freedesktop.ModemManager1.Modem.Signal property RssiThreshold u
+org.freedesktop.ModemManager1.Modem.Signal property ErrorRateThreshold b
+org.freedesktop.ModemManager1.Modem.Signal property Cdma a{sv}
+org.freedesktop.ModemManager1.Modem.Signal property Evdo a{sv}
+org.freedesktop.ModemManager1.Modem.Signal property Gsm a{sv}
+org.freedesktop.ModemManager1.Modem.Signal property Umts a{sv}
+org.freedesktop.ModemManager1.Modem.Signal property Lte a{sv}
+org.freedesktop.ModemManager1.Modem.Signal property Nr5g a{sv}
+org.freedesktop.ModemManager1.Sim method SendPin
+org.freedesktop.ModemManager1.Sim method SendPuk
+org.freedesktop.ModemManager1.Sim method EnablePin
+org.freedesktop.ModemManager1.Sim method ChangePin
+org.freedesktop.ModemManager1.Sim method SetPreferredNetworks
+org.freedesktop.ModemManager1.Sim property Active b
+org.freedesktop.ModemManager1.Sim property SimIdentifier s
+org.freedesktop.ModemManager1.Sim property Imsi s
+org.freedesktop.ModemManager1.Sim property Eid s
+org.freedesktop.ModemManager1.Sim property OperatorIdentifier s
+org.freedesktop.ModemManager1.Sim property OperatorName s
+org.freedesktop.ModemManager1.Sim property EmergencyNumbers as
+org.freedesktop.ModemManager1.Sim property PreferredNetworks a(su)
+org.freedesktop.ModemManager1.Sim property Gid1 ay
+org.freedesktop.ModemManager1.Sim property Gid2 ay
+org.freedesktop.ModemManager1.Sim property SimType u
+org.freedesktop.ModemManager1.Sim property EsimStatus u
+org.freedesktop.ModemManager1.Sim property Removability u
+org.mobian_project.CallAudio method SelectMode
+org.mobian_project.CallAudio property AudioMode u
+org.mobian_project.CallAudio method EnableSpeaker
+org.mobian_project.CallAudio property SpeakerState u
+org.mobian_project.CallAudio method MuteMic
+org.mobian_project.CallAudio property MicState u
+org.sigxcpu.Feedback property Profile s
+org.sigxcpu.Feedback method TriggerFeedback
+org.sigxcpu.Feedback method EndFeedback
+org.sigxcpu.Feedback signal FeedbackEnded
+net.hadess.SensorProxy method ClaimAccelerometer
+net.hadess.SensorProxy method ReleaseAccelerometer
+net.hadess.SensorProxy method ClaimProximity
+net.hadess.SensorProxy method ReleaseProximity
+net.hadess.SensorProxy property HasAccelerometer b
+net.hadess.SensorProxy property AccelerometerOrientation s
+net.hadess.SensorProxy property HasProximity b
+net.hadess.SensorProxy property ProximityNear b

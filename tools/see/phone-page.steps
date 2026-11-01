@@ -1,0 +1,14 @@
+# The Mobile page and the Sound page's touch switch, against the stand-ins: a text
+# in, an alert seen, the SIM asking in the session and a public warning.
+export EVA_FAKE_MODEM=1 EVA_FAKE_HAPTICS=1 EVA_FAKE_HARDWARE=1
+export EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts EVA_FAKE_NET=$SEE_EVA/tests/fixtures/net
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging}
+export BOOT=${BOOT:-10}
+start shell
+ipc phone fake text +31612345678 "Are you coming tonight?"; pause 2
+ipc phone fake alert 4371 "Flood warning for your area. Move to higher ground now."; pause 3; shot alert
+ipc phone ok; pause 2
+ipc settings mobile; pause 3; shot mobile
+ipc settings sound; pause 3; shot sound
+ipc close; pause 2
+ipc phone fake lock sim-pin; pause 3; shot sim

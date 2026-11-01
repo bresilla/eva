@@ -1,8 +1,28 @@
 -- The clipboard's history: text and pictures copied, newest first, pins on top,
 -- kept in a private folder. What a password manager marks is never read.
 --
--- One store: eva-clipboard keeps it and the launcher's `;` reads it. Each process
--- reads the file before it changes it, and follows it for what the other wrote.
+-- One store: eva-clipboard keeps it, and the launcher's `;` and the on-screen
+-- keyboard read it. Each process reads the file before it changes it, and
+-- follows it for what the other wrote.
+--
+-- The store, which readers outside this tool may rely on:
+--
+--   $XDG_STATE_HOME/eva/clipboard/history.json     mode 600, replaced atomically
+--
+-- A JSON array, pinned entries first, then newest first. An entry is
+--
+--   id      a string, unique in the file
+--   kind    "text" or "image"
+--   text    the words, for "text"
+--   path    the picture's file beside the history, for "image"
+--   mime    its type, for "image"
+--   time    when it was copied, in unix milliseconds
+--   pinned  true, or absent
+--
+-- Fields are only ever added. To put an entry back on the clipboard, set its
+-- `text`, or the bytes at `path` as `mime`, with `morf.clipboard.set`; to remove
+-- one, change the file by `M.remove`'s rule: an entry and its picture go
+-- together. tests/clipboard_spec.lua holds this shape.
 local morf = require("morf")
 
 local M = {
@@ -21,11 +41,22 @@ M.SECRET = {
   ["application/x-nspasteboard-concealed-type"] = true,
 }
 
-local function folder()
+--- The private folder the history lives in.
+function M.folder()
   return (morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")) .. "/eva/clipboard"
 end
+local folder = M.folder
 
-local function index() return folder() .. "/history.json" end
+--- The history's index.
+function M.index() return folder() .. "/history.json" end
+local index = M.index
+
+--- The entries on disk, newest first and pins on top; nil when none can be read.
+function M.read()
+  local ok, list = pcall(function() return morf.json.decode(morf.fs.read(index())) end)
+  if ok and type(list) == "table" then return list end
+  return nil
+end
 
 local function dry()
   local value = morf.env("EVA_DRY_RUN")
@@ -38,8 +69,8 @@ local function save(list)
 end
 
 function M.load()
-  local ok, list = pcall(function() return morf.json.decode(morf.fs.read(index())) end)
-  if ok and type(list) == "table" then M.items:set(list) end
+  local list = M.read()
+  if list then M.items:set(list) end
 end
 
 local follower

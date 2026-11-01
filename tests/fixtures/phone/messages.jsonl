@@ -1,0 +1,5 @@
+{"id":"a","number":"+31612345678","text":"Are you coming tonight?","direction":"in","time":1793530000,"state":"received","read":true,"delivery":""}
+{"id":"b","number":"+31612345678","text":"Yes, around eight. Shall I bring something?","direction":"out","time":1793530100,"state":"sent","read":true,"delivery":"delivered"}
+{"id":"c","number":"+31612345678","text":"Only yourself. The door code is the same as last time.","direction":"in","time":1793530200,"state":"received","read":true,"delivery":""}
+{"id":"d","number":"+38344123456","text":"Thirrja jote humbi, më merr kur të kesh kohë.","direction":"in","time":1793540000,"state":"received","read":false,"delivery":""}
+{"id":"e","number":"+3197008012","text":"Your code is 482913","direction":"in","time":1793520000,"state":"received","read":true,"delivery":""}

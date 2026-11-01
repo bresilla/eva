@@ -271,7 +271,12 @@ function V.build(M)
     local swiped, axis, start_x, start_y = false, nil, 0, 0
     local function swipe_with(on_axis, go)
       return require("lib.kit.control").headless("Drag", { mode = "swipe", axis = on_axis,
-        on_swiped = function(direction) if go(direction) then swiped = true M.dismiss_at(i, direction) end end })
+        on_swiped = function(direction)
+          if not go(direction) then return end
+          swiped = true
+          require("haptics").fire("commit")
+          M.dismiss_at(i, direction)
+        end })
     end
     local across = swipe_with("x", function() return true end)
     local away = swipe_with("y", function(direction) return direction == AWAY end)
