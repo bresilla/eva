@@ -382,7 +382,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(caught>0)
     test.near(caught,before-20,45)
     test.advance(1000) test.near(state().dashboard_y,caught,1)
-    test.touch("cancel",0,558,2460) test.advance(500)
+    test.touch("cancel",0,558,2460) test.advance(700)
     test.truthy(state().dashboard)
     test.near(state().dashboard_y,0,1)
   end)

@@ -86,15 +86,21 @@ function V.build(model)
       behavior = { opacity = { duration = 180 } } }, function() return center(id()) end), root)
   end
 
-  -- The active marker has the same shape as every workspace slot.
+  -- The active marker has the same shape as every workspace slot and slides
+  -- hard; a thin tick follows it on a longer tween and lands under it.
+  local hard = { duration = theme.duration.normal, easing = theme.ease.emphasized }
+  local late = { duration = theme.duration.large, easing = theme.ease.emphasized }
+  ui.reparent(marker({ id = "rail-tick", opacity = .45,
+    color = function() return C.primary end,
+    behavior = { x = late, y = late } }, function() return center(model.active()) end), root)
   ui.reparent(marker({ id = "rail-selector",
     color = function() return C.primary end,
-    behavior = { x = { duration = 380, easing = "out_cubic" }, y = { duration = 380, easing = "out_cubic" } } },
+    behavior = { x = hard, y = hard } },
     function() return center(model.active()) end), root)
 
   -- -------------------------------------------------------------- card --
-  local digits = ui.Text { id = "rail-value", x = 12, y = 26, height = 36, font_size = 32,
-    font_family = theme.font, font_weight = 300,
+  local digits = kit.text { id = "rail-value", x = 12, y = 26, height = 36, font_size = 32,
+    font_family = theme.font, font_weight = 300, morph = true,
     text = function() return ("%02d"):format(model.active()) end, color = function() return C.primary end }
   local meter = ui.Item { id = "rail-meter", x = 12, y = H - 22, width = W - 24, height = 6 }
   local CELL_GAP = 2

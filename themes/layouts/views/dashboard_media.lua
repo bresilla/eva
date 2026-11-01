@@ -368,7 +368,7 @@ function M.build(ctx)
   local track = place("track", { id = "media-track", title = "Now playing", note = state_note,
     visible = something,
     kit.heading { id = "media-tab-title", y = 0, width = BW, height = TITLE_H, elide = "right",
-      level = "title", text = field("title"), font_size = TITLE_SIZE, active = on_screen },
+      level = "title", text = field("title"), font_size = TITLE_SIZE, active = on_screen, morph = true },
     ui.Row { y = META_Y, height = META_H, gap = 8, align = "center",
       kit.text { id = "media-tab-artist", width = math.floor(BW * .55) - 8, elide = "right", text = field("artist"),
         font_size = theme.size.small, color = accent },

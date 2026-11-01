@@ -76,6 +76,8 @@ return function(S, theme, M)
   local function bar(t, hx, cy, id, h)
     h = h or HH
     return moving(t,{id=id,y=cy-h/2,height=h,radius=2,width=HW,
+      scale_x=function() return (t.down or t.dragging) and theme.give.handle or 1 end,
+      behavior={scale_x=theme.spring.press},
       color=function() return C().primary end},{x=function() return hx()-HW/2 end})
   end
   --- M3's value bubble over the handle while it is held.
@@ -216,7 +218,9 @@ return function(S, theme, M)
           visible = function() return hy() - top > 18 end } },
       fill = vpiece(function() return hy() + HW / 2 + GAP end, function() return bottom end,
         function() return C().primary end),
-      handle=moving(t,{x=cx-hw/2,width=hw,radius=2,height=HW,color=function() return C().primary end},
+      handle=moving(t,{x=cx-hw/2,width=hw,radius=2,height=HW,color=function() return C().primary end,
+        scale_y=function() return (t.down or t.dragging) and theme.give.handle or 1 end,
+        behavior={scale_y=theme.spring.press}},
         {y=function() return hy()-HW/2 end}),
     }, hy
   end

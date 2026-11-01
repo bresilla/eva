@@ -92,6 +92,20 @@ morf.effect("eva.scale", function()
   zoom_settle = morf.time.timer(300, function() zoom_settle = nil morf.reload() end, false)
 end)
 
+-- How things move is read as the theme is built: a change builds the shell
+-- again in place, as the scale does.
+local motion_first, motion_settle = true, nil
+morf.effect("eva.motion", function()
+  local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion") }
+  if motion_first or not style then motion_first = false return end
+  if motion_settle then motion_settle:cancel() end
+  motion_settle = morf.time.timer(120, function()
+    motion_settle = nil
+    require("themes.session").hold()
+    morf.reload()
+  end, false)
+end)
+
 -- --------------------------------------------------------------- rotation --
 
 -- A screen turned between portrait and landscape: this output's shell is

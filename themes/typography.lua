@@ -1,6 +1,11 @@
 local ui = require("morf.ui")
 return function(tokens, colors, scale)
-  local function text(props)
+  local text
+  function text(props)
+    if props.morph then
+      return require("themes.text_morph").make(text, props,
+        { duration = tokens.duration.normal, easing = tokens.ease.standard })
+    end
     props.active = nil
     props.font_family = props.font_family or tokens.auth_font or tokens.font
     props.font_size = props.font_size or scale(15)

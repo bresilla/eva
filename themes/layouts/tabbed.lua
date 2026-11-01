@@ -134,7 +134,7 @@ function M.new(spec)
   end)
 
   --- Called as the panel opens (`true`) or shuts: the chosen page buds in.
-  local shown
+  local shown, budding
   function panel.shown(open)
     -- This is called from an effect. Reading tab below also subscribes that
     -- effect to selection: an unchanged open state must not cancel its wipe.
@@ -144,9 +144,17 @@ function M.new(spec)
     presented:set(open)
     if wipe then wipe(function() present(tab:get()) end, true) else present(tab:get()) end
     if running then for _, h in ipairs(running) do h:stop() end end
+    if budding then budding:cancel() budding = nil end
     if wipe or phone then
       for _,page in ipairs(pages) do page.opacity,page.translate_x,page.translate_y=1,0,0 end
-    else running = kit.bud({ pages[tab:get()] }, open, { from = 0.97 }) end
+    else
+      -- The bud runs outside the calling effect.
+      local page = pages[tab:get()]
+      budding = morf.time.timer(1, function()
+        budding = nil
+        running = kit.bud({ page }, open, { from = 0.97 })
+      end, false)
+    end
   end
 
   local pager=phone and require("pager_drag").new {

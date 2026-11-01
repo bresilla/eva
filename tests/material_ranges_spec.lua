@@ -27,8 +27,8 @@ local function grip(case)
   for _,node in ipairs(test.nodes()) do
     if case.fader and node.element=="Item" and node.visible and math.abs(node.width-44)<.01 and math.abs(node.height-20)<.01 then return node end
     if node.element=="Rect" and node.visible and node.opacity>0 then
-      if case.vertical and not case.fader and node.width>=30 and node.height<=4.01 then return node end
-      if not case.vertical and node.height>=30 and node.width<=4.01 then return node end
+      if case.vertical and not case.fader and node.width>=30 and node.height<=8 then return node end
+      if not case.vertical and node.height>=30 and node.width<=8 then return node end
     end
   end
   error("Missing slider grip")
@@ -42,15 +42,19 @@ for _,case in ipairs(cases) do
       if case.vertical then return box.x+(case.fader and 48 or box.width/2),box.y+2+(box.height-30)*position end
       return box.x+2+(box.width-case.right-4)*position,box.y+(case.name=="log_slider" and 16 or box.height/2)
     end
-    test.press(point(.5))
+    local function thickness(node) return case.vertical and node.height or node.width end
+    test.press(point(.5)) test.advance(500)
+    local widened=grip(case)
+    if not case.fader then
+      test.truthy(thickness(widened)>thickness(before)+1,"Grip does not widen under the finger")
+    end
     for _,position in ipairs {.8,.3,.9} do
       local x,y=point(position)
       test.move(x,y) test.advance(16)
       local handle=grip(case)
       test.near(handle.x+handle.width/2,x,1,"Grip trails horizontal movement")
       test.near(handle.y+handle.height/2,y,1,"Grip trails vertical movement")
-      test.near(case.vertical and handle.height or handle.width,
-        case.vertical and before.height or before.width,.01,"Grip changes thickness while held")
+      test.near(thickness(handle),thickness(widened),.01,"Grip changes thickness while held")
     end
     test.release(point(.9)) test.advance(500)
     test.eq(test.logs("error"),{}) test.eq(test.logs("warn"),{})
@@ -85,7 +89,7 @@ test.it("material range sliders let either handle follow the hand independently"
   local function handles()
     local out={}
     for _,node in ipairs(test.nodes()) do
-      if node.element=="Rect" and node.visible and node.height==40 and node.width<=4.01 then out[#out+1]=node end
+      if node.element=="Rect" and node.visible and node.height==40 and node.width<=8 then out[#out+1]=node end
     end
     table.sort(out,function(a,b) return a.x<b.x end)
     test.eq(#out,2)
@@ -99,7 +103,7 @@ test.it("material range sliders let either handle follow the hand independently"
     test.move(x,y) test.advance(16)
     local bars=handles()
     test.near(bars[index].x+bars[index].width/2,x,1)
-    test.near(bars[index].width,4,.01)
+    test.truthy(bars[index].width>=4,"A held handle only widens")
     local other=index==1 and 2 or 1
     test.near(bars[other].x+bars[other].width/2,(point(index==1 and .8 or .4)),1)
     test.release(x,y) test.advance(500)

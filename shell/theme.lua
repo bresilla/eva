@@ -11,6 +11,11 @@ if appearance.font and appearance.font ~= "" then
   M.font, M.mono, M.font_file = appearance.font, appearance.font, ""
 end
 M.space = require("themes.spacing")
+-- Reduce motion lands everything at once, before anything is built to move.
+if config.get("appearance.reduce_motion") == true then
+  require("themes.motion_landing").install()
+  for name in pairs(M.stretch or {}) do M.stretch[name] = false end
+end
 -- Each named spring two ways: `theme.spring.spatial` for a behavior,
 -- `theme.bounce.spatial` as a `duration` and `easing`.
 do

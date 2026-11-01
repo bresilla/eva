@@ -29,14 +29,16 @@ return function(theme, M)
     local ink = spec.ink or function() return C().onPrimaryContainer end
     local h = function() return t.height > 0 and t.height or 32 end
     return {
-      background = ui.Rect { anchors = { fill = true },
-        radius = function() return h() / 2 end,
+      background = ui.Rect { id = spec.id and spec.id .. "-plate", anchors = { fill = true },
+        radius = function() return h() / 2 * (t.down and theme.give.corner or 1) end,
+        scale = function() return t.down and theme.give.scale or 1 end,
         color = function()
           local c = color()
           if t.down then return c:mix(ink(), 0.12) end
           return t.hovered and c:mix(ink(), 0.08) or c
         end,
-        behavior = { color = { duration = theme.duration.small } } },
+        behavior = { radius = theme.spring.press, scale = theme.spring.press,
+          color = { duration = theme.duration.small } } },
       content=require("lib.kit.archetypes.press").caption {width=spec.width,height=h,gap=8,
         before=spec.icon and {M.icon(spec.icon,18,ink)} or {},
         measure=M.text {text=spec.label or "",font_size=theme.size.normal,opacity=0},
@@ -51,21 +53,22 @@ return function(theme, M)
 
   --- The M3 switch: a track that fills when on and a circular thumb that
   --- moves across without changing its size or silhouette.
-  local function switch(t)
+  local function switch(t, spec)
     local motion = { duration = theme.duration.small, easing = theme.ease.standard }
     local function thumb() return 24 end
-    local jump = M.spring(520, 22)
+    local jump = theme.spring.press
     return {
       background = ui.Rect { anchors = { fill = true }, radius = 16,
         color = function() return t.checked and C().primary or C().surfaceContainerHighest end,
         border_width = function() return t.checked and 0 or 2 end,
         border_color = function() return C().outline end,
         behavior = { color = motion } },
-      indicator = ui.Item {
+      indicator = ui.Item { id = spec and spec.id and spec.id .. "-thumb",
         x = function() return ((t.checked ~= (t.mirrored == true)) and 36 or 16) - thumb() / 2 end,
         y = function() return 16 - thumb() / 2 end,
         width = thumb, height = thumb,
         behavior = { x = jump, y = jump, width = jump, height = jump },
+        stretch = theme.stretch.thumb,
         M.shape { anchors = { fill = true },
           shape = "circle",
           color = function() return t.checked and C().onPrimary or C().outline end },
@@ -86,14 +89,16 @@ return function(theme, M)
     local function ink() return on() and C().onErrorContainer or C().onSurfaceVariant end
     return {
       background = ui.Rect { width = W, height = H,
-        radius = h / 2,
+        radius = function() return h / 2 * (t.down and theme.give.corner or 1) end,
+        scale = function() return t.down and theme.give.scale or 1 end,
         color = function()
           local base = on() and C().errorContainer or C().surfaceContainerHighest
           if t.down then return base:mix(ink(), 0.12) end
           if t.hovered then return base:mix(ink(), 0.08) end
           return base
         end,
-        behavior = { color = { duration = theme.duration.small } } },
+        behavior = { radius = theme.spring.press, scale = theme.spring.press,
+          color = { duration = theme.duration.small } } },
       icon = M.icon(function() return on() and spec.icon_on or spec.icon_off end, spec.size or 20, ink,
         { anchors = { center_in = true }, fill = on }),
       indicator = ring(t, h / 2 - 1),
@@ -161,7 +166,7 @@ return function(theme, M)
     if widget == "area" or widget == "segment" then
       return { indicator = ring(t, function() return math.min(16, t.height / 2) end) }
     end
-    if widget == "switch" then return switch(t)
+    if widget == "switch" then return switch(t, spec)
     elseif widget == "icon" then return icon(t, spec)
     elseif widget == "checkbox" or widget == "check_menu_item" then return checkbox(t)
     elseif widget == "radio" or widget == "radio_menu_item" then return radio(t)
@@ -286,6 +291,8 @@ return function(theme, M)
         color = function() return C().primary end },
       handle = ui.Rect { id = spec.id and spec.id .. "-handle", y = 0, height = H + 8, radius = 2,
         x = handle_x(), width = grip,
+        scale_x = function() return (t.down or t.dragging) and theme.give.handle or 1 end,
+        behavior = { scale_x = theme.spring.press },
         color = function() return C().primary end },
       second_handle = ring(t, H / 2),
     }
@@ -351,10 +358,7 @@ return function(theme, M)
     local function fill_width() return math.max(1e-3,at()*W()-6) end
     local function rest_x() return math.min(W(),at()*W()+6) end
     local function rest_width() return math.max(0,W()-rest_x()) end
-    local function handle_x()
-      local width=t.down and 6 or 4
-      return math.max(0,math.min(W()-width,at()*W()-width/2))
-    end
+    local function handle_x() return math.max(0,math.min(W()-4,at()*W()-2)) end
     local fill=ui.Item { id = "media-progress-wave", x = 0, y = 0, height = 12, clip = true,
       width=fill_width(),visible=function() return at()*W()>6 end,
       ui.Path { width = function() return W()+WAVE end, height = 12,
@@ -368,7 +372,8 @@ return function(theme, M)
     local rest=M.surface {y=13,height=8,radius=4,x=rest_x(),width=rest_width(),
       color=function() return C().surfaceVariant end}
     local handle=M.surface { id = "media-progress-handle", y = 0, height = 34, radius = 2,
-        width = function() return t.down and 6 or 4 end,
+        width = 4, scale_x = function() return (t.down or t.dragging) and theme.give.handle or 1 end,
+        behavior = { scale_x = theme.spring.press },
         x=handle_x(),color = function() return C().primary end }
     local previous=at()
     require("themes.kit_common").follow_range(t,handle,{
@@ -502,26 +507,35 @@ return function(theme, M)
       if not growing then x = x + PAD end
       return x, x + w
     end
-    local indicator = ui.Item { id = id and id .. "-tab-indicator", y = H - 4, height = 3, x = 0, width = 0 }
+    local indicator = ui.Item { id = id and id .. "-tab-indicator", y = H - 4, height = 3,
+      stretch = theme.stretch.tab }
     local moving = morf.signal("eva." .. tostring(id) .. ".indicator.moving", false)
+    local name = "eva." .. tostring(id) .. ".indicator"
+    -- Where it belongs: placed at once until it first travels, then on a
+    -- spring that carries its speed through a change of mind.
+    local aim_x, aim_width = morf.signal(name .. ".x", 0), morf.signal(name .. ".width", 0)
+    local travelled = morf.signal(name .. ".travelled", false)
+    ui.claims(indicator, { motion = theme.spring.spatial,
+      placed = { when = function() return not travelled:get() end, motion = { duration = 0 },
+        set = { x = aim_x, width = aim_width } },
+      moved = { set = { x = aim_x, width = aim_width } } })
     -- Set going once every label is there to be measured.
     local function follow()
       local still
-      local shown, moved = t.current, false
-      morf.effect("eva." .. tostring(id) .. ".indicator", function()
+      local shown = t.current
+      morf.effect(name, function()
         local now = t.current
         if now < 1 then return end
         local l1, r1 = span(now)
-        if now == shown then
-          if not moved then indicator.x, indicator.width = l1, r1 - l1 end
-          return
+        if now ~= shown then
+          shown = now
+          travelled:set(true)
+          moving:set(true)
+          if still then still:cancel() end
+          still = morf.time.timer(theme.bounce.spatial.duration, function() still = nil moving:set(false) end, false)
         end
-        local l0, r0 = span(shown)
-        shown, moved = now, true
-        M.elastic(indicator, "x", l0, r0, l1, r1, { duration = 520 })
-        moving:set(true)
-        if still then still:cancel() end
-        still = morf.time.timer(560, function() still = nil moving:set(false) end, false)
+        aim_x:set(l1)
+        aim_width:set(r1 - l1)
       end, { owner = indicator })
     end
     local line = { shape = "box", operation = "union", y = 7, height = 1,

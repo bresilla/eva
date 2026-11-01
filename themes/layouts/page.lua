@@ -151,7 +151,7 @@ function P.row(spec)
   local text_w = function() return math.max(1e-3, get(w) - text_x - (trailing and trailing_w() + 28 or 14)) end
   local lit = spec.on or function() return true end
   local body = {
-    id = spec.id, width = w, height = h,
+    id = spec.id, width = w, height = h, enter = spec.enter,
     spec.icon and kit.icon(spec.icon, 22, function() return lit() and kit.ink("accent")() or kit.ink("lo")() end,
       { x = 14, anchors = { vertical_center = true } }) or nil,
     ui.Column { x = text_x, width=text_w,clip=true,anchors = { vertical_center = true }, gap = 2,

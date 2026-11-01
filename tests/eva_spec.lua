@@ -715,7 +715,7 @@ test.describe("eva", function()
     test.near(first.y, (H - track) / 2, 1)
     test.near(last.y + last.height, (H + track) / 2, 1)
     test.near(first.opacity, 1, 0.01)
-    test.near(test.get({ id = "rail-pill-5" }).opacity, 0.6, 0.01)
+    test.near(test.get({ id = "rail-head" }).y, first.y, 0.5, "the blob is not on the active pill")
     test.eq(#test.logs("error"), 0)
   end)
 
@@ -729,7 +729,7 @@ test.describe("eva", function()
     test.ipc("workspace", 4)
     -- The accent leaves the old pill as the bud, in one frame, not fading.
     test.advance(16)
-    test.near(test.get({ id = "rail-pill-1" }).opacity, 0.6, 0.01, "the old pill's accent fades")
+    test.truthy(test.get({ id = "rail-head" }).y > p1.y + 1, "the accent stayed on the old pill")
     test.near(test.get({ id = "rail-field" }).opacity, 1, 0.01)
     -- The old pill itself, its whole size, opens out into the disc.
     test.advance(120)
@@ -751,7 +751,7 @@ test.describe("eva", function()
     local number = test.get { id = "rail-number" }
     test.eq(digit(), "4", "the digits did not morph to where it went")
     test.near(number.opacity, 1, 0.01)
-    test.truthy(test.get({ id = "rail-pill-1" }).opacity < 1, "the old pill stayed lit")
+    test.near(test.get({ id = "rail-head" }).y, pill.y, 1, "the accent stayed on the old pill")
     test.snapshot("eva-rail-bud.png", { surface = "screen" })
     -- Switched again while out: it slides there, the number rolls over.
     test.ipc("workspace", 7)
