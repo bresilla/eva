@@ -166,6 +166,32 @@ function M.unfile(key)
   return true
 end
 
+--- Whether this machine has a home to put things on.
+function M.can_home() return require("desktop_model").home() end
+
+--- Puts the app or folder at `key` on the home. Whether it was put there.
+function M.to_home(key)
+  local row = by_key[key]
+  if not row then return false end
+  local home = require("desktop_model")
+  if row.kind == "app" then return home.place(home.app_item(row.id)) end
+  if row.kind == "folder" then return home.place("folder:" .. row.id) end
+  return false
+end
+
+--- The launcher open on folder `name`.
+function M.show_folder(name)
+  M.open_folder(name)
+  M.drawer.set(true)
+end
+
+--- The launcher open on what can be done to `row`.
+function M.act_on_row(row)
+  by_key["tile:" .. row.id] = row
+  M.drawer.set(true)
+  M.act_on("tile:" .. row.id)
+end
+
 --- Whether anything on this machine can install: the grid's chip asks.
 function M.can_install()
   local machine = require("software_model").machine()
@@ -340,6 +366,13 @@ end
 
 function M.activate(row)
   if row and row.kind == "folder" then M.open_folder(row.id) return end
+  -- While the home is arranged a press on an app puts it there.
+  local home = require("desktop_model")
+  if row and row.kind == "app" and home.home() and home.editing() and M.opened:get() then
+    home.place(home.app_item(row.id))
+    M.drawer.set(false)
+    return
+  end
   local acting = M.acting:get()
   M.acting:set("")
   if row then remember(row) end

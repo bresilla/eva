@@ -90,7 +90,11 @@ local function link(path)
   return ok and type(target) == "string" and target or nil
 end
 
-local function entry_path(row) return (row.source or "") .. "/" .. tostring(row.id) end
+-- An entry's file: `source` is its folder, and its id comes without the suffix.
+local function entry_path(row)
+  local id = tostring(row.id)
+  return (row.source or "") .. "/" .. (id:find("%.desktop$") and id or id .. ".desktop")
+end
 
 local function under(path, prefix) return path:sub(1, #prefix) == prefix end
 

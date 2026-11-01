@@ -88,7 +88,7 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.falsy(test.find { id = "desktop-widget-date", visible = true }, "a hidden widget stayed")
       test.click("desktop-add-weather") test.settle(400)
       test.eq(test.ipc("d_shown"), { "clock", "weather" })
-      test.eq(test.ipc("d_get", "desktop.widgets.phone"), {}, "the phone's list moved with the desk's")
+      test.eq(test.ipc("d_get", "desktop.widgets.phone"), { "clock", "date" }, "the phone's list moved with the desk's")
       test.click("desktop-size-clock") test.settle(400)
       test.truthy(test.ipc("d_small", "clock"))
       test.click("desktop-done") test.settle(200)

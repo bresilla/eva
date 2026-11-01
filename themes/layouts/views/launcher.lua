@@ -54,9 +54,7 @@ function V.build(M)
   local GRID_MAX = 960
   local ALPHABET = theme.space.xl
   local GRID_ROOM = responsive.fit(GRID_MAX, 8) - 2 * PAD - ALPHABET
-  local COLUMNS = math.max(3, math.min(GRID_ROOM // grid_view.CELL_MIN,
-    math.ceil(GRID_ROOM / grid_view.CELL_MAX)))
-  local CELL = math.min(grid_view.CELL_MAX, GRID_ROOM // COLUMNS)
+  local COLUMNS, CELL = require("tile_grid").icons(GRID_ROOM)
   local TILES = COLUMNS * CELL
   local GRID_W_FIT = TILES + 2 * PAD + ALPHABET
   M.columns:set(COLUMNS)

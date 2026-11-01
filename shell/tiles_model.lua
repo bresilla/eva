@@ -32,7 +32,9 @@ end
 --- lists it holds: one nameless list without), `store` (`order(zone)`,
 --- `set_order(zone, list)`, `small()`, `set_small(list)`, `reset()`), or
 --- `order` and `small` (setting prefixes) for the settings, `editing` (the
---- signal saying it is being arranged), and `name`, its signals'.
+--- signal saying it is being arranged), `name`, its signals', `extra(id)`, a
+--- tile for an id the catalogue does not list, and `zone()`, the zone `add`
+--- uses when told none.
 function M.new(catalogue, form, opts)
   opts = opts or {}
   local store = opts.store or setting_store(form, opts)
@@ -42,8 +44,10 @@ function M.new(catalogue, form, opts)
   local by_id = {}
   for _, tile in ipairs(catalogue) do by_id[tile.id] = tile end
 
+  local function known(id) return by_id[id] or (opts.extra and opts.extra(id)) or nil end
+
   local function here(id)
-    local tile = by_id[id]
+    local tile = known(id)
     return tile ~= nil and (tile.present == nil or tile.present() == true)
   end
 
@@ -151,8 +155,8 @@ function M.new(catalogue, form, opts)
 
   --- `id` back on the board, at the end of `zone` (the board's last without).
   function board.add(id, zone)
-    if not by_id[id] or board.zone_of(id) then return false end
-    zone = zone or zones[#zones]
+    if not known(id) or board.zone_of(id) then return false end
+    zone = zone or (opts.zone and opts.zone()) or zones[#zones]
     local out = copy(saved_order(zone))
     out[#out + 1] = id
     store.set_order(zone, out)

@@ -204,7 +204,8 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.settle(200)
       test.ipc("do_action_row", "Press again to uninstall")
       test.settle(300)
-      test.truthy(host.logged("gio trash"), "the entry was not trashed")
+      test.truthy(host.logged("gio trash " .. morf.env("XDG_DATA_HOME") .. "/applications/fixture-editor.desktop"),
+        "the entry's own file was not trashed")
     end)
   end)
 end

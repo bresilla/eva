@@ -34,10 +34,7 @@ end
 function V.build(desktop, w, h)
   local inner = P.inner(w)
   local board = desktop.board
-  local function shown(id)
-    for _, item in ipairs(board.shown()) do if item.id == id then return true end end
-    return false
-  end
+  local function shown(id) return board.zone_of(id) ~= nil end
   local rows = { id = "desktop-widgets", width = w, title = "Widgets",
     P.buttons { id = "desktop-actions", width = inner,
       { id = "desktop-arrange-button", label = "Arrange", icon = "dashboard_customize",
@@ -64,7 +61,27 @@ function V.build(desktop, w, h)
   end
   local quiet = function() return config.get("desktop.quiet_clock") end
   local standby = function() return config.get("desktop.standby") end
+  local function home_switch(key, icon, title, subtitle)
+    local function on() return config.get("desktop.home." .. key) == true end
+    return P.row { id = "desktop-home-" .. key, width = inner, icon = icon, title = title, subtitle = subtitle, on = on,
+      trailing = P.switch { id = "desktop-home-switch-" .. key, name = title, on = on,
+        on_toggled = function(now) config.set("desktop.home." .. key, now == true) end } }
+  end
+  local columns = { id = "desktop-home-columns", width = inner }
+  for _, count in ipairs { { 0, "Auto" }, { 3, "3" }, { 4, "4" }, { 5, "5" }, { 6, "6" } } do
+    columns[#columns + 1] = { id = "desktop-home-columns-" .. count[1], label = count[2], group = "desktop-home-columns",
+      selected = function() return config.get("desktop.home.columns") == count[1] end,
+      on_clicked = function() config.set("desktop.home.columns", count[1]) end }
+  end
   return P.page { id = "desktop-page", width = w, height = h,
+    P.section { id = "desktop-home", width = w, title = "Home screen", note = "A phone and a tablet. A desk keeps its widgets",
+      home_switch("enabled", "home", "Pages of apps and widgets", "Hold the wallpaper to arrange them"),
+      home_switch("dock", "dock_to_bottom", "Dock on a phone", "A row of pinned apps on the home screen"),
+      home_switch("labels", "label", "Names under icons"),
+      home_switch("locked", "lock", "Lock the layout", "A hold no longer starts arranging"),
+      label("Icons across a phone's page", inner),
+      P.buttons(columns),
+    },
     P.section { id = "desktop-look", width = w, title = "Look",
       label("What widgets stand on", inner),
       P.buttons(chrome),

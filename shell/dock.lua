@@ -89,7 +89,7 @@ end
 --- Shows the windows of `key` once the pointer has stayed on it.
 function M.peek(key)
   if peeking then peeking:cancel() peeking = nil end
-  if key == "" then M.preview_for:set("") return end
+  if key == "" or model.mode() == "hotseat" then M.preview_for:set("") return end
   peeking = morf.time.timer(PEEK, function()
     peeking = nil
     if #model.windows_of(key) > 0 then

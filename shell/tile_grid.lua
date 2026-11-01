@@ -3,6 +3,17 @@
 -- small tiles share a slot. Geometry only: no nodes and no state.
 local G = {}
 
+-- How wide an icon's cell may be.
+G.ICON_MIN, G.ICON_MAX = 72, 96
+
+--- How many icons stand across `room`, and each one's cell: at least three, as
+--- few as keep a cell within its limits, or `wanted` of them.
+function G.icons(room, wanted)
+  local columns = math.max(3, math.min(room // G.ICON_MIN, math.ceil(room / G.ICON_MAX)))
+  if wanted and wanted > 0 then columns = wanted end
+  return columns, math.min(G.ICON_MAX, room // columns)
+end
+
 --- Flows `items` (a list of `{ id, small }`) along `columns` slots. Returns
 --- the cells by id (`column` in half columns, `row`, `span` in half columns)
 --- and how many rows they take.

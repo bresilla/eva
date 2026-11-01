@@ -50,7 +50,10 @@ function M.build(model, style)
 
   -- Across the edge: the distance of the plate's far side from the edge.
   local depth = function() return size() + 2 * S.s end
-  local margin = function() return taskbar() and 0 or theme.BORDER + S.s end
+  local margin = function()
+    if taskbar() then return 0 end
+    return theme.BORDER + (model.mode() == "hotseat" and S.l or S.s)
+  end
   local function plate_box()
     local w, h = screen()
     local d = depth()
@@ -273,7 +276,7 @@ function M.build(model, style)
     end,
     width = function() return vertical() and theme.BORDER + S.xs or length() end,
     height = function() return vertical() and length() or theme.BORDER + S.xs end,
-    visible = function() return model.on() and not model.shown() end }
+    visible = function() return model.on() and model.mode() ~= "hotseat" and not model.shown() end }
   -- The pointer over the strip, whatever is drawn above it.
   morf.effect("eva.dock.edge", function()
     if strip.contains_pointer then model.edge_entered() else model.edge_left() end

@@ -45,12 +45,13 @@ function M.start()
   local listed = {}
   for _, entry in ipairs(model.CATALOGUE) do listed[#listed + 1] = entry.id end
   model.watch_command(function()
-    for _, item in ipairs(model.board.shown()) do if item.id == "command" then return true end end
+    for _, item in ipairs(model.everything()) do if item.id == "command" then return true end end
     return false
   end)
 end
 
---- `desktop edit|done|state`, `desktop add ID`, `desktop hide ID`.
+--- `desktop edit|done|state`, `desktop add ID`, `desktop hide ID`, `desktop app
+--- ID`, `desktop page N` and `desktop new-page`.
 function M.verb(how, id)
   how = how or "state"
   if how == "edit" then model.set_editing(true) return true end
@@ -58,12 +59,16 @@ function M.verb(how, id)
   if how == "add" then return model.board.add(id) end
   if how == "hide" then model.board.hide(id) return true end
   if how == "size" then model.board.toggle_size(id) return true end
+  if how == "app" then return model.toggle_app(id) end
+  if how == "page" then model.page:set(tonumber(id) or 1) return model.current() end
+  if how == "new-page" then return model.add_page() end
   if how == "state" then
     local out = {}
-    for i, item in ipairs(model.board.shown()) do out[i] = item.id end
-    return { editing = model.editing(), shown = out, host = wallpaper.painter() == "eva" and "wallpaper" or "own" }
+    for i, item in ipairs(model.everything()) do out[i] = item.id end
+    return { editing = model.editing(), shown = out, host = wallpaper.painter() == "eva" and "wallpaper" or "own",
+      home = model.home(), page = model.current(), pages = model.page_count() }
   end
-  error("`" .. tostring(how) .. "`: edit, done, add, hide, size or state")
+  error("`" .. tostring(how) .. "`: edit, done, add, hide, size, app, page, new-page or state")
 end
 
 return M

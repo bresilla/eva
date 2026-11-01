@@ -257,7 +257,7 @@ function M.load(options)
     LULE_A = "/nonexistent/lule", HOME = morf.env("XDG_CACHE_HOME"), EVA_SETTINGS = settings }
   if options.path then env.PATH = M.path(options.path) end
   for key, value in pairs(options.env or {}) do env[key] = value end
-  test.load("../shell/init.lua", { source = M.SHELL, size = options.size or { 1920, 1080 }, env = env })
+  test.load("../shell/init.lua", { source = M.SHELL .. (options.source_extra or ""), size = options.size or { 1920, 1080 }, env = env })
   test.settle(1500)
   test.ipc("launcher", "open")
   test.settle(800)

@@ -86,8 +86,13 @@ test.it("a tablet has a taskbar along its edge, keeping windows clear of it", fu
   test.falsy(test.find({ id = "dock-bubble-1", visible = true }), "its flat edge ripples over the icons")
 end)
 
-test.it("a phone has none", function()
+test.it("a phone has a row of pins on its home, and none without one", function()
   load("material", { 412, 915 }, nil, true)
+  test.eq(test.ipc("dock", "on").mode, "hotseat")
+  test.truthy(test.find({ id = "dock", visible = true }))
+  local settings = morf.env("XDG_CACHE_HOME") .. "/dock-no-home.json"
+  morf.fs.write(settings, morf.json.encode { desktop = { home = { enabled = false } } })
+  load("material", { 412, 915 }, { EVA_SETTINGS = settings }, true)
   test.eq(test.ipc("dock", "on").mode, "off")
   test.falsy(test.find({ id = "dock", visible = true }))
 end)

@@ -174,9 +174,16 @@ local config = settings.open {
     -- each kind of machine, which small, and where a desk or a tablet has
     -- them, as `{ id, x, y }` in fractions of the screen.
     desktop = {
-      widgets = { desk = {}, tablet = {}, phone = {} },
+      widgets = { desk = {}, tablet = { "clock", "date" }, phone = { "clock", "date" } },
       small = { desk = {}, tablet = {}, phone = {} },
       place = { desk = {}, tablet = {}, phone = {} },
+      -- The pages past the first on a phone's and a tablet's home: lists of what
+      -- stands on each, widgets by id, `app:ID` and `folder:NAME`.
+      pages = { desk = {}, tablet = {}, phone = {} },
+      -- A phone's and a tablet's home: whether it has pages of apps, the phone's
+      -- row of pinned apps on it, the names under the icons, how many icons
+      -- stand across (0 chooses), and whether a hold is kept from arranging.
+      home = { enabled = true, dock = true, labels = true, columns = 0, locked = false },
       -- What a widget stands on: "glass", "solid", "none", or "stencil", the
       -- clock's digits cut through a veil onto the picture.
       chrome = "glass",

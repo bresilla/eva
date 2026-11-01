@@ -11,21 +11,26 @@ M.MAX_ICONS = 14
 M.GAIN, M.REACH = .6, 2.2
 M.EDGES = { "bottom", "left", "right" }
 
---- What the dock is here: "dock", "taskbar" along a tablet's edge, or "off":
---- on a phone always, and on a desk unless it is asked for.
+--- What the dock is here: "dock", "taskbar" along a tablet's edge, "hotseat",
+--- the pinned row on a phone's home, or "off": on a phone without a home, and
+--- on a desk unless it is asked for.
 function M.mode()
   local responsive = require("responsive")
   local form = responsive.form and responsive.form() or "desk"
   local wish = config.get("dock.enabled")
-  if form == "phone" then return "off" end
   if wish == "off" then return "off" end
+  if form == "phone" then
+    local home = config.get("desktop.home.enabled") == true and config.get("desktop.home.dock") == true
+    return home and "hotseat" or "off"
+  end
   if form == "tablet" then return "taskbar" end
   return wish == "on" and "dock" or "off"
 end
 
 function M.on() return M.mode() ~= "off" end
 function M.edge()
-  if M.mode() == "taskbar" then return "bottom" end
+  local mode = M.mode()
+  if mode == "taskbar" or mode == "hotseat" then return "bottom" end
   local v = config.get("dock.edge")
   return (v == "left" or v == "right") and v or "bottom"
 end
@@ -35,8 +40,18 @@ function M.magnifies() return M.mode() == "dock" and config.get("dock.magnify") 
 --- "off", "on" or "windows": it hides only while a window lies under it.
 function M.autohide()
   if M.mode() == "taskbar" then return config.get("dock.taskbar_hide") == true and "on" or "off" end
+  if M.mode() == "hotseat" then return "windows" end
   local v = config.get("dock.autohide")
   return (v == "off" or v == "on") and v or "windows"
+end
+
+--- How far the dock stands in from its edge, where one is up: for what lays out
+--- above it.
+function M.depth()
+  if not M.on() then return 0 end
+  local space = require("themes.spacing")
+  local margin = M.mode() == "taskbar" and 0 or space.l
+  return M.size() + 2 * space.s + margin + require("theme").BORDER
 end
 
 --- The sizes of `count` icons with the pointer `at` along the row, nil for
@@ -136,6 +151,7 @@ function M.entries()
   end
   for _, key in ipairs(pins()) do add(key, true) end
   local pinned_count = #out
+  if M.mode() == "hotseat" then return out, pinned_count end
   for _, key in ipairs(order) do add(key, false) end
   if config.get("dock.buttons") ~= false then
     out[#out + 1] = { key = "eva:overview", name = "Overview", class = "", initial_class = "", glyph = "grid_view", icon = "",
