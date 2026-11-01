@@ -1,6 +1,5 @@
 # The launcher's modes against what is really there: the machine's own programs and
 # the web. Nothing here acts: EVA_DRY_RUN holds back every Return.
-printf 'Host box\n  HostName example.org\n  User me\n' > /dev/null
 mkdir -p "$HOME/.ssh"
 printf 'Host box\n  HostName example.org\n  User me\n' > "$HOME/.ssh/config"
 BOOT=9

@@ -49,10 +49,11 @@ start shell
 ipc launcher open; pause 2.5
 ipc close; pause 1
 ipc launcher open; pause 1.5; shot home
-text 'power'; pause 1.2; shot universal
-key BackSpace; key BackSpace; key BackSpace; key BackSpace; key BackSpace
-text 'atlas'; pause 1; shot apps
-ipc launcher close; pause 0.6
+ipc close; pause 0.6
+ipc launcher query 'power'; pause 1.2; shot universal
+ipc close; pause 0.6
+ipc launcher query 'atlas'; pause 1; shot apps
+ipc close; pause 0.6
 ipc launcher query 'atlas browser'; pause 1.2
 key F10; pause 0.8; shot actions
 ipc close; pause 0.6
