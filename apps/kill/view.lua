@@ -85,7 +85,7 @@ end
 
 local function hint()
   return kit.card {
-    id = "kill-hint", z = 3, width = function() return math.min(S.TARGET * 9, screen_w() - 2 * S.s) end,
+    id = "kill-hint", z = 3, width = function() return math.min(S.TARGET * 12, screen_w() - 2 * S.s) end,
     height = S.TARGET, radius = kit.round(S.s),
     anchors = { horizontal_center = true, bottom = true, bottom_margin = S.l },
     opacity = function() return leaving() and 0 or 1 end,

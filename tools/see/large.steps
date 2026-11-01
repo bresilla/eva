@@ -7,14 +7,14 @@ until_tool() { for _ in $(seq 60); do appipc state > /dev/null 2>&1 && return 0;
 printf 'copied words' | wl-copy
 BOOT=0.5 start app large
 until_tool
-pause 1.2
+pause 4
 shot clipboard
 note echo "clipboard: $(state)"
 stop
 
 BOOT=0.5 start app large "Hello, world"
 until_tool
-pause 1.2
+pause 4
 shot word
 note echo "word: $(state)"
 
@@ -29,7 +29,7 @@ ROLE=""
 
 printf 'from stdin\n' | sh apps/large/cli &
 ROLE=$!
-pause 2.5
+pause 4
 shot stdin
 sh apps/large/cli second launch
 pause 1

@@ -16,7 +16,7 @@ local M = {}
 
 M.BAR = S.xxs
 M.CAP = S.l
-M.CARD_W = S.TARGET * 7
+M.CARD_W = S.TARGET * 9
 M.CARD_H = S.TARGET + S.xl
 
 local function picture() return model.picture:get() end
