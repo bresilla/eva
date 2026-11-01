@@ -70,8 +70,10 @@ local function join(drawer, width, opening)
       width = width + 2 * (theme.SEAM + OVERLAP), height = theme.ROUNDING + theme.BORDER },
     drawer.shape,
   }
-  -- Over the shell, nothing past the opening: that is the shell's frame.
+  -- Over the shell, nothing past the opening: that is the shell's frame. It
+  -- stands and goes with the panel.
   return ui.Item { id = "capture-frame-clip", clip = true,
+    visible = function() return drawer.panel.visible end,
     x = function() local x = opening() return M.framed:get() and x or 0 end,
     y = function() local _, y = opening() return M.framed:get() and y or 0 end,
     width = function()
@@ -106,6 +108,8 @@ function M.build(capture, shown)
     panels,
     indicator.build(capture, shown),
     capture.editor.node,
+    -- The on-screen keyboard's bounds, which a tool has none of.
+    ui.Item { width = 0, height = 0, require("drawer").keyboard_input },
   }
 end
 

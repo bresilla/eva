@@ -160,12 +160,17 @@ for _, style in ipairs { "material", "tsugumori" } do
       end
     end)
 
-    test.it("joins the frame in a field of the theme's own paint", function()
+    test.it("joins the frame in a field of the theme's own paint, gone with the panel", function()
       tool(style, { size = { 1920, 1080 } })
+      test.falsy(test.get("capture-frame-clip").visible, "the join drew with no panel")
       test.ipc("capture", "open") test.settle(1000)
+      test.truthy(test.get("capture-frame-clip").visible)
       test.get("capture-frame")
       test.get("capture-frame-edge")
       test.get("drawer-capture-background")
+      test.ipc("capture", "close") test.advance(1500)
+      test.falsy(test.get("drawer-capture").visible)
+      test.falsy(test.get("capture-frame-clip").visible, "the join stayed behind the panel")
       test.eq(#test.logs("error"), 0)
     end)
 

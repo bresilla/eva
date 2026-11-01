@@ -16,6 +16,8 @@ drawn
 toolup
 runtime() { toolipc state "$1" | tr -d '\\ \n' | grep -o 'output":"[^"]*","panel":[a-z]*,"phase":"[a-z]*","posture":"[a-z]*'; }
 runtimes() { echo "$(runtime HEADLESS-1) | $(runtime HEADLESS-2)"; }
+# The GPU starts on each screen in turn, so the second answers last.
+for _ in $(seq 400); do runtime HEADLESS-2 > /dev/null 2>&1 && break; sleep 0.1; done
 note echo "the tool on: $(runtimes)"
 ipc capture open > /dev/null
 pause 2

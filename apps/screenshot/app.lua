@@ -287,7 +287,7 @@ end
 -- `state [OUTPUT]`: every screen hears a verb and the first to answer is heard,
 -- so a name asks that screen's runtime.
 ipc.state = function(output)
-  if output and output ~= me then return nil end
+  if output and output ~= me then return end
   return { output = me, panel = capture.drawer.open:get(), phase = capture.phase:get(), recording = capture.recording:get(),
     editing = editor.running(), stage = editor.phase:get(), posture = host.now, framed = host.framed:get() }
 end
