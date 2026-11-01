@@ -26,7 +26,9 @@ function M.build(model, w, h)
   end
   -- Refresh at its label's width, a new task the rest of the row.
   local refresh = P.button { id = "tasks-refresh", label = "Refresh", icon = "refresh", on_clicked = model.refresh }
-  local function missing() return (model.error:get() or ""):find("Taskwarrior unavailable", 1, true) ~= nil end
+  local function missing() return model.missing:get() end
+  -- The list never came: what went wrong stands where the list would.
+  local function unread() return not model.loaded:get() and (model.error:get() or "") ~= "" end
   local add = P.button { id = "tasks-add", label = "New task", icon = "add", tone = "primary",
     enabled = function() return not missing() end,
     width = function() return w - (refresh.layout_width or 0) - 8 end, on_clicked = function() model.edit() end }
@@ -41,8 +43,10 @@ function M.build(model, w, h)
         kit.icon("radio_button_unchecked", 22, function() return row.overdue and C.error or C.primary end,
           { anchors = { center_in = true } }) }
       kit.hover(done, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, R.round(40))
+      -- A line only where it has something to say.
       local function line(text, color)
-        return kit.text { text = text, width = inner - 64, elide = "right", font_size = require("themes.layouts.parts").SIZE.body, color = color or kit.ink("lo") }
+        return kit.text { text = text, width = inner - 64, elide = "right", visible = text ~= "",
+          font_size = require("themes.layouts.parts").SIZE.body, color = color or kit.ink("lo") }
       end
       return ui.Item { id = "task-row-" .. row.uuid, width = inner, height = P.ROW_H + 12, enter = kit.enter(),
         kit.action { id = "task-edit-" .. row.uuid, x = 50, width = inner - 50, height = P.ROW_H + 12, cursor = "pointer",
@@ -57,16 +61,28 @@ function M.build(model, w, h)
       }
     end,
   }
-  local empty = P.empty { id = "tasks-empty", width = w, icon = "task_alt",
+  local empty = P.empty { id = "tasks-empty", width = w,
+    icon = function() return (missing() or unread()) and "error" or "task_alt" end,
     title = function()
       if missing() then return "Taskwarrior is not installed" end
+      if unread() then return "Tasks could not be read" end
+      if model.count:get() > 0 then return "Nothing in this view." end
       return model.loaded:get() and "A little breathing room." or "Your tasks, right here."
     end,
     text = function()
       if missing() then return "Install task to keep your tasks here." end
+      if unread() then return model.error:get() end
+      if model.count:get() > 0 then return "Choose another view, or clear the search." end
       return model.busy:get() and "Loading tasks…" or "Add a task, or choose another view."
     end }
   empty.visible = function() return rows:len() == 0 end
+  -- What a person's last action came to, under what they pressed.
+  local function notice(id)
+    local line = kit.subtitle { id = id, width = w, wrap = true, text = function() return model.error:get() end,
+      font_size = theme.size.small, color = function() return C.error end }
+    line.visible = function() return (model.error:get() or "") ~= "" and (editing:get() or rows:len() > 0) end
+    return line
+  end
   local list = P.section { id = "tasks-open", width = w,
     title = function() return filter:get() .. " tasks" end,
     note = function() return tostring(model.count:get()) .. " · Taskwarrior" end,
@@ -74,6 +90,7 @@ function M.build(model, w, h)
     task_list }
   local browse = P.page { id = "tasks-list", width = w, height = h,
     ui.Row { gap = 8, align = "center", add, refresh },
+    notice("tasks-error"),
     P.section { id = "tasks-find", width = w, search, P.buttons(filters) },
     list, empty,
   }
@@ -123,17 +140,14 @@ function M.build(model, w, h)
     bar,
     ui.Item { y = P.BUTTON_H + P.GAP, width = w, height = function() return get(h) - P.BUTTON_H - P.GAP end,
       P.page { id = "task-editor-scroll", width = w, height = function() return get(h) - P.BUTTON_H - P.GAP end,
+        notice("task-editor-error"),
         P.section(fields),
         actions,
       } },
   }
   editor.visible = function() return editing:get() end
 
-  local failure = kit.subtitle { id = "tasks-error", y = function() return get(h) - 48 end,
-    width = w, height = 44, wrap = true, text = function() return model.error:get() end,
-    font_size = theme.size.small, color = function() return C.error end }
-  failure.visible = function() return (model.error:get() or "") ~= "" end
-  local root = ui.Item { id = "tasks-page", width = w, height = h, browse, editor, failure }
+  local root = ui.Item { id = "tasks-page", width = w, height = h, browse, editor }
   local previous
   morf.effect("material.tasks.editor", function()
     local revision = model.editor_revision:get()

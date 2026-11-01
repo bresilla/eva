@@ -7,7 +7,6 @@ local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
-local widgets = require("planner_widgets")
 local C = theme.color
 local M = {}
 
@@ -36,7 +35,7 @@ function M.build(model, w, h)
   -- Today at its label's width, planning the rest of the row.
   local today = P.button { id = "planner-today", label = "Today", icon = "today", on_clicked = model.today }
   local plan = P.button { id = "planner-add", label = "Plan a task", icon = "add", tone = "primary",
-    width = function() return inner - (today.layout_width or 0) - 8 end, on_clicked = model.plan }
+    enabled = model.can_plan, width = function() return inner - (today.layout_width or 0) - 8 end, on_clicked = model.plan }
 
   local day = { id = "planner-day", caption_id = "planner-day-title", width = w, title = model.day_title,
     note = function() return tostring(agenda:len()) .. " planned" end,
@@ -54,11 +53,12 @@ function M.build(model, w, h)
           trailing = P.chevron(), on_clicked = function() model.edit(item.uuid) end }
       end },
     P.row { id = "planner-empty", width = inner, icon = "event_available", on = function() return false end,
-      title = "Nothing planned yet", subtitle = "Tasks due or scheduled that day show here.",
+      title = "Nothing planned yet", subtitle = "Tasks for that day show here.",
       visible = function() return agenda:len() == 0 end },
   }
 
-  local failure = widgets.message(function() return model.error:get() end, w, 64)
+  local failure = kit.subtitle { id = "planner-error", width = w, wrap = true, text = function() return model.error:get() end,
+    font_size = theme.size.small, color = function() return C.error end }
   failure.visible = function() return (model.error:get() or "") ~= "" end
 
   local page = P.page { id = "planner-scroll", width = w, height = h, active = model.active,
