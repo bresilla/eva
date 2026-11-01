@@ -289,3 +289,26 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   with selection beginning from `on_long_pressed`, would let one finger scroll.
 - A node's parent from Lua. `themes/overscroll.lua` finds an enclosing list and
   the panel under a finger by comparing rectangles, for want of `node.parent`.
+
+## Global touch: open
+
+- Reading a touchscreen. `shell/touch_driver.lua` hears every contact through a
+  `libinput debug-events` child and parses its lines, for want of an evdev API:
+  `morf.touch.open(node, handlers)` in the engine would save the process and the
+  parsing, and stop for good with the handle.
+- Output power as a signal. Nothing says an output went dark, so the driver asks
+  Hyprland's `j/monitors` as each contact sequence starts, to keep gestures from
+  firing on a dark screen. A tracked read beside `morf.output_power.set` would do.
+- `pcall` of a nil value raises rather than returning false, unlike Lua, and
+  `debug` is absent, so an effect's error names no line: `could not call a nil
+  value` from `pcall(child.pid, child)` took a spec to find.
+- Taking a contact back. Hyprland 0.55 has `sendTouchCancel` and never calls it,
+  and a libinput TOUCH_CANCEL does nothing there, so a global gesture cannot take
+  its fingers away from the app under them. Hyprland also keeps one touch focus:
+  with a finger on eva and a finger on an app, both lifts go to the app, so the
+  strip under the first finger never hears it lift.
+- Cancelling a surface's contacts. A second finger on a surface interrupts its
+  pan, but one landing on an app does not, so `phone_gestures.yield` reaches the
+  panels' pans and drawers by hand. A list's scroll or `themes/swipe_dismiss.lua`
+  under one of three fingers runs on. `morf.surface.cancel_touches()` would end
+  them all.

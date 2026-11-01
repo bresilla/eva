@@ -20,6 +20,7 @@ local function native_enabled()
 end
 local global_enabled=morf.signal("eva.global.recognizers",native_enabled())
 local cancel_global={}
+local cancel_surface={}
 function M.global_allowed() local enabled=global_enabled:get() return enabled and native_enabled() end
 local function regions_visible() return global_enabled:get() end
 function M.handoff(enabled)
@@ -58,10 +59,35 @@ local function blocked(own)
   return capture and capture.editor and capture.editor.active:get()
 end
 
+M.blocked=blocked
+
 local function close_other_panels(keep)
   for _, drawer in ipairs(require("drawer").all) do
     if drawer ~= keep and drawer.name~="keyboard" then drawer.set(false) end
   end
+end
+M.close_panels=close_other_panels
+
+-- The global driver reads the touchscreen: two fingers are its, and the strip
+-- has no need to reach for a second one.
+local function driven()
+  local driver=package.loaded.touch_driver
+  return driver~=nil and driver.owns()
+end
+
+-- Two fingers landed together, read by the driver: no strip begins on one of them.
+local function together()
+  local driver=package.loaded.touch_driver
+  return driver~=nil and driver.owns() and driver.together()
+end
+
+--- Lets go of whatever an edge strip holds: two fingers landed together. With
+--- `panels`, what a panel's own pan holds as well: a global gesture has begun.
+function M.yield(panels)
+  for _,cancel in ipairs(cancel_global) do cancel() end
+  if not panels then return end
+  for _,cancel in ipairs(cancel_surface) do cancel() end
+  for _,drawer in ipairs(require("drawer").all) do drawer.end_drag(0,true) end
 end
 
 local function top_page(x)
@@ -124,6 +150,9 @@ local function over_panel(x, y)
   end
 end
 
+--- Whether an open panel lies under (`x`, `y`).
+function M.on_panel(x, y) return over_panel(x, y) ~= nil end
+
 --- Whether a pull `direction` from (`x`, `y`) drags an open panel shut, so a
 --- list under the finger leaves it to the panel.
 function M.pulls_shut(direction, x, y)
@@ -139,6 +168,10 @@ end
 function M.pan(spec)
   if not M.continuous then return nil end
   local drawer, pager
+  cancel_surface[#cancel_surface+1]=function()
+    if pager then pager.finish(0,true) pager=nil end
+    drawer=nil
+  end
   return function(phase, dx, dy, vx, vy, x, y)
     if phase == "begin" then
       if blocked(spec.drawer) then return false end
@@ -182,7 +215,7 @@ function M.edge_pan(edge,phase,dx,dy,vx,vy,start_x,start_y)
   if not M.global_allowed() then return false end
   if phase == "begin" then
     edge_drawer,side_edge=nil,nil
-    if blocked() then return false end
+    if blocked() or together() then return false end
     local inward = ({top=dy,bottom=-dy,left=dx,right=-dx})[edge]
     if not inward or inward <= 0 then return false end
     edge_across = edge == "left" or edge == "right"
@@ -348,6 +381,8 @@ function M.attach(root)
     end)
   cancel_global[#cancel_global+1]=function()
     contacts.cancel() single("cancel") preview.cancel()
+    -- The rest of this contact sequence stays cancelled.
+    mode="ignored"
   end
   -- The bottom strip owns the gesture so a second finger can cancel
   -- an in-progress panel/workspace pull before choosing the keyboard.
@@ -363,7 +398,7 @@ function M.attach(root)
     root.on_panned=function(phase,dx,dy,vx,vy,x)
       if phase=="begin" then
         rail=nil
-        if not M.global_allowed() or blocked() or require("responsive").sheets() then return false end
+        if not M.global_allowed() or blocked() or together() or require("responsive").sheets() then return false end
         if math.abs(dy)<=math.abs(dx)*1.2 or not x then return false end
         -- From the rail itself, or a finger's width in from a bare side.
         local width=(morf.screens[1] or {}).width or morf.surface.width
@@ -400,6 +435,8 @@ function M.attach(root)
   }, root)
   -- A finger resting on the strip lets it reach higher (themes.keyboard).
   local reach=gestures.reach("eva.gesture.bottom.held")
+  local stretch=reach.hold
+  function reach.hold(on) stretch(on and not driven()) end
   local hold=reach.hold
   local function floor()
     return ((morf.screens[1] or {}).height or morf.surface.height)-require("themes.keyboard").inset:get()
@@ -418,7 +455,7 @@ function M.attach(root)
     bottom.on_panned=function(phase,dx,dy,vx,vy)
       if phase=="begin" then
         tapped=nil
-        if not M.global_allowed() or blocked() then return false end
+        if not M.global_allowed() or blocked() or together() then return false end
         single("begin") single("update",dx,dy,vx,vy)
         return mode=="workspace" or mode=="dashboard"
       end
@@ -428,7 +465,7 @@ function M.attach(root)
     end
     bottom.on_two_finger_panned=function(phase,dx1,dy1,dx2,dy2,x1,y1,x2,y2)
       if phase=="begin" then
-        if not M.global_allowed() or blocked() or require("keyboard").active() then return false end
+        if driven() or not M.global_allowed() or blocked() or require("keyboard").active() then return false end
         -- One finger from the edge itself, the other from it or the band above.
         return math.max(y1,y2)>=floor()-EDGE and math.min(y1,y2)>=floor()-EDGE-CATCH
       end

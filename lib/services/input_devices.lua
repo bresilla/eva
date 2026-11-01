@@ -5,7 +5,8 @@
 --   devices.first("direct")    -- the first with that field set, or nil
 --
 -- A device: `name`, `bus`, `handlers`, `event` (its node's name), and what it
--- can do: `direct` (a touchscreen), `joystick`, `tablet_switch`.
+-- can do: `direct` (a touchscreen or a pen), `pen`, `multitouch`, `joystick`,
+-- `tablet_switch`.
 --
 -- Read from EVA_INPUT_DEVICES in place of /proc/bus/input/devices when that is
 -- set. The specs set it, so what they see does not depend on their machine.
@@ -19,6 +20,18 @@ local KERNEL = "/proc/bus/input/devices"
 local DIRECT_BIT = 2
 -- SW_TABLET_MODE is switch 1, the second bit of the device's SW word.
 local TABLET_BIT = 2
+local BTN_TOOL_PEN, ABS_MT_POSITION_X = 0x140, 0x35
+-- The width of a word in the kernel's bitmaps.
+local LONG = string.packsize("l") * 8
+
+-- Bit `n` of a bitmap as the kernel prints it: hex words, highest first.
+local function bit(words, n)
+  if not words then return false end
+  local list = {}
+  for word in words:gmatch("%x+") do list[#list + 1] = word end
+  local word = list[#list - n // LONG]
+  return word ~= nil and (tonumber(word, 16) >> (n % LONG)) & 1 == 1
+end
 
 --- The file the list is read from.
 function M.path()
@@ -39,6 +52,8 @@ local function device(block)
     handlers = handlers,
     event = handlers and handlers:match("event%d+"),
     direct = prop & DIRECT_BIT ~= 0,
+    pen = bit(block:match("B: KEY=([%x ]+)"), BTN_TOOL_PEN),
+    multitouch = bit(block:match("B: ABS=([%x ]+)"), ABS_MT_POSITION_X),
     joystick = handlers ~= nil and handlers:find("js%d") ~= nil,
     tablet_switch = switches & TABLET_BIT ~= 0,
   }

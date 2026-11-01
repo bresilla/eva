@@ -184,7 +184,7 @@ in
         services.dbus.packages = lib.optional config.programs.eva.phone.calls pkgs.callaudiod;
         systemd.tmpfiles.rules = map (device: "w ${device}/power/wakeup - - - - enabled")
           config.programs.eva.phone.wakeDevices;
-        # Only lisgd reads /dev/input; native gestures come over Wayland.
+        # Only lisgd joins input; the touch driver has the touchscreen alone (touch.nix).
         users.users.${config.programs.eva.user}.extraGroups =
           lib.optional (config.programs.eva.phone.gestureDriver == "lisgd") "input"
           ++ lib.optionals config.programs.eva.phone.calls [ "networkmanager" "feedbackd" ];
