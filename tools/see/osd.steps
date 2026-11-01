@@ -1,6 +1,7 @@
 # The on-screen displays: each family at each kind of place, the popups at a
 # bottom anchor, and the Settings page.
 export EVA_FAKE_OSD=1
+export EVA_FAKE_ART=$SEE_EVA/tests/fixtures/wallpaper.png
 start shell
 shot rest
 ipc osd volume; pause 0.9; shot volume

@@ -1,0 +1,12 @@
+# A display caught swelling and travelling, each shot taken as soon as grim can.
+export EVA_FAKE_OSD=1
+export EVA_SETTINGS=$HOME/.local/state/see-settings.json
+echo '{"osd":{"kinds":{"volume":{"hold":9000}}}}' > "$EVA_SETTINGS"
+start shell
+ipc osd volume; shot swell-right-0; shot swell-right-1; shot swell-right-2
+pause 1.2
+echo '{"osd":{"kinds":{"volume":{"hold":9000,"position":"top_center"}}}}' > "$EVA_SETTINGS"
+pause 0.15; shot travel-0; shot travel-1; shot travel-2; pause 1.2; shot landed-top
+echo '{"osd":{"kinds":{"volume":{"hold":9000,"position":"center"}}}}' > "$EVA_SETTINGS"
+pause 1.2; shot landed-centre
+stop
