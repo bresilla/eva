@@ -142,9 +142,10 @@ end)
 
 require("lib.shell.capture.hotkey").follow(config)
 
--- The tool hears the shell is here, and is ready ahead of the first key, a
--- moment after the shell has come up.
-if not dry_run() and (not morf.window.primary or morf.window.primary()) then
+-- On a real session the tool hears the shell is here, and is ready ahead of the
+-- first key, a moment after the shell has come up.
+local session = not dry_run() and not (morf.capabilities and morf.capabilities.headless)
+if session and (not morf.window.primary or morf.window.primary()) then
   morf.fs.write(require("capture_state").shell_path(), tostring(morf.process_id), { atomic = true, parents = true })
   morf.time.timer(2500, function() M.ask("standby") end, false)
 end

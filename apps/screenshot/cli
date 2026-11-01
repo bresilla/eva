@@ -152,7 +152,6 @@ order "$@" "result=$result"
 eva_dry && exit 0
 status=1
 if outcome "$result"; then status=0; fi
-# The tool this started has gone before the next command asks for it.
 if [ -n "$tool" ]; then wait "$tool" || true; fi
 if [ "$status" -ne 0 ]; then
   eva_say "${answer:-the capture did not finish}"

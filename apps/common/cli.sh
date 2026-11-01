@@ -27,8 +27,7 @@ eva_has() {
   command -v "$1" > /dev/null 2>&1
 }
 
-# The capture tool's socket, beside the shell's: it runs on every screen as the
-# shell does, so it is not an application of this display but an instance.
+# The capture tool's socket, beside the shell's.
 eva_capture_socket() {
   display=${WAYLAND_DISPLAY:-wayland-0}
   printf '%s-screenshot' "${display##*/}"

@@ -4,54 +4,57 @@ unset EVA_DRY_RUN
 CLI="sh apps/screenshot/cli"
 FOLDER="$HOME/Pictures/Captures"
 state() { toolipc state | tr -d '\\ \n' | sed 's/.*result":\["//' | cut -c1-120; }
+running() { morf -i "$(basename "$WAYLAND_DISPLAY")-screenshot" ipc verbs > /dev/null 2>&1 && echo yes || echo no; }
 export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
-
-start shell
-pause 1
-grim "$EVA_FAKE_SCREEN"
+export BOOT=0
 
 # Through the shell: it keeps the tool ready, and its verbs reach it.
-$CLI --ask standby
-pause 4
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
 note echo "standby: $(state)"
 shot standby
 ipc capture open > /dev/null
-pause 1.2
+pause 2
 note echo "panel: $(state)"
 note echo "shell sees: $(ipc capture state | tr -d ' \n')"
 shot panel
 ipc capture close > /dev/null
-pause 1.2
+pause 1.5
 note echo "closed: $(state)"
 shot closed
 
 ipc screenshot region > /dev/null
-pause 1.5
+pause 2
 note echo "selection: $(state)"
 shot selection
 key s
-pause 1
+pause 1.5
 note echo "editor: $(state)"
 shot editor
 ipc capture-editor tool rect > /dev/null
-pause 0.5
+pause 1
 shot editor-tool
 ipc capture-editor cancel > /dev/null
-pause 1
-note echo "cancelled: $(state)"
-stop
 pause 1.5
-note echo "gone with the shell: $(morf -i "$(basename "$WAYLAND_DISPLAY")-screenshot" ipc verbs 2>&1 | head -c 60)"
+note echo "cancelled: $(state)"
+
+# It goes with the shell.
+stop
+pause 7
+note echo "after the shell, running: $(running)"
 
 # Alone, no shell behind it: the same panel, flaring into the screen's edge.
 $CLI &
 TOOL=$!
-pause 3.5
+toolup
+pause 1.5
 note echo "alone: $(state)"
 shot alone-panel
 toolipc capture close > /dev/null
-pause 1.5
-note echo "alone ended: $(ps -o pid= -p "$TOOL" | wc -l) running"
+pause 2
+note echo "alone, afterwards, running: $(running)"
 
 # A screen, saved through the selection and the editor's export, no shell.
 $CLI screen --save > "$SEE_OUT/saved.txt" 2>&1
@@ -64,9 +67,10 @@ PICTURE=$(ls "$FOLDER"/*.png | head -n 1)
 # The editor on a picture, no shell.
 $CLI --edit-file "$PICTURE" &
 TOOL=$!
-pause 3.5
+toolup
+pause 1
 shot editor-file
 note echo "editor on a file: $(state)"
 toolipc capture-editor cancel > /dev/null
-pause 1.5
-note echo "file ended: $(ps -o pid= -p "$TOOL" | wc -l) running"
+pause 2
+note echo "file, afterwards, running: $(running)"

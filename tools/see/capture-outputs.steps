@@ -1,32 +1,33 @@
 # The capture tool on two screens: a runtime on each, as the shell has, with the
-# panel on one at a time and a recording held across them. sway's focus is not
-# what picks the screen off Hyprland; the primary output does, as on main.
+# panel on one at a time and a recording held across them. Off Hyprland the
+# primary output is the one that acts, as it is for the shell.
 unset EVA_DRY_RUN
 export RECORD_ARGS="$SEE_OUT/recorder-args.txt"
 export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export BOOT=0
 SOCK="$(basename "$WAYLAND_DISPLAY")-screenshot"
 swaymsg create_output > /dev/null
 swaymsg output HEADLESS-2 mode 1280x800@60Hz position 1920 0 > /dev/null
 pause 0.5
 grim -o HEADLESS-1 "$EVA_FAKE_SCREEN"
 
-export BOOT=4
 start shell
-pause 4.5
+drawn
+toolup
 runtimes() { toolipc state | tr -d '\\ \n' | grep -o 'output":"[^"]*","panel":[a-z]*,"phase":"[a-z]*","posture":"[a-z]*' | tr '\n' ' '; }
-note echo "the tool's first frames: $(morf -i "$SOCK" log | grep -c 'first frame\|starting the GPU')"
+note echo "the tool's outputs: $(morf -i "$SOCK" log | grep -c 'first frame')"
 note echo "the tool on: $(runtimes)"
 ipc capture open > /dev/null
-pause 1.5
+pause 2
 note echo "panel: $(runtimes)"
 shot panel-two
 ipc capture close > /dev/null
-pause 1.2
+pause 1.5
 note echo "at rest: $(runtimes)"
 ipc record screen > /dev/null
-pause 2
+pause 2.5
 note echo "recording: $(sh apps/bin/eva-record status)"
 note cat "$RECORD_ARGS"
 ipc record > /dev/null
-pause 1.5
+pause 2
 note echo "stopped: $(sh apps/bin/eva-record status)"

@@ -1,12 +1,12 @@
--- eva-screenshot: the capture tool, a process of its own on every screen as the
--- shell is, so what opens opens on the focused one. It takes the verbs below
--- from `morf -i DISPLAY-screenshot ipc call`, and its first order as operands:
+-- eva-screenshot: the capture tool, a process of its own, on every screen as the
+-- shell is. It takes the verbs below from `morf -i DISPLAY-screenshot ipc call`,
+-- and its first order as operands:
 --
 --     morf -i wayland-1-screenshot app.lua -- capture open      does it, then ends
 --     morf -i wayland-1-screenshot app.lua -- standby           stays, out of sight
 --
--- The shell keeps it on standby, so a key opens the panel at once. Its state is
--- published for the shell in $XDG_RUNTIME_DIR/eva/capture-DISPLAY.json.
+-- The shell keeps it on standby. Its state is published for the shell in
+-- $XDG_RUNTIME_DIR/eva/capture-DISPLAY.json.
 local morf = require("morf")
 
 local first = { table.unpack(morf.operands or {}) }

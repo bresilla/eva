@@ -518,6 +518,21 @@ test.describe("the shell", function()
     morf.fs.write(state_file(), morf.json.encode(state), { atomic = true, parents = true })
   end
 
+  test.it("starts nothing and names itself to nobody away from a real session", function()
+    local display = (morf.env("WAYLAND_DISPLAY") or "wayland-0"):match("[^/]+$")
+    local pid = morf.env("XDG_RUNTIME_DIR") .. "/eva/shell-" .. display .. ".pid"
+    morf.fs.remove(pid)
+    test.load("../shell/init.lua", { source = [[
+      local detached = 0
+      morf.process.detach = function() detached = detached + 1 end
+      require("init")
+      morf.ipc.detached = function() return detached end
+    ]], size = { 1920, 1080 }, env = { EVA_STYLE = "material", EVA_DRY_RUN = "0", EVA_WALLPAPER = "", LULE_A = "/nonexistent/lule" } })
+    test.advance(4000)
+    test.eq(test.ipc("detached"), 0, "a spec started the tool")
+    test.falsy(morf.fs.exists(pid), "a spec named itself the shell")
+  end)
+
   test.it("holds no panel, no selection and no editor of its own", function()
     shell()
     test.falsy(test.find { id = "drawer-capture" })
