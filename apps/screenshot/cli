@@ -7,6 +7,7 @@
 #   eva-screenshot ocr|qr [region|window|screen]     copies what it reads
 #   eva-screenshot --edit-file FILE                  the editor on a picture
 #   eva-screenshot --pin-file FILE                   keeps a picture over the windows
+#   eva-screenshot --text FILE                       prints the text in a picture
 #   eva-screenshot --ask VERB [ARGS]                 a verb of the tool, kept ready
 #
 # Everything goes through the selection: --edit (the default) opens the editor
@@ -69,6 +70,14 @@ while [ "$#" -gt 0 ]; do
       shift
       order capture-pin add "$(readlink -f -- "${1:?--pin-file takes a file}")"
       exit 0
+      ;;
+    --text)
+      shift
+      if ! eva_has tesseract; then
+        eva_say "tesseract is not installed, so no text can be read from a shot"
+        exit 1
+      fi
+      exec tesseract "${1:?--text takes a file}" - 2> /dev/null
       ;;
     --ask)
       shift

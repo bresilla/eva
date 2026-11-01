@@ -63,9 +63,9 @@ function V.build(capture, M, w, h)
     visible = function() return not reading() and #M.rows:get() == 0 end,
     text = function() return M.total:get() == 0 and "Nothing captured yet" or "Nothing matches" end }
 
-  local words = (kit.scroll({ id = "capture-history-text-scroll", x = S.l, y = 76, width = inner, height = list_h, clip = true,
+  local words = (kit.scroll({ id = "capture-history-words-scroll", x = S.l, y = 76, width = inner, height = list_h, clip = true,
     visible = reading,
-    kit.text { id = "capture-history-text", width = inner, wrap = true, font_size = 13, color = function() return C.onSurface end,
+    kit.text { id = "capture-history-words", width = inner, wrap = true, font_size = 13, color = function() return C.onSurface end,
       text = function() return table.concat(M.lines(), "\n") end } }))
 
   local function action(id, label, icon, run, enabled, visible)

@@ -255,15 +255,25 @@ ipc["capture-pin"] = function(how, path)
   return true
 end
 
--- `capture-history open|close`: the panel's history.
-ipc["capture-history"] = function(how)
+-- `capture-history open|close`, `choose N`, and what a chosen row's buttons do:
+-- `edit`, `copy`, `text`, `pin`, `delete`, `back`, `copy-text`, `read-all`.
+ipc["capture-history"] = function(how, value)
   if not here() then return end
   if how == "close" then capture.history_open:set(false) return false end
-  wake(function()
-    capture.drawer.set(true)
-    capture.history_open:set(true)
-  end)
-  return true
+  if how == "open" then
+    wake(function()
+      capture.drawer.set(true)
+      capture.history_open:set(true)
+    end)
+    return true
+  end
+  local recent = package.loaded.recent
+  if not recent or not capture.history_open:get() then return false end
+  if how == "choose" then recent.chosen:set(tonumber(value) or 0) return true end
+  local doing = { edit = recent.edit, copy = recent.copy, text = recent.read, pin = recent.pin, delete = recent.delete,
+    back = recent.back, ["copy-text"] = recent.copy_text, ["read-all"] = recent.read_all }
+  if not doing[how] then error("`" .. tostring(how) .. "`: not something the history does") end
+  return doing[how]() == true
 end
 
 -- `capture-thumb edit|pin|dismiss`: what a press on the thumbnail does.

@@ -1,0 +1,42 @@
+# Text from a real shot, by the real tesseract: a window with words on it, the
+# text read and searched in the history, and the command line's plain answer with
+# tesseract out of reach.
+unset EVA_DRY_RUN
+export BOOT=0
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+FOLDER="$HOME/Pictures/Captures"
+CLI="sh apps/screenshot/cli"
+
+window 'Quarterly invoice number 4217' text '#223344'
+pause 1
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
+toolipc screenshot screen how=save > /dev/null
+pause 2
+toolipc capture-thumb dismiss > /dev/null
+PICTURE=$(ls "$FOLDER"/*.png | head -n 1)
+note echo "the command line reads: $($CLI --text "$PICTURE" | tr '\n' ' ')"
+ipc capture open > /dev/null
+pause 2
+toolipc capture-history open > /dev/null
+pause 2
+toolipc capture-history choose 1 > /dev/null
+pause 0.5
+shot history-chosen
+toolipc capture-history text > /dev/null
+pause 4
+shot text
+text 'invoice'
+pause 1
+shot text-search
+toolipc capture-history copy-text > /dev/null
+pause 0.5
+note echo "clipboard: $(wl-paste 2> /dev/null | head -n 3 | tr '\n' ' ')"
+ipc capture close > /dev/null
+pause 1
+BARE=$(mktemp -d)
+for each in readlink dirname sed head tail; do ln -s "$(command -v "$each")" "$BARE/$each"; done
+SHELL_BIN=$(command -v sh)
+note echo "missing: $(PATH=$BARE "$SHELL_BIN" apps/screenshot/cli --text "$PICTURE" 2>&1)"
