@@ -38,11 +38,14 @@ local function expand(word)
   return (tostring(word):gsub("^~/", function() return home .. "/" end):gsub("%$HOME", function() return home end))
 end
 function M.folder() return expand(config.get("capture.folder") or "~/Pictures/Captures") end
+local function recorder_gone()
+  M.paused:set(false) M.pausable:set(false) M.replay:set(0)
+end
 local function fail(message)
   M.message:set(message)
   M.phase:set("error")
   M.recording:set(false)
-  M.paused:set(false) M.replay:set(0)
+  recorder_gone()
   if d then d.set(true) end
 end
 --- Runs the configured command `name`. `$FILE` is the file it writes; `values`
@@ -201,7 +204,7 @@ local function stop_recorder()
   if M.phase:get() == "stopping" then return "stopping" end
   M.phase:set("stopping")
   if dry_run() then
-    stop_ticker() M.recording:set(false) M.paused:set(false) M.replay:set(0) M.phase:set("ready")
+    stop_ticker() M.recording:set(false) recorder_gone() M.phase:set("ready")
   elseif process then
     local ok, sent = pcall(function() return process:kill("INT") end)
     if not ok or not sent then
@@ -265,7 +268,7 @@ function M.record(what,order)
         process = nil
         stop_ticker()
         M.recording:set(false)
-        M.paused:set(false) M.replay:set(0)
+        recorder_gone()
         if result.ok or (stopped and result.signal == 2) then
           M.phase:set("ready") M.message:set(plain and "Recording saved." or "Replay stopped.")
           if plain then recorded(M.file:get()) end
@@ -395,7 +398,8 @@ function M.is_recording(path)
   local extension = tostring(path):lower():match("%.(%w+)$")
   return extension == "mp4" or extension == "mkv" or extension == "webm" or extension == "mov" or extension == "gif"
 end
--- The panel's history in the place of its controls, and the height it needs.
+-- Whether the panel has opened yet, and its history in the place of its controls.
+M.panel_opened = morf.signal("eva.capture.panel.opened", false)
 M.history_open = morf.signal("eva.capture.history", false)
 function M.height()
   if not M.history_open:get() then return 264 end
@@ -406,7 +410,8 @@ M.drawer = drawer.new {
   content = require("capture_view").build(M, M.WIDTH, M.height), close_policy = "outside",
 }
 d = M.drawer
-morf.effect("eva.capture.history.shut", function()
-  if not d.open:get() and M.history_open:get() then M.history_open:set(false) end
+morf.effect("eva.capture.panel.follow", function()
+  if d.open:get() then M.panel_opened:set(true)
+  elseif M.history_open:get() then M.history_open:set(false) end
 end)
 return M

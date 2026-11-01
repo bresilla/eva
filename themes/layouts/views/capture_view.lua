@@ -210,40 +210,48 @@ function M.build(capture, w, h)
     },
     -- While a recorder runs: its pause, or a replay buffer's save.
     ui.Item { x = w - 132, y = 196, width = 116, height = 28,
-      visible = function()
-        return capture.phase:get() == "recording" and (capture.replay:get() > 0 or capture.can_pause())
-      end,
-      kit.pill { id = "capture-pause", width = 116, height = 28,
-        label = function()
-          if capture.replay:get() > 0 then return "Save replay" end
-          return capture.paused:get() and "Resume" or "Pause"
+      ui.Loader { anchors = { fill = true },
+        active = function()
+          return capture.phase:get() == "recording" and (capture.replay:get() > 0 or capture.can_pause())
         end,
-        on_clicked = function()
-          if capture.replay:get() > 0 then capture.replay_save() else capture.pause() end
+        source = function()
+          return kit.pill { id = "capture-pause", width = 116, height = 28,
+            label = function()
+              if capture.replay:get() > 0 then return "Save replay" end
+              return capture.paused:get() and "Resume" or "Pause"
+            end,
+            on_clicked = function()
+              if capture.replay:get() > 0 then capture.replay_save() else capture.pause() end
+            end }
         end },
     },
   }
-  -- At the title's right: a long capture, the replay buffer, and what has been
-  -- captured.
-  local long = kit.action { id = "capture-scroll", x = w - 16 - 36 - 76, y = 2, width = 36, height = 30, cursor = "pointer",
-    accessible_name = "Scrolling capture", visible = function() return not history() end,
-    on_clicked = function() capture.scroll() end,
-    kit.icon("swap_vert", 19, function() return C.onSurfaceVariant end, { anchors = { center_in = true } }),
-  }
-  local replay = kit.action { id = "capture-replay", x = w - 16 - 36 - 38, y = 2, width = 36, height = 30, cursor = "pointer",
-    accessible_name = "Replay buffer", visible = function() return not history() end,
-    on_clicked = function() capture.replay_toggle() end,
-    kit.icon("replay", 19, function() return capture.replay:get() > 0 and C.error or C.onSurfaceVariant end, { anchors = { center_in = true } }),
-  }
-  local recent = kit.action { id = "capture-history-open", x = w - 16 - 36, y = 2, width = 36, height = 30, cursor = "pointer",
-    accessible_name = "History",
-    on_clicked = function() capture.history_open:set(not history()) end,
-    kit.icon("history", 19, function() return history() and C.primary or C.onSurfaceVariant end, { anchors = { center_in = true } }),
-  }
+  -- At the title's right, from the panel's first opening: a long capture, the
+  -- replay buffer, and what has been captured.
+  local function title_buttons()
+    local function slot(id, name, x, shown, run, icon, ink)
+      return kit.action { id = id, x = x, y = 2, width = 36, height = 30, cursor = "pointer",
+        accessible_name = name, visible = shown, on_clicked = run,
+        kit.icon(icon, 19, ink, { anchors = { center_in = true } }),
+      }
+    end
+    local function plain() return not history() end
+    return ui.Item { width = w, height = 32,
+      slot("capture-scroll", "Scrolling capture", w - 16 - 36 - 76, plain, function() capture.scroll() end,
+        "swap_vert", function() return C.onSurfaceVariant end),
+      slot("capture-replay", "Replay buffer", w - 16 - 36 - 38, plain, function() capture.replay_toggle() end,
+        "replay", function() return capture.replay:get() > 0 and C.error or C.onSurfaceVariant end),
+      slot("capture-history-open", "History", w - 16 - 36, nil, function() capture.history_open:set(not history()) end,
+        "history", function() return history() and C.primary or C.onSurfaceVariant end),
+    }
+  end
   return ui.Item {id="capture-page",width=w,height=h,controls,
     ui.Loader { anchors = { fill = true }, active = history,
       source = function() return require("themes").view("capture_history").build(capture, require("recent").open(capture), w, h) end },
-    kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32},long,replay,recent}
+    kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32},
+    ui.Item { width = w, height = 32,
+      ui.Loader { anchors = { fill = true }, active = function() return capture.panel_opened:get() end, keep = true,
+        source = title_buttons } }}
 
 end
 return M

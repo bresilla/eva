@@ -33,16 +33,20 @@ function M.build(capture, shown)
     },
     ui.Row {
       anchors = { right = true, right_margin = S.xs, vertical_center = true }, gap = S.xs,
-      P.button {
-        id = "record-indicator-pause", height = S.TARGET - S.s, width = S.TARGET * 2,
+      ui.Item { width = S.TARGET * 2, height = S.TARGET - S.s,
         visible = function() return capture.replay:get() > 0 or capture.can_pause() end,
-        label = function()
-          if capture.replay:get() > 0 then return "Save" end
-          return capture.paused:get() and "Resume" or "Pause"
-        end,
-        on_clicked = function()
-          if capture.replay:get() > 0 then capture.replay_save() else capture.pause() end
-        end,
+        ui.Loader { anchors = { fill = true },
+          active = function() return capture.replay:get() > 0 or capture.can_pause() end,
+          source = function()
+            return P.button { id = "record-indicator-pause", height = S.TARGET - S.s, width = S.TARGET * 2,
+              label = function()
+                if capture.replay:get() > 0 then return "Save" end
+                return capture.paused:get() and "Resume" or "Pause"
+              end,
+              on_clicked = function()
+                if capture.replay:get() > 0 then capture.replay_save() else capture.pause() end
+              end }
+          end },
       },
       P.button {
         id = "record-indicator-stop", label = "Stop", height = S.TARGET - S.s, width = S.TARGET * 2,
