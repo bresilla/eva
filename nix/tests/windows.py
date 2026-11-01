@@ -105,6 +105,12 @@ def pointer(x, y):
     machine.succeed(f"YDOTOOL_SOCKET=/tmp/ydotool ydotool mousemove --absolute -x {x} -y {y}")
 
 
+def warp(x, y):
+    hyprctl("eval", f"hl.dispatch(hl.dsp.cursor.move({{ x = {x}, y = {y} }}))")
+    machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool mousemove -x 1 -y 1")
+    print("CURSOR", (x, y), hyprctl("cursorpos"))
+
+
 def run(password):
     login(password)
     machine.succeed("ydotoold --socket-path=/tmp/ydotool --socket-perm=0666 >/tmp/ydotoold.log 2>&1 &")
@@ -240,15 +246,15 @@ def run(password):
         machine.screenshot("pip")
         machine.sleep(5)
         before = client("three")["at"]
-        pointer(before[0] + 40, before[1] + 40)
+        warp(before[0] + 40, before[1] + 40)
         machine.sleep(3)
-        pointer(before[0] + 44, before[1] + 44)
+        warp(before[0] + 44, before[1] + 44)
         machine.sleep(3)
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x40")
         machine.sleep(2)
-        pointer(before[0] - 60, before[1] - 40)
+        warp(before[0] - 60, before[1] - 40)
         machine.sleep(2)
-        pointer(before[0] - 160, before[1] - 120)
+        warp(before[0] - 160, before[1] - 120)
         machine.sleep(3)
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x80")
         moved = eventually(lambda: client("three")["at"] != before, 20)
