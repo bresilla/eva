@@ -231,13 +231,7 @@ local function processes_page(w, h)
     id = "monitor-list", width = list_w, height = list_h, rows = model.rows, row_height = ROW_H,
     delegate = process_row, current = model.selected_index,
     on_current_changed = function(index) model.select_row(index) end,
-    on_key_pressed = function(_, _, _, _, key)
-      if key == "Delete" then
-        model.term(model.selected:get())
-        return true
-      end
-      return key == "Escape" and close()
-    end,
+    on_key_pressed = function(_, _, _, _, key) return key == "Escape" and close() end,
   }
   local sorts = { "CPU", "Memory", "Name", "PID" }
   local entry = kit.text_field("entry", {
@@ -295,6 +289,7 @@ local function processes_page(w, h)
     },
     ui.Item {
       y = list_top, width = list_w, height = list_h,
+      shortcuts = { Delete = function() model.term(model.selected:get()) return true end },
       list_node,
       P.empty {
         id = "monitor-empty", icon = "search", title = "Nothing matches", width = list_w,
