@@ -194,6 +194,10 @@ function M.register(ipc)
     if value then return windows.set_opacity(c.address, tonumber(value) or 1) end
     return windows.next_opacity(c.address)
   end
+  -- `kill_aim X Y`, `pip_controls`: what a pointer or a tap does, for a
+  -- session with neither.
+  ipc.kill_aim = function(x, y) require("kill_mode").aim(tonumber(x), tonumber(y)) end
+  ipc.pip_controls = function() require("window_modes").toggle_controls() end
   -- `kill_mode`: press a window to force quit it.
   ipc.kill_mode = function(how)
     local kill = require("kill_mode")

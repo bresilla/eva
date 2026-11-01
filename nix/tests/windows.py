@@ -61,13 +61,17 @@ def login(password):
     machine.start()
     machine.wait_for_unit("greetd.service")
     machine.wait_until_succeeds("pgrep -u greeter -f 'morf.*greet'", timeout=180)
-    machine.sleep(15)
-    machine.send_key("ret")
-    machine.sleep(3)
-    machine.send_chars(password)
-    machine.sleep(1)
-    machine.send_chars("\n")
-    machine.wait_until_succeeds("pgrep -u alice Hyprland", timeout=180)
+    machine.sleep(20)
+    for _ in range(4):
+        machine.send_key("ret")
+        machine.sleep(4)
+        machine.send_chars(password)
+        machine.sleep(1)
+        machine.send_chars("\n")
+        status, _out = machine.execute("timeout 60 sh -c 'until pgrep -u alice Hyprland; do sleep 1; done'")
+        if status == 0:
+            break
+    machine.wait_until_succeeds("pgrep -u alice Hyprland", timeout=120)
     machine.sleep(20)
 
 

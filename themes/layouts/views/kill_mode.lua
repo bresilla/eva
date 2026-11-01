@@ -22,7 +22,6 @@ function V.build(model)
     x = function() return box().x end, y = function() return box().y end,
     width = function() return box().width end, height = function() return box().height end,
     behavior = { x = spatial, y = spatial, width = spatial, height = spatial },
-    stretch = theme.stretch and theme.stretch.drawer or nil,
     kit.surface { anchors = { fill = true }, radius = radius, color = "transparent", border_width = 2,
       border_color = function() return C.error end,
       opacity = function() return model.target:get() ~= "" and 1 or 0 end, behavior = { opacity = fade } } }

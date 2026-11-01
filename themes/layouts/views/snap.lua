@@ -32,7 +32,7 @@ function V.build(model)
     x = function() return box().x end, y = function() return box().y end,
     width = function() return box().width end, height = function() return box().height end,
     behavior = { x = spatial, y = spatial, width = spatial, height = spatial },
-    stretch = theme.stretch and theme.stretch.drawer or nil,
+    opacity = function() return model.zone:get() ~= "" and 1 or 0 end,
     kit.surface { anchors = { fill = true }, radius = radius, color = "transparent",
       border_width = 2, border_color = kit.stroke("hot") } }
   local field = ui.Sdf { id = "snap-field", anchors = { fill = true }, blend = 0,
@@ -68,7 +68,8 @@ function V.build(model)
   end
   local picker_w = 4 * PICK_W + 3 * S.m + 2 * S.l
   local keys = ui.Item { id = "snap-keys", width = 1, height = 1, tab_navigation = false, on_key_pressed = model.key }
-  local picker = kit.card { id = "snap-picker", width = picker_w, height = 2 * (PICK_H + 2 * S.xl) + S.m + 2 * S.l + 2 * S.xl,
+  local row_h = PICK_H + S.xs + L.lh(L.SIZE.label)
+  local picker = kit.card { id = "snap-picker", width = picker_w, height = S.xxl + S.s + 2 * row_h + S.m + S.l,
     anchors = { center_in = true },
     accessible_role = "dialog", accessible_name = "Snap layouts",
     visible = function() return model.picking:get() end,

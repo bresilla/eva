@@ -31,7 +31,9 @@ function V.build(model)
     width = function() return chosen_box().width + 2 * SWELL end,
     height = function() return chosen_box().height + 2 * SWELL end,
     behavior = { x = spatial, y = spatial, width = spatial, height = spatial },
-    stretch = theme.stretch and theme.stretch.drawer or nil }
+    stretch = theme.stretch and theme.stretch.drawer or nil,
+    kit.surface { anchors = { fill = true }, z = 4, radius = radius, color = "transparent", border_width = 2,
+      border_color = kit.stroke("hot") } }
 
   local field = ui.Sdf { id = "switcher-field", anchors = { fill = true, margins = -2 * S.xl },
     fill_color = function() return C.surfaceContainer end, blend = SEAM, blend_profile = "circular",
@@ -91,8 +93,9 @@ function V.build(model)
     opacity = function() return model.shown:get() and 1 or 0 end,
     scale = function() return model.shown:get() and 1 or .94 end,
     behavior = { opacity = fade, scale = spatial },
-    field, marker,
+    field,
     ui.Repeater { id = "switcher-cards", model = model.rows, delegate = delegate },
+    marker,
     ui.MouseArea { anchors = { fill = true }, z = -1,
       on_wheel = function(_, _, _, _, _, step) model.wheel(step) end } }
 

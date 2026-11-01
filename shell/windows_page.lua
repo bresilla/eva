@@ -15,8 +15,8 @@ function M.page(w, h)
   local corners = require("hot_corners")
   local responsive = require("responsive")
   model.corners, model.touch, model.phone = corners, responsive.touch(), responsive.phone()
-  model.scopes = { { "all", "public", "Everywhere" }, { "workspace", "workspaces", "This workspace" },
-    { "output", "monitor", "This screen" } }
+  model.scopes = { { "all", "public", "All" }, { "workspace", "workspaces", "Workspace" },
+    { "output", "monitor", "Screen" } }
   model.scrubs = { { "apps", "apps", "Apps" }, { "workspaces", "workspaces", "Workspaces" } }
   return require("themes").view("windows_page").build_windows(model, w, h)
 end

@@ -158,7 +158,9 @@ test.it("its ends hold the launcher and the overview, and a pin dragged counts p
   test.eq(test.ipc("dock_order"), { "eva:launcher", "beta", "alpha", "zzterm", "zzweb", "eva:overview" })
   local rows = test.accessible({ name = "Overview", role = "button" })
   test.truthy(rows[1], "the overview's button has no name")
-  test.click(rows[1].id) test.advance(100)
+  test.settle(1500)
+  rows = test.accessible({ name = "Overview", role = "button" })
+  test.click(rows[1].x + rows[1].width / 2, rows[1].y + rows[1].height / 2) test.advance(100)
   test.truthy(test.ipc("overview", "state"), "the overview's button")
 end)
 
