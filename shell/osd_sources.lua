@@ -88,7 +88,8 @@ local function awake()
 end
 local function night()
   local model = package.loaded.settings_model
-  local control = model and model.CONTROLS and (model.CONTROLS.night or model.CONTROLS.night_light)
+  local control = model and model.CONTROLS and model.CONTROLS.nightlight
+  if control and not control.present() then control = nil end
   control = control or services.night
   if control and control.on then return control.on() == true end
 end

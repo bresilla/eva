@@ -260,6 +260,12 @@ test.it("fires each kind on a real change, once, and stays quiet at start",funct
   test.eq(test.ipc("present","night"),false)
 end)
 
+test.it("reads the night light tile of the real shell",function()
+  test.load("../shell/init.lua",{size={1600,1000},env={EVA_FAKE_HARDWARE="1",EVA_DRY_RUN="1",EVA_WALLPAPER=""}})
+  test.advance(3000)
+  test.truthy(test.ipc("osd","night"),"no night display with a night light tile")
+end)
+
 test.it("takes what it reads at start for how things are",function()
   load("material")
   test.ipc("field","profile","performance") test.ipc("dnd","yes") test.ipc("connect","Keyboard")
