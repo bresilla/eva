@@ -1,0 +1,37 @@
+# eva-monitor on the sealed session: the real /proc and /sys of this machine, a
+# stubborn child that ignores TERM ended for real with TERM and then KILL, the
+# pages, and sampling stopped by the pause.
+unset EVA_DRY_RUN
+
+sh -c 'trap "" TERM; exec sleep 300' > /dev/null 2>&1 &
+STUBBORN=$!
+
+BOOT=4 start app monitor
+pause 3
+shot processes
+note echo "sampling: $(appipc sampling)"
+appipc search sleep > /dev/null
+pause 2.5
+appipc select "$STUBBORN" > /dev/null
+pause 2.5
+shot chosen
+appipc term "$STUBBORN" > /dev/null
+pause 2.5
+note echo "after TERM: $(ps -o pid=,stat=,comm= -p "$STUBBORN")"
+shot termed
+appipc kill "$STUBBORN" > /dev/null
+pause 2.5
+note echo "after KILL: [$(ps -o pid=,comm= -p "$STUBBORN")]"
+note echo "state: $(appipc state | cut -c1-200)"
+appipc select 0 > /dev/null
+appipc search > /dev/null
+appipc tab resources > /dev/null
+pause 5
+shot resources
+appipc tab sensors > /dev/null
+pause 5
+shot sensors
+note echo "sampling on sensors: $(appipc sampling)"
+appipc pause on > /dev/null
+pause 9
+note echo "sampling when paused: $(appipc sampling)"
