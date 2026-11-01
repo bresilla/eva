@@ -21,8 +21,10 @@ local function shelf(group)
 end
 M.SHELVES = { "Priority", "Conversations", "Notifications", "Silent" }
 
+local grouped_from, grouped
 function M.groups()
-  local history, groups, by_app = notifs.history:get(), {}, {}
+  local history, groups, by_app = notifs.records(), {}, {}
+  if history == grouped_from then return grouped end
   for i = #history, 1, -1 do
     local n = history[i]
     local key = key_of(n)
@@ -41,9 +43,12 @@ function M.groups()
     if a.shelf ~= b.shelf then return a.shelf < b.shelf end
     return a.order < b.order
   end)
+  grouped_from, grouped = history, groups
   return groups
 end
-function M.count() return #notifs.history:get() end
+function M.count() return #notifs.records() end
+--- How many lines a shut group shows.
+function M.preview() return config.get("notifications.history.preview") end
 function M.is_open(key)
   local flag = expanded:get()[key]
   if flag == nil then return config.get("notifications.history.open_groups") == true end
@@ -102,8 +107,7 @@ function M.clear_app(key) notifs.clear_app(key) end
 function M.clear_silent() notifs.clear_silent() end
 function M.undo() return notifs.undo:get() end
 function M.restore() return notifs.restore() end
-function M.snoozed() return notifs.snoozed:get() end
-function M.dismissed() return notifs.dismissed:get() end
+M.snoozed, M.dismissed = notifs.asleep, notifs.recent
 
 --- Opens the app's rules, in Settings.
 function M.rules_of(key)

@@ -147,7 +147,6 @@ function N.buttons(spec)
       items[#items + 1] = { id = spec.id .. "-" .. slot, height = P.BUTTON_H,
         label = function() local b = list()[slot] return b and b.label or "" end,
         visible = function() return list()[slot] ~= nil end,
-        tone = function() return slot == 1 and "primary" or nil end,
         on_clicked = function() press(slot) end }
     end
     return P.buttons(items)

@@ -48,11 +48,26 @@ function M.image_of(x)
   return local_picture(src) or ""
 end
 
+-- What a notification's text gave, kept per notification: bindings ask each frame.
+local function remembered(find)
+  local known = setmetatable({}, { __mode = "k" })
+  return function(x)
+    if not x then return nil end
+    local key = x.summary ~= nil and x or nil
+    if not key then return find(x) end
+    local hit = known[key]
+    if hit == nil then
+      hit = find(x)
+      known[key] = hit == nil and false or hit
+    end
+    return hit or nil
+  end
+end
+
 local CODE_WORDS = { "code", "otp", "passcode", "pin", "verification", "verify", "2fa", "one-time", "token",
   "security", "login", "sign-in" }
 --- The one-time code in a notification, or nil.
-function M.otp(x)
-  if not x then return nil end
+M.otp = remembered(function(x)
   local text = M.plain(tostring(x.summary or "") .. " " .. tostring(x.body or ""))
   local lower, wanted = text:lower(), false
   for _, word in ipairs(CODE_WORDS) do wanted = wanted or lower:find(word, 1, true) ~= nil end
@@ -64,17 +79,16 @@ function M.otp(x)
     if not year then return digits end
   end
   return text:match("%f[%w](%u%-%d%d%d%d+)%f[%W]")
-end
+end)
 
 --- The first web link in a notification, or nil.
-function M.link(x)
-  if not x then return nil end
+M.link = remembered(function(x)
   local body = tostring(x.body or "")
   local href = body:match("<%s*[aA][^>]-[hH][rR][eE][fF]%s*=%s*[\"']([^\"']+)[\"']")
   if href and M.safe_link(href) then return href end
   local url = M.plain(body):match("https?://[%w%-%._~:/%?#%[%]@!%$&'%(%)%*%+,;=%%]+")
   return url and (url:gsub("[%.,;:!%?%)]+$", "")) or nil
-end
+end)
 
 local TRANSPORT = {
   { "previous", "skip_previous", { "media-skip-backward", "media-previous", "media-seek-backward", "previous", "prev" } },

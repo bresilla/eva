@@ -14,15 +14,35 @@ local M = {}
 local shared = morf.shared or morf.signal
 local function primary() return not morf.window.primary or morf.window.primary() end
 
+-- Moves with every change to the lists below. A signal's `get` copies its table,
+-- so bindings read `records`, `asleep`, `recent` and `on_show`: one table until
+-- the next change.
+M.revision = shared("eva.notifications.revision", 0)
+local function listing(name)
+  local signal, list, at, value = shared(name, {}), {}, nil, nil
+  function list:get() return signal:get() end
+  function list:set(new)
+    signal:set(new)
+    M.revision:set(M.revision:get() + 1)
+  end
+  function list.read()
+    local revision = M.revision:get()
+    if revision ~= at then at, value = revision, signal:get() end
+    return value
+  end
+  return list
+end
+
 -- The popups on show, oldest first.
-M.list = shared("eva.notifications", {})
+M.list = listing("eva.notifications")
 -- Every notification that came in, oldest first, until it is dismissed from
 -- the sidebar or cleared there: the popups go when they expire, the history
 -- stays. Each entry is a copy with `time` (seconds, when it came).
-M.history = shared("eva.notifications.history", {})
+M.history = listing("eva.notifications.history")
 -- Hidden until `wake_at`, and what was cleared lately.
-M.snoozed = shared("eva.notifications.snoozed", {})
-M.dismissed = shared("eva.notifications.dismissed", {})
+M.snoozed = listing("eva.notifications.snoozed")
+M.dismissed = listing("eva.notifications.dismissed")
+M.records, M.asleep, M.recent, M.on_show = M.history.read, M.snoozed.read, M.dismissed.read, M.list.read
 -- What a clear can still take back: `{ count, label }`, or false.
 M.undo = shared("eva.notifications.undo", false)
 -- The ids whose sender still hears actions, as `{ ["id"] = true }`.
@@ -819,23 +839,24 @@ function act.refresh()
     hidden = focus.hides_badges(), apps = apps, icons = icons })
 end
 
---- A sender's cards on show, folded or not: every screen's own fold.
-local unfolded = morf.signal("eva.notifications.unfolded", {})
+-- Which senders' cards stand apart: every screen's own fold.
+local unfolded, unfolded_at = {}, morf.signal("eva.notifications.unfolded", 0)
 
 --- Whether the popups of `key` stand apart.
-function M.is_unfolded(key) return unfolded:get()[key] == true end
+function M.is_unfolded(key)
+  unfolded_at:get()
+  return unfolded[key] == true
+end
 function M.unfold(key)
-  local keys = {}
-  for k, on in pairs(unfolded:get()) do keys[k] = on end
-  keys[key] = not keys[key] or nil
-  unfolded:set(keys)
+  unfolded[key] = not unfolded[key] or nil
+  unfolded_at:set(unfolded_at:get() + 1)
 end
 
 local cache_list, cache_fold, cache_open, cache_cards
 local function cards()
-  local list, fold, open = M.list:get(), config.get("notifications.stack"), unfolded:get()
-  if list == cache_list and fold == cache_fold and open == cache_open then return cache_cards end
-  local count, heads, out = {}, {}, {}
+  local list, fold, opened = M.on_show(), config.get("notifications.stack"), unfolded_at:get()
+  if list == cache_list and fold == cache_fold and opened == cache_open then return cache_cards end
+  local open, count, heads, out = unfolded, {}, {}, {}
   for _, n in ipairs(list) do count[n.key or n.id] = (count[n.key or n.id] or 0) + 1 end
   -- The newest on top.
   for i = #list, 1, -1 do
@@ -850,7 +871,7 @@ local function cards()
       out[#out + 1] = card
     end
   end
-  cache_list, cache_fold, cache_open, cache_cards = list, fold, open, out
+  cache_list, cache_fold, cache_open, cache_cards = list, fold, opened, out
   return out
 end
 
