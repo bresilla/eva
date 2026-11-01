@@ -55,7 +55,7 @@ in
       };
       # A software GPU: morf presents through a swapchain, not dmabufs.
       environment.sessionVariables = software;
-      systemd.user.services.eva.environment = software // { MORF_PROFILE = "lua"; };
+      systemd.user.services.eva.environment = software;
       hardware.graphics.enable = true;
       environment.systemPackages = [ pkgs.jq ];
       virtualisation = {
