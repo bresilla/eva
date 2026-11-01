@@ -21,10 +21,12 @@ M.SHORTEST = 72
 local surface, preview, timer, capture_module, own_file
 local serial = 0
 
-local function private_path()
+--- A new private file for a picture that must not stay.
+function M.private_path()
   local folder = (morf.env("XDG_RUNTIME_DIR") or "/tmp") .. "/eva"
   morf.fs.mkdir(folder)
-  return ("%s/capture-thumb-%d-%d.png"):format(folder, morf.process_id, morf.time.now_ms())
+  serial = serial + 1
+  return ("%s/capture-thumb-%d-%d-%d.png"):format(folder, morf.process_id, morf.time.now_ms(), serial)
 end
 
 local function stop_timer()
@@ -122,7 +124,7 @@ function M.show(capture, saved, rendered)
   gone()
   local path = saved
   if not path or path == "" then
-    path = private_path()
+    path = M.private_path()
     local ok, copied = pcall(morf.fs.copy, rendered, path)
     if not ok or not copied then return false end
     own_file = path

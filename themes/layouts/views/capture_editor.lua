@@ -207,6 +207,7 @@ function V.build(M)
   for i,a in ipairs {{"reselect","Select again","crop_free",M.reselect},{"last","Last region","history",M.restore_last},
     {"upload","Upload","cloud_upload",function() M.more_open:set(false) M.export("upload") end},
     {"ocr","Copy text","document_scanner",reader("ocr")},{"qr","Copy QR code","qr_code_scanner",reader("qr")},
+    {"pin","Pin to screen","keep",function() M.more_open:set(false) M.export("pin") end},
     {"delete","Delete mark","delete",M.remove},{"settings","Settings","settings",function() M.more_open:set(false) M.settings:set(true) end},
     {"cancel","Cancel","close",M.cancel}} do
     local area

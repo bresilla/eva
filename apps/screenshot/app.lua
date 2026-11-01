@@ -49,7 +49,7 @@ morf.effect("eva.capture.rotation", function()
 end)
 
 morf.effect("eva.capture.keyboard", function()
-  morf.surface.keyboard_focus = editor.active:get() and "exclusive" or "none"
+  morf.surface.keyboard_focus = (editor.active:get() or capture.history_open:get()) and "exclusive" or "none"
 end)
 
 -- ------------------------------------------------------------- notifications --
@@ -70,6 +70,7 @@ local function notify(summary, body)
 end
 
 editor.on_export = function(action, result)
+  if action == "pin" then return end
   if action == "ocr" or action == "qr" then notify("Copied", tostring(result or ""))
   elseif action == "save" then
     if not dry() then morf.process.detach { "sh", morf.paths.shell("cli"), "--saved-picture", tostring(result or "") } end
@@ -80,7 +81,14 @@ editor.on_export = function(action, result)
 end
 
 -- A shot that was saved or copied floats for a moment; loaded the first time.
+-- A pinned one keeps a private copy of its pixels for as long as it stays.
 editor.on_shot = function(action, rendered, result)
+  if action == "pin" then
+    local thumb = require("thumb")
+    local path = thumb.private_path()
+    if morf.fs.copy(rendered, path) then require("pin").add(capture, path, true) end
+    return
+  end
   if (action ~= "save" and action ~= "copy") or not config.get("capture.thumbnail") or dry() then return end
   local saved = (action == "save" or config.get("capture.copy_to_disk")) and result or nil
   require("thumb").show(capture, saved, rendered)
@@ -228,6 +236,36 @@ end
 
 ipc["capture-stop"] = function() return capture.stop() end
 
+-- `capture-pin add FILE`, `capture-pin clear`, `capture-pin count`.
+ipc["capture-pin"] = function(how, path)
+  if how == "count" then
+    local pin = package.loaded.pin
+    return pin and #pin.list or 0
+  end
+  if how == "clear" then
+    local pin = package.loaded.pin
+    if pin then pin.clear() end
+    return true
+  end
+  if how ~= "add" then error("`" .. tostring(how) .. "`: add, clear or count") end
+  if not here() then return end
+  claim()
+  local one, why = require("pin").add(capture, path)
+  if not one then error(why) end
+  return true
+end
+
+-- `capture-history open|close`: the panel's history.
+ipc["capture-history"] = function(how)
+  if not here() then return end
+  if how == "close" then capture.history_open:set(false) return false end
+  wake(function()
+    capture.drawer.set(true)
+    capture.history_open:set(true)
+  end)
+  return true
+end
+
 -- `capture-thumb edit|pin|dismiss`: what a press on the thumbnail does.
 ipc["capture-thumb"] = function(what)
   local thumb = package.loaded.thumb
@@ -315,6 +353,12 @@ end
 -- ------------------------------------------------------------------- the root --
 
 ui.Item { anchors = { fill = true }, host.build(capture, pill_wanted) }
+
+-- Pins outlive a reload, and only then is their module loaded here.
+if capture.pins_kept:get() ~= "" then
+  local words = capture.pins_kept:get()
+  morf.time.timer(1, function() require("pin").restore(capture, words) end, false)
+end
 
 -- --------------------------------------------------------------- the first order --
 

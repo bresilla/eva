@@ -518,6 +518,7 @@ function M.export(action,direct)
         else save(output_name(),config.get("capture.copy_on_save")) end
       elseif action=="upload" then backend.upload(path,config.get("capture.upload_endpoint"),complete)
       elseif action=="ocr" or action=="qr" then require("lib.shell.capture.read").read(action,path,complete)
+      elseif action=="pin" then complete(true)
       else complete(false,"Unknown export action") end
     end)
   end
