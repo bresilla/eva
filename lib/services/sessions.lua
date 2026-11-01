@@ -10,10 +10,18 @@
 -- vector, and handing it the line asks for a program named after the whole
 -- line. Each also carries the environment it expects: a session started
 -- without XDG_CURRENT_DESKTOP comes up with its portals guessing.
+--
+-- EVA_SESSION_WRAPPER, when set, is put in front of every command.
 
 local morf = require("morf")
 
 local sessions = {}
+
+local function wrapped(command)
+  local wrapper = morf.env("EVA_SESSION_WRAPPER")
+  if not wrapper or wrapper == "" then return command end
+  return { wrapper, table.unpack(command) }
+end
 
 --- `{ id, name, kind ("wayland" or "x11"), command, environment }`, Wayland
 --- first, then by name.
@@ -34,7 +42,7 @@ function sessions.list()
       end
       found[#found + 1] = {
         id = entry.id, name = entry.name, kind = kind,
-        command = entry.command, environment = environment,
+        command = wrapped(entry.command), environment = environment,
       }
     end
   end

@@ -137,13 +137,17 @@ let
     export EVA_GREETER_APPEARANCE=${lib.escapeShellArg "${userHome}/.local/state/eva/appearance/appearance.json"}
     export XDG_CONFIG_DIRS=${lib.escapeShellArg "${userHome}/.config:/etc/xdg"}
     export XDG_DATA_DIRS=${config.services.displayManager.sessionData.desktops}/share:/run/current-system/sw/share
+    ${lib.optionalString config.programs.eva.seamless.enable ''
+      ${config.system.build.evaVt}
+      export EVA_SESSION_WRAPPER=${config.system.build.evaSession}
+    ''}
     exec ${config.system.build.evaGreeterCompositor}
   '';
   scaleDirectory = "/var/lib/eva/ui-scale/${user}";
   directory = "/var/lib/eva/wallpaper/${user}";
   lule = config.programs.eva.lulePackage;
   bridge = pkgs.writeShellScriptBin "eva-wallpaper" ''
-    exec ${pkgs.python3}/bin/python3 ${./scripts/wallpaper.py} "$@"
+    exec ${pkgs.python3.withPackages (python: [ python.pillow ])}/bin/python3 ${./scripts/wallpaper.py} "$@"
   '';
   # A minimal greeter-only palette config: user hooks belong to their session.
   luleConfig = pkgs.writeTextDir "init.lua" ''
@@ -163,6 +167,7 @@ in
     ./compositor.nix
     ./idle.nix
     ./phone.nix
+    ./seamless.nix
   ];
 
   options.programs.eva = {

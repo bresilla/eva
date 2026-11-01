@@ -32,10 +32,17 @@
         };
         # A system with eva enabled, evaluated and never built: the module's
         # options and wiring hold together.
-        machine = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = [ self.nixosModules.default ./nix/machine.nix ];
-        };
+        machine =
+          extra:
+          pkgs.writeText "eva-module-eval" (builtins.unsafeDiscardStringContext
+            (nixpkgs.lib.nixosSystem {
+              inherit system;
+              modules = [
+                self.nixosModules.default
+                ./nix/machine.nix
+                extra
+              ];
+            }).config.system.build.toplevel.drvPath);
       in
       {
         packages = {
@@ -44,8 +51,9 @@
         };
         checks = {
           inherit eva;
-          module = pkgs.writeText "eva-module-eval"
-            (builtins.unsafeDiscardStringContext machine.config.system.build.toplevel.drvPath);
+          module = machine { };
+          module-plymouth = machine { programs.eva.seamless.plymouth = true; };
+          module-plain = machine { programs.eva.seamless.enable = false; };
         };
         devShells.default = pkgs.mkShell {
           packages = [
