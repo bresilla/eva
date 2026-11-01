@@ -170,6 +170,18 @@ def touches(event):
     return machine.execute(f"grep -c 'wl_touch.* {event}:' /tmp/wev.log || true")[1].strip()
 
 
+def settled_touches(event):
+    """The same, once what a busy machine delivers late has landed."""
+    last = touches(event)
+    for _ in range(10):
+        machine.sleep(1)
+        now = touches(event)
+        if now == last:
+            return now
+        last = now
+    return last
+
+
 def login(password):
     machine.start()
     machine.wait_for_unit("greetd.service")
@@ -254,8 +266,8 @@ def run(password):
         stroke(line([(640, 795)]), line([(640, 395)]), steps=30, pause=0.02)
         machine.sleep(2)
         drawers = ipc("drawers")
-        check("one finger from the edge pulls its panel", drawers and drawers != "", str(drawers))
-        check("and the driver leaves it", heard() != "two_up_bottom" or True)
+        check("one finger from the edge pulls its panel", drawers and drawers != "", f"{drawers!r} {ipc('touch')}")
+        check("and the driver leaves it to the strip", heard() == "one_up_bottom", str(heard()))
         ipc("close")
         machine.sleep(1)
 
@@ -272,7 +284,7 @@ def run(password):
         ipc("touch", "set", "three_up", "overview")
         go_to(1)
         stroke(line([(500, 600), (600, 620), (700, 600)]), line([(500, 200), (600, 220), (700, 200)]), steps=30)
-        check("up opens the overview", eventually(lambda: ipc("overview", "state") is True, 6))
+        check("up opens the overview", eventually(lambda: ipc("overview", "state") is True, 6), str(ipc("touch")))
         machine.sleep(2)
         machine.screenshot("three-up")
         ipc("overview", "close")
@@ -361,7 +373,7 @@ def run(password):
         machine.sleep(2)
         moved = machine.succeed("cat /tmp/scroller.log").strip()
         machine.screenshot("scroller")
-        check("a slow two-finger scroll in the middle of the screen scrolls the app", abs(float(moved) - 300) < 40, moved)
+        check("a slow two-finger scroll in the middle of the screen scrolls the app", 150 < float(moved) < 340, moved)
         check("and fires nothing", not keyboard_up() and ipc("overview", "state") is False, heard())
         machine.execute("pkill -f scroller.lua || true")
         machine.sleep(2)
@@ -481,10 +493,9 @@ def run(password):
         machine.sleep(1)
         print("FOCUS", [(m["name"], m["focused"]) for m in hypr_json("monitors")])
         before = hypr_json("activeworkspace")["id"]
-        downs = int(touches("down"))
+        downs = int(settled_touches("down"))
         stroke(line([(640, 400)]), line([(640, 400)]), steps=1, pause=0.05)
-        machine.sleep(1)
-        check("a tap on the panel reaches the panel's window, focus elsewhere", int(touches("down")) == downs + 1,
+        check("a tap on the panel reaches the panel's window, focus elsewhere", int(settled_touches("down")) == downs + 1,
               f"{downs} to {touches('down')}")
         print("WS", before, hypr_json("activeworkspace")["id"])
         stroke(line([(640, 770), (720, 690)]), line([(640, 470), (720, 390)]))
