@@ -132,9 +132,13 @@ end
 function M.stand_in(spec)
   local first = fake_values(spec)
   local state = morf.state { available = true, on_battery = first.on_battery,
+    lid_is_closed = false, lid_is_present = false, devices = {}, peripherals = {},
     display = { present = true, percentage = first.level, state = first.name, time_to_empty = 0, time_to_full = 0,
-      charging = first.name == "charging" or first.name == "pending_charge" },
-    profiles = { available = true, active = first.saver and "power-saver" or "balanced" } }
+      charging = first.name == "charging" or first.name == "pending_charge", icon_name = "", energy_rate = 0,
+      kind = "battery", warning_level = "none" },
+    profiles = { available = true, service = "", degraded = "", active = first.saver and "power-saver" or "balanced",
+      list = { { name = "power-saver", driver = "" }, { name = "balanced", driver = "" },
+        { name = "performance", driver = "" } } } }
   local limit = first.limited and first.level or nil
   local stand_in = { state = state, charge_limit = function() return limit end,
     set_profile = function(id) state.profiles.active = id end }
