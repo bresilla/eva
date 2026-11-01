@@ -5,6 +5,8 @@ local keybinds = require("key_rows")
 
 local M = {
   rows = morf.signal("keys.rows", {}),
+  -- Moves with `rows`: reading that signal copies the whole list.
+  loaded = morf.signal("keys.loaded", 0),
   query = morf.signal("keys.query", ""),
   message = morf.signal("keys.message", ""),
 }
@@ -25,6 +27,7 @@ function M.load()
       M.message:set("The compositor's bindings cannot be read here")
     end
     M.rows:set(M.merge(binds))
+    M.loaded:set(M.loaded:get() + 1)
   end)
 end
 
