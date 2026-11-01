@@ -10,15 +10,17 @@ local function index_of(list, id)
 end
 
 --- A board over `catalogue` (tiles with `id`, optional `present()`).
---- `form()` names the form factor whose list it keeps.
-function M.new(catalogue, form)
-  local board = { editing = morf.signal("eva.quick.editing", false) }
+--- `form()` names the form factor whose list it keeps. `options`: `order` and
+--- `small`, the setting prefixes it keeps them under, and `name`, its signals'.
+function M.new(catalogue, form, options)
+  options = options or {}
+  local board = { editing = morf.signal((options.name or "eva.quick") .. ".editing", false) }
   local by_id = {}
   for _, tile in ipairs(catalogue) do by_id[tile.id] = tile end
   local order_key, small_key
   local function keys()
     if order_key then return end
-    order_key, small_key = "quick.tiles." .. form(), "quick.small." .. form()
+    order_key, small_key = (options.order or "quick.tiles.") .. form(), (options.small or "quick.small.") .. form()
   end
 
   local function here(id)

@@ -14,6 +14,8 @@ local bars = morf.channel { name = "eva.media.bars", size = M.BANDS, mode = "fra
 -- last one's strength (the cover swells with it).
 local beats = morf.signal("eva.media.beats", 0)
 local pulse = morf.signal("eva.media.pulse", 0)
+-- The tempo heard, in beats a minute, 0 before there is one.
+local bpm = morf.signal("eva.media.bpm", 0)
 local settle
 local meter
 
@@ -32,6 +34,9 @@ local function listen(on)
         if settle then settle:cancel() end
         settle = morf.time.timer(90, function() settle = nil pulse:set(0) end, false)
       end,
+      on_tempo = function(tempo, confidence)
+        if (confidence or 0) >= 0.3 then bpm:set(tempo) end
+      end,
     })
     meter = ok and m or false
   elseif not on and meter then
@@ -39,6 +44,7 @@ local function listen(on)
     meter = nil
     bars:set({})
     pulse:set(0)
+    bpm:set(0)
   end
 end
 
@@ -57,7 +63,7 @@ local function lyrics()
 end
 
 
-M.bars, M.beats, M.pulse = bars, beats, pulse
+M.bars, M.beats, M.pulse, M.bpm = bars, beats, pulse, bpm
 M.lyrics = lyrics
 M.active = services.player
 M.something = services.playing_something
@@ -67,10 +73,22 @@ function M.control(action, ...)
   local media = services.media
   if media and media[action] then pcall(media[action], ...) end
 end
-function M.watch(ctx)
-  local function visible() return ctx.opened() and ctx.current() end
-  morf.effect("eva.media.listen", function() listen(visible() and M.playing()) end)
+-- The monitor runs while anything that draws it is on show.
+local watchers, heard = {}, morf.signal("eva.media.watchers", 0)
+morf.effect("eva.media.listen", function()
+  heard:get()
+  local wanted = false
+  for _, visible in ipairs(watchers) do wanted = visible() or wanted end
+  listen(wanted and M.playing())
+end)
+--- Listens while `visible()` holds and something plays.
+function M.hear(visible)
+  watchers[#watchers + 1] = visible
+  heard:set(#watchers)
   return visible
+end
+function M.watch(ctx)
+  return M.hear(function() return ctx.opened() and ctx.current() end)
 end
 function M.field(name)
   return function()

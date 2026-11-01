@@ -281,8 +281,9 @@ return function(theme)
 
   function M.surface(props)
     if props.border_width then props.border_color=function() return stroke(C,"idle") end end
+    local open = (theme.corners or 1) > 1
     for _, key in ipairs { "radius", "top_left_radius", "top_right_radius", "bottom_left_radius", "bottom_right_radius" } do
-      if props[key] ~= nil then props[key] = 0 end
+      if props[key] ~= nil and not open then props[key] = 0 end
       if props.behavior then props.behavior[key] = nil end
     end
     return ui.Rect(props)
@@ -295,7 +296,12 @@ return function(theme)
   function M.collect(list) collector = list end
   function M.card(props)
     props.radius = 0
-    if props.color == nil then props.color = function() return C.surfaceContainer end end
+    props.radius = M.round(theme.ROUNDING)
+    if props.color == nil then
+      local glass = require("themes.glass")
+      props.color = function() return glass.fill(C.surfaceContainer, 0.9) end
+      if not collector then props.glass_rim = glass.rim end
+    end
     props[#props + 1] = ui.Rect {
       anchors = { fill = true }, color = "transparent", border_width = 1,
       border_color = function() return hud().line("faint")() end,
@@ -619,6 +625,9 @@ return function(theme)
   --- with at most the theme's hairline softening.
   function M.round(r)
     r = tonumber(get(r)) or 0
+    local corners = theme.corners or 1
+    -- Square is this theme's own; past its own measure the corners open up.
+    if corners > 1 then return r * (corners - 1) end
     return math.max(0, math.min(theme.ROUNDING or 2, r))
   end
 

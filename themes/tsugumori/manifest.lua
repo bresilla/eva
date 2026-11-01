@@ -3,6 +3,13 @@ return {
   views = {
     keyboard = "themes.layouts.views.keyboard",
     lule_page = "themes.layouts.views.lule_page",
+    wallpaper_page = "themes.layouts.views.wallpaper_page",
+    desktop = "themes.layouts.views.desktop",
+    desktop_faces = "themes.layouts.views.desktop_faces",
+    desktop_page = "themes.layouts.views.desktop_page",
+    look_page = "themes.layouts.views.look_page",
+    standby = "themes.layouts.views.standby",
+    island = "themes.layouts.views.island",
     bar = "themes.layouts.views.bar",
     side_panel = "themes.layouts.views.side_panel",
     tasks_page = "themes.layouts.views.tasks_page",

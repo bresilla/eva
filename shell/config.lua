@@ -32,6 +32,12 @@ local config = settings.open {
       -- own colours are theme.lule either way.
       source = "auto",
       variant = "tonal_spot",
+      -- Colours follow the album art while something plays.
+      follow_song = false,
+      -- Turns the source colour round the wheel, in degrees.
+      hue = 0,
+      -- What runs when the mode turns; `$MODE` is filled in.
+      hook = {},
     },
     appearance = {
       -- A font file every label is set in ("" for the installed faces).
@@ -43,6 +49,29 @@ local config = settings.open {
       motion = "balanced",
       -- Everything lands at once, with no travel.
       reduce_motion = false,
+      -- "compact", "normal" or "spacious": a step along the spacing scale.
+      density = "normal",
+      -- How round the corners are: 0 square, 1 the theme's own, 2 twice it.
+      corners = 1,
+      -- Panels of glass over the picture, and how much of the picture shows.
+      glass = false,
+      glass_clarity = 0.45,
+      -- The dark palette's surfaces all the way to black.
+      pure_black = false,
+      -- Push the mode, cursor and icons to GTK, Qt and the terminals.
+      sync = true,
+      -- Replace Qt's palette with the shell's colours too.
+      sync_qt_colors = false,
+      -- "" leaves each as the desktop has it.
+      cursor_theme = "",
+      cursor_size = 24,
+      icon_theme = "",
+      gtk_theme = "",
+      -- How quick everything is, and how far surfaces deform as they move.
+      speed = 1,
+      deform = 1,
+      -- Looks saved by name (shell/profiles_model.lua).
+      profiles = {},
     },
     wallpaper = {
       -- A picture to paint under everything; "" reads the path the
@@ -53,6 +82,66 @@ local config = settings.open {
       -- the compositor has one full-screen layer fewer to blend on every
       -- redraw. The scheme follows the picture either way.
       draw = false,
+      -- Lule's picture when `path` was chosen: the setting holds until Lule
+      -- makes a new one.
+      pin = "",
+      -- How the picture fills the screen: crop, fit or stretch, and pictures
+      -- that keep their own as `{ path, fit }`.
+      fit = "crop",
+      fits = {},
+      -- A colour painted when there is no picture, and under one that does
+      -- not cover the screen ("" for the theme's surface).
+      color = "",
+      -- `{ output, path }` and `{ workspace, path }`: this screen's or this
+      -- workspace's own picture.
+      outputs = {},
+      workspaces = {},
+      -- The pictures for light and for dark ("" for the usual one).
+      day = "",
+      night = "",
+      -- How one picture becomes the next (themes/wallpaper_swap.lua): a kind
+      -- or "random", in ms, and how soft its edge is, in pixels.
+      transition = { kind = "random", duration = 1100, softness = 24, startup = false },
+      -- How far the picture slides across the workspaces, a fraction of the
+      -- screen's width.
+      parallax = 0,
+      -- Pictures taken in turn: seconds between them, "shuffle" or "name",
+      -- the folder ("" for `lule.folder`), and whether Lule colours each one.
+      slideshow = { on = false, interval = 1800, order = "shuffle", folder = "", recursive = false,
+        favourites = false, pause = true, colors = true },
+      favourites = {},
+      -- What runs after a change; `$WALLPAPER` and `$OUTPUT` are filled in.
+      hook = {},
+      -- A second picture seen through a hole round the pointer ("" for none).
+      xray = "",
+      -- The picture brightens with every beat of the music.
+      glow = false,
+    },
+    island = {
+      -- A pill out of the top of the frame that morphs between what it shows.
+      enabled = false,
+    },
+    -- The widgets on the desktop (shell/desktop_model.lua): which are shown on
+    -- each kind of machine, which small, and where a desk or a tablet has
+    -- them, as `{ id, x, y }` in fractions of the screen.
+    desktop = {
+      widgets = { desk = {}, tablet = {}, phone = {} },
+      small = { desk = {}, tablet = {}, phone = {} },
+      place = { desk = {}, tablet = {}, phone = {} },
+      -- What a widget stands on: "glass", "solid", "none", or "stencil", the
+      -- clock's digits cut through a veil onto the picture.
+      chrome = "glass",
+      -- The clock keeps to the quietest part of the picture.
+      quiet_clock = false,
+      -- A phone or tablet on charge, turned sideways, is a bedside screen.
+      standby = true,
+      -- The custom command, run through `sh -c`, and how often, in seconds.
+      command = { title = "Command", run = "", interval = 60 },
+      -- One line a line; "" for the built-in quotes.
+      quotes = "",
+      note = "",
+      countdown = { title = "", date = "" },
+      photo = "",
     },
     bar = {
       workspaces = { shown = 5 },
@@ -208,4 +297,4 @@ local config = settings.open {
     rotation = { lock = "auto" },
   },
 }
-return require("themes.ui_scale").link(config)
+return require("themes.motion_style").link(require("themes.ui_scale").link(config))

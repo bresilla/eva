@@ -24,6 +24,9 @@ local builders={
   hotspot=function(w,h) return require("themes").view("quick_pages").hotspot_page(M,w,h) end,
   nightlight=function(w,h) return require("themes").view("quick_pages").nightlight_page(M,w,h) end,
   ["theme/lule"]=function(w,h) return require("lule_page").build(w,h) end,
+  ["theme/wallpaper"]=function(w,h) return require("wallpaper_page").build(w,h) end,
+  ["theme/desktop"]=function(w,h) return require("themes").view("desktop_page").build(require("desktop_model"),w,h) end,
+  ["theme/look"]=function(w,h) return require("themes").view("look_page").build(require("appearance_model"),w,h) end,
 }
 function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end
 local visual

@@ -1,0 +1,18 @@
+# A phone on charge, turned sideways: StandBy's three views, by day and at night.
+export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
+export EVA_FAKE_BATTERY=64,charging
+WALLS=$SEE_EVA/tests/fixtures/wallpapers
+cat > "$EVA_SETTINGS" <<JSON
+{ "lule": { "folder": "$WALLS" }, "desktop": { "note": "Water the fern" } }
+JSON
+export EVA_FAKE_CLOCK=12:00
+start shell
+pause 1.5
+shot clock
+ipc standby widgets; pause 1.5; shot widgets
+ipc standby photos; pause 3; shot photos
+stop
+export EVA_FAKE_CLOCK=23:30
+start shell
+pause 1.5
+shot night

@@ -67,14 +67,18 @@ end
 function V.build(model)
   local reveal = require("themes.reveal")
   local hidden, rest = reveal.opening(model.desk, theme.LEFT, theme.BORDER, 2 * theme.ROUNDING)
-  local opening = reveal.part(ui.SdfShape, { id = "frame-opening", shape = "box", operation = "subtract", radius = 0,
+  local opening = reveal.part(ui.SdfShape, { id = "frame-opening", shape = "box", operation = "subtract", radius = require("kit").round(25),
     x = function() local x = model.desk() return x + theme.LEFT end,
     y = function() local _, y = model.desk() return y + theme.BORDER end,
     width = function() local _, _, w = model.desk() return w - theme.LEFT - theme.BORDER end,
     height = function() local _, _, _, h = model.desk() return h - 2 * theme.BORDER end }, 0, hidden, rest)
   local transition = require("themes.session").transition
   require("themes.switcher").morph(opening, "radius", 0, transition and transition.frame_rounding)
-  local field = { id = "frame", anchors = { fill = true }, fill_color = function() return C.surface end, blend = 0,
+  local glass = require("themes.glass")
+  local field = { id = "frame", anchors = { fill = true }, fill_color = function() return glass.fill(C.surface, 1.1) end, blend = 0,
+    backdrop_blur = function() return glass.compositor() end,
+    stroke_color = function() return glass.on() and C.primary:alpha(.3) or "transparent" end,
+    stroke_width = function() return glass.on() and 1 or 0 end,
     ui.SdfShape { shape = "box", anchors = { fill = true } },
     opening,
   }
@@ -84,6 +88,7 @@ function V.build(model)
   local rail = require("themes.tsugumori.views.rail")
   for _, shape in ipairs(rail.extra_shapes or {}) do field[#field + 1] = shape end
   field[#field + 1] = model.levels.shape
+  if model.island then field[#field + 1] = model.island.shape end
   return require("themes.frame_host")(model, ui.Sdf(field), V.insets(), decorations(model))
 end
 return V

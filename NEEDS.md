@@ -8,12 +8,40 @@ dashboard). Each entry says what is missing, the API that would cover it,
 and why Lua cannot do it well. Work already under way elsewhere is marked
 **in progress** and only left as a TODO in the port.
 
-Nothing open: every entry found so far is in the engine (below).
+Open entries are listed first; every entry before them is in the engine (below).
 
 Phase 2 (the other dashboard tabs, the launcher's pickers, the session
 menu, the bar's popouts, notifications and the OSD) found the entries
 below, all now in the engine too; the popouts shut on `contains_pointer`
 like the dashboard.
+
+## Open: found building the wallpaper, widgets and glass
+
+- **An image as a field's fill.** `ui.Sdf` takes a colour or a gradient, and
+  `backdrop_blur` and `glass` work on a `Rect` or `ClipRect` only. A frame that is
+  one field cannot be glass by itself, so the shell draws a blurred copy of the
+  picture under it, cut by a second field that tracks the same nodes
+  (`themes/glass_plate.lua`). `fill_image = source` on `ui.Sdf`, or `glass` on a
+  field, would need neither the copy nor the second field.
+- **Centre and tile fills.** `ui.Image`'s `fill_mode` is `stretch`,
+  `preserve_aspect_fit` or `preserve_aspect_crop`; `pad` and `tile` would close
+  two wallpaper fill modes other shells have.
+- **`behavior` on `transform_matrix`.** UI.md says it animates like any list of
+  numbers, but a `ui.spring` behavior on it is refused with "expected numeric or
+  colour property", and the error takes the whole subtree with it. A carried
+  widget's lean snaps for that reason.
+- **`morf.fs.home()` under a test.** It ignores an `env = { HOME = ... }` given to
+  `test.load`, unlike `morf.env`, so a configuration writing under the home in a
+  spec reaches the real one (it did, here: see `lib/services/desktop_look.lua`,
+  which now reads `HOME` first, and the guard in `tests/look_spec.lua`). The
+  `--isolate` folders protect XDG paths only. `morf test` could point the home at
+  its scratch folder too.
+- **`morf.lock` in another process.** A shell cannot ask whether the session is
+  locked by a separate lock role: `morf.lock.on_state` is for the process holding
+  it. The slideshow reads logind's `LockedHint` instead.
+- **Undocumented.** `morf.image.palette`, `morf.image.pixel`,
+  `morf.animation.impulse` and the sixteen-layer limit of a field are in the
+  source and the namespace table but not in UI.md or IO.md.
 
 ## Engine fixes made in this branch
 

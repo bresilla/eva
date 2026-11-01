@@ -24,9 +24,11 @@ M.FALLBACK_SOURCE = "#ffb0ca"
 
 local function initial()
   local source = config.get("theme.source")
-  if source == "" or source == "wallpaper" or source == "auto" or source == "lule" then
+  if source == "" or source == "wallpaper" or source == "auto" or source == "lule" or source == "system" then
     source = M.FALLBACK_SOURCE
   end
+  local named = require("themes.schemes").flavour(source, color_mode.resolve())
+  if named then source = named.accent end
   return material.scheme(source, { variant = config.get("theme.variant"), mode = color_mode.resolve() })
 end
 
@@ -71,18 +73,65 @@ function M.apply(s)
   end
 end
 
+-- A dark scheme's surfaces taken down to black, each keeping its place.
+local function finish(s, mode)
+  if mode == "dark" and config.get("appearance.pure_black") then
+    local black = morf.color("#000000")
+    s.surface, s.background, s.surfaceDim, s.surfaceContainerLowest = black, black, black, black
+    for name, amount in pairs { surfaceContainerLow = 0.5, surfaceContainer = 0.6, surfaceContainerHigh = 0.72,
+      surfaceContainerHighest = 0.84, surfaceBright = 0.9 } do
+      if s[name] then s[name] = s[name]:mix(black, amount, "oklab") end
+    end
+  end
+  return s
+end
+
 --- The scheme for `source` (a colour, or "wallpaper" with `wallpaper` the
 --- picture's path), applied when it is made.
 function M.follow(source, wallpaper, mode)
-  local opts = { variant = config.get("theme.variant"), mode = mode or color_mode.resolve() }
+  mode = mode or color_mode.resolve()
+  local opts = { variant = config.get("theme.variant"), mode = mode }
   if source ~= "wallpaper" and source ~= "" then
-    M.apply(material.scheme(source, opts))
+    local hue = tonumber(config.get("theme.hue")) or 0
+    if hue ~= 0 then source = morf.color(source):rotate(hue):hex() end
+    M.apply(finish(material.scheme(source, opts), mode))
     return
   end
   if not wallpaper or wallpaper == "" then return end
   material.from_image(wallpaper, opts, function(ok, s)
-    if ok then M.apply(s) else morf.log("warn", "eva: no scheme from the wallpaper: " .. tostring(s)) end
+    if ok then M.apply(finish(s, mode)) else morf.log("warn", "eva: no scheme from the wallpaper: " .. tostring(s)) end
   end)
 end
+
+--- The palette the settings ask for, from what the colour tool made (`tool`)
+--- and the picture: a scheme by name, the song's colours, the desktop's accent,
+--- Lule's, the picture's, or a colour.
+function M.track(tool, wallpaper)
+  local schemes = require("themes.schemes")
+  local source = config.get("theme.source")
+  local mode = color_mode.resolve(tool and tool.mode)
+  config.get("theme.variant")
+  config.get("theme.hue")
+  config.get("appearance.pure_black")
+  local song = M.song and M.song:get()
+  if song and song ~= "" then
+    M.follow(song, nil, mode)
+  elseif schemes.is(source) then
+    M.apply(finish(schemes.roles(source, mode), mode))
+    M.apply_lule(schemes.tool(source, mode))
+  elseif source == "system" then
+    local accent = morf.prefers and morf.prefers.accent_color
+    M.follow(accent and morf.color(accent):hex() or M.FALLBACK_SOURCE, nil, mode)
+  elseif (source == "auto" or source == "lule") and tool then
+    M.follow(tool.accent, nil, mode)
+  else
+    M.follow(source == "auto" and "wallpaper" or source, wallpaper, mode)
+  end
+  return mode
+end
+
+-- The song's accent while the colours follow it ("" for none); it is carried
+-- across a reload so the shell does not flash back between tracks.
+M.song = morf.signal("eva.palette.song", "")
 
 return M
