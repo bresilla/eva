@@ -259,6 +259,7 @@ do
   pictures.watch_hook()
 end
 require("desktop").start()
+require("standby").start()
 
 -- -------------------------------------------------------------------- ipc --
 
@@ -486,6 +487,8 @@ end
 ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, ...) end
 -- `desktop [state|edit|done|add ID|hide ID|size ID]`: the widgets on the desktop.
 ipc.desktop = function(how, id) return require("desktop").verb(how, id) end
+-- `standby [on|off|state|clock|photos|widgets]`.
+ipc.standby = function(how) return require("standby_model").verb(how) end
 -- `osd [KIND]`: shows that display (the volume without one). False when its
 -- service is absent or its setting has it off.
 ipc.osd = function(kind)

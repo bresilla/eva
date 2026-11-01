@@ -63,6 +63,7 @@ function V.build(desktop, w, h)
       on_clicked = function() config.set("desktop.chrome", choice[1]) end }
   end
   local quiet = function() return config.get("desktop.quiet_clock") end
+  local standby = function() return config.get("desktop.standby") end
   return P.page { id = "desktop-page", width = w, height = h,
     P.section { id = "desktop-look", width = w, title = "Look",
       label("What widgets stand on", inner),
@@ -71,6 +72,10 @@ function V.build(desktop, w, h)
         subtitle = "It moves to the calmest part of the picture", on = quiet,
         trailing = P.switch { id = "desktop-quiet-switch", name = "Clock in the quiet part", on = quiet,
           on_toggled = function(now) config.set("desktop.quiet_clock", now == true) end } },
+      P.row { id = "desktop-standby", width = inner, icon = "bedtime", title = "StandBy",
+        subtitle = "A phone or tablet on charge, turned sideways, becomes a clock", on = standby,
+        trailing = P.switch { id = "desktop-standby-switch", name = "StandBy", on = standby,
+          on_toggled = function(now) config.set("desktop.standby", now == true) end } },
     },
     P.section(rows),
     P.section { id = "desktop-words", width = w, title = "Words",

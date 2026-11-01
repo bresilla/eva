@@ -31,6 +31,7 @@ return {
     desktop_faces = "themes.layouts.views.desktop_faces",
     desktop_page = "themes.layouts.views.desktop_page",
     look_page = "themes.layouts.views.look_page",
+    standby = "themes.layouts.views.standby",
     tasks_page = "themes.layouts.views.tasks_page",
     calendar_page = "themes.layouts.views.calendar_page",
     planner_widgets = "themes.layouts.views.planner_widgets",

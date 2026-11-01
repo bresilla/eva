@@ -117,6 +117,8 @@ local config = settings.open {
       chrome = "glass",
       -- The clock keeps to the quietest part of the picture.
       quiet_clock = false,
+      -- A phone or tablet on charge, turned sideways, is a bedside screen.
+      standby = true,
       -- The custom command, run through `sh -c`, and how often, in seconds.
       command = { title = "Command", run = "", interval = 60 },
       -- One line a line; "" for the built-in quotes.

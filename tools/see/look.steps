@@ -1,0 +1,20 @@
+# Glass over a picture Eva paints: the frame, a panel, an on-screen display and
+# the widgets; then the Look page and a scheme by name.
+export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
+WALLS=$SEE_EVA/tests/fixtures/wallpapers
+cat > "$EVA_SETTINGS" <<JSON
+{ "wallpaper": { "draw": true },
+  "appearance": { "glass": true },
+  "desktop": { "widgets": { "desk": ["clock", "date"], "tablet": ["clock", "date"], "phone": ["clock", "date", "weather"] } } }
+JSON
+start shell
+ipc wallpaper set "$WALLS/dusk.png"
+pause 2.5
+shot glass-desk
+ipc sidebar open settings; pause 2; shot glass-panel
+ipc close; pause 0.8
+ipc osd volume; pause 0.7; shot glass-osd
+pause 1
+ipc settings theme/look; pause 2.5; shot look-page
+ipc settings theme; pause 2; shot theme-page
+ipc close; pause 0.8
