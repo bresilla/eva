@@ -199,7 +199,7 @@ Add future pages in `shell/bottom_model.lua` and register their builders in
 each visual theme. Assistant, Drop and the workspace container have separate
 Material and Tsugumori layouts.
 
-**Lule** lives in the top dashboard, in a 992 × 588 panel. The wallpaper
+**Lule** lives in Settings, under Theme. The wallpaper
 gets 60% of the top row, with a narrower color pane beside it and a control
 strip below; all color swatches and Apply stay visible. **Wallpaper folder**
 shows the collection used by Images, Shuffle, the arrows, and Random & apply.
@@ -218,8 +218,8 @@ Choose dark/light and a palette method, then press
 applies it immediately using the selected appearance and palette method.
 Images and Shuffle remain preview actions.
 The swatches show the currently applied ANSI palette and special colors;
-click a swatch to copy its hex value. Open directly with `morf ipc call lule open`
-or click the top dashboard’s Lule tab. With no arguments, `morf ipc call lule`
+click a swatch to copy its hex value. Open directly with `morf ipc call lule open`.
+With no arguments, `morf ipc call lule`
 still reports the terminal/accent diagnostics.
 
 The tab runs `lule create --image=… --theme=… --palette=… -- set` through
@@ -285,7 +285,7 @@ closes the editor. The tool palette wraps on small screens. Both themes use thei
 
 Settings expose blur strength, pixel size, zoom factor, a custom hex colour,
 save folder, an internal save/folder chooser, copy-on-save, save-on-copy,
-pointer inclusion and key rebinding. Preferences live in `shell.json`;
+pointer inclusion and key rebinding. Preferences live in `eva.json`;
 defaults belong to `shell/config.lua`. Hyprland shortcut changes apply
 immediately and are restored after reload. Set `capture.keybind_file` to a
 dedicated include file if you want to write the generated binding there too.
@@ -384,8 +384,7 @@ The shell, lock and greeter select a visual package with
 `EVA_STYLE=material` or `EVA_STYLE=tsugumori`. Without that override,
 selection comes from `theme` in `$XDG_CONFIG_HOME/eva/appearance.json`
 (or the file named by `EVA_APPEARANCE`); Material is the default.
-Changing the selection currently requires restarting the preview. Wallpaper
-and Lule colors remain independent of that selection.
+The selection changes live. Wallpaper and Lule colors remain independent of it.
 
 Both themes use the same content builders in `themes/layouts/`: sections,
 control order, navigation and information grouping stay the same. Useful
