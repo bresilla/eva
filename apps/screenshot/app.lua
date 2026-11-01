@@ -228,7 +228,8 @@ end
 ipc.capture = function(how)
   how = how or "toggle"
   if how == "menu" then how = "open" end
-  if how == "close" or ((how == "open" or how == "toggle") and editor.running()) then capture.cancel() end
+  local covering = editor.running() or capture.trim_open:get()
+  if how == "close" or ((how == "open" or how == "toggle") and covering) then capture.cancel() end
   return verb(how)
 end
 

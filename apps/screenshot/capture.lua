@@ -88,6 +88,9 @@ local function stop_ticker()
 end
 function M.cancel()
   if M.editor.running() then M.editor.cancel() return true end
+  if M.trim_open:get() then require("trim").close() return true end
+  local scroll = package.loaded.scroll
+  if scroll and scroll.state:get() ~= "" then scroll.cancel() return true end
   if not pending then return false end
   generation = generation + 1
   pending:cancel() pending = nil

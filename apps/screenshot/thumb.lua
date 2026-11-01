@@ -21,10 +21,15 @@ M.SHORTEST = 72
 local surface, preview, timer, capture_module, own_file
 local serial = 0
 
---- A new private file for a picture that must not stay.
+--- A new private file for a picture that must not stay. Those a process that has
+--- gone left behind are cleared on the way.
 function M.private_path()
   local folder = (morf.env("XDG_RUNTIME_DIR") or "/tmp") .. "/eva"
   morf.fs.mkdir(folder)
+  for _, entry in ipairs(morf.fs.list(folder) or {}) do
+    local pid = entry.name:match("^capture%-thumb%-(%d+)%-")
+    if pid and not morf.fs.is_dir("/proc/" .. pid) then pcall(morf.fs.remove, entry.path) end
+  end
   serial = serial + 1
   return ("%s/capture-thumb-%d-%d-%d.png"):format(folder, morf.process_id, morf.time.now_ms(), serial)
 end
