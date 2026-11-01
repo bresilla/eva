@@ -49,7 +49,7 @@ runCommandCC "eva-${version}"
     meta = {
       description = "A desktop shell, lock screen and greeter for morf";
       homepage = "https://github.com/bresilla/eva";
-      license = with lib.licenses; [ mit asl20 ];
+      license = lib.licenses.mit;
       platforms = lib.platforms.linux;
     };
   }

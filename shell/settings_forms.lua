@@ -114,16 +114,10 @@ M.PAGES = {
         note = "Then the password" },
     } },
   } },
-  ["keyboard/more"] = { sections = {
-    { title = "Typing", fields = {
-      { key = "keyboard.replacements", kind = "records", fields = { 1, 2 }, title = "Text shortcuts", icon = "short_text",
-        note = "What you type and what it becomes, one after another" },
-      { key = "keyboard.voice", kind = "words", title = "Voice typing", icon = "mic",
-        note = "A command that listens and prints what it heard" },
-    } },
-    { title = "Apps", fields = {
-      { key = "keyboard.classes", kind = "records", fields = { 1, 2 }, title = "Per app", icon = "apps",
-        note = "A window's class and what it asks of the keyboard, one after another" },
+  keyboard = { sections = {
+    { title = "Keyboard", fields = {
+      { key = "keyboard.auto", kind = "bool", title = "Up by itself", icon = "keyboard_alt",
+        note = "When a program asks for text and no real keyboard is attached" },
     } },
   } },
   phone = { sections = {

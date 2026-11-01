@@ -784,21 +784,13 @@ starts polling. The shared planner retains a single Taskwarrior client.
 
 ### Keyboard builder
 
-`views.keyboard.build(model)` receives `active()`, `strike(event)`, `close()` and
-`desk_size()`, and what the strip acts on: `pick`, `paste`, `tools()`, `editing()`,
-`boards(keys)` and the handle's three callbacks. It returns `width`, `height`,
-`content`, a `keys` interface that stays the same across rebuilds of the board,
-`floating()` and `stance()`. It does not subscribe to input methods, create a
-virtual-keyboard sender or change surface focus. The controller validates manual
+`views.keyboard.build(model)` receives `active()`, `send(event)`, `close()` and
+`desk_size()`. It returns `width`, `height`, `content`, the shared OSK `keys`
+interface and optional `shown(on)` motion. It does not subscribe to input
+methods, create a virtual-keyboard sender or change surface focus. The controller validates manual
 modes, distinguishes manual and automatic opening, and suppresses delivery while
 hidden or in dry-run mode. Authentication views send only through their injected
 controller callbacks and scope their OSKs to the visible, enabled entry method.
-
-`views.keyboard_strip` and `views.keyboard_emoji` are the shell's alone. A view of
-the keyboard that reads the clipboard or learns stays out of `themes/keyboard.lua`,
-whose panel the lock and the greeter use: tests/keyboard_private_spec.lua guards
-it. `kit.keyboard_look` must return a `key_face`, as the language layer paints
-letters through it, and `views.keyboard_page` is the settings page.
 
 ### Popup and OSD builders
 

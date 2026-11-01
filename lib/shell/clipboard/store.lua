@@ -1,8 +1,8 @@
 -- The clipboard's history: text and pictures copied, newest first, pins on top,
 -- kept in a private folder. What a password manager marks is never read.
 --
--- One store: eva-clipboard keeps it, and the launcher's `;` and the on-screen
--- keyboard read it. Each process reads the file before it changes it, and
+-- One store: eva-clipboard keeps it, and the launcher's `;` reads it. Each
+-- process reads the file before it changes it, and
 -- follows it for what the other wrote.
 --
 -- The store, which readers outside this tool may rely on:

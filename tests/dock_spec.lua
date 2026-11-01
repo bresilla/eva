@@ -86,6 +86,15 @@ test.it("a tablet has a taskbar along its edge, keeping windows clear of it", fu
   test.falsy(test.find({ id = "dock-bubble-1", visible = true }), "its flat edge ripples over the icons")
 end)
 
+test.it("a tablet's taskbar gives way to the on-screen keyboard", function()
+  load("material", { 1280, 800 }, nil, true)
+  test.truthy(test.ipc("dock", "state").shown)
+  test.ipc("keyboard", "full") test.advance(600)
+  test.falsy(test.ipc("dock", "state").shown, "it covers the keyboard's bottom row")
+  test.ipc("keyboard", "close") test.advance(600)
+  test.truthy(test.ipc("dock", "state").shown, "it did not come back")
+end)
+
 test.it("a phone has a row of pins on its home, and none without one", function()
   load("material", { 412, 915 }, nil, true)
   test.eq(test.ipc("dock", "on").mode, "hotseat")
