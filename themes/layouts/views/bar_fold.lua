@@ -6,8 +6,8 @@ local F = require("themes.layouts.option_rows")
 local V = {}
 local MODULES = 16
 
--- What can fold on the bar now, in its zones' order: `{ id, name }` each. The
--- bar's model comes after this page can be built, so it is asked as it is read.
+-- What can fold on the bar now, in its zones' order, read from the bar's model
+-- once it has one: `{ id, name }` each.
 local function foldable()
   local model, out, named = require("bar").model, {}, {}
   if not model then return out end

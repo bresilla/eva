@@ -7,9 +7,9 @@
 --   reader.state:get()        -- { status, name, stages, fingers, enrolling, note }
 --   reader.enroll("right-index-finger")
 --
--- `status` is "none" (no fprintd here), "absent" (no reader) or "ready". fprintd
--- starts on a call to it, so nothing here calls it unless it is installed, or
--- under EVA_DRY_RUN unless the stand-in answers.
+-- `status` is "none" (no fprintd here), "absent" (no reader) or "ready". A call
+-- starts fprintd: none is made unless it is installed, or under EVA_DRY_RUN
+-- unless the stand-in answers.
 local morf = require("morf")
 local host = require("lib.services.host")
 
