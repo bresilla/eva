@@ -147,7 +147,7 @@ function M.source_of(row)
     if not host.installed("flatpak") then return refused(kind, "Flatpak is not installed here.") end
     local app = tostring(row.id):gsub("%.desktop$", "")
     local place = under(row.source or "", home()) and "--user" or "--system"
-    return offered(kind, { "flatpak", "uninstall", "--noninteractive", "-y", place, app }, "Removes the app, leaves its data")
+    return offered(kind, { "flatpak", "uninstall", "--noninteractive", "-y", place, app }, "Removes it, leaves its data")
   end
   if kind == "snap" then
     if not host.installed("snap") then return refused(kind, "Snap is not installed here.") end

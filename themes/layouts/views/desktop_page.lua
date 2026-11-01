@@ -75,7 +75,7 @@ function V.build(desktop, w, h)
   end
   return P.page { id = "desktop-page", width = w, height = h,
     P.section { id = "desktop-home", width = w, title = "Home screen",
-      home_switch("enabled", "home", "Pages of apps and widgets", "On a phone and a tablet. Hold the wallpaper to arrange them"),
+      home_switch("enabled", "home", "Pages of apps and widgets", "Phone and tablet. Hold the wallpaper to edit"),
       home_switch("dock", "dock_to_bottom", "Dock on a phone", "A row of pinned apps on the home screen"),
       home_switch("labels", "label", "Names under icons"),
       home_switch("locked", "lock", "Lock the layout", "A hold no longer starts arranging"),

@@ -32,6 +32,24 @@ cat > "$EVA_SETTINGS" <<JSON
   "bar": { "fold": [ { "id": "alarm", "rule": "keep" }, { "id": "vpn", "rule": "early" } ] },
   "lock": { "keypad": "digits", "scramble": true } }
 JSON
+# Scripts on this session's PATH answer a search as Flatpak and Nix, and do
+# nothing else.
+STANDINS=$XDG_RUNTIME_DIR/standins
+mkdir -p "$STANDINS"
+cat > "$STANDINS/flatpak" <<'SCRIPT'
+#!/bin/sh
+[ "$1" = search ] || exit 0
+printf 'org.see.Chess\tChess\tThe board game, on your own or against a friend\t49.0\tflathub\n'
+printf 'org.see.Knights\tKnights\tA chess board with a computer to play\t25.08\tflathub\n'
+SCRIPT
+cat > "$STANDINS/nix" <<'SCRIPT'
+#!/bin/sh
+case "$*" in
+  *search*) printf '{"legacyPackages.x86_64-linux.gnuchess":{"version":"6.2.11","description":"A chess engine"}}\n' ;;
+esac
+SCRIPT
+chmod +x "$STANDINS/flatpak" "$STANDINS/nix"
+export PATH="$STANDINS:$PATH"
 start shell
 ipc wallpaper set "$WALLS/dusk.png"
 pause 2.5
