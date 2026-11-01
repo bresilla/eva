@@ -14,9 +14,13 @@ local RESULTS = 12
 function M.build(model, w, h)
   local inner = P.inner(w)
   local query = morf.signal("eva.settings.home.query", "")
+  -- Each row reads the list: the search itself runs once for what is typed.
+  local searched, found = nil, {}
   local function results()
+    local typed = query:get()
+    if typed ~= searched then searched, found = typed, registry.search(typed) end
     local out = {}
-    for _, entry in ipairs(registry.search(query:get())) do
+    for _, entry in ipairs(found) do
       if model.page_present(entry.key) then out[#out + 1] = entry end
       if #out >= RESULTS then break end
     end
