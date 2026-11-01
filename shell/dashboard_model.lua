@@ -95,6 +95,10 @@ function M.clock(format)
   morf.time.minute_clock:get()
   return morf.time.format(format)
 end
+--- Whether the clocks write twelve hours, from the bar's setting. A tracked read.
+function M.twelve_hour() return require("config").get("bar.clock.twelve_hour") == true end
+--- The hour as the clock setting writes it.
+function M.clock_hour() return M.clock(M.twelve_hour() and "%I" or "%H") end
 local function percent(kind,field)
   if visible(1,3) then
     local ok, value = pcall(sysinfo[kind])
