@@ -154,8 +154,6 @@ function V.carrier(M, width)
   local PLACES = {
     { id = "launcher-pin-target", icon = "keep", label = "Pin to favourites", wanted = function() return true end,
       run = function(key) return M.pin(key) end },
-    { id = "launcher-home-target", icon = "add_to_home_screen", label = "Add to home",
-      wanted = function() return M.can_home() end, run = function(key) return M.to_home(key) end },
     { id = "launcher-out-target", icon = "folder_off", label = "Take out of folder",
       wanted = function() return M.folder:get() ~= "" end, run = function(key) return M.unfile(key) end },
   }

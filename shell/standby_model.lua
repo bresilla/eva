@@ -26,7 +26,7 @@ function M.sideways()
   return not require("responsive").portrait()
 end
 
---- Whether this machine has it at all: a desk has its own desktop.
+--- Whether this machine has it at all: a phone has, a desk does not.
 function M.able()
   return config.get("desktop.standby") == true and require("responsive").form() ~= "desk"
 end
@@ -65,6 +65,12 @@ function M.night()
   local from, to = mode.minutes(kept.get("light_from")), mode.minutes(kept.get("dark_from"))
   if not from or not to then return false end
   return mode.by_clock(now, from, to) == "dark"
+end
+
+--- The minutes and hours as a clock draws them.
+function M.clock_text(time)
+  local twelve = config.get("bar.clock.twelve_hour")
+  return morf.time.format(twelve and "%I:%M" or "%H:%M", time)
 end
 
 --- eva-clock's cities, `{ name, zone }`.

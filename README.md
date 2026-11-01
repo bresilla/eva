@@ -605,33 +605,13 @@ Dropping an image on the desktop sets it. Options also has **Glow with the
 music**, where the picture brightens on every beat, and **a second picture under
 the pointer**, seen through a soft hole that follows it across the desktop.
 
-## Desktop widgets
+## StandBy
 
-**Settings, Theme, Desktop** puts widgets on the desktop: clock, date, weather,
-system, media, audio visualiser, calendar, quote, custom command, note,
-countdown, photo and a liquid orb that keeps time with the music. The clock's
-digits are distance fields that melt into the next.
-
-**Arrange** (or a right-click or long press on the desktop) is the tile board's
-edit: drag to move, snapped to an 8 px grid, remove at a tile's top corner,
-resize at its bottom, and spare widgets wait in the tray. A desk places freely;
-a phone's home flows down the screen in the board's order, two small ones to a
-row. Each form keeps its own board.
-
-Where Eva paints, widgets live on the wallpaper's own layer, so their glass reads
-the picture. Otherwise they have a layer just above the wallpaper tool's. Ink
-turns light or dark with the picture behind it, and **Clock in the quiet part**
-moves the clock to the calmest part of the picture. A widget stands on glass, a
-solid card or nothing; **Cut** cuts the clock's digits through a veil, so the
-picture itself is the time.
-
-    morf ipc call desktop edit               # or done, state, add ID, hide ID, size ID
-
-**StandBy**: a phone on charge, turned sideways, becomes a bedside screen with a
-great clock, the folder's pictures, two stacks of widgets, the
+A phone on charge, turned sideways, becomes a bedside screen with a great clock, the folder's pictures, two stacks of widgets, the
 cities of `eva-clock` or the next thing to ring, the screen awake while it shows.
 A swipe turns the view and a touch shows the way out. At night it is a dim red,
-and it drifts so nothing burns in. `morf ipc call standby [on|off|toggle|VIEW]`.
+and it drifts so nothing burns in. **Settings, Eva** has its switch.
+`morf ipc call standby [on|off|toggle|VIEW]`.
 
 ## Look
 
@@ -661,7 +641,7 @@ timed mode can be held for an hour. The choice lives with the theme in
   `settings.ini` and to qt5ct and qt6ct (with a palette of the shell's colours),
   and the terminals through Lule, or directly for a scheme by name. **Cursor** and
   **Icons** go the same way. Turn it off and nothing outside the shell is touched.
-- **Saved looks** keep the colours, shape, wallpaper and widgets under a name.
+- **Saved looks** keep the colours, shape and wallpaper under a name.
 - **Schemes of your own**: a file in `~/.config/eva/schemes` joins the sources,
   with the same fields as `themes/schemes.lua`, and **Save these colours as a
   scheme** writes one from the colours on show. A scheme says its text contrast,

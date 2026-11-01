@@ -1,8 +1,7 @@
 -- StandBy's face: a great clock, the folder's pictures changing through the
 -- shell's transitions, two stacks of widgets, eva-clock's cities, or the next
--- thing to ring. Faces are the desktop's. A swipe
--- turns the view; a touch shows the way out. At night the ink is a dim red, and
--- everything drifts a little so nothing burns in.
+-- thing to ring. A swipe turns the view; a touch shows the way out. At night the
+-- ink is a dim red, and everything drifts a little so nothing burns in.
 local morf = require("morf")
 local ui = require("morf.ui")
 local kit = require("kit")
@@ -15,9 +14,8 @@ local V = {}
 local SWIPE = 64
 local PHOTO_MS = 20000
 
---- The whole-screen node; `model` is shell/standby_model.lua, `desktop` the
---- desktop model.
-function V.build(model, desktop)
+--- The whole-screen node; `model` is shell/standby_model.lua.
+function V.build(model)
   local faces = require("themes").view("desktop_faces")
   local function size()
     morf.window.screens_revision()
@@ -40,7 +38,7 @@ function V.build(model, desktop)
     local scale = math.min(3.6, math.max(1.6, math.min(sw / 400, sh / 240)))
     return ui.Item { id = "standby-clock", anchors = { fill = true }, visible = function() return model.view:get() == "clock" end,
       ui.Item { anchors = { center_in = true }, width = 360, height = 176, scale = scale,
-        faces.clock(ctx(360, 176, false), desktop) },
+        faces.clock(ctx(360, 176, false), model) },
       kit.text { id = "standby-date", anchors = { bottom = true, horizontal_center = true, bottom_margin = S.xxl },
         color = soft, font_size = theme.size.large,
         text = function() morf.time.minute_clock:get() return morf.time.format("%A, %B %-d") end },
@@ -72,7 +70,7 @@ function V.build(model, desktop)
       local spec = { id = id .. "-" .. kind, width = w, height = h,
         visible = function() return shown:get() == i end,
         ui.Item { x = S.l, y = S.l, width = w - 2 * S.l, height = h - 2 * S.l,
-          faces[kind](ctx(w - 2 * S.l, h - 2 * S.l, false), desktop, function() return model.showing() end) } }
+          faces[kind](ctx(w - 2 * S.l, h - 2 * S.l, false), model, function() return model.showing() end) } }
       cards[#cards + 1] = ui.Item(spec)
     end
     cards[#cards + 1] = ui.MouseArea { anchors = { fill = true }, on_wheel = function(_, _, _, _, _, dy)

@@ -285,16 +285,6 @@ function M.list(model, gamemode)
       status = function() return "Sleep, restart, off" end,
     },
     {
-      id = "arrange", icon = "dashboard_customize", name = "Arrange home",
-      present = function() return require("desktop_model").home() end,
-      on = function() return require("desktop_model").editing() end,
-      set = function(now)
-        model.close_panel()
-        require("desktop_model").set_editing(now)
-      end,
-      status = function() return "Pages and icons" end,
-    },
-    {
       id = "getapps", icon = "add_circle", name = "Get apps",
       present = function() return require("software_model").can_install() end,
       on = function() return false end,

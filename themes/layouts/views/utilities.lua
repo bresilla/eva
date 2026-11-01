@@ -70,9 +70,6 @@ function V.theme_page(model,w,h)
       P.row {id="settings-theme-wallpaper",width=inner,icon="wallpaper",title="Wallpaper",
         subtitle="Pictures, transitions, slideshow, day and night",trailing=P.chevron(),
         on_clicked=function() model.request("theme/wallpaper") end},
-      P.row {id="settings-theme-desktop",width=inner,icon="widgets",title="Desktop",
-        subtitle="Widgets on the wallpaper",trailing=P.chevron(),
-        on_clicked=function() model.request("theme/desktop") end},
     },
   }
 end
@@ -121,6 +118,11 @@ function V.eva_page(model,w,h)
         on=function() return require("island").enabled() end,
         trailing=P.switch {id="utilities-toggle-island",name="Island",on=function() return require("island").enabled() end,
           on_toggled=function(on) require("config").set("island.enabled",on==true) end}},
+      P.row {id="settings-eva-standby",width=inner,icon="bedtime",title="StandBy",
+        subtitle="A phone on charge, turned sideways, becomes a clock",
+        on=function() return require("config").get("desktop.standby") end,
+        trailing=P.switch {id="utilities-toggle-standby",name="StandBy",on=function() return require("config").get("desktop.standby") end,
+          on_toggled=function(on) require("config").set("desktop.standby",on==true) end}},
       P.row {id="settings-eva-notifications",width=inner,icon="notifications",title="Notifications",
         subtitle="Sounds, popups, history and each app's rules",
         trailing=P.chevron(),on_clicked=function() model.request("notifications") end},

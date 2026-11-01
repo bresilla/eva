@@ -1,17 +1,13 @@
--- Looks saved by name: the colours, the shape, the wallpaper and the widgets as
--- one set, to come back to. State and actions only.
+-- Looks saved by name: the colours, the shape and the wallpaper as one set, to
+-- come back to. State and actions only.
 local morf = require("morf")
 local config = require("config")
 local M = {}
 
--- What a look is. Widgets are kept per form factor, like the board itself.
+-- What a look is.
 M.KEYS = { "theme.source", "theme.variant", "theme.hue", "theme.follow_song",
   "appearance.density", "appearance.corners", "appearance.glass", "appearance.glass_clarity", "appearance.pure_black",
-  "wallpaper.path", "wallpaper.pin", "wallpaper.fit", "wallpaper.parallax", "wallpaper.transition.kind",
-  "desktop.chrome", "desktop.quiet_clock",
-  "desktop.widgets.desk", "desktop.widgets.phone",
-  "desktop.small.desk", "desktop.small.phone",
-  "desktop.place.desk", "desktop.place.phone" }
+  "wallpaper.path", "wallpaper.pin", "wallpaper.fit", "wallpaper.parallax", "wallpaper.transition.kind" }
 
 --- The saved looks: `{ name, values }`.
 function M.list() return config.get("appearance.profiles") end

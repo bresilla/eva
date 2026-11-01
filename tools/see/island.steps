@@ -1,13 +1,10 @@
-# The island out of the frame at rest and open, the cut clock, and a colour scheme.
+# The island out of the frame at rest and open, and a colour scheme.
 export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
 WALLS=$SEE_EVA/tests/fixtures/wallpapers
 cat > "$EVA_SETTINGS" <<JSON
 { "theme": { "source": "catppuccin" },
   "island": { "enabled": true },
-  "wallpaper": { "draw": true },
-  "desktop": { "chrome": "stencil", "quiet_clock": true,
-    "widgets": { "desk": ["clock", "date", "orb", "visualiser"], "phone": ["clock", "date", "orb"] },
-    "small": { "desk": ["visualiser"], "phone": [] } } }
+  "wallpaper": { "draw": true } }
 JSON
 start shell
 pause 3

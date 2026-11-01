@@ -15,7 +15,7 @@ function M.start()
         anchors = { top = true, bottom = true, left = true, right = true },
         width = 0, height = 0, exclusive_zone = -1, keyboard_focus = "none", visible = true,
         root = ui.Item { anchors = { fill = true },
-          require("themes").view("standby").build(model, require("desktop_model")) },
+          require("themes").view("standby").build(model) },
       }
     elseif not showing and window then
       local gone = window

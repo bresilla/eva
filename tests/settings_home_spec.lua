@@ -81,7 +81,7 @@ local HOST = [[
       "shell/connection_model.lua", "shell/osd_model.lua", "shell/quick_hardware.lua", "shell/datetime_model.lua",
       "themes/color_mode.lua", "shell/lule_page.lua", "shell/lule_model.lua", "shell/lule_studio.lua",
       "shell/equalizer_model.lua", "shell/tiles_model.lua", "shell/bar.lua", "shell/capture.lua", "shell/capture_editor.lua",
-      "shell/appearance_model.lua", "shell/wallpaper_model.lua", "shell/desktop_model.lua", "shell/island.lua", "shell/standby_model.lua",
+      "shell/appearance_model.lua", "shell/wallpaper_model.lua", "shell/island.lua", "shell/standby_model.lua",
       "shell/profiles_model.lua", "shell/focus_model.lua", "shell/focus_page.lua", "shell/notification_settings.lua",
       "shell/notification_rules.lua", "shell/bar_store.lua", "shell/bar_page.lua", "shell/bar_custom.lua", "shell/panels_board.lua",
       "lib/shell/launcher/pins.lua", "shell/launcher_modes/web.lua",
@@ -96,7 +96,7 @@ local HOST = [[
       "shell/keys_model.lua", "shell/about_model.lua",
       "shell/layouts_model.lua",
       "themes/layouts/views/assistant_settings.lua", "themes/layouts/views/calendar_settings.lua",
-      "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
+      "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",
       "themes/layouts/views/notification_settings.lua" } do
       local ok, text = pcall(morf.fs.read, name)

@@ -210,7 +210,7 @@ morf.effect("eva.keyboard.focus", function()
   local shown = require("utilities").displayed:get()
   local editor_open = pages.typing()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
-    or (settings_open and (shown == "theme/lule" or shown == "theme/desktop" or shown == "theme/look"
+    or (settings_open and (shown == "theme/lule" or shown == "theme/look"
       or shown == "theme" or shown == "hotspot" or shown == "panels" or shown == "bar"
       or shown == "notifications" or shown == "focus/mode"
       or pages.typed_route(shown) or require("utilities").tiles.editing:get()))
@@ -337,7 +337,6 @@ do
   pictures.start()
   pictures.watch_hook()
 end
-require("desktop").start()
 require("standby").start()
 require("screen_time_model").start()
 
@@ -759,8 +758,6 @@ ipc.lule = function(how)
 end
 -- `wallpaper [get|state|set PATH [OUTPUT]|next|previous|random|transition KIND|draw on|off]`.
 ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, ...) end
--- `desktop [state|edit|done|add ID|hide ID|size ID]`: the widgets on the desktop.
-ipc.desktop = function(how, id) return require("desktop").verb(how, id) end
 -- `screen-time [status|today|bedtime on|off]`.
 ipc["screen-time"] = function(how, value) return require("screen_time_model").verb(how, value) end
 -- `island [on|off|toggle|next|state]`.

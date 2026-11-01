@@ -101,6 +101,10 @@ test.describe("the picture", function()
     local hole = test.get { id = "wallpaper-xray-hole" }
     test.near(hole.x, 360, 0.5)
     test.near(hole.y, 160, 0.5)
+    test.move(700, 400, { surface = "eva-wallpaper" }) test.advance(16)
+    hole = test.get { id = "wallpaper-xray-hole" }
+    test.near(hole.x, 560, 0.5, "the hole does not follow the real pointer")
+    test.near(hole.y, 260, 0.5)
     test.ipc("x_set", "wallpaper.xray", "") test.advance(16)
     test.falsy(test.find { id = "wallpaper-xray", visible = true })
   end)
@@ -112,19 +116,6 @@ test.describe("the picture", function()
     test.falsy(test.ipc("x_prop", "wallpaper-glow", "visible"))
     test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
   end)
-end)
-
-test.describe("the cut clock", function()
-  for _, style in ipairs { "material", "tsugumori" } do
-    test.it(style .. " cuts the time out of a veil, and only the clock", function()
-      load { style = style, settings = { wallpaper = { draw = true, path = picture("dusk") },
-        desktop = { chrome = "stencil", widgets = { desk = { "clock", "date" } } } } }
-      test.truthy(test.find { id = "desktop-stencil", visible = true }, "no veil")
-      test.falsy(test.find { id = "desktop-ground-clock", visible = true })
-      test.truthy(test.find { id = "desktop-ground-date", visible = true }, "the other widgets lost their ground")
-      test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
-    end)
-  end
 end)
 
 test.describe("the island", function()
@@ -243,18 +234,13 @@ end)
 
 test.describe("saved looks", function()
   test.it("keeps a look by name and brings it back whole", function()
-    load { settings = { theme = { source = "nord" }, appearance = { glass = true },
-      desktop = { chrome = "solid", widgets = { desk = { "clock" } } } } }
+    load { settings = { theme = { source = "nord" }, appearance = { glass = true } } }
     test.truthy(test.ipc("x_save", "evening"))
     test.ipc("x_set", "theme.source", "gruvbox")
     test.ipc("x_set", "appearance.glass", false)
-    test.ipc("x_set", "desktop.chrome", "glass")
-    test.ipc("x_set", "desktop.widgets.desk", {})
     test.truthy(test.ipc("x_load", "evening"))
     test.eq(test.ipc("x_get", "theme.source"), "nord")
     test.eq(test.ipc("x_get", "appearance.glass"), true)
-    test.eq(test.ipc("x_get", "desktop.chrome"), "solid")
-    test.eq(test.ipc("x_get", "desktop.widgets.desk"), { "clock" })
   end)
 
   test.it("replaces one of the same name, removes one, and refuses a blank name", function()

@@ -188,34 +188,9 @@ local config = settings.open {
       -- A pill out of the top of the frame that morphs between what it shows.
       enabled = false,
     },
-    -- The widgets on the desktop (shell/desktop_model.lua): which are shown on
-    -- each kind of machine, which small, and where a desk has them, as
-    -- `{ id, x, y }` in fractions of the screen.
     desktop = {
-      widgets = { desk = {}, phone = {} },
-      small = { desk = {}, phone = {} },
-      place = { desk = {}, phone = {} },
-      -- The pages past the first on a phone's home: lists of what stands on
-      -- each, widgets by id, `app:ID` and `folder:NAME`.
-      pages = { desk = {}, phone = {} },
-      -- A phone's home: whether it has pages of apps, the names under the icons,
-      -- how many icons stand across (0 chooses), and whether a hold is kept from
-      -- arranging.
-      home = { enabled = false, labels = true, columns = 0, locked = false },
-      -- What a widget stands on: "glass", "solid", "none", or "stencil", the
-      -- clock's digits cut through a veil onto the picture.
-      chrome = "glass",
-      -- The clock keeps to the quietest part of the picture.
-      quiet_clock = false,
       -- A phone on charge, turned sideways, is a bedside screen.
       standby = true,
-      -- The custom command, run through `sh -c`, and how often, in seconds.
-      command = { title = "Command", run = "", interval = 60 },
-      -- One line a line; "" for the built-in quotes.
-      quotes = "",
-      note = "",
-      countdown = { title = "", date = "" },
-      photo = "",
     },
     bar = {
       -- How many workspace buttons stand on the bar, past the ones in use.

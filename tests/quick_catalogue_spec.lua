@@ -42,7 +42,6 @@ local HOST = [==[
   morf.ipc.session_open = function() return require("session").drawer.open:get() end
   morf.ipc.launcher_query = function() return require("launcher").query:get() end
   morf.ipc.launcher_open = function() return require("launcher").drawer.open:get() end
-  morf.ipc.arranging = function() return require("desktop_model").editing() end
 ]==]
 
 local serial = 0
@@ -68,7 +67,7 @@ for _, style in ipairs { "material", "tsugumori" } do
       local ids = {}
       for _, id in ipairs(test.ipc("tile_ids")) do ids[id] = true end
       for _, id in ipairs { "timer", "clipboard", "qr", "translate", "magnifier", "colorpick", "pomodoro", "breaks", "clock",
-        "highcontrast", "largetext", "lockscreen", "power", "arrange", "alwayson", "getapps" } do
+        "highcontrast", "largetext", "lockscreen", "power", "alwayson", "getapps" } do
         test.truthy(ids[id], "no tile " .. id)
       end
       test.eq(#test.logs("error"), 0)
@@ -116,14 +115,6 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.ipc("close") test.settle(300)
       test.ipc("press_tile", "clipboard") test.settle(400)
       test.eq(test.ipc("launcher_query"), ";")
-      test.ipc("close") test.settle(300)
-      test.ipc("press_tile", "arrange") test.settle(300)
-      test.truthy(test.ipc("arranging"), "the home is not being arranged")
-    end)
-
-    test.it("offers the home's tile only where there is one", function()
-      load(style, { 1440, 900 }, nil, { EVA_INPUT_DEVICES = morf.env("PWD") .. "/tests/fixtures/input-devices-cover" })
-      test.falsy(test.ipc("present", "arrange"), "a desk offered it")
     end)
   end)
 

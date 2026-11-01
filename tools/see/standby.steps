@@ -3,7 +3,7 @@ export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
 export EVA_FAKE_BATTERY=64,charging
 WALLS=$SEE_EVA/tests/fixtures/wallpapers
 cat > "$EVA_SETTINGS" <<JSON
-{ "lule": { "folder": "$WALLS" }, "desktop": { "note": "Water the fern" } }
+{ "lule": { "folder": "$WALLS" } }
 JSON
 export EVA_FAKE_CLOCK=12:00
 start shell

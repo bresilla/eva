@@ -1,4 +1,4 @@
--- What each desktop widget shows. A face is built once, for a tile that is
+-- What each of StandBy's widgets shows. A face is built once, for a tile that is
 -- `ctx.w()` x `ctx.h()`, and reads `ctx.small()` for its size, `ctx.ink()` for
 -- ink that stands out from the picture behind it and `ctx.soft()` for its second
 -- ink. Data comes from the same models the panels read.
@@ -88,19 +88,6 @@ function F.clock(ctx, model)
   return node
 end
 
-function F.date(ctx)
-  local function now(format)
-    return function()
-      morf.time.minute_clock:get()
-      return morf.time.format(format)
-    end
-  end
-  return ui.Column { anchors = { vertical_center = true }, gap = S.xxs,
-    line(ctx, { id = "desktop-date-day", text = now("%A"), font_size = 24, font_weight = 600 }),
-    line(ctx, { id = "desktop-date-long", text = now("%B %-d, %Y"), color = ctx.soft }),
-  }
-end
-
 -- ---------------------------------------------------------------- weather --
 
 function F.weather(ctx)
@@ -185,23 +172,6 @@ function F.media(ctx)
   }
 end
 
-function F.visualiser(ctx, _, node_active)
-  local media = require("media_state")
-  media.hear(node_active)
-  return ui.Item { anchors = { fill = true },
-    ui.Path { id = "desktop-visualiser-bars", anchors = { fill = true }, view_box = { 0, 0, 320, 140 }, visible = function() return not ctx.small() end,
-      series = media.bars.id, plot = { kind = "bars", width = 320, height = 140, gap = 2, radius = 2, min_bar = 2, mirror = true },
-      fill_color = function() return C.primary end },
-    ui.Path { id = "desktop-visualiser-ring", anchors = { fill = true }, view_box = { 0, 0, 144, 144 }, visible = ctx.small,
-      series = media.bars.id, plot = { kind = "radial", width = 144, height = 144, inner = 34, sweep = 360, start = 0 },
-      fill_color = function() return C.primary end },
-    ui.Column { id = "desktop-visualiser-idle", anchors = { center_in = true }, gap = S.xs, align = "center",
-      visible = function() return not media.playing() end,
-      kit.icon("graphic_eq", 36, ctx.soft),
-      line(ctx, { text = "Quiet", color = ctx.soft, font_size = theme.size.small }) },
-  }
-end
-
 -- --------------------------------------------------------------- calendar --
 
 function F.calendar(ctx)
@@ -217,105 +187,6 @@ function F.calendar(ctx)
   local large = ui.Item { anchors = { fill = true }, visible = function() return not ctx.small() end,
     (require("themes.kit.composites").calendar { id = "desktop-calendar", width = 328, value = today, cell_height = 36 }) }
   return ui.Item { anchors = { fill = true }, small, large }
-end
-
--- ------------------------------------------------------------------ words --
-
-function F.quote(ctx, model)
-  return line(ctx, { id = "desktop-quote", anchors = { vertical_center = true }, width = function() return ctx.w() end, wrap = true,
-    font_size = theme.size.large, font_weight = 300,
-    text = function() morf.time.hour_clock:get() return model.quote() end })
-end
-
-function F.command(ctx, model)
-  return ui.Column { gap = S.xs,
-    line(ctx, { font_weight = 600, text = function() return config.get("desktop.command.title") end, width = function() return ctx.w() end, elide = "right" }),
-    line(ctx, { id = "desktop-command-output", font_family = theme.mono, font_size = theme.size.small, color = ctx.soft, wrap = true,
-      width = function() return ctx.w() end, height = function() return ctx.h() - S.xl end, clip = true,
-      text = function()
-        local out = model.command_output:get()
-        if config.get("desktop.command.run") == "" then return "Set a command on the Desktop page" end
-        return out
-      end }),
-  }
-end
-
-function F.note(ctx)
-  return line(ctx, { id = "desktop-note", width = function() return ctx.w() end, height = function() return ctx.h() end, wrap = true, clip = true,
-    text = function()
-      local note = config.get("desktop.note")
-      return note ~= "" and note or "Write a note on the Desktop page"
-    end })
-end
-
-function F.countdown(ctx, model)
-  return ui.Column { anchors = { vertical_center = true }, gap = S.xxs,
-    line(ctx, { id = "desktop-countdown", font_size = 24, font_weight = 600, text = function()
-      morf.time.hour_clock:get()
-      local days = model.days_until(config.get("desktop.countdown.date"))
-      if not days then return "Set a date" end
-      if days == 0 then return "Today" end
-      return ("%d day%s %s"):format(math.abs(days), math.abs(days) == 1 and "" or "s", days > 0 and "to go" or "ago")
-    end }),
-    line(ctx, { color = ctx.soft, font_size = theme.size.small, width = function() return ctx.w() end, elide = "right",
-      text = function() return config.get("desktop.countdown.title") end }),
-  }
-end
-
-function F.photo(ctx)
-  local function source()
-    local photo = config.get("desktop.photo")
-    return photo ~= "" and photo:gsub("^~/", morf.fs.home() .. "/") or require("wallpaper").picture()
-  end
-  return ui.ClipRect { anchors = { fill = true }, radius = kit.round(S.m),
-    ui.Image { id = "desktop-photo", anchors = { fill = true }, fill_mode = "preserve_aspect_crop", source = source } }
-end
-
--- ------------------------------------------------------------------- orb --
-
--- Drops of one liquid, each carried round on a parent the engine turns, the
--- middle swelling on every beat. The drops' field tracks them, with no Lua per
--- frame, and the tempo sets how fast they go.
-function F.orb(ctx, _, active)
-  local media = require("media_state")
-  media.hear(active)
-  local seconds = function()
-    local bpm = media.bpm:get()
-    return bpm > 0 and 240000 / bpm or 12000
-  end
-  local carriers, shapes, drops = {}, {}, {}
-  shapes[1] = ui.SdfShape { id = "desktop-orb-heart", shape = "circle", x = 44, y = 44, width = 56, height = 56 }
-  for i = 1, 4 do
-    local size = 18 + i * 3
-    local drop = ui.Item { x = 72 - size / 2, y = 72 - size / 2 - 30 - i * 4, width = size, height = size }
-    drops[i] = drop
-    carriers[i] = ui.Item { width = 144, height = 144, drop,
-      loop = function()
-        return { rotation = { from = i * 90, to = i * 90 + (i % 2 == 0 and -360 or 360), duration = seconds() * (1 + i / 4) } }
-      end }
-    shapes[#shapes + 1] = ui.SdfShape { shape = "circle", operation = "smooth_union", track = drop }
-  end
-  shapes.width, shapes.height, shapes.blend = 144, 144, 18
-  shapes.fill_color = function() return C.primary end
-  shapes.softness = 1
-  local holder = ui.Item { anchors = { center_in = true }, width = 144, height = 144,
-    scale = function() return 1 + media.pulse:get() * 0.08 end,
-    behavior = { scale = theme.spring.press },
-    ui.Sdf(shapes) }
-  for _, carrier in ipairs(carriers) do ui.reparent(carrier, holder) end
-  -- Each beat throws the drops outward; gravity brings them back to the heart.
-  local heard = media.beats:get()
-  morf.effect("eva.desktop.orb.beat", function()
-    local beats = media.beats:get()
-    if beats == heard or config.get("appearance.reduce_motion") == true then return end
-    heard = beats
-    local strength = media.pulse:get()
-    for i, drop in ipairs(drops) do
-      morf.animation.fling { node = drop, property = "translate_y", velocity = -(120 + 60 * i) * math.max(0.3, strength),
-        gravity = 900, bounce = 0.35, min = -28, max = 0 }
-    end
-  end, { owner = holder })
-  return holder
 end
 
 return F

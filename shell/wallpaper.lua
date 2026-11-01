@@ -132,7 +132,7 @@ end
 
 -- ------------------------------------------------------------------ layer --
 
-local layer, swap, hosts = nil, nil, {}
+local layer, swap = nil, nil
 -- Where a change starts, in the screen's own pixels; nil is its middle.
 M.origin = nil
 
@@ -145,12 +145,6 @@ end
 
 --- Whether this screen's layer is up.
 function M.painting() return layer ~= nil end
-
---- `build(root)` runs for each layer that opens: what else lives on it.
-function M.on_layer(build)
-  hosts[#hosts + 1] = build
-  if layer then build(layer.root_node) end
-end
 
 -- How far across the workspaces this one stands, 0 to 1.
 local function along()
@@ -229,7 +223,6 @@ function M.open_layer()
     local wanted = M.painter() == "eva"
     if wanted and not layer then
       layer = M.layer()
-      for _, build in ipairs(hosts) do build(layer.root_node) end
     elseif not wanted and layer then
       local gone = layer
       layer, swap = nil, nil
@@ -277,13 +270,21 @@ function M.layer()
       local accent = theme.color.primary
       return { kind = "radial", radius = 0.7, stops = { accent:alpha(0), accent } }
     end }
+  -- The pointer over the bare picture, and a picture dropped on it.
+  local pointer = ui.MouseArea { id = "wallpaper-pointer", anchors = { fill = true },
+    on_position_changed = function(x, y) M.pointer(x, y) end }
+  local drops = ui.DropArea { anchors = { fill = true }, keys = { "files" },
+    on_dropped = function(drop)
+      local path = (drop.paths or {})[1]
+      if path and path:lower():match("%.[%a]+$") then require("wallpaper_model").choose(path) end
+    end }
   local root = ui.Item {
     anchors = { fill = true },
     ui.Rect { id = "wallpaper-ground", anchors = { fill = true }, color = function()
       local color = config.get("wallpaper.color")
       return color ~= "" and morf.color(color) or theme.color.surface
     end },
-    plate, xray, glow,
+    plate, xray, glow, drops, pointer,
   }
   local handle = morf.window.layer {
     blend = "srgb",

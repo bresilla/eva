@@ -157,7 +157,6 @@ registry.mode { id = "folder_name", name = "Rename folder", material = "edit", s
     return { row { id = "folder_name:new", name = "Call it “" .. term .. "”", description = "It was " .. name, material = "edit",
       run = function()
         pins.rename_folder(name, term)
-        require("desktop_model").rename_item("folder:" .. name, "folder:" .. term)
         rows.bump()
         return "close"
       end } }

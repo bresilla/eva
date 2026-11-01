@@ -212,12 +212,6 @@ function M.actions_for(row)
     out[#out + 1] = { name = "Open containing folder", material = "folder_open",
       run = function() return require("providers").reveal(row.source .. "/" .. row.id) end }
   end
-  local home = require("desktop_model")
-  if home.home() then
-    local there = home.has_app(row.id)
-    out[#out + 1] = { name = there and "Take it off the home screen" or "Add it to the home screen",
-      material = "add_to_home_screen", run = function() home.toggle_app(row.id) return "keep" end }
-  end
   out[#out + 1] = { name = "Put it in a folder…", material = "create_new_folder",
     run = function() return require("launcher_modes.shell").file(row.id) end }
   local filed = pins.folder_of(row.id)
@@ -369,20 +363,8 @@ local function folder_row(folder)
       return "keep"
     end },
   }
-  local home = require("desktop_model")
-  if home.home() then
-    actions[#actions + 1] = { name = "Add it to the home screen", material = "add_to_home_screen",
-      run = function() home.place("folder:" .. folder.name) return "keep" end }
-  end
   return { kind = "folder", id = folder.name, name = folder.name, count = #folder.apps, material = "folder",
     members = members, private = true, actions = actions, pin = "folder:" .. folder.name }
-end
-
---- The folder called `name` as a row, or nil.
-function M.folder(name)
-  for _, folder in ipairs(pins.folders()) do
-    if folder.name == name then return folder_row(folder) end
-  end
 end
 
 --- What the grid shows: a list of `{ name, rows }`. Inside `folder`, its apps;

@@ -1,12 +1,11 @@
-# Glass over a picture Eva paints: the frame, a panel, an on-screen display and
-# the widgets; then the Look page and a scheme by name.
+# Glass over a picture Eva paints: the frame, a panel and an on-screen display;
+# then the Look page and a scheme by name.
 export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
 export EVA_FAKE_OSD=1
 WALLS=$SEE_EVA/tests/fixtures/wallpapers
 cat > "$EVA_SETTINGS" <<JSON
 { "wallpaper": { "draw": true },
-  "appearance": { "glass": true },
-  "desktop": { "widgets": { "desk": ["clock", "date"], "phone": ["clock", "date", "weather"] } } }
+  "appearance": { "glass": true } }
 JSON
 start shell
 pause 3
