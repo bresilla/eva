@@ -100,7 +100,6 @@ local function overview(w, h)
       width = w, gap = P.GAP,
       P.section {
         id = "update-flake", title = "Flake inputs", width = w,
-        note = function() return tostring(#model.inputs:get()) end,
         visible = function() return nixos() and found() end,
         kit.text {
           id = "update-flake-path", width = inner, elide = "left", font_size = P.SUB, color = kit.ink("lo"),
