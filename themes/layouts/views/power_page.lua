@@ -81,12 +81,16 @@ function M.build(model, w, h)
       end },
   }
 
-  -- The battery's health, and how it is charged -- set by the firmware
-  -- (and root), shown here; its graphs are the dashboard's.
+  -- The battery's health, and how it is charged; the limit set here where the
+  -- battery has one, its graphs the dashboard's.
   local rows = {}
   for _, entry in ipairs(model.FACTS) do rows[#rows + 1] = { entry.name, entry.value } end
   local health = P.section { id = "power-health", caption_id = "power-heading-battery", width = w, title = "Battery",
     visible = model.present,
+    P.row { id = "power-limit", width = inner, icon = "battery_saver", on = model.limit_on,
+      title = "Charge limit", subtitle = model.limit_note, visible = model.limit_supported,
+      trailing = P.switch { id = "power-limit-switch", name = "Charge limit", on = model.limit_on,
+        on_toggled = function(now) model.set_limit(now) end } },
     kit.facts(rows, inner, 30),
     P.buttons { width = inner,
       { id = "power-open-battery", icon = "monitoring", label = "Battery graphs and details",

@@ -1,5 +1,6 @@
 #!/bin/sh
-# eva-battery: the battery's charge limit, through UPower.
+# eva-battery: the battery's charge limit from a command line, the same code as
+# the Power page's switch (lib/services/charge_limit.lua).
 #
 #   eva-battery status        the charge, and the limit where there is one
 #   eva-battery limit on      charging stops at the limit set for this battery
@@ -8,60 +9,9 @@ set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
-service=org.freedesktop.UPower
-device_interface=org.freedesktop.UPower.Device
-
-# The first battery's object path.
-battery() {
-  busctl --system call "$service" /org/freedesktop/UPower "$service" EnumerateDevices 2>/dev/null \
-    | tr ' ' '\n' | tr -d '"' | grep '/battery_' | head -n 1
-}
-
-# One property of the device, its value alone.
-property() {
-  busctl --system get-property "$service" "$1" "$device_interface" "$2" 2>/dev/null | cut -d' ' -f2-
-}
-
-device=$(battery) || device=""
-if [ -z "$device" ]; then
-  eva_say "no battery"
-  exit 1
-fi
-
-supported() {
-  [ "$(property "$device" ChargeThresholdSupported)" = true ]
-}
-
 case "${1:-status}" in
-  status)
-    printf 'charge %s%%\n' "$(property "$device" Percentage)"
-    if supported; then
-      printf 'limit %s\n' "$(property "$device" ChargeThresholdEnabled)"
-      printf 'between %s and %s\n' "$(property "$device" ChargeStartThreshold)" "$(property "$device" ChargeEndThreshold)"
-    fi
-    ;;
-  limit)
-    case "${2:-}" in
-      on) wanted=true ;;
-      off) wanted=false ;;
-      *)
-        eva_say "limit takes on or off"
-        exit 2
-        ;;
-    esac
-    if ! supported; then
-      eva_say "this battery has no charge limit"
-      exit 1
-    fi
-    if eva_dry; then
-      eva_say "dry run: EnableChargeThreshold $wanted on $device"
-      exit 0
-    fi
-    busctl --system call "$service" "$device" "$device_interface" EnableChargeThreshold b "$wanted"
-    ;;
-  -h | --help | help)
-    sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
-    ;;
+  status | limit) eva_job battery "${1:-status}" ${2:+"$2"} ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
   *)
     eva_say "unknown command: $1"
     exit 2
