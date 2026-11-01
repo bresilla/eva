@@ -201,6 +201,9 @@ local config = settings.open {
       float_y = 0.6,
       -- Shortcuts typed that expand, as { "omw", "on my way" } pairs.
       replacements = {},
+      -- A command that listens and prints what it heard, for a microphone
+      -- in the strip: empty shows none.
+      voice = {},
       -- What a window's class asks of the keyboard, as { "class", "purpose" }
       -- pairs: a purpose from shell/keyboard_model.lua.
       classes = {

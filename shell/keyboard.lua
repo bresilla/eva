@@ -154,6 +154,7 @@ function M.tools()
     { id = "emoji", icon = "mood", name = "Emoji", on = function() return model.pane:get() == "emoji" end,
       run = function() model.show_pane(model.pane:get() == "emoji" and "keys" or "emoji") end },
     { id = "edit", icon = "text_select_move_forward_character", name = "Cursor keys", run = function() model.tray:set("edit") end },
+    { id = "boards", icon = "dialpad", name = "Boards", run = function() model.tray:set("boards") end },
     { id = "language", label = function() return model.layout().short end, name = "Next language",
       run = model.next_language },
     { id = "hand", icon = "back_hand", name = "One hand", on = function() return config.get("keyboard.hand") ~= "both" end,
@@ -172,6 +173,10 @@ function M.tools()
   end
   list[#list + 1] = { id = "private", icon = "visibility_off", name = "Private typing",
     on = function() return model.private:get() end, run = function() model.private:set(not model.private:get()) end }
+  if #config.get("keyboard.voice") > 0 then
+    list[#list + 1] = { id = "voice", icon = "mic", name = "Voice typing", on = function() return M.listening:get() end,
+      run = M.listen }
+  end
   list[#list + 1] = { id = "settings", icon = "settings", name = "Keyboard settings", run = function()
     local sidebar = require("sidebar")
     require("utilities").request("keyboard")
@@ -180,6 +185,35 @@ function M.tools()
   end }
   list[#list + 1] = { id = "hide", icon = "keyboard_hide", name = "Hide", run = function() M.set(false) end }
   return list
+end
+
+M.listening = morf.signal("eva.keyboard.listening", false)
+--- Runs the person's `keyboard.voice` command and types what it prints.
+function M.listen()
+  if M.listening:get() then return end
+  M.listening:set(true)
+  local ok = pcall(morf.process.run, config.get("keyboard.voice"), {}, function(result)
+    M.listening:set(false)
+    local text = result.ok and (result.stdout or ""):gsub("%s+$", "") or ""
+    if text ~= "" then typing.paste(text) end
+  end)
+  if not ok then M.listening:set(false) end
+end
+
+--- The boards to pick by hand, for the strip of the board `keys`.
+function M.boards(keys)
+  local function board(mode, icon, name)
+    return { id = "board-" .. mode, icon = icon, name = name, on = function() return keys.mode:get() == mode end,
+      run = function()
+        model.tray:set("words")
+        M.show(mode)
+      end }
+  end
+  return {
+    { id = "boards-back", icon = "chevron_left", name = "Back", run = function() model.tray:set("words") end },
+    board("full", "keyboard", "Letters"), board("dev", "terminal", "Terminal"),
+    board("numbers", "pin", "Numbers"), board("phone", "dialpad", "Dial pad"),
+  }
 end
 
 --- The cursor keys and the edit commands, for the strip.

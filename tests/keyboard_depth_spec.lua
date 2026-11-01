@@ -8,6 +8,7 @@ local HOST = [[
   morf.surface.keyboard_focus = "none"
   package.loaded.bar = { desk = function() return 10, 10, W - 20, H - 20 end }
   package.loaded["lib.services.keyboards"] = { attached = function() return false end }
+  if morf.env("TEST_VOICE") == "1" then require("config").set("keyboard.voice", { "hear" }) end
   local events, ime = {}, nil
   morf.input_method = { subscribe = function(fn) ime = fn end,
     commit = function(value) events[#events + 1] = { text = value } end,
@@ -45,6 +46,10 @@ local HOST = [[
     config.set("keyboard." .. key, value)
   end
   morf.ipc.replacements = function() config.set("keyboard.replacements", { { "omw", "on my way" } }) end
+  morf.ipc.own_layout = function()
+    config.set("keyboard.layouts", { { id = "mine", name = "Mine", short = "MI",
+      rows = { "жwertyuiop", "asdfghjkl", "zxcvbnm" } } })
+  end
   morf.ipc.languages = function(...) config.set("keyboard.languages", { ... }) end
   morf.ipc.control = keyboard.control
   morf.ipc.decline = function() keyboard.keys.shift:set("off") end
@@ -651,6 +656,42 @@ test.it("the tools button and the strip reach every tray", function()
   test.eq(state().events, { { code = 105, on = true }, { code = 105, on = false } })
   test.click("eva.keyboard.tool-edit-back") test.advance(50)
   test.falsy(test.get("eva.keyboard.edit").visible)
+end)
+
+test.it("a board is picked by hand from the strip", function()
+  up()
+  test.ipc("control", "tray", "boards") test.advance(50)
+  test.click("eva.keyboard.tool-board-dev") test.advance(100)
+  test.eq(state().mode, "dev")
+  test.ipc("field", "<empty>") test.advance(100)
+  test.eq(state().mode, "dev", "the field took the picked board back")
+end)
+
+test.it("a language of the person's own works like a shipped one", function()
+  up()
+  test.ipc("own_layout") test.advance(50)
+  test.ipc("control", "language", "mine") test.advance(200)
+  test.eq(state().language, "mine")
+  test.ipc("field", "Hello") test.advance(50)
+  test.ipc("clear") test.click(key("q"))
+  test.eq(commits(state().events), { "ж" })
+end)
+
+test.it("a voice command of the person's own types what it hears, and none shows no microphone", function()
+  up()
+  test.falsy(test.find { id = "eva.keyboard.tool-voice" })
+  test.stub_run("hear", { code = 0, stdout = "spoken words\n" })
+  load("material", nil, nil, { TEST_VOICE = "1" })
+  test.ipc("field", "<empty>") test.advance(1600)
+  test.truthy(test.find { id = "eva.keyboard.tool-voice", visible = true }, "no microphone")
+  test.ipc("clear") test.click("eva.keyboard.tool-voice") test.advance(100)
+  test.eq(commits(state().events), { "spoken words" })
+end)
+
+test.it("a key's height on a phone is at least a finger's target", function()
+  load("material", 412, 915)
+  test.ipc("field", "<empty>") test.advance(1600)
+  test.truthy(test.get(key("q")).height >= 48, "keys are " .. test.get(key("q")).height .. " tall")
 end)
 
 test.it("the keyboard fits a compact landscape phone", function()

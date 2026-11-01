@@ -56,7 +56,12 @@ function V.build(model)
   end
   local function fitted()
     local tallest = math.floor((screen_h * .5 - STRIP - HANDLE - 2 * PAD) / 4.4)
-    return shared.metrics(W - 2 * PAD, config.get("keyboard.height"), tallest)
+    local metrics = shared.metrics(W - 2 * PAD, tallest)
+    -- A finger's target on a phone, before the person's own scale.
+    local base = metrics.key_height
+    if responsive.phone() then base = math.max(base, math.min(S.TOUCH, tallest)) end
+    metrics.key_height = math.max(30, math.floor(base * config.get("keyboard.height")))
+    return metrics
   end
   local function shape_of()
     local keys, apart = stance()

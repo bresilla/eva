@@ -130,6 +130,7 @@ function V.build(parts)
   }
 
   local edit = tool_row("edit", fixed, model.editing(), showing("edit"))
+  local boards = tool_row("boards", fixed, model.boards(parts.keys), showing("boards"))
 
   -- The emoji search: what is typed, and what it finds.
   local FOUND = 5
@@ -170,7 +171,7 @@ function V.build(parts)
   return ui.Item { id = PREFIX .. "strip", width = W, height = parts.handle + parts.strip,
     handle,
     ui.Item { x = S.s, y = parts.handle, width = fixed, height = parts.strip, clip = true,
-      ui.Item(words), tools, clip_row, edit, ui.Item(searching) },
+      ui.Item(words), tools, clip_row, edit, boards, ui.Item(searching) },
   }
 end
 

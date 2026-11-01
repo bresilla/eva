@@ -66,13 +66,13 @@ function M.strip(contacts,reach,floor,props)
 end
 
 --- The keys' gap and height across a board `width` wide, as lib.shell.osk works
---- them out, the height taken `scale` times and held at `tallest`.
-function M.metrics(width,scale,tallest)
+--- them out, the height held at `tallest`.
+function M.metrics(width,tallest)
   local gap=math.max(4,math.floor(width/150))
   local unit=(width-11*gap)/10
-  local height=math.floor(math.max(40,math.min(64,unit*1.12))*(scale or 1))
+  local height=math.floor(math.max(40,math.min(64,unit*1.12)))
   if tallest then height=math.min(height,tallest) end
-  return {gap=gap,key_height=math.max(30,height)}
+  return {gap=gap,key_height=height}
 end
 
 function M.panel(options)
