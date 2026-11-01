@@ -46,6 +46,9 @@ function M.build(model, inset)
   for _, panel in ipairs(model.levels.panels or {}) do
     shapes[#shapes + 1] = ui.SdfShape { shape = "box", operation = "union", track = panel, radius = theme.ROUNDING }
   end
+  if model.island then
+    shapes[#shapes + 1] = ui.SdfShape { shape = "box", operation = "union", track = model.island.panel, radius = theme.ROUNDING }
+  end
   local plate = ui.Item { id = "glass-plate", anchors = { fill = true },
     visible = function() return glass.on() and source:get() ~= "" end,
     mask = ui.Sdf(shapes),

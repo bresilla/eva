@@ -85,6 +85,16 @@ function V.eva_page(model,w,h)
   local hover=model.edge_hover
   local reduced=model.reduce_motion
   local styles={width=inner}
+  local function steps(id,key,list)
+    local row={id=id,width=inner}
+    for _,entry in ipairs(list) do
+      row[#row+1]={id=id.."-"..tostring(entry[1]),label=entry[2],group=id,
+        enabled=function() return not reduced() end,
+        selected=function() return require("config").get(key)==entry[1] end,
+        on_clicked=function() require("config").set(key,entry[1]) end}
+    end
+    return row
+  end
   for _,style in ipairs(model.MOTIONS) do
     styles[#styles+1]={id="settings-motion-"..style[1],icon=style[2],label=style[3],group="settings-motion",
       enabled=function() return not reduced() end,
@@ -99,6 +109,11 @@ function V.eva_page(model,w,h)
       P.row {id="settings-eva-osd",width=inner,icon="picture_in_picture",title="On-screen displays",
         subtitle="Where each one appears, and for how long",
         trailing=P.chevron(),on_clicked=function() model.request("osd") end},
+      P.row {id="settings-eva-island",width=inner,icon="capsule",title="Island",
+        subtitle="A pill out of the top of the frame, for music and the time",
+        on=function() return require("island").enabled() end,
+        trailing=P.switch {id="utilities-toggle-island",name="Island",on=function() return require("island").enabled() end,
+          on_toggled=function(on) require("config").set("island.enabled",on==true) end}},
     },
     P.section {id="settings-eva-panels",width=w,title="Panels",
       P.row {id="settings-eva-hover",width=inner,icon="near_me",title="Open on hover",on=hover,
@@ -108,6 +123,8 @@ function V.eva_page(model,w,h)
     },
     P.section {id="settings-eva-motion",width=w,title="Motion",
       P.buttons(styles),
+      P.buttons(steps("settings-speed","appearance.speed",{{.75,"Unhurried"},{1,"Usual"},{1.5,"Quick"}})),
+      P.buttons(steps("settings-deform","appearance.deform",{{0,"Rigid"},{1,"Fluid"},{2,"Liquid"}})),
       P.row {id="settings-eva-reduce",width=inner,icon="animation",title="Reduce motion",on=reduced,
         subtitle=function() return reduced() and "Everything lands at once" or "Things travel on springs" end,
         trailing=P.switch {id="utilities-toggle-reduce-motion",name="Reduce motion",on=reduced,

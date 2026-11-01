@@ -15,6 +15,7 @@ M.VARIANTS = { { "tonal_spot", "Tonal" }, { "vibrant", "Vibrant" }, { "expressiv
   { "monochrome", "Mono" }, { "fidelity", "Fidelity" }, { "content", "Content" }, { "rainbow", "Rainbow" } }
 
 local function primary() return not morf.window.primary or morf.window.primary() end
+local function hex(color) return color:hex():sub(1, 7) end
 local function dry()
   local value = morf.env("EVA_DRY_RUN")
   return value and value ~= "" and value ~= "0"
@@ -34,6 +35,39 @@ function M.sources()
   local out = { { id = "auto", name = "Lule" }, { id = "wallpaper", name = "Picture" }, { id = "system", name = "Desktop" } }
   for _, scheme in ipairs(schemes.LIST) do out[#out + 1] = { id = scheme.id, name = scheme.name } end
   return out
+end
+
+--- Hues to pick an accent from, each a colour of one tonal palette.
+function M.accents()
+  local out = {}
+  for hue = 0, 315, 45 do
+    local palette = morf.color.tonal_palette(hue, 48)
+    out[#out + 1] = { hue = hue, color = palette(70):hex():sub(1, 7) }
+  end
+  return out
+end
+
+--- The contrast of the scheme on show, as the page says it ("" for none).
+function M.contrast_note()
+  local source = config.get("theme.source")
+  if not schemes.is(source) then return "" end
+  local ratio, grade = schemes.contrast(source, M.mode())
+  return ("Text on its ground reads at %.1f to 1%s"):format(ratio, grade ~= "" and (", WCAG " .. grade) or "")
+end
+
+--- Writes the palette on show as a scheme file, and returns its path.
+function M.export(name)
+  local C, lule = require("theme").color, require("theme").lule
+  local flavour = { ground = hex(C.surface), low = hex(C.surfaceContainerLowest), mid = hex(C.surfaceContainer),
+    high = hex(C.surfaceContainerHigh), top = hex(C.surfaceContainerHighest), ink = hex(C.onSurface),
+    soft = hex(C.onSurfaceVariant), accent = hex(C.primary), second = hex(C.secondary), third = hex(C.tertiary),
+    alert = hex(C.error), colors = {} }
+  for i = 0, 15 do flavour.colors[i + 1] = hex(lule["color" .. i]) end
+  local mode = M.mode()
+  local path = schemes.folder() .. "/" .. name .. ".json"
+  local ok, why = morf.fs.write(path, morf.json.encode({ name = name, [mode] = flavour }, true), { atomic = true, parents = true })
+  if not ok then return nil, why end
+  return path
 end
 
 -- ------------------------------------------------------------------- sun --
@@ -74,8 +108,6 @@ function M.find_sun(done)
 end
 
 -- ----------------------------------------------------------------- sync --
-
-local function hex(color) return color:hex():sub(1, 7) end
 
 --- The roles Qt draws with, from the shell's palette.
 function M.qt_colors()

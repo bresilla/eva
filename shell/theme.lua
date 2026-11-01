@@ -28,10 +28,15 @@ end
 do
   local spring = require("themes.spring")
   local style = config.get("appearance.motion")
+  local speed = tonumber(config.get("appearance.speed")) or 1
   M.spring, M.bounce = {}, {}
   for name, raw in pairs(M.springs or {}) do
-    local styled = spring.styled(raw, style)
+    local styled = spring.styled(raw, style, speed)
     M.spring[name], M.bounce[name] = spring.behavior(styled), spring.curve(styled)
+  end
+  local deform = tonumber(config.get("appearance.deform")) or 1
+  for _, stretch in pairs(M.stretch or {}) do
+    if stretch then stretch.scale = stretch.scale * deform end
   end
 end
 M.motion = require(M.appearance.motion)(M)

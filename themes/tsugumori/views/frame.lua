@@ -88,6 +88,7 @@ function V.build(model)
   local rail = require("themes.tsugumori.views.rail")
   for _, shape in ipairs(rail.extra_shapes or {}) do field[#field + 1] = shape end
   field[#field + 1] = model.levels.shape
+  if model.island then field[#field + 1] = model.island.shape end
   return require("themes.frame_host")(model, ui.Sdf(field), V.insets(), decorations(model))
 end
 return V

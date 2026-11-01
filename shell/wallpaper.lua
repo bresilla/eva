@@ -171,7 +171,10 @@ function M.change(source, kind)
   if not swap then return end
   local w, h = require("workspace_wallpaper").screen_size()
   local at = M.origin or {}
-  swap.show(source, { kind = kind or config.get("wallpaper.transition.kind"), x = at.x, y = at.y,
+  -- The plate may stand off the screen by the parallax: a change starts under
+  -- the pointer on the screen all the same.
+  local shift = (M.overscan() - 1) * w * along()
+  swap.show(source, { kind = kind or config.get("wallpaper.transition.kind"), x = at.x and at.x + shift, y = at.y,
     width = math.floor(w * M.overscan()), height = h, time = config.get("wallpaper.transition.duration"),
     soft = config.get("wallpaper.transition.softness"), ease = theme.ease.emphasized,
     instant = config.get("appearance.reduce_motion") == true })
@@ -214,6 +217,14 @@ local function follow(first)
   end)
 end
 
+--- The pointer on the desktop, in the screen's own pixels: where a change
+--- starts, and where the second picture shows through.
+function M.pointer(x, y)
+  M.origin = { x = x, y = y }
+  local hole = M.pointer_hole
+  if hole and layer then hole.x, hole.y = x - 140, y - 140 end
+end
+
 --- A background layer with the picture on it, opened once there is a
 --- picture: without one the desk's own wallpaper is left alone. It comes and
 --- goes with `wallpaper.draw`.
@@ -252,13 +263,31 @@ function M.layer()
     behavior = { translate_x = theme.spring.slow },
     swap.node,
   }
+  -- A second picture seen through the first, in a soft hole round the pointer.
+  local hole = ui.SdfShape { id = "wallpaper-xray-hole", shape = "circle", width = 280, height = 280 }
+  M.pointer_hole = hole
+  local xray = ui.Image { id = "wallpaper-xray", anchors = { fill = true }, fill_mode = "preserve_aspect_crop",
+    source = function() return config.get("wallpaper.xray") end,
+    visible = function() return config.get("wallpaper.xray") ~= "" end,
+    mask = ui.Sdf { anchors = { fill = true }, softness = 32, hole } }
+  -- Bright with every beat, in the palette's accent, while something plays.
+  local media = require("media_state")
+  media.hear(function() return config.get("wallpaper.glow") == true end)
+  local glow = ui.Rect { id = "wallpaper-glow", anchors = { fill = true },
+    visible = function() return config.get("wallpaper.glow") == true end,
+    opacity = function() return media.pulse:get() * 0.35 end,
+    behavior = { opacity = theme.spring.effects },
+    gradient = function()
+      local accent = theme.color.primary
+      return { kind = "radial", radius = 0.7, stops = { accent:alpha(0), accent } }
+    end }
   local root = ui.Item {
     anchors = { fill = true },
     ui.Rect { id = "wallpaper-ground", anchors = { fill = true }, color = function()
       local color = config.get("wallpaper.color")
       return color ~= "" and morf.color(color) or theme.color.surface
     end },
-    plate,
+    plate, xray, glow,
   }
   local handle = morf.window.layer {
     blend = "srgb",

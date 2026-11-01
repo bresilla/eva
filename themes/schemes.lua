@@ -61,11 +61,54 @@ M.LIST = {
       colors = { "#f2e9e1", "#b4637a", "#286983", "#ea9d34", "#56949f", "#907aa9", "#d7827e", "#575279",
         "#9893a5", "#b4637a", "#286983", "#ea9d34", "#56949f", "#907aa9", "#d7827e", "#575279" } } },
 }
+local REQUIRED = { "ground", "low", "mid", "high", "top", "ink", "soft", "accent", "second", "third", "alert", "colors" }
+
+-- Whether `flavour` has every colour a scheme needs.
+local function whole(f)
+  if type(f) ~= "table" then return false end
+  for _, key in ipairs(REQUIRED) do if f[key] == nil then return false end end
+  return type(f.colors) == "table" and #f.colors == 16
+end
+
+--- The folder a person's own schemes live in.
+function M.folder()
+  return (morf.env("XDG_CONFIG_HOME") or (morf.fs.home() .. "/.config")) .. "/eva/schemes"
+end
+
+-- A scheme file is `{ "name", "dark": { ... }, "light": { ... } }`; one that is
+-- not whole is passed over and said to be.
+local function load_mine()
+  local ok, entries = pcall(morf.fs.list, M.folder())
+  if not ok or type(entries) ~= "table" then return end
+  for _, entry in ipairs(entries) do
+    local name = type(entry) == "table" and entry.name or entry
+    local id = tostring(name):match("^(.+)%.json$")
+    if id then
+      local read, data = pcall(function() return morf.json.decode(morf.fs.read(M.folder() .. "/" .. name)) end)
+      if read and type(data) == "table" and (whole(data.dark) or whole(data.light)) then
+        M.LIST[#M.LIST + 1] = { id = "file:" .. id, name = data.name or id,
+          dark = whole(data.dark) and data.dark or nil, light = whole(data.light) and data.light or nil }
+      else
+        morf.log("warn", "eva: the scheme " .. tostring(name) .. " is not whole")
+      end
+    end
+  end
+end
+load_mine()
+
 M.BY_ID = {}
 for _, scheme in ipairs(M.LIST) do M.BY_ID[scheme.id] = scheme end
 
 --- Whether `source` names a scheme.
 function M.is(source) return M.BY_ID[source] ~= nil end
+
+--- How the ink reads on the ground: the ratio, and "AAA", "AA" or "".
+function M.contrast(id, mode)
+  local f = M.flavour(id, mode)
+  if not f then return nil end
+  local ratio = morf.color(f.ink):contrast(morf.color(f.ground))
+  return ratio, ratio >= 7 and "AAA" or ratio >= 4.5 and "AA" or ""
+end
 
 --- The flavour of `id` for `mode`: a scheme with one flavour keeps it.
 function M.flavour(id, mode)

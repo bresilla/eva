@@ -127,7 +127,9 @@ local function pictures_tab(state, pictures, w, h)
         if pictures.target:get() ~= "all" then return "Set here" end
         return pictures.can_color() and "Apply & colour" or "Set wallpaper"
       end,
-      on_clicked = function() if state.selected:get() ~= "" then pictures.choose(state.selected:get()) end end },
+      on_clicked = function(x, y)
+        if state.selected:get() ~= "" then pictures.choose(state.selected:get(), x and { x = x, y = y } or nil) end
+      end },
   }
   local foot = P.buttons { id = "wallpaper-foot", width = inner, table.unpack(apply) }
 
@@ -196,6 +198,12 @@ local function options_tab(state, pictures, w, h)
       kit.subtitle { font_size = theme.size.small, color = kit.ink("lo"), text = "Parallax across workspaces",
         height = S.l, width = inner },
       choice("wallpaper-parallax", inner, "wallpaper.parallax", pictures.PARALLAX),
+      toggle("wallpaper-glow", inner, "Glow with the music", "The picture brightens on every beat", "graphic_eq", "wallpaper.glow"),
+      P.row { id = "wallpaper-xray", width = inner, icon = "flare", title = "A second picture under the pointer",
+        subtitle = function() return basename(config.get("wallpaper.xray")) ~= "" and basename(config.get("wallpaper.xray")) or "Off" end,
+        trailing = P.button { id = "wallpaper-xray-use",
+          label = function() return config.get("wallpaper.xray") ~= "" and "Clear" or "Use selected" end,
+          on_clicked = function() config.set("wallpaper.xray", config.get("wallpaper.xray") ~= "" and "" or state.selected:get()) end } },
     },
     P.section { id = "wallpaper-transition", width = w, title = "Transition",
       choice("wallpaper-transition", inner, "wallpaper.transition.kind", kinds, narrow and 3 or 5),

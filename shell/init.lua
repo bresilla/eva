@@ -93,7 +93,8 @@ end)
 local motion_first, motion_settle = true, nil
 morf.effect("eva.motion", function()
   local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion"),
-    config.get("appearance.density"), config.get("appearance.corners"), require("themes.motion_style").reduced() }
+    config.get("appearance.density"), config.get("appearance.corners"), config.get("appearance.speed"),
+    config.get("appearance.deform"), config.get("island.enabled"), require("themes.motion_style").reduced() }
   if motion_first or not style then motion_first = false return end
   if motion_settle then motion_settle:cancel() end
   motion_settle = morf.time.timer(120, function()
@@ -230,7 +231,7 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
 local frame_view=require("themes").view("frame")
 local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
   rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape,panels=levels.panels},
-  overlays=overlays,triggers=triggers}
+  island=require("island").build(bar.desk),overlays=overlays,triggers=triggers}
 require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)
 -- The shell's window, to a screen reader.
@@ -487,6 +488,8 @@ end
 ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, ...) end
 -- `desktop [state|edit|done|add ID|hide ID|size ID]`: the widgets on the desktop.
 ipc.desktop = function(how, id) return require("desktop").verb(how, id) end
+-- `island [on|off|toggle|next|state]`.
+ipc.island = function(how) return require("island").verb(how) end
 -- `standby [on|off|state|clock|photos|widgets]`.
 ipc.standby = function(how) return require("standby_model").verb(how) end
 -- `osd [KIND]`: shows that display (the volume without one). False when its

@@ -9,6 +9,7 @@ return {
     desktop_page = "themes.layouts.views.desktop_page",
     look_page = "themes.layouts.views.look_page",
     standby = "themes.layouts.views.standby",
+    island = "themes.layouts.views.island",
     bar = "themes.layouts.views.bar",
     side_panel = "themes.layouts.views.side_panel",
     tasks_page = "themes.layouts.views.tasks_page",

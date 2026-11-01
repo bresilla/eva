@@ -74,8 +74,8 @@ function V.build(model, desk)
 
   local panel = ui.Item { id = "island",
     width = width, height = height,
-    x = function() local x, _, w = desk() return x + (w - width()) / 2 end,
-    y = function() local _, y = desk() return y + theme.BORDER - S.xxs end,
+    x = function() local _, _, w = desk() return (w - width()) / 2 end,
+    y = theme.BORDER - S.xxs,
     behavior = { width = theme.spring.spatial, height = theme.spring.spatial, x = theme.spring.spatial },
     stretch = theme.stretch and theme.stretch.blob or nil,
     ui.MouseArea { anchors = { fill = true }, z = -1,

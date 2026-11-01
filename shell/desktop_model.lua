@@ -34,7 +34,7 @@ M.PHONE_COLUMNS = 1
 local function form() return require("responsive").form() end
 
 M.board = require("tiles_model").new(M.CATALOGUE, form, { order = "desktop.widgets.", small = "desktop.small.", name = "eva.desktop" })
-M.CHROMES = { { "glass", "Glass" }, { "solid", "Solid" }, { "none", "Bare" } }
+M.CHROMES = { { "glass", "Glass" }, { "solid", "Solid" }, { "none", "Bare" }, { "stencil", "Cut" } }
 
 function M.editing() return M.board.editing:get() end
 function M.set_editing(on) M.board.editing:set(on == true) end

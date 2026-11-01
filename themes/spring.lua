@@ -59,12 +59,14 @@ function M.curve(s)
   return { duration = math.floor(total * 1000 + 0.5), easing = { spline = points } }
 end
 
---- `s` with its bounce scaled by a motion style: "calm", "balanced", "playful".
-function M.styled(s, style)
+--- `s` with its bounce scaled by a motion style: "calm", "balanced", "playful",
+--- and `speed` times as quick: a spring's time goes with the root of its
+--- stiffness.
+function M.styled(s, style, speed)
   local ratio = s.ratio
   if style == "calm" then ratio = math.min(1, ratio + 0.2)
   elseif style == "playful" then ratio = math.max(0.3, ratio - 0.18) end
-  return { stiffness = s.stiffness, ratio = ratio }
+  return { stiffness = s.stiffness * (speed or 1) ^ 2, ratio = ratio }
 end
 
 return M

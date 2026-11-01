@@ -29,6 +29,7 @@ function V.build(model)
   for _,drawer in ipairs(model.drawers) do field[#field+1]=drawer.shape end
   field[#field+1]=model.rail.shape
   field[#field+1]=model.levels.shape
+  if model.island then field[#field+1]=model.island.shape end
   return require("themes.frame_host")(model,ui.Sdf(field),V.insets())
 end
 return V

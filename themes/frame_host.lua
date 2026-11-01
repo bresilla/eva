@@ -30,6 +30,7 @@ return function(model,frame,insets,decorations)
     arriving("arrival-rail",model.rail.node,1,rail_edge,theme.LEFT),
     arriving("arrival-levels",model.levels.node,1,function() return "right" end,theme.BORDER)}
   if decorations then desk[#desk+1]=arriving("arrival-marks",decorations,1,rail_edge,theme.LEFT) end
+  if model.island then desk[#desk+1]=model.island.node end
   desk[#desk+1]=ui.Item(panels)
   for _,trigger in ipairs(model.triggers) do desk[#desk+1]=trigger end
   local switcher=require("themes.switcher")

@@ -9,6 +9,7 @@ local P = require("themes.layouts.page")
 local C, S = theme.color, theme.space
 
 local V = {}
+local accents
 
 local function label(text, width)
   return kit.subtitle { font_size = theme.size.small, color = kit.ink("lo"), text = text, height = S.l, width = width }
@@ -69,6 +70,56 @@ local function entry(id, width, placeholder, get_value, accept)
   return box
 end
 
+-- Colours of one tone round the wheel, each pressed to make it the source.
+function accents(model, width)
+  local list = model.accents()
+  local cell = math.floor((width - (#list - 1) * S.s) / #list)
+  local row = { id = "look-accents", gap = S.s, align = "center" }
+  for _, entry in ipairs(list) do
+    local function chosen() return config.get("theme.source") == entry.color end
+    row[#row + 1] = kit.action { id = "look-accent-" .. entry.hue, accessible_name = "Hue " .. entry.hue,
+      width = cell, height = S.TARGET, cursor = "pointer",
+      on_clicked = function() config.set("theme.source", entry.color) end,
+      ui.Rect { anchors = { fill = true }, radius = function() return kit.round(chosen() and S.m or S.xl) end,
+        color = entry.color, behavior = { radius = theme.spring.fast } } }
+  end
+  return ui.Row(row)
+end
+
+-- A look saved by name: a field for the name, then what has been kept.
+local function profiles_section(w, inner)
+  local profiles = require("profiles_model")
+  local rows = morf.list_model({})
+  local name = morf.signal("eva.look.profile.name", "")
+  local node, handle = kit.text_field("entry", { id = "look-profile-name", x = S.s, y = S.xs, width = inner - 2 * S.s,
+    height = P.BUTTON_H - 2 * S.xs, font_family = theme.font, font_size = theme.size.small, placeholder = "A name for this look",
+    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
+    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
+    on_text_changed = function(value) name:set(value) end })
+  local field = kit.surface { width = inner, height = P.BUTTON_H, radius = kit.round(S.m),
+    color = function() return C.surfaceContainerHighest end, node }
+  local list = ui.Repeater { as = "column", gap = S.s, model = rows, delegate = function(row)
+    return ui.Row { width = inner, gap = S.s, align = "center",
+      P.button { id = "look-profile-load-" .. row.key, label = row.key, icon = "style", width = inner - P.BUTTON_H - S.s,
+        on_clicked = function() profiles.load(row.key) end },
+      kit.action { id = "look-profile-remove-" .. row.key, accessible_name = "Remove " .. row.key, width = P.BUTTON_H,
+        height = P.BUTTON_H, cursor = "pointer", on_clicked = function() profiles.remove(row.key) end,
+        kit.icon("close", 20, kit.ink("lo"), { anchors = { center_in = true } }) } }
+  end }
+  local section = P.section { id = "look-profiles", width = w, title = "Saved looks", field,
+    P.button { id = "look-profile-save", label = "Keep this look", icon = "bookmark_add", width = inner,
+      on_clicked = function()
+        if profiles.save(name:get()) then handle.text = "" name:set("") end
+      end },
+    list }
+  morf.effect("eva.look.profiles", function()
+    local out = {}
+    for i, profile in ipairs(profiles.list()) do out[i] = { key = profile.name } end
+    rows:replace(out, "key")
+  end, { owner = section })
+  return section
+end
+
 --- The page at `w` x `h`; `model` is shell/appearance_model.lua.
 function V.build(model, w, h)
   local inner = P.inner(w)
@@ -81,6 +132,10 @@ function V.build(model, w, h)
     P.section { id = "look-colors", width = w, title = "Colours",
       label("Where they come from", inner),
       choice("look-source", inner, "theme.source", sources, narrow and 3 or 5),
+      kit.subtitle { id = "look-contrast", font_size = theme.size.small, color = kit.ink("lo"), width = inner,
+        visible = function() return model.contrast_note() ~= "" end, text = model.contrast_note },
+      label("Or one colour", inner),
+      accents(model, inner),
       toggle("look-song", inner, "Follow the song", "Album art colours the shell while music plays", "music_note", "theme.follow_song"),
       toggle("look-black", inner, "Pure black", "Dark surfaces all the way down, for OLED", "contrast", "appearance.pure_black"),
       label("Scheme", inner),
@@ -115,6 +170,16 @@ function V.build(model, w, h)
       choice("look-cursor-size", inner, "appearance.cursor_size", model.CURSOR_SIZES),
       label("Icons", inner),
       picker("look-icons", inner, "appearance.icon_theme", function() return model.installed:get().icons end, "As the desktop has it"),
+    },
+    profiles_section(w, inner),
+    P.section { id = "look-share", width = w, title = "Schemes of your own",
+      kit.subtitle { font_size = theme.size.small, color = kit.ink("lo"), width = inner, wrap = true,
+        text = "A file in " .. require("themes.schemes").folder() .. " joins the sources after a restart." },
+      P.button { id = "look-export", label = "Save these colours as a scheme", icon = "save", width = inner,
+        on_clicked = function()
+          local path, why = model.export("saved")
+          status:set(path and "" or tostring(why))
+        end },
     },
   }
 end

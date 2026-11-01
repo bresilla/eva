@@ -279,11 +279,12 @@ function F.orb(ctx, _, active)
     local bpm = media.bpm:get()
     return bpm > 0 and 240000 / bpm or 12000
   end
-  local carriers, shapes = {}, {}
+  local carriers, shapes, drops = {}, {}, {}
   shapes[1] = ui.SdfShape { id = "desktop-orb-heart", shape = "circle", x = 44, y = 44, width = 56, height = 56 }
   for i = 1, 4 do
     local size = 18 + i * 3
     local drop = ui.Item { x = 72 - size / 2, y = 72 - size / 2 - 30 - i * 4, width = size, height = size }
+    drops[i] = drop
     carriers[i] = ui.Item { width = 144, height = 144, drop,
       loop = function()
         return { rotation = { from = i * 90, to = i * 90 + (i % 2 == 0 and -360 or 360), duration = seconds() * (1 + i / 4) } }
@@ -298,6 +299,18 @@ function F.orb(ctx, _, active)
     behavior = { scale = theme.spring.press },
     ui.Sdf(shapes) }
   for _, carrier in ipairs(carriers) do ui.reparent(carrier, holder) end
+  -- Each beat throws the drops outward; gravity brings them back to the heart.
+  local heard = media.beats:get()
+  morf.effect("eva.desktop.orb.beat", function()
+    local beats = media.beats:get()
+    if beats == heard or config.get("appearance.reduce_motion") == true then return end
+    heard = beats
+    local strength = media.pulse:get()
+    for i, drop in ipairs(drops) do
+      morf.animation.fling { node = drop, property = "translate_y", velocity = -(120 + 60 * i) * math.max(0.3, strength),
+        gravity = 900, bounce = 0.35, min = -28, max = 0 }
+    end
+  end, { owner = holder })
   return holder
 end
 

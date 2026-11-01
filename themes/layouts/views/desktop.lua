@@ -16,15 +16,28 @@ local INSET = S.l
 
 local function badge(spec) return require("themes").view("quick_tiles").badge(spec) end
 
+-- A veil with the time cut out of it, so the picture itself is the digits.
+local function stencil(model)
+  return ui.Rect { id = "desktop-stencil", anchors = { fill = true }, radius = kit.round(P.RADIUS),
+    visible = function() return config.get("desktop.chrome") == "stencil" end,
+    color = morf.color("#000000"):alpha(0.6), mask_invert = true,
+    mask = ui.Text { anchors = { center_in = true }, font_family = theme.font, font_size = 104, font_weight = 800,
+      text = function() morf.time.minute_clock:get() return model.clock_text() end } }
+end
+
 -- The ground a widget stands on, through the picture where the surface has it.
 local function ground(id, dark)
   return ui.Rect { id = "desktop-ground-" .. id, anchors = { fill = true }, radius = kit.round(P.RADIUS),
-    visible = function() return config.get("desktop.chrome") ~= "none" end,
+    visible = function()
+      local chrome = config.get("desktop.chrome")
+      return chrome ~= "none" and not (chrome == "stencil" and id == "clock")
+    end,
     color = function()
       if config.get("desktop.chrome") == "solid" then return C.surfaceContainer end
       return dark() and morf.color("#ffffff"):alpha(0.28) or morf.color("#000000"):alpha(0.28)
     end,
-    glass = { blur = 24, saturation = 1.4, rim = 0.5, frost = 1 } }
+    glass = { blur = 24, saturation = 1.4, rim = 0.5, frost = 1, refraction = 10 },
+    backdrop_tint = function() return C.primary:alpha(0.1) end }
 end
 
 --- The widgets, filling their surface. `model` is shell/desktop_model.lua.
@@ -64,14 +77,20 @@ function V.build(model)
 
     local ctx = { small = small, ink = ink, soft = soft,
       w = function() return width() - 2 * INSET end, h = function() return height() - 2 * INSET end }
+    -- A carried widget leans into the way it is going.
+    local lean = morf.signal("eva.desktop.lean." .. id .. stamp, 0)
     local body = ui.Item { id = "desktop-widget-" .. id, anchors = { fill = true },
       scale = function()
         if carried:get() == id then return 1.04 end
         return here() and 1 or 0.9
       end,
+      transform_matrix = function() return { 1, 0, lean:get(), 1 } end,
       behavior = { scale = theme.spring.fast },
       ground(id, dark),
-      ui.Item { x = INSET, y = INSET, width = ctx.w, height = ctx.h, faces[id](ctx, model, here) },
+      id == "clock" and stencil(model) or ui.Item {},
+      ui.Item { x = INSET, y = INSET, width = ctx.w, height = ctx.h,
+        visible = function() return not (id == "clock" and config.get("desktop.chrome") == "stencil") end,
+        faces[id](ctx, model, here) },
     }
     local presence = ui.claims(body, {
       here = { when = here, motion = theme.spring.effects, set = { opacity = 1 } },
@@ -104,6 +123,7 @@ function V.build(model)
       end,
       on_dropped = function()
         carried:set("")
+        lean:set(0)
         if origin and model.free() then model.move_to(id, origin.x + last.x, origin.y + last.y) end
         origin = nil
       end,
@@ -122,7 +142,9 @@ function V.build(model)
     ui.reparent(marks, holder)
     morf.effect("eva.desktop.carry." .. id .. stamp, function()
       if not drag.active or not origin then return end
+      local moved = drag.delta_x - last.x
       last = { x = drag.delta_x, y = drag.delta_y }
+      lean:set(math.max(-0.06, math.min(0.06, -moved / 400)))
       if not model.free() then model.reorder(id, origin.x + last.x, origin.y + last.y) end
     end, { owner = holder })
     return holder
@@ -173,7 +195,7 @@ function V.build(model)
 
   local press_timer
   local ground_press = ui.MouseArea { anchors = { fill = true }, z = -1,
-    on_position_changed = function(x, y) require("wallpaper").origin = { x = x, y = y } end,
+    on_position_changed = function(x, y) require("wallpaper").pointer(x, y) end,
     on_pressed = function(x, y, _, _, button)
       if menu_at:get() then menu_at:set(false) return end
       if button == "right" then menu_at:set { x = x, y = y } return end

@@ -65,6 +65,11 @@ local config = settings.open {
       cursor_size = 24,
       icon_theme = "",
       gtk_theme = "",
+      -- How quick everything is, and how far surfaces deform as they move.
+      speed = 1,
+      deform = 1,
+      -- Looks saved by name (shell/profiles_model.lua).
+      profiles = {},
     },
     wallpaper = {
       -- A picture to paint under everything; "" reads the path the
@@ -105,6 +110,14 @@ local config = settings.open {
       favourites = {},
       -- What runs after a change; `$WALLPAPER` and `$OUTPUT` are filled in.
       hook = {},
+      -- A second picture seen through a hole round the pointer ("" for none).
+      xray = "",
+      -- The picture brightens with every beat of the music.
+      glow = false,
+    },
+    island = {
+      -- A pill out of the top of the frame that morphs between what it shows.
+      enabled = false,
     },
     -- The widgets on the desktop (shell/desktop_model.lua): which are shown on
     -- each kind of machine, which small, and where a desk or a tablet has
@@ -113,7 +126,8 @@ local config = settings.open {
       widgets = { desk = {}, tablet = {}, phone = {} },
       small = { desk = {}, tablet = {}, phone = {} },
       place = { desk = {}, tablet = {}, phone = {} },
-      -- What a widget stands on: "glass", "solid" or "none".
+      -- What a widget stands on: "glass", "solid", "none", or "stencil", the
+      -- clock's digits cut through a veil onto the picture.
       chrome = "glass",
       -- The clock keeps to the quietest part of the picture.
       quiet_clock = false,
