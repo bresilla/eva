@@ -155,6 +155,7 @@ end
 --- off, what was on comes back.
 function M.set_airplane(on)
   local net, bt, modem = services.net, services.bt, services.modem
+  local nfc = require("quick_hardware").nfc()
   if dry_run() then
     morf.log("info", "eva: airplane mode " .. (on and "on" or "off") .. " (dry run)")
     config.set("airplane.on", on == true)
@@ -165,9 +166,11 @@ function M.set_airplane(on)
       wifi = net ~= nil and net.state.available and net.state.wifi_enabled == true,
       bluetooth = bt ~= nil and bt.state.available and bt.state.powered == true,
       mobile = modem ~= nil and modem.state.data == true,
+      nfc = nfc.present() and nfc.on(),
     })
     if net and net.state.available then pcall(net.set_wifi, false) pcall(net.set_wwan, false) end
     if bt and bt.state.available then pcall(bt.set_powered, false) end
+    if nfc.present() then pcall(nfc.set, false) end
   else
     local was = config.get("airplane.was") or {}
     if net and net.state.available then
@@ -175,6 +178,7 @@ function M.set_airplane(on)
       if was.mobile then pcall(net.set_wwan, true) end
     end
     if bt and bt.state.available and was.bluetooth then pcall(bt.set_powered, true) end
+    if was.nfc and nfc.present() then pcall(nfc.set, true) end
   end
   config.set("airplane.on", on == true)
 end
@@ -552,6 +556,7 @@ M.DETAILS = {
   {key="keyboard",name="On-screen keyboard",parent="eva"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
   {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
+  {key="flashlight",name="Flashlight"}, {key="filters",name="Colour filters"}, {key="sounds",name="Background sounds"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},
   {key="sound/equalizer",name="Equalizer",parent="sound"},
   {key="sound/equalizer/audiogram",name="Audiogram",parent="sound/equalizer"},
@@ -560,6 +565,10 @@ M.navigation=require("lib.shell.settings.pages").new(M.DETAILS,M.detail,{tor="tu
 M.back=M.navigation.back
 M.breadcrumb=M.navigation.breadcrumb
 function M.overview() return M.opened:get() and M.displayed:get()=="" end
+-- What the tiles read rather than watch is looked at again as they come on show.
+morf.effect("eva.settings.look",function()
+  if M.overview() then require("quick_hardware").refresh() end
+end)
 function M.present(key) if key==M.detail:get() then M.displayed:set(key) end end
 function M.request(key)
   return M.navigation.request(key)

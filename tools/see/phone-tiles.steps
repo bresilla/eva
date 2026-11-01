@@ -1,0 +1,11 @@
+# The phone's board with the hardware standing in, what waits in Available, and
+# the pages the new tiles open.
+BOOT=12
+export EVA_FAKE_HARDWARE=1 EVA_FAKE_MODEM=1 EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging,fast,watts=22}
+start shell
+ipc settings; pause 1.8; shot board
+ipc quick edit; pause 1.6; shot available
+ipc quick done; pause 0.8
+ipc settings flashlight; pause 1.4; shot flashlight
+ipc settings filters; pause 1.4; shot filters
+ipc settings sounds; pause 1.4; shot sounds

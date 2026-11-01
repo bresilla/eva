@@ -98,4 +98,90 @@ function V.nightlight_page(model, w, h)
   }
 end
 
+--- The Flashlight page: on or off, and how bright, where the LED has steps.
+function V.flashlight_page(model, w, h)
+  local inner = P.inner(w)
+  local torch = require("quick_hardware").torch()
+  local function on() return torch.on() end
+  local strength = kit.slider { id = "settings-flashlight-level", accessible_name = "Strength", width = inner,
+    icon = "flashlight_on", value = torch.level,
+    set = function(value) torch.set_level(value) end,
+    reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end }
+  strength.visible = torch.dims
+  return P.page { id = "settings-flashlight-scroll", width = w, height = h,
+    P.section { id = "settings-flashlight", width = w, title = "Flashlight",
+      P.row { id = "settings-flashlight-state", width = inner, icon = "flashlight_on", on = on, title = "Flashlight",
+        subtitle = function() return torch.status() end,
+        trailing = P.switch { id = "settings-flashlight-switch", name = "Flashlight", on = on,
+          on_toggled = function(now) torch.set(now) end } },
+      strength,
+      kit.subtitle { id = "settings-flashlight-note", width = inner, wrap = true, font_size = P.SUB,
+        visible = function() return not torch.dims() end, text = "This light has one strength." },
+    },
+  }
+end
+
+local FILTERS = {
+  { id = "grayscale", name = "Grayscale", icon = "filter_b_and_w", on = "Colour is gone from the screen" },
+  { id = "invert", name = "Invert colours", icon = "invert_colors", on = "Light is dark and dark is light" },
+  { id = "reading", name = "Reading mode", icon = "menu_book", on = "Paper tones, little colour" },
+  { id = "extradim", name = "Extra dim", icon = "brightness_low", on = "Darker than the backlight goes" },
+  { id = "correction", name = "Colour correction", icon = "palette", on = "Colours shifted apart" },
+}
+
+--- The Colour filters page: a switch for each, how dim extra dim is, and which
+--- colours the correction is for.
+function V.filters_page(model, w, h)
+  local inner = P.inner(w)
+  local filters = require("quick_hardware").filters()
+  local list = { id = "settings-filters", width = w, title = "Over the whole screen" }
+  for _, item in ipairs(FILTERS) do
+    local function on() return filters.on(item.id) end
+    list[#list + 1] = P.row { id = "settings-filters-" .. item.id, width = inner, icon = item.icon, on = on, title = item.name,
+      subtitle = function() return on() and item.on or "Off" end,
+      trailing = P.switch { id = "settings-filters-" .. item.id .. "-switch", name = item.name, on = on,
+        on_toggled = function(now) filters.set(item.id, now) end } }
+  end
+  local dim = kit.slider { id = "settings-filters-dim", accessible_name = "How much light is left", width = inner,
+    icon = "brightness_low", value = filters.dim, set = function(value) filters.set_dim(value) end,
+    reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end }
+  dim.visible = function() return filters.on("extradim") end
+  list[#list + 1] = dim
+  local kinds = { id = "settings-filters-kind", width = inner, visible = function() return filters.on("correction") end }
+  for _, kind in ipairs(filters.CORRECTIONS) do
+    kinds[#kinds + 1] = { id = "settings-filters-kind-" .. kind, label = kind:sub(1, 1):upper() .. kind:sub(2, 5) .. ".",
+      accessible_name = kind, group = "settings-filters-kind",
+      visible = function() return filters.on("correction") end,
+      selected = function() return filters.correction() == kind end,
+      on_clicked = function() filters.set_correction(kind) end }
+  end
+  list[#list + 1] = P.buttons(kinds)
+  return P.page { id = "settings-filters-scroll", width = w, height = h, P.section(list) }
+end
+
+--- The Background sounds page: on or off, which, and how loud.
+function V.sounds_page(model, w, h)
+  local inner = P.inner(w)
+  local sounds = require("quick_hardware").sounds()
+  local function on() return sounds.on() end
+  local choices = { id = "settings-sounds-kind", width = inner }
+  for _, kind in ipairs(sounds.KINDS) do
+    choices[#choices + 1] = { id = "settings-sounds-" .. kind.id, label = kind.name, icon = kind.icon, group = "settings-sounds",
+      selected = function() return sounds.kind() == kind.id end,
+      on_clicked = function() sounds.set_kind(kind.id) end }
+  end
+  return P.page { id = "settings-sounds-scroll", width = w, height = h,
+    P.section { id = "settings-sounds", width = w, title = "Background sounds",
+      P.row { id = "settings-sounds-state", width = inner, icon = "waves", on = on, title = "Background sounds",
+        subtitle = function() return sounds.status() end,
+        trailing = P.switch { id = "settings-sounds-switch", name = "Background sounds", on = on,
+          on_toggled = function(now) sounds.set(now) end } },
+      P.buttons(choices),
+      kit.slider { id = "settings-sounds-level", accessible_name = "Volume", width = inner, icon = "volume_up",
+        value = sounds.level, set = function(value) sounds.set_level(value) end, live = false,
+        reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end },
+    },
+  }
+end
+
 return V

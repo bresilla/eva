@@ -69,6 +69,13 @@
               wakeDevices = [ "/sys/devices/platform/modem" ];
             };
           };
+          module-hardware = machine {
+            programs.eva.hardware = {
+              tabletSwitch = { enable = true; name = "Intel HID switches"; };
+              chargeLimit = true;
+              usbTether = true;
+            };
+          };
         };
         devShells.default = pkgs.mkShell {
           packages = [

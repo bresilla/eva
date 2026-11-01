@@ -114,6 +114,27 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   per press; `morf.audio` has streams and no sample player. Wanted:
   `morf.audio.play(path, { volume })`. eva has no key sound until then.
 
+## Convertible, battery and phone tiles: open
+
+- A pen's pressure and tilt. The compositor's `zwp_tablet_v2` events reach a
+  node as a pointer press with no more to them, so a drawing surface cannot
+  vary its stroke and a hover cannot be told from a touch. An event table for
+  pointer handlers, `{ tool = "pen"|"eraser", pressure = 0..1, tilt_x, tilt_y,
+  hovering }`, on `ui.MouseArea` and `kit.Canvas` would cover it. Lua cannot get
+  at the protocol at all.
+- A switch's state. `morf.input.switch("tablet_mode")`, a tracked read over
+  `EVIOCGSW` and the device's events, in the engine's privileges. Today
+  models/posture.lua spawns `evtest`, which needs a group the session would
+  rather not have, and Lua cannot make the ioctl.
+- `service:call_async` on a `morf.dbus.serve` object. `service:call` blocks the
+  thread that runs the object's handlers, so a service that calls back before
+  it answers hangs the shell until a timeout. GeoClue's `Manager.AddAgent` does
+  that (it reads `MaxAccuracyLevel` from the agent), and it takes the agent from
+  the caller's connection, so no other connection can register it. Without
+  this eva cannot be the session's location agent: the Location tile starts and
+  stops GeoClue's demo agent, and a per-program prompt or an accuracy choice
+  cannot be the shell's.
+
 ## Seamless login: open
 
 - Custom shaders on a held lock. Every renderer calls `register_shaders` except

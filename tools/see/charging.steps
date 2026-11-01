@@ -1,0 +1,13 @@
+# The Power page and the dashboard's battery tab against a stand-in battery,
+# through a fast charger, a wireless one, a weak one and a limit it is held at.
+BOOT=12
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging,fast,watts=22,limit=100}
+export EVA_FAKE_HARDWARE=1
+start shell
+ipc settings power; pause 1.8; shot fast
+ipc fake-battery 64,charging,wireless,limit=100; pause 1.4; shot wireless
+ipc fake-battery 64,charging,slow,limit=100; pause 1.4; shot slow
+ipc fake-battery 80,limited,fast,limit=80; pause 1.4; shot held
+ipc close; pause 0.6
+ipc fake-battery 64,charging,fast,watts=22,limit=100
+ipc dashboard open battery; pause 2.4; shot dashboard

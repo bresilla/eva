@@ -126,9 +126,12 @@ morf.effect("eva.rotation", function()
     morf.reload { output = true }
   end
 end)
--- Auto-rotation while the rotation is not locked, and a night light left on.
+-- Auto-rotation while the rotation is not locked, a night light left on, and
+-- the battery's charge limit.
 require("auto_rotate").start()
 require("quick_hardware").nightlight()
+require("quick_hardware").start()
+require("charge_limit_model").start()
 
 -- ---------------------------------------------------------------- drawers --
 
@@ -302,7 +305,11 @@ ipc.launcher = function(how)
   end
   return verb(launcher.drawer)(how)
 end
-ipc.dashboard = verb(dashboard.drawer)
+-- `dashboard [how [TAB]]`: TAB is one of its tabs by name, such as battery.
+ipc.dashboard = function(how, tab)
+  if tab and here() then require("dashboard_state").show(tab) end
+  return verb(dashboard.drawer)(how)
+end
 -- Builds the shell again from its files, in place.
 ipc.reload = function() morf.reload() return true end
 -- The frame, the rail and the bar come in again: a lock lifting.
@@ -388,6 +395,17 @@ ipc.settings = function(page)
   sidebar.select("settings")
   sidebar.drawer.set(true)
   return page or ""
+end
+-- `tablet on` or `tablet off`: the hinge moved, as Hyprland's switch binds say;
+-- the kernel is asked before it counts. `tablet pin on|off` holds the posture
+-- whatever the switch says, `tablet auto` lets it go, `tablet state` reads it.
+ipc.tablet = function(how, value)
+  local posture = require("models.posture")
+  if how == "on" or how == "off" then posture.report(how == "on")
+  elseif how == "pin" and (value == "on" or value == "off") then posture.pin(value == "on")
+  elseif how == "auto" then posture.pin(nil)
+  elseif how ~= nil and how ~= "state" then error("`" .. tostring(how) .. "`: on, off, pin on|off, auto or state") end
+  return posture.state()
 end
 -- `quick edit` or `quick done`: the quick settings' tiles being arranged.
 ipc.quick = function(how)

@@ -44,7 +44,10 @@ local HOST=[[
     set_on=function(on) record("bar",on) data.bar=on update() end}
   morf.audio={available=function() return false end}
   morf.idle={inhibit=function(on) record("inhibit",on) end}
-  morf.process.run=function(argv,opts,callback) record("command",argv) if callback then callback{ok=true} end end
+  morf.process.run=function(argv,opts,callback)
+    if argv[1]~="systemctl" then record("command",argv) end
+    if callback then callback{ok=true} end
+  end
   local config=require("config")
   config.set("utilities.commands.mic_off",{"preview-command","~/microphone","$HOME","$DATE"})
   local model=require("utilities")

@@ -1,15 +1,19 @@
 #!/bin/sh
-# eva-battery: the battery's charge limit, through UPower.
+# eva-battery: the battery's charge and what feeds it, and its charge limit.
 #
-#   eva-battery status        the charge, and the limit where there is one
-#   eva-battery limit on      charging stops at the limit set for this battery
+#   eva-battery status        the charge, the charger, and the limit where there is one
+#   eva-battery limit on      charging stops at UPower's limit for this battery
 #   eva-battery limit off     charging goes to full
+#   eva-battery limit 80      charging stops at 80 percent, in the kernel's own file
+#
+# EVA_POWER_SUPPLY is the folder read in place of /sys/class/power_supply.
 set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 service=org.freedesktop.UPower
 device_interface=org.freedesktop.UPower.Device
+supplies=${EVA_POWER_SUPPLY:-/sys/class/power_supply}
 
 # The first battery's object path.
 battery() {
@@ -22,19 +26,112 @@ property() {
   busctl --system get-property "$service" "$1" "$device_interface" "$2" 2>/dev/null | cut -d' ' -f2-
 }
 
+# One attribute of a power supply, or nothing.
+attribute() {
+  cat "$1/$2" 2>/dev/null || true
+}
+
+# The machine's own battery under the power supplies.
+own_battery() {
+  for supply in "$supplies"/*; do
+    [ "$(attribute "$supply" type)" = Battery ] || continue
+    [ "$(attribute "$supply" scope)" = Device ] && continue
+    printf '%s\n' "$supply"
+    return 0
+  done
+  return 1
+}
+
+# The first input online.
+online_input() {
+  for supply in "$supplies"/*; do
+    case "$(attribute "$supply" type)" in
+      USB | Wireless | Mains) [ "$(attribute "$supply" online)" = 1 ] && { printf '%s\n' "$supply"; return 0; } ;;
+    esac
+  done
+  return 1
+}
+
+# What flows into the cell, in watts.
+flow() {
+  power=$(attribute "$1" power_now)
+  current=$(attribute "$1" current_now)
+  voltage=$(attribute "$1" voltage_now)
+  if [ -n "$power" ]; then
+    awk -v p="$power" 'BEGIN { printf "%.1f", (p < 0 ? -p : p) / 1000000 }'
+  elif [ -n "$current" ] && [ -n "$voltage" ]; then
+    awk -v c="$current" -v v="$voltage" 'BEGIN { printf "%.1f", (c < 0 ? -c : c) * v / 1000000000000 }'
+  fi
+}
+
+# The chosen word of a list such as "SDP DCP [PD]", or a lone word.
+chosen() {
+  case "$1" in
+    *\[*) printf '%s' "$1" | sed -e 's/.*\[//' -e 's/\].*//' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+feed() {
+  own=$(own_battery) || return 0
+  input=$(online_input) || input=""
+  printf 'status %s\n' "$(attribute "$own" status)"
+  if [ -n "$input" ]; then
+    protocol=$(chosen "$(attribute "$input" usb_type)")
+    printf 'input %s%s\n' "$(attribute "$input" type)" "${protocol:+ $protocol}"
+  fi
+  if [ "$(attribute "$own" status)" = Charging ]; then
+    watts=$(flow "$own")
+    if [ -n "$watts" ] && [ "$watts" != 0.0 ]; then printf 'power %s W\n' "$watts"; fi
+  fi
+  threshold=$(attribute "$own" charge_control_end_threshold)
+  if [ -n "$threshold" ]; then printf 'stops at %s\n' "$threshold"; fi
+  return 0
+}
+
+# Writes the kernel's limit.
+limit_level() {
+  case "$1" in
+    *[!0-9]*)
+      eva_say "limit takes on, off or a percentage"
+      exit 2
+      ;;
+  esac
+  if [ "$1" -lt 50 ] || [ "$1" -gt 100 ]; then
+    eva_say "a limit is from 50 to 100"
+    exit 2
+  fi
+  own=$(own_battery) || own=""
+  file="$own/charge_control_end_threshold"
+  if [ -z "$own" ] || [ ! -e "$file" ]; then
+    eva_say "this battery has no charge limit"
+    exit 1
+  fi
+  if eva_dry; then
+    eva_say "dry run: charge limit $1"
+    exit 0
+  fi
+  if [ ! -w "$file" ]; then
+    eva_say "this session may not write the limit; programs.eva.hardware.chargeLimit grants it"
+    exit 1
+  fi
+  printf '%s' "$1" > "$file"
+}
+
 device=$(battery) || device=""
-if [ -z "$device" ]; then
-  eva_say "no battery"
-  exit 1
-fi
 
 supported() {
-  [ "$(property "$device" ChargeThresholdSupported)" = true ]
+  [ -n "$device" ] && [ "$(property "$device" ChargeThresholdSupported)" = true ]
 }
 
 case "${1:-status}" in
   status)
-    printf 'charge %s%%\n' "$(property "$device" Percentage)"
+    if [ -z "$device" ] && ! own_battery > /dev/null; then
+      eva_say "no battery"
+      exit 1
+    fi
+    if [ -n "$device" ]; then printf 'charge %s%%\n' "$(property "$device" Percentage)"; fi
+    feed
     if supported; then
       printf 'limit %s\n' "$(property "$device" ChargeThresholdEnabled)"
       printf 'between %s and %s\n' "$(property "$device" ChargeStartThreshold)" "$(property "$device" ChargeEndThreshold)"
@@ -45,10 +142,14 @@ case "${1:-status}" in
       on) wanted=true ;;
       off) wanted=false ;;
       *)
-        eva_say "limit takes on or off"
-        exit 2
+        limit_level "${2:-}"
+        exit 0
         ;;
     esac
+    if [ -z "$device" ]; then
+      eva_say "no battery"
+      exit 1
+    fi
     if ! supported; then
       eva_say "this battery has no charge limit"
       exit 1

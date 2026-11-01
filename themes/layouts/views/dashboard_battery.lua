@@ -117,12 +117,13 @@ function M.build(model)
     id = "battery-readings", width = LEFT_W, height = READ_H, title = "Readings",
     row("battery-power", "Power", function() return num(battery().power, "%.1f W") end,
       function() return (battery().power or 0) / math.max(5, peak("power", 5)) end, DRAW, 1),
-    row("battery-lasts", function() return charging() and "Full in" or "Lasts" end, function()
-      local s = battery_state()
-      return duration_text(charging() and s.time_to_full or s.time_left)
+    row("battery-lasts", function()
+      if not charging() then return "Lasts" end
+      return model.target() < 100 and ("%d%% in"):format(model.target()) or "Full in"
     end, function()
-      local s = battery_state()
-      local secs = charging() and s.time_to_full or s.time_left
+      return duration_text(charging() and model.to_target() or battery_state().time_left)
+    end, function()
+      local secs = charging() and model.to_target() or battery_state().time_left
       return math.min(1, (secs or 0) / (10 * 3600))
     end, CHARGE, 2),
     row("battery-health", "Health", function() return num(battery().health, "%.0f %%") end,
@@ -179,7 +180,7 @@ function M.build(model)
     { "Voltage", function() return num(battery().voltage, "%.2f V") end },
     { "Energy now", function() return num(battery().energy, "%.1f Wh") end },
     { "Last full", function() return num(battery().energy_full, "%.1f Wh") end },
-    { "Full design", function() return num(battery().energy_design, "%.1f Wh") end },
+    { "Charger", model.charger_name },
     { "Charge limit", model.limit },
   }, FW, FACT_H)
   local details = P.tile {
@@ -202,7 +203,9 @@ function M.build(model)
       end),
       subtitle = function()
         if not present() then return "No battery" end
-        return charging() and "Plugged in  ·  " .. num(battery().power, "%.1f W")
+        local feed = model.feed()
+        local kind = feed.fast and "Fast" or feed.wireless and "Wireless" or "Plugged in"
+        return charging() and kind .. "  ·  " .. num(battery().power, "%.1f W")
           or tostring(battery().status or "No battery") .. "  ·  " .. num(battery().energy, "%.1f Wh")
       end },
   }

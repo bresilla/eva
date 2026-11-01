@@ -149,7 +149,7 @@ local config = settings.open {
       wheel_workspace = false,
     },
     -- Airplane mode, and what was on before it (to bring back).
-    airplane = { on = false, was = { wifi = false, bluetooth = false, mobile = false } },
+    airplane = { on = false, was = { wifi = false, bluetooth = false, mobile = false, nfc = false } },
     -- sound, vibrate or silent (lib/util/ringer.lua; vibrate where feedbackd is).
     ringer = { mode = "sound" },
     -- Whether touches and gestures buzz (shell/haptics.lua).
@@ -267,18 +267,36 @@ local config = settings.open {
       tiles = {
         desk = { "wifi", "bluetooth", "wired", "mobile", "mesh", "tunnel", "airplane", "hotspot", "sound", "mic",
           "nightlight", "powersaver", "battery", "focus", "theme", "eva" },
-        tablet = { "wifi", "bluetooth", "rotation", "keyboard", "airplane", "hotspot", "sound", "mic", "nightlight",
-          "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
-        phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "airplane", "nightlight",
-          "powersaver", "sound", "mic", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
+        tablet = { "wifi", "bluetooth", "rotation", "keyboard", "autobrightness", "airplane", "hotspot", "sound", "mic",
+          "nightlight", "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
+        phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "autobrightness", "nfc", "airplane",
+          "nightlight", "powersaver", "location", "datasaver", "sound", "mic", "battery", "mesh", "tunnel", "focus",
+          "theme", "eva", "camera", "calculator", "voicenote", "alarm" },
       },
-      small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "nightlight", "powersaver" } },
+      small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "autobrightness", "nfc", "nightlight",
+        "powersaver", "location", "datasaver", "camera", "calculator", "voicenote", "alarm" } },
     },
     -- The night light (hyprsunset): whether it is on, and how warm, in kelvin.
     nightlight = { on = false, temperature = 4500 },
+    -- The flashlight's strength, 0 to 1 of what the LED can do.
+    flashlight = { level = 1 },
+    -- The screen following the light sensor.
+    autobrightness = { on = false },
+    -- Connections marked metered, and which of them were marked here.
+    datasaver = { on = false, marked = {} },
+    -- Colour filters over the screen; `correction_kind` is protanopia,
+    -- deuteranopia or tritanopia, `dim` how much light extra dim leaves.
+    filters = { grayscale = false, invert = false, extradim = false, reading = false, correction = false,
+      correction_kind = "deuteranopia", dim = 0.4 },
+    -- Background sounds: rain, ocean or noise, and how loud, 0 to 1.
+    sounds = { kind = "rain", level = 0.4 },
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
     -- keeps it, a phone or a tablet follows the accelerometer).
     rotation = { lock = "auto" },
+    -- Charging stops at `limit` percent: 100 for none, 0 leaves the kernel's
+    -- as it is. With `adaptive` it waits lower overnight and is done by
+    -- `ready`, in minutes after midnight.
+    battery = { limit = 0, adaptive = false, ready = 420 },
   },
 }
 return require("themes.ui_scale").link(config)
