@@ -381,6 +381,68 @@ function M.clear_all()
   end
 end
 
+-- The desk whose menu is up, 0 for none, and the desk being dragged.
+M.desk_menu = morf.signal("eva.overview.desk_menu", 0)
+M.desk_drag = morf.state { id = 0, over = 0, x = 0, y = 0 }
+
+--- The desk `id`'s row.
+local function desk_row(id)
+  for _, d in ipairs(M.desk_rows or {}) do if d.id == id then return d end end
+end
+
+--- What a desk offers: `{ label, icon, run }`.
+function M.desk_actions(id)
+  local spaces = require("workspaces_model")
+  local here = desk_row(id)
+  if not here then return {} end
+  local items = {}
+  for _, d in ipairs(M.desk_rows or {}) do
+    if d.monitor == here.monitor and d.id == id - 1 then
+      items[#items + 1] = { label = "Move left", icon = "arrow_back", run = function() spaces.reorder(id, d.id) end }
+    elseif d.monitor == here.monitor and d.id == id + 1 then
+      items[#items + 1] = { label = "Move right", icon = "arrow_forward", run = function() spaces.reorder(id, d.id) end }
+    end
+  end
+  for _, d in ipairs(M.desk_rows or {}) do
+    if d.id ~= id and #items < 9 then
+      items[#items + 1] = { label = "Swap with " .. d.name, icon = "swap_horiz", run = function() spaces.swap(id, d.id) end }
+    end
+  end
+  for _, m in ipairs(windows.monitors()) do
+    if m.name ~= here.monitor then
+      items[#items + 1] = { label = "Move to " .. m.name, icon = "monitor", run = function() spaces.to_monitor(id, m.name) end }
+      items[#items + 1] = { label = "Swap screens with " .. m.name, icon = "swap_calls",
+        run = function() spaces.swap_screens(here.monitor, m.name) end }
+    end
+  end
+  return items
+end
+
+function M.desk_drag_start(id, x, y)
+  local d = M.desk_drag
+  d.id, d.over, d.x, d.y = id, 0, x, y
+end
+
+function M.desk_drag_move(x, y)
+  local d = M.desk_drag
+  if d.id == 0 then return end
+  d.x, d.y = x, y
+  d.over = tonumber(model.hit(M.strip:get(), x, y) or 0)
+end
+
+--- Where a desk lands: on its own screen it takes that place, on another
+--- screen's desk it moves there.
+function M.desk_drag_end()
+  local d = M.desk_drag
+  local from, to = d.id, d.over
+  d.id, d.over = 0, 0
+  if from == 0 or to == 0 or from == to then return false end
+  local spaces = require("workspaces_model")
+  local first, second = desk_row(from), desk_row(to)
+  if first and second and first.monitor ~= second.monitor then return spaces.to_monitor(from, second.monitor) end
+  return spaces.reorder(from, to)
+end
+
 --- What a card offers: `{ label, icon, run }`.
 function M.card_actions(address)
   local c = windows.get(address)

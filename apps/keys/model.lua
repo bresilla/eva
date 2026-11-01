@@ -87,6 +87,9 @@ function M.record(id)
   M.message:set("")
   M.recording:set(id)
   keys.hold_keys(true)
+  morf.time.timer(keys.RECORD_MS, function()
+    if M.recording:get() == id then M.stop() end
+  end, false)
   return true
 end
 

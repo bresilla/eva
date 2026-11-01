@@ -131,6 +131,28 @@ function M.register(ipc)
     return out
   end
   ipc.dock_reorder = function(from, to) return require("dock").reorder(tonumber(from), tonumber(to)) end
+  -- `rules [list]`, `rules add JSON`, `rules set JSON` (it has its id), `rules
+  -- remove ID`, `rules on ID` and `rules off ID`, `rules from ADDRESS` (a draft
+  -- from a running window), `rules dim on|off [STRENGTH]`.
+  ipc.rules = function(how, value, strength)
+    local rules = require("window_rules_model")
+    if how == nil or how == "list" then return rules.list() end
+    if how == "dim" then
+      local config = require("config")
+      if tonumber(strength) then config.set("windows.dim_strength", tonumber(strength)) end
+      config.set("windows.dim_inactive", value == "on")
+      return true
+    end
+    if how == "from" then return rules.from_window(value) end
+    if not require("services").here() then return end
+    if how == "add" or how == "set" then
+      local id, why = rules.save(morf.json.decode(value))
+      return id or why
+    end
+    if how == "remove" then rules.remove(value) return true end
+    if how == "on" or how == "off" then rules.set_enabled(value, how == "on") return true end
+    error("`" .. tostring(how) .. "`: list, add, set, remove, on, off or from")
+  end
   local spaces = require("workspaces_model")
   local function shown_workspace() return windows.int(require("services").workspace.active()) end
   -- `workspace_empty`: the first workspace with nothing on it.
@@ -152,6 +174,29 @@ function M.register(ipc)
     if layout == "next" then return spaces.cycle_layout(id) end
     return spaces.set_layout(id, layout)
   end
+  -- `layouts [list]`, `layouts save NAME`, `layouts restore NAME`, `layouts
+  -- remove NAME`, `layouts login [NAME]`, `layouts report`.
+  ipc.layouts = function(how, name)
+    local layouts = require("layouts_model")
+    if how == nil or how == "list" then return layouts.list() end
+    if how == "report" then return layouts.report:get() end
+    if not here() then return end
+    if how == "save" then
+      local count, why = layouts.save(name)
+      return count or why
+    end
+    if how == "restore" then return layouts.restore(name) end
+    if how == "remove" then layouts.remove(name) return true end
+    if how == "login" then layouts.set_login(name) return true end
+    error("`" .. tostring(how) .. "`: list, save, restore, remove, login or report")
+  end
+  -- `workspace_move ID SCREEN`, `workspace_swap A B` (windows, name and layout
+  -- trade places), `workspace_reorder FROM TO`, `workspace_screens A B` (two
+  -- screens trade what they show).
+  ipc.workspace_move = function(id, monitor) if here() then return spaces.to_monitor(tonumber(id), monitor) end end
+  ipc.workspace_swap = function(first, second) if here() then return spaces.swap(tonumber(first), tonumber(second)) end end
+  ipc.workspace_reorder = function(from, to) if here() then return spaces.reorder(tonumber(from), tonumber(to)) end end
+  ipc.workspace_screens = function(first, second) if here() then return spaces.swap_screens(first, second) end end
   -- `scratchpad NAME`: shows or hides it. `scratchpad list`. `scratchpad send
   -- NAME`: the focused window goes there.
   ipc.scratchpad = function(how, name)

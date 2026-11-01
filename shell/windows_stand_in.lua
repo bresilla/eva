@@ -348,7 +348,15 @@ function M.new(scene)
     local id = workspace_id(a.workspace)
     if id and workspaces[id] then workspaces[id].name = a.name ~= "" and a.name or nil end
   end)
-  verb("workspace", "move", function() end)
+  verb("workspace", "move", function(a)
+    if type(a) ~= "table" then fail("hl.workspace.move: expected a table { monitor, workspace? }") end
+    if not a.monitor then fail("hl.workspace.move: 'monitor' is required") end
+  end)
+  verb("workspace", "swap_monitors", function(a)
+    if type(a) ~= "table" or not a.monitor1 or not a.monitor2 then
+      fail("hl.workspace.swap_monitors: expected a table { monitor1, monitor2 }")
+    end
+  end)
   verb("group", "toggle", function() end)
   verb("group", "lock_active", function() end)
   verb("group", "next", function() end)

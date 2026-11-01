@@ -134,9 +134,19 @@ def tool(instance, *words):
     print(f"TOOL {quoted} => {out[:300]}")
     try:
         reply = json.loads(out)
-        return (reply.get("result") or [None])[0] if reply.get("ok") else None
+        value = (reply.get("result") or [None])[0] if reply.get("ok") else None
+        return json.loads(value) if isinstance(value, str) and value[:1] in "[{" else value
     except ValueError:
         return None
+
+
+def tool_focus():
+    # The tool's window has the keys again, as pressing a row would give it.
+    row = next((c for c in clients() if c["title"] == "Keys" or "keys" in c["class"].lower()), None)
+    print("TOOL WINDOW", row and (row["class"], row["title"]))
+    if row:
+        hyprctl("eval", f'hl.dispatch(hl.dsp.focus({{ window = "address:{row["address"]}" }}))')
+        machine.sleep(1)
 
 
 def bound():
@@ -149,7 +159,7 @@ def keys_section():
         check("eva-keys answers", eventually(lambda: (tool(keys, "state") or {}).get("rows")), keys)
         verb = "verb:window_menu toggle"
 
-        check("a row can listen", tool(keys, "record", verb) is True)
+        check("a row can listen", tool(keys, "record", verb) in (True, "true"))
         check("recording holds the compositor's keys back", hyprctl("submap").strip() == "eva-keys-record", hyprctl("submap"))
         machine.send_key("meta_l-y")
         machine.sleep(2)
@@ -166,7 +176,9 @@ def keys_section():
         machine.send_key("meta_l-y")
         machine.sleep(3)
         check("the new chord does what the old did", ask("window_menu", "state") is True, str(ask("window_menu", "state")))
-        ask("window_menu", "toggle")
+        ipc("window_menu", "close")
+        machine.sleep(2)
+        tool_focus()
 
         hyprctl("reload")
         machine.sleep(4)
@@ -178,6 +190,7 @@ def keys_section():
         machine.sleep(2)
         row = tool(keys, "row", "SUPER + Q") or {}
         check("its row is editable", row.get("editable") is True, str(row))
+        tool_focus()
         tool(keys, "record", row.get("id", ""))
         machine.send_key("meta_l-u")
         machine.sleep(2)
@@ -190,6 +203,7 @@ def keys_section():
 
         tool(keys, "reload")
         machine.sleep(2)
+        tool_focus()
         tool(keys, "record", "verb:kill_mode")
         machine.send_key("meta_l-tab")
         machine.sleep(2)
@@ -203,8 +217,206 @@ def keys_section():
         machine.execute("pkill -u alice -f apps/keys")
 
 
+def rules_section():
+    with subtest("window rules"):
+        def opened(title):
+            open_window(title)
+            machine.sleep(2)
+            return client(title)
+
+        one = client("one") or clients()[0]
+        draft = ask("rules", "from", one["address"]) or {}
+        check("a rule starts from a running window", draft.get("class") == "^foot$", str(draft))
+
+        made = ipc("rules", "add", json.dumps({
+            "class": "^foot$", "title": "^ruled$", "layout": "float", "size": "400 300", "center": True,
+            "opacity": 0.8, "workspace": "4", "silent": True}))
+        check("a rule is kept", isinstance(made, str) and made.startswith("r"), str(made))
+        machine.sleep(2)
+        window = opened("ruled") or {}
+        print("RULED", window)
+        check("float", window.get("floating") is True, str(window))
+        check("size", window.get("size") == [400, 300], str(window.get("size")))
+        check("workspace, quietly", (window.get("workspace") or {}).get("id") == 4, str(window.get("workspace")))
+        check("opacity", hyprctl("getprop", "title:ruled", "opacity").strip().startswith("0.8"), hyprctl("getprop", "title:ruled", "opacity"))
+        center_x = window.get("at", [0])[0] + 200
+        monitor = json.loads(hyprctl("-j", "monitors"))[0]
+        check("centred", abs(center_x - monitor["width"] / monitor["scale"] / 2) < 40, str(window.get("at")))
+
+        rules = ask("rules", "list") or []
+        edited = dict(rules[0], size="500 350", opacity=1)
+        ipc("rules", "set", json.dumps(edited))
+        machine.sleep(2)
+        hyprctl("eval", 'hl.dispatch(hl.dsp.window.close({ window = "title:ruled" }))')
+        machine.sleep(2)
+        window = opened("ruled") or {}
+        print("EDITED", window)
+        check("an edit reaches the next window", window.get("size") == [500, 350], str(window.get("size")))
+        check("an edit leaves nothing of the old rule", hyprctl("getprop", "title:ruled", "opacity").strip().startswith("1"), hyprctl("getprop", "title:ruled", "opacity"))
+
+        hyprctl("reload")
+        machine.sleep(4)
+        hyprctl("eval", 'hl.dispatch(hl.dsp.window.close({ window = "title:ruled" }))')
+        machine.sleep(2)
+        window = opened("ruled") or {}
+        check("a reload keeps the rule", window.get("size") == [500, 350] and window.get("floating") is True, str(window))
+
+        ipc("rules", "off", edited["id"])
+        machine.sleep(2)
+        hyprctl("eval", 'hl.dispatch(hl.dsp.window.close({ window = "title:ruled" }))')
+        machine.sleep(2)
+        window = opened("ruled") or {}
+        check("a rule switched off does nothing", window.get("floating") is False, str(window))
+        ipc("rules", "on", edited["id"])
+        machine.sleep(2)
+        hyprctl("eval", 'hl.dispatch(hl.dsp.window.close({ window = "title:ruled" }))')
+        machine.sleep(2)
+        window = opened("ruled") or {}
+        check("and on again does", window.get("floating") is True, str(window))
+
+        ipc("rules", "remove", edited["id"])
+        machine.sleep(2)
+        hyprctl("eval", 'hl.dispatch(hl.dsp.window.close({ window = "title:ruled" }))')
+        machine.sleep(2)
+        window = opened("ruled") or {}
+        check("a deleted rule is gone", window.get("floating") is False, str(window))
+        hyprctl("eval", 'hl.dispatch(hl.dsp.window.close({ window = "title:ruled" }))')
+
+        print("CONFIG ERRORS", hyprctl("configerrors"))
+        check("no spelling was refused", hyprctl("configerrors").strip() == "", hyprctl("configerrors"))
+
+        before = hyprctl("getoption", "decoration:dim_inactive")
+        check("nothing dims by default", "false" in before or "int: 0" in before, before)
+        ipc("rules", "dim", "on", "0.35")
+        machine.sleep(2)
+        check("dim inactive reaches the compositor", "true" in hyprctl("getoption", "decoration:dim_inactive"), hyprctl("getoption", "decoration:dim_inactive"))
+        check("at its strength", "0.35" in hyprctl("getoption", "decoration:dim_strength"), hyprctl("getoption", "decoration:dim_strength"))
+        hyprctl("reload")
+        machine.sleep(4)
+        check("and stays after a reload", "true" in hyprctl("getoption", "decoration:dim_inactive"), hyprctl("getoption", "decoration:dim_inactive"))
+        ipc("rules", "dim", "off")
+        machine.sleep(2)
+        check("and goes when turned off", "false" in hyprctl("getoption", "decoration:dim_inactive"), hyprctl("getoption", "decoration:dim_inactive"))
+
+
+def layouts_section():
+    with subtest("saved layouts"):
+        def close(title):
+            hyprctl("eval", f'hl.dispatch(hl.dsp.window.close({{ window = "title:{title}" }}))')
+            machine.sleep(1)
+
+        def move(title, fields):
+            hyprctl("eval", f'hl.dispatch(hl.dsp.window.{fields})')
+            machine.sleep(1)
+
+        def box(title):
+            row = client(title) or {}
+            return row.get("workspace", {}).get("id"), row.get("floating"), row.get("at"), row.get("size")
+
+        for title in ("base", "side"):
+            open_window(title)
+        move("base", 'move({ workspace = "5", follow = false, window = "title:base" })')
+        move("side", 'float({ action = "on", window = "title:side" })')
+        move("side", 'resize({ x = 420, y = 310, window = "title:side" })')
+        move("side", 'move({ x = 60, y = 70, window = "title:side" })')
+        machine.sleep(1)
+        saved_box = box("side")
+        print("SAVED BOX", saved_box, box("base"))
+        count = ipc("layouts", "save", "work")
+        check("a layout is saved by name", count is not None and int(count) >= 2, str(count))
+
+        move("base", 'move({ workspace = "2", follow = false, window = "title:base" })')
+        move("side", 'float({ action = "off", window = "title:side" })')
+        move("side", 'move({ workspace = "3", follow = false, window = "title:side" })')
+        check("the windows were moved away", box("base")[0] == 2 and box("side")[0] == 3, f"{box('base')} {box('side')}")
+
+        check("restore answers", ipc("layouts", "restore", "work") in (True, "true"))
+        check("a tiled window returns to its workspace", eventually(lambda: box("base")[0] == 5), str(box("base")))
+        check("a floating window returns to its exact box", eventually(lambda: box("side") == saved_box), f"{box('side')} {saved_box}")
+
+        # A closed window with a desktop entry starts again: foot has one. Its
+        # title is the terminal's own, so it comes back as a foot, not as `side`.
+        close("side")
+        machine.sleep(1)
+        before = len([c for c in clients() if c["class"] == "foot"])
+        ipc("layouts", "restore", "work")
+        check("a closed window is started again", eventually(lambda: len([c for c in clients() if c["class"] == "foot"]) == before + 1, 20),
+              str([c["title"] for c in clients()]))
+        check("and placed", eventually(lambda: any(c["class"] == "foot" and c["floating"] and c["size"] == list(saved_box[3]) for c in clients()), 20),
+              str([(c["title"], c["floating"], c["size"]) for c in clients()]))
+        report = eventually(lambda: (ask("layouts", "report") or {}).get("opened"), 20)
+        check("the report counts it", report == 1, str(ask("layouts", "report")))
+
+        # A class with no desktop entry cannot be started: said plainly.
+        hyprctl("eval", 'hl.dispatch(hl.dsp.exec_cmd("foot -a nodesktopentry -T lonely sleep 3600"))')
+        machine.wait_until_succeeds(session("hyprctl --instance 0 clients | grep -q 'title: lonely'"), timeout=30)
+        ipc("layouts", "save", "lonely")
+        close("lonely")
+        ipc("layouts", "restore", "lonely")
+        machine.sleep(3)
+        check("what cannot be started is named", "nodesktopentry" in str((ask("layouts", "report") or {}).get("missing")), str(ask("layouts", "report")))
+
+        for title in ("base",):
+            close(title)
+        machine.execute("pkill -u alice -f 'foot$' || true")
+        ipc("layouts", "remove", "lonely")
+        ipc("layouts", "remove", "work")
+
+
+def spaces_section():
+    with subtest("workspaces move"):
+        def space(id):
+            return next((w for w in workspaces() if w["id"] == id), None)
+
+        def on(id):
+            return sorted(c["title"] for c in clients() if c["workspace"]["id"] == id and c["class"] == "foot")
+
+        def home(title, id):
+            hyprctl("eval", f'hl.dispatch(hl.dsp.window.move({{ workspace = "{id}", follow = false, window = "title:{title}" }}))')
+            machine.sleep(1)
+
+        for title in ("east", "west"):
+            open_window(title)
+        home("east", 7)
+        home("west", 8)
+        first = json.loads(hyprctl("-j", "monitors"))[0]["name"]
+        print("OUTPUT", hyprctl("output", "create", "headless", "EVA-2"))
+        machine.sleep(8)
+        monitors = [m["name"] for m in json.loads(hyprctl("-j", "monitors"))]
+        check("a second screen is up", "EVA-2" in monitors, str(monitors))
+
+        ask("workspace_name", "north", "7")
+        machine.sleep(1)
+        ipc("workspace_move", "7", "EVA-2")
+        check("a workspace moves to another screen", eventually(lambda: (space(7) or {}).get("monitor") == "EVA-2"), str(space(7)))
+        check("its window goes with it", client("east")["monitor"] == json.loads(hyprctl("-j", "monitors"))[1]["id"], str(client("east")))
+        ipc("workspace_move", "7", first)
+        check("and back", eventually(lambda: (space(7) or {}).get("monitor") == first), str(space(7)))
+
+        ipc("workspace_swap", "7", "8")
+        check("two workspaces trade windows", eventually(lambda: on(7) == ["west"] and on(8) == ["east"]), f"{on(7)} {on(8)}")
+        check("the name goes with its windows", eventually(lambda: (space(8) or {}).get("name") == "north"), str(space(8)))
+
+        ipc("workspace_reorder", "8", "6")
+        check("a workspace takes a new place", eventually(lambda: on(6) == ["east"]), f"{on(6)} {on(7)} {on(8)}")
+        check("those between shift along", eventually(lambda: on(8) == ["west"]), f"{on(6)} {on(7)} {on(8)}")
+        check("nothing was lost", on(7) == [], str(on(7)))
+        check("the name still follows", eventually(lambda: (space(6) or {}).get("name") == "north"), str(space(6)))
+
+        shown = [m["activeWorkspace"]["id"] for m in json.loads(hyprctl("-j", "monitors"))]
+        ipc("workspace_screens", first, "EVA-2")
+        machine.sleep(2)
+        after = [m["activeWorkspace"]["id"] for m in json.loads(hyprctl("-j", "monitors"))]
+        check("two screens trade what they show", after == shown[::-1], f"{shown} {after}")
+
+        for title in ("east", "west"):
+            hyprctl("eval", f'hl.dispatch(hl.dsp.window.close({{ window = "title:{title}" }}))')
+        hyprctl("output", "remove", "EVA-2")
+        machine.sleep(4)
+
+
 def sections(names):
-    table = {"keys": keys_section}
+    table = {"keys": keys_section, "rules": rules_section, "layouts": layouts_section, "spaces": spaces_section}
     for name in names or table:
         table[name]()
 

@@ -686,6 +686,15 @@ local config = settings.open {
       workspaces = { names = {}, layouts = {} },
       -- The scratchpads: `name`, `command` to start, `icon`.
       scratchpads = {},
+      -- What windows open with (shell/window_rules_model.lua).
+      rules = {},
+      -- Unfocused windows darken, by `dim_strength`, 0 to 1.
+      dim_inactive = false,
+      dim_strength = 0.2,
+      -- Saved arrangements of windows, and the one put back after login, by
+      -- name (shell/layouts_model.lua).
+      layouts = {},
+      layout_login = "",
       switcher = {
         -- What Alt+Tab walks: "all", "workspace" or "output".
         scope = "all",

@@ -85,6 +85,11 @@ M.CARDS = {
           and ("Fade %d%%"):format(math.floor(windows.opacity_of(w.address) * 100 + .5)) or "Fade",
         on = windows.opacity_of(w.address) < 1, stay = true, press = function() windows.next_opacity(w.address) end },
       { key = "snap", label = "Snap", press = function() require("snap").pick() end },
+      { key = "rule", label = "Rule", press = function()
+        local rules = require("window_rules_model")
+        rules.edit(rules.from_window(w.address))
+        require("pages").open("settings")
+      end },
     }
   end },
   { key = "left", number = "02", title = "Workspace", buttons = function()

@@ -172,7 +172,7 @@ function V.build(model)
     local id = math.tointeger(math.floor(row.id))
     local name = morf.signal("eva.overview.desk.name." .. id, row.name)
     local function viewing() return model.viewing:get() == id end
-    local function over() return model.drag.over == id end
+    local function over() return model.drag.over == id or model.desk_drag.over == id end
     local minis = morf.list_model({})
     morf.effect("eva.overview.desk." .. id, function()
       model.strip:get()
@@ -199,10 +199,22 @@ function V.build(model)
           class = function() return m.class end, initial = function() return m.initial_class end,
           title = function() return "" end } }
     end
+    local pressed_at
     local area = ui.MouseArea { id = "overview-desk-area-" .. id, anchors = { fill = true }, cursor = "pointer",
+      accepted_buttons = { "left", "right" }, drag_axis = "both",
       accessible_role = "button", accessible_name = function() return "Workspace " .. name:get() end,
-      on_clicked = function() if viewing() then model.enter(id) else model.view(id) end end,
-      on_double_clicked = function() model.rename(id) end }
+      on_pressed = function(x, y) pressed_at = { x = x, y = y } end,
+      on_clicked = function(_, _, _, _, button)
+        if button == "right" then model.desk_menu:set(id)
+        elseif viewing() then model.enter(id) else model.view(id) end
+      end,
+      on_double_clicked = function() model.rename(id) end,
+      on_drag_started = function(x, y)
+        local from = pressed_at or { x = x, y = y }
+        model.desk_drag_start(id, from.x, from.y)
+      end,
+      on_dragged = function(x, y) model.desk_drag_move(x, y) end,
+      on_released = function() model.desk_drag_end() end }
     return kit.surface { id = "overview-desk-" .. id,
       x = function() return desk_box(id).x end, y = function() return desk_box(id).y end,
       width = function() return desk_box(id).width end, height = function() return desk_box(id).height end,
@@ -370,6 +382,18 @@ function V.build(model)
     end,
     close = function() model.menu_for:set("") end,
     opened = function() return model.menu_for:get() ~= "" end }
+  local desk_menu = action_menu.build { id = "overview-desk-menu", name = "Workspace actions",
+    items = function()
+      local id = model.desk_menu:get()
+      return id ~= 0 and model.desk_actions(id) or {}
+    end,
+    at = function()
+      local box = desk_box(model.desk_menu:get())
+      local w = model.size()
+      return math.max(S.s, math.min(w - action_menu.WIDTH - S.s, box.x + box.width / 2 - action_menu.WIDTH / 2)), box.y + box.height + S.xs
+    end,
+    close = function() model.desk_menu:set(0) end,
+    opened = function() return model.desk_menu:get() ~= 0 end }
 
   local lingering = morf.signal("eva.overview.lingering", false)
   local leaving
@@ -386,7 +410,7 @@ function V.build(model)
   local root = ui.Item { id = "overview", anchors = { fill = true },
     accessible_role = "dialog", accessible_name = "Overview",
     visible = function() return model.opened:get() or lingering:get() end,
-    dim, catcher, track, strip_shown, search, ui.Row(layouts), pads, naming, empty, ghost, clear, menu, keys }
+    dim, catcher, track, strip_shown, search, ui.Row(layouts), pads, naming, empty, ghost, clear, menu, desk_menu, keys }
 
   -- Along the row of cards, under a finger; it rests on a card.
   local origin
