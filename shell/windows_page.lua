@@ -52,6 +52,13 @@ function M.layouts_page(w, h)
   model.layouts = require("layouts_model")
   model.message = require("morf").signal("eva.layouts.message", "")
   function model.saved(index) return model.layouts.list()[index] end
+  --- What a saved layout is, in a line: how many, and how many cannot be started.
+  function model.count(layout)
+    local rows, stuck = layout.windows or {}, 0
+    for _, row in ipairs(rows) do if row.startable == false then stuck = stuck + 1 end end
+    if stuck == 0 then return ("%d windows"):format(#rows) end
+    return ("%d windows, %d cannot be started again"):format(#rows, stuck)
+  end
   function model.save(name)
     model.layouts.save(name, function(count, why)
       model.message:set(count and ("Saved %d windows as %s"):format(count, name) or why)

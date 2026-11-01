@@ -164,7 +164,7 @@ function M.build_layouts(model, w, h)
       accessible_name = "Delete this layout", on_clicked = function() layouts.remove(layout().name) end,
       kit.icon("delete", 20, kit.ink("lo"), { anchors = { center_in = true } }) }
     return P.row { id = "layouts-row-" .. index, width = width, icon = "dashboard", title = function() return layout().name or "" end,
-      subtitle = function() return ("%d windows"):format(#(layout().windows or {})) end,
+      subtitle = function() return model.count(layout()) end,
       trailing = ui.Row { gap = S.xs, align = "center",
         P.button { id = "layouts-restore-" .. index, label = "Restore", width = 104, height = S.TARGET,
           on_clicked = function() layouts.restore(layout().name) end },

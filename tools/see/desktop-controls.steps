@@ -28,7 +28,7 @@ ipc utilities open; pause 1
 ipc settings windows; pause 1.4; shot windows
 ipc settings displays; pause 1.4; shot displays
 ipc settings input; pause 1.4; shot input
-if [ "${SCREEN%x*}" -gt 1000 ]; then
+if [ "${SEE_SCREEN%x*}" -gt 1000 ]; then
   ipc settings windows/rules; pause 1.4; shot rules
   ipc rules edit r1 > /dev/null; pause 1.4; shot rule
   ipc settings windows/layouts; pause 1.4; shot layouts

@@ -127,6 +127,14 @@ function M.merge(binds, overrides, capture)
         id = id, default = bind.keys, custom = overrides[id] ~= nil, editable = true }
     end
   end
+  -- A key of the configuration given no chord is in no list of the compositor's:
+  -- it stays here, to be brought back.
+  for id, chord in pairs(overrides) do
+    local was = id:match("^bind:(.+)$")
+    if was and chord == "" then
+      rows[#rows + 1] = { group = "Not bound", keys = "", what = "Was " .. was, id = id, default = was, custom = true, editable = true }
+    end
+  end
   for _, label in ipairs(shortcuts.LABELS) do
     rows[#rows + 1] = { group = "Shell", keys = spelled(label[1]), what = label[2], id = "shell:" .. label[1], editable = false }
   end

@@ -45,7 +45,6 @@ in
     services.kanata = {
       enable = true;
       keyboards.eva = {
-        inherit (cfg) devices;
         config = "";
         configFile = rendered;
       };
@@ -53,7 +52,7 @@ in
     systemd.services.kanata-eva = {
       # Rendered as root from the person's choices: kanata reads the result, and
       # with nothing chosen it never starts.
-      serviceConfig.ExecCondition = "+${render}/bin/eva-remap-render ${choices} ${rendered}";
+      serviceConfig.ExecCondition = "+${render}/bin/eva-remap-render ${choices} ${rendered} ${lib.escapeShellArgs cfg.devices}";
       unitConfig.StartLimitIntervalSec = 0;
     };
     systemd.services.eva-remap = {

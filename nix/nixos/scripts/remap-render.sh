@@ -3,9 +3,12 @@
 # person's to write, so nothing in it reaches the configuration as text. Exits
 # non-zero with nothing chosen, so no keyboard is taken for nothing.
 #
-#   remap-render CHOICES OUTPUT
+#   remap-render CHOICES OUTPUT [DEVICE...]
 choices=$1
 output=$2
+shift 2
+devices=""
+for device in "$@"; do devices="$devices \"$device\""; done
 
 field() { jq -r --arg name "$1" '.[$name] // empty | tostring' "$choices" 2>/dev/null || true; }
 
@@ -63,9 +66,13 @@ if [ -z "$source" ]; then
   exit 1
 fi
 
+only=""
+if [ -n "$devices" ]; then only="linux-dev ($devices)"; fi
+
 cat > "$output.new" <<EOF
 (defcfg
   process-unmapped-keys yes
+  $only
   linux-continue-if-no-devs-found yes)
 (defvar tap $tap hold $hold)
 (defalias hyper (multi lctl lalt lsft lmet))

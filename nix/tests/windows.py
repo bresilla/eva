@@ -506,9 +506,8 @@ def remap_section():
         check("Caps Lock as Hyper holds all four", fired("hyper-fired"))
 
         # What is not on the list never reaches kanata's file.
-        machine.succeed(f"echo '{{\"caps\":\"(cmd rm -rf /)\",\"tap\":\"1); (cmd x\"}}' > /tmp/bad.json")
-        unit = machine.succeed("systemctl cat kanata-eva.service")
-        render = next(word for word in unit.split() if word.endswith("eva-remap-render") or "eva-remap-render" in word).lstrip("+=").split("ExecCondition=")[-1].lstrip("+")
+        machine.succeed("echo '{\"caps\":\"(cmd rm -rf /)\",\"tap\":\"1); (cmd x\"}' > /tmp/bad.json")
+        render = machine.succeed("systemctl cat kanata-eva.service | grep -o '/nix/store/[^ ]*eva-remap-render'").split()[0]
         code, out = machine.execute(f"{render} /tmp/bad.json /tmp/bad.kbd")
         check("an unknown word renders nothing", code != 0 and machine.execute("ls /tmp/bad.kbd")[0] != 0, f"{code} {out}")
 

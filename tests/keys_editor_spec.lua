@@ -252,6 +252,27 @@ test.it("the shell sends a kept chord now, after a reload, and reloads to take o
   test.eq(test.ipc("count", "/reload"), 1)
 end)
 
+test.it("a key given no chord stays listed, to be brought back", function()
+  local out = pure([[
+    local list = rows.merge({}, { ["bind:SUPER + Q"] = "" }, "Print")
+    for _, row in ipairs(list) do
+      if row.id == "bind:SUPER + Q" then return { row.keys, row.custom, row.default, row.group } end
+    end
+    return {}
+  ]])
+  test.eq(out, { "", true, "SUPER + Q", "Not bound" })
+end)
+
+test.it("the capture key names itself, so its own setting keeps it", function()
+  local out = pure([[
+    local list = rows.merge({ { modmask = 64, key = "P", dispatcher = "__lua", arg = "3", description = "Open the capture panel", submap = "" } },
+      {}, "SUPER + P")
+    for _, row in ipairs(list) do if row.keys == "SUPER + P" then return { row.id, row.custom } end end
+    return {}
+  ]])
+  test.eq(out, { "capture", true })
+end)
+
 test.it("Settings search finds the keyboard shortcuts", function()
   local found = pure([[
     local out = {}
