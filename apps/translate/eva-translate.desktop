@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Translate
+Comment=Translate text, offline where this machine can
+Exec=eva-translate
+Icon=accessories-dictionary
+Terminal=false
+Categories=Utility;
+StartupWMClass=eva.translate

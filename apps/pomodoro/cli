@@ -1,0 +1,21 @@
+#!/bin/sh
+# eva-pomodoro: a focus timer. A session goes on with no window: its end is a
+# timer in eva-clock's store, which rings and shows in the bar, and do not
+# disturb holds while a work phase runs.
+#
+#   eva-pomodoro          the window
+#   eva-pomodoro start    starts or resumes the phase on the dial
+#   eva-pomodoro pause    holds it where it is
+#   eva-pomodoro skip     on to the next phase, this one uncounted
+#   eva-pomodoro reset    back to the first phase of a set
+#   eva-pomodoro status   where the session is
+#   eva-pomodoro rang     moves on from a phase that has rung, for eva-clock
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" pomodoro ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_tool_job pomodoro "$@" ;;
+esac

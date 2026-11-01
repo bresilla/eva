@@ -1,0 +1,50 @@
+# eva-qr on the sealed session: a code read back off the real screen by a real
+# decoder, a Wi-Fi code with its password typed into the input and never leaving
+# it, a copy pasted back as an image, and the code alone over the screen.
+unset EVA_DRY_RUN
+state() { appipc state | tr -d ' \n' | cut -c1-240; }
+read_shot() { zbarimg -q --raw "$SEE_OUT/$1.png" 2>&1; }
+secret_seen() { grep -lsa 'hunter[2]' /proc/[0-9]*/cmdline | wc -l; }
+
+BOOT=4 start app qr
+shot empty
+appipc text "https://example.test/eva" > /dev/null
+pause 1
+shot text
+note echo "--- text: $(state)"
+note echo "read back off the screen: $(read_shot text)"
+
+appipc copy > /dev/null
+pause 0.8
+wl-paste -t image/png > "$SEE_OUT/pasted.png"
+note echo "pasted image reads: $(zbarimg -q --raw "$SEE_OUT/pasted.png" 2>&1)"
+
+appipc show on > /dev/null
+pause 1
+shot full
+note echo "read back fullscreen: $(read_shot full)"
+appipc show off > /dev/null
+pause 0.5
+
+appipc wifi 'Cafe; guest' > /dev/null
+appipc focus > /dev/null
+pause 0.5
+text "hunter2;x"
+pause 1.2
+shot wifi
+note echo "--- wifi: $(state)"
+note echo "read back off the screen: $(read_shot wifi)"
+note echo "processes with the secret on their command line: $(secret_seen)"
+appipc state | grep -c hunter2 | sed 's/^/ipc state lines with the secret: /' >> "$SEE_OUT/notes.txt"
+
+appipc save "$SEE_OUT/saved.png" > /dev/null
+pause 0.6
+note echo "saved file reads: $(zbarimg -q --raw "$SEE_OUT/saved.png" 2>&1)"
+stop
+
+note echo "--- command line"
+printf 'p@ss;word\n' | sh apps/qr/cli --png "$SEE_OUT/cli-wifi.png" wifi 'Home Net' --hidden >> "$SEE_OUT/notes.txt" 2>&1
+note echo "wifi png reads: $(zbarimg -q --raw "$SEE_OUT/cli-wifi.png" 2>&1)"
+note sh apps/qr/cli --png "$SEE_OUT/cli-text.png" hello from the command line
+note echo "text png reads: $(zbarimg -q --raw "$SEE_OUT/cli-text.png" 2>&1)"
+note echo "private files left: $(ls "$XDG_RUNTIME_DIR/eva" | grep -c 'capture' || true)"

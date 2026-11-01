@@ -243,16 +243,19 @@ end
 
 -- ------------------------------------------------------------- the machine --
 
--- How eva-clock is reached from a unit: on PATH, else in this tree.
-local function cli()
+-- How a tool of apps/ is reached from a unit, eva-clock unless named: on PATH,
+-- else in this tree.
+local function cli(tool)
+  local name = "eva-" .. (tool or "clock")
   for dir in (morf.env("PATH") or ""):gmatch("[^:]+") do
-    if morf.fs.exists(dir .. "/eva-clock") then return { dir .. "/eva-clock" } end
+    if morf.fs.exists(dir .. "/" .. name) then return { dir .. "/" .. name } end
   end
-  for _, relative in ipairs { "../apps/clock/cli", "cli", "../../clock/cli" } do
+  local folder = tool or "clock"
+  for _, relative in ipairs { "../apps/" .. folder .. "/cli", "../" .. folder .. "/cli", "../../" .. folder .. "/cli" } do
     local path = morf.paths.shell(relative)
     if morf.fs.exists(path) then return { "sh", path } end
   end
-  return { "eva-clock" }
+  return { name }
 end
 
 local function uses_systemd()
@@ -380,6 +383,18 @@ function M.new(options)
     morf.process.detach(argv)
   end
 
+  -- Tells the tool that set an entry, `eva-TOOL rang`, that it has rung.
+  local function tell(tool)
+    if type(tool) ~= "string" or not tool:match("^%l+$") then return end
+    local argv = cli(tool)
+    argv[#argv + 1] = "rang"
+    if flag("EVA_DRY_RUN") then
+      morf.log("info", "eva: " .. table.concat(argv, " ") .. " (dry run)")
+      return
+    end
+    morf.process.detach(argv)
+  end
+
   -- The local engine: one timer, for what rings next.
   schedule = function()
     local soonest
@@ -439,8 +454,8 @@ function M.new(options)
 
   --- Adds what `words` ask for, or an entry already worked out (`{ id, kind,
   --- label, at, seconds }`, as the launcher hands one over): the entry, or nil
-  --- and why.
-  function a.add(words)
+  --- and why. `tool`, a tool of apps/, hears `eva-TOOL rang` once it has rung.
+  function a.add(words, tool)
     local item, why = words, nil
     if type(words) ~= "table" then item, why = M.parse(words) end
     if not item then
@@ -450,6 +465,7 @@ function M.new(options)
     item.id = item.id or fresh_id()
     item.on = true
     item.label = item.label or ""
+    item.tool = tool
     item.at = item.at or (M.now() + item.seconds)
     if item.kind == "alarm" and not item.hour then
       local date = morf.time.date(item.at)
@@ -503,13 +519,15 @@ function M.new(options)
 
   --- It rang: a timer goes, a one-off alarm goes off, a repeating one moves on.
   function a.finish(id)
-    change(function(list)
+    local tool = change(function(list)
       local found, index = find(list, id)
       if not found then return end
       if found.kind == "timer" then table.remove(list, index)
       elseif repeats(found) then found.at = M.next_at(found.hour, found.minute, found.days, M.now())
       else found.on = false end
+      return found.tool
     end)
+    if tool then tell(tool) end
   end
 
   --- It rings again in `minutes`: a timer of its own, the entry having rung.

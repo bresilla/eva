@@ -1,0 +1,71 @@
+# eva-translate on the sealed session, every engine a stand-in and nothing sent
+# anywhere: scripts on this session's PATH answer as argos-translate and
+# translate-shell, and MyMemory is listed and never pressed. What is real here is
+# the window, the chooser, the clipboard and the command line.
+unset EVA_DRY_RUN
+state() { appipc state | tr -d ' \n' | cut -c1-300; }
+
+note echo "--- engines with nothing installed"
+note sh apps/translate/cli engines
+
+STANDINS=$XDG_RUNTIME_DIR/standins
+mkdir -p "$STANDINS"
+cat > "$STANDINS/argos-translate" <<'SCRIPT'
+#!/bin/sh
+printf '[offline] '
+cat
+SCRIPT
+cat > "$STANDINS/trans" <<'SCRIPT'
+#!/bin/sh
+for word in "$@"; do last=$word; done
+case "$last" in
+  *:zzz)
+    cat
+    echo '[WARNING] Unknown target language code: zzz' >&2
+    ;;
+  *)
+    printf '[online %s] ' "$last"
+    cat
+    ;;
+esac
+SCRIPT
+chmod +x "$STANDINS/argos-translate" "$STANDINS/trans"
+export PATH="$STANDINS:$PATH"
+
+note echo "--- engines with the stand-ins"
+note sh apps/translate/cli engines
+
+BOOT=4 start app translate
+appipc source en > /dev/null
+appipc target de > /dev/null
+appipc input "words that stay here" > /dev/null
+pause 0.8
+shot before
+note echo "--- typed, nothing run: $(state)"
+appipc go > /dev/null
+pause 1
+shot offline
+note echo "--- offline stand-in: $(state)"
+
+appipc engine trans > /dev/null
+pause 0.5
+wl-copy "where is the station"
+appipc paste clipboard > /dev/null
+pause 0.6
+shot online-before
+note echo "--- pasted, nothing run: $(state)"
+appipc go > /dev/null
+pause 1
+shot online
+note echo "--- online stand-in: $(state)"
+appipc swap > /dev/null
+pause 0.5
+shot swapped
+note echo "--- swapped: $(state)"
+stop
+
+note echo "--- command line, stand-ins"
+note sh apps/translate/cli -s en -t it "thank you"
+note sh -c 'printf "see you tomorrow" | sh apps/translate/cli -e trans -t es -'
+note sh apps/translate/cli -e trans -t zzz hello
+note sh apps/translate/cli -e nonsense hello

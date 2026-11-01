@@ -1,0 +1,15 @@
+#!/bin/sh
+# eva-standby: a clock for a phone or a tablet on its charger: the time, the world,
+# the next alarm. Swipe or the arrow keys change view, n is night mode, Escape ends
+# it. The screen stays awake while it shows.
+#
+#   eva-standby                   opens it; a second call closes it
+#   eva-standby --when-charging   ends by itself when the power is unplugged
+#   eva-standby --night           starts in night mode
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+
+case "${1:-}" in
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) exec sh "$apps/launch" standby "$@" ;;
+esac
