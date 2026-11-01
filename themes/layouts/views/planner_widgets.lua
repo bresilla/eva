@@ -29,8 +29,9 @@ function M.button(id, text, icon, width, action, selected)
   }
 end
 function M.field(id, label, placeholder, width, changed, accepted, escaped)
+  local inner = type(width) == "function" and function() return width() - 24 end or width - 24
   local input_node, input = kit.text_field("entry", {
-    id = id, x = 12, width = width - 24, height = 40,
+    id = id, x = 12, width = inner, height = 40,
     font_family = theme.font, font_size = theme.size.normal,
     color = function() return C.onSurface end,
     placeholder_color = function() return C.onSurfaceVariant end,

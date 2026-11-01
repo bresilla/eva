@@ -44,6 +44,7 @@ local HOST=[[
   local function page(key)
     shown:set(key)
     presentation.set(held..".tasks",key=="tasks") presentation.set(held..".calendar",key=="calendar")
+    return true
   end
   package.loaded[held]={panel={select=page},drawer={set=function(on) if not on then page("") end end}}
   local model

@@ -169,6 +169,7 @@ end
 local keyboard = require("keyboard")
 local bar = require("bar")
 local window_menu = require("window_menu")
+require("calendar_reminders").start()
 require("panel_room").watch()
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
@@ -186,7 +187,7 @@ morf.effect("eva.keyboard.focus", function()
     or (settings_open and (shown == "theme/lule" or shown == "theme/desktop" or shown == "theme/look"
       or shown == "theme" or shown == "hotspot" or shown == "panels" or shown == "bar"
       or shown == "notifications" or shown == "focus/mode"
-      or require("utilities").tiles.editing:get()))
+      or pages.typed_route(shown) or require("utilities").tiles.editing:get()))
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
 
@@ -561,6 +562,32 @@ ipc.capture = function(how)
   if how=="menu" then how="open" end
   if how=="close" or ((how=="open" or how=="toggle") and capture.editor.running()) then capture.cancel() end
   return capture_popup(how)
+end
+-- `ask QUESTION`: the assistant opens and answers it, as the launcher's `ai`.
+ipc.ask = function(question)
+  if here() then require("assistant_model").ask(question) end
+  return true
+end
+-- `page KEY`: the page `KEY` (shell/pages.lua), wherever a panel holds it;
+-- `assistant-settings` is that page's settings.
+ipc.page = function(key)
+  if not here() then return end
+  if key == "assistant-settings" then return pages.settings("assistant") end
+  return pages.reach(key)
+end
+-- `drop-target ID`: Drop opens on somebody's machine (`bob:laptop`, `orin`).
+ipc["drop-target"] = function(id)
+  if not here() then return end
+  pages.reach("drop")
+  require("drop_model").select(id)
+  return true
+end
+-- `note NAME`: the note called NAME, opened or made.
+ipc.note = function(name)
+  if not here() then return end
+  pages.reach("notes")
+  require("notes_model").create(name)
+  return true
 end
 -- `keyboard [how]`: the on-screen keyboard, for a key to bind. `how` is
 -- open, close, toggle or state, or a mode to open it in: full, dev,

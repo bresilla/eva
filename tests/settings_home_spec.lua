@@ -85,6 +85,8 @@ local HOST = [[
       "shell/profiles_model.lua", "shell/focus_model.lua", "shell/focus_page.lua", "shell/notification_settings.lua",
       "shell/notification_rules.lua", "shell/bar_store.lua", "shell/bar_page.lua", "shell/bar_custom.lua", "shell/panels_board.lua",
       "lib/shell/launcher/pins.lua", "shell/launcher_modes/web.lua",
+      "shell/assistant_model.lua", "shell/calendar_sources.lua", "shell/notes_model.lua",
+      "themes/layouts/views/assistant_settings.lua", "themes/layouts/views/calendar_settings.lua",
       "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",
       "themes/layouts/views/notification_settings.lua" } do
@@ -99,7 +101,7 @@ local HOST = [[
       "bar.outputs", "wallpaper.fits", "notifications.digest_times", "notifications.keep_actions" }
     local groups = { "osd.kinds", "lule", "quick", "input", "accessibility", "sound", "power", "storage", "proxy", "nightlight",
       "edgebar", "dashboard", "sidebar", "leftbar", "bottom", "capture.tools", "appearance", "rotation", "polkit", "osd",
-      "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels" }
+      "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels", "assistant", "calendar" }
     local function covered(key)
       if reached[key] then return true end
       for _, each in ipairs(kept) do if key == each or key:sub(1, #each + 1) == each .. "." then return true end end

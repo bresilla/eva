@@ -1,0 +1,79 @@
+# The pages over stand-ins: first as a new machine has them, then filled in.
+# The stand-ins are tests/fixtures/bin-stand-in, and the provider a local fake.
+export PATH="$SEE_EVA/tests/fixtures/bin-stand-in:$PATH"
+export SECRET_STAND_IN="$XDG_RUNTIME_DIR/keyring"
+export EVA_SETTINGS="$HOME/eva.json"
+export TZ=UTC
+PORT=18431
+
+start shell
+ipc page assistant; pause 1.4; shot assistant-none
+ipc page drop; pause 1.4; shot drop-first-run
+ipc close; pause 0.6
+ipc page calendar; pause 1.4; shot calendar-none
+ipc close; pause 0.6
+ipc page phone; pause 1.4; shot phone-present
+stop
+
+python3 "$SEE_EVA/tests/fixtures/fake_llm.py" "$SEE_OUT/requests.log" "$PORT" > /dev/null &
+printf 'sk-eva-test' | secret-tool store --label=fake account anthropic service eva-assistant
+
+mkdir -p "$XDG_CONFIG_HOME/drop" "$HOME/Notes"
+: > "$XDG_CONFIG_HOME/drop/badge"
+start shell
+ipc page drop; pause 2.2; shot drop-not-serving
+stop
+export DROP_FAKE_SERVING=1
+printf '# Week plan\n\n- ship the **assistant**\n- read `drop` README\n\nSee https://example.test/plan.\n' > "$HOME/Notes/Week plan.md"
+printf 'Buy stamps\n' > "$HOME/Notes/Errands.txt"
+
+STAMP=$(date -u -d "+2 hours" +%Y%m%dT%H0000Z)
+TODAY=$(date -u +%Y%m%d)
+cat > "$HOME/work.ics" <<ICS
+BEGIN:VCALENDAR
+VERSION:2.0
+X-WR-CALNAME:Work
+BEGIN:VEVENT
+UID:see-1
+SUMMARY:Design review
+DTSTART:$STAMP
+DURATION:PT1H
+LOCATION:Room 2
+DESCRIPTION:Join https://meet.google.com/abc-defg-hij
+END:VEVENT
+BEGIN:VEVENT
+UID:see-2
+SUMMARY:Conference
+DTSTART;VALUE=DATE:$TODAY
+END:VEVENT
+BEGIN:VEVENT
+UID:see-3
+SUMMARY:Planning
+DTSTART:$(date -u -d "+2 days" +%Y%m%dT100000Z)
+END:VEVENT
+END:VCALENDAR
+ICS
+cat > "$EVA_SETTINGS" <<JSON
+{ "assistant": { "provider": "anthropic", "anthropic": { "base": "http://127.0.0.1:$PORT", "model": "claude-sonnet-5-5" } },
+  "calendar": { "files": ["$HOME/work.ics"] } }
+JSON
+
+start shell
+ipc page assistant; pause 1.2
+ipc ask "Show me a short plan with a code block"; pause 2.4; shot assistant-chat
+pause 3; shot assistant-chat-later
+ipc close; pause 0.6
+ipc page drop; pause 2.2; shot drop-page
+ipc drop-target bob:laptop; pause 2.0; shot drop-person
+ipc close; pause 0.6
+ipc page notes; pause 1.4; shot notes-list
+ipc note "Week plan"; pause 1.4; shot notes-note
+ipc close; pause 0.6
+ipc page phone; pause 2.0; shot phone-page
+ipc close; pause 0.6
+ipc page calendar; pause 2.0; shot calendar-page
+ipc close; pause 0.6
+ipc sidebar open settings; pause 0.8
+ipc page calendars; pause 1.6; shot calendar-settings
+ipc close; pause 0.6
+ipc page assistant-settings; pause 1.6; shot assistant-settings

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Stands in for busctl, as the KDE Connect daemon's battery answers it.
+printf 'busctl %s\n' "$*" >> "${STUB_LOG:-/dev/null}"
+case "$*" in
+  *kdeconnect*charge*) printf 'i 77\n' ;;
+  *kdeconnect*isCharging*) printf 'b true\n' ;;
+  *) exit 1 ;;
+esac

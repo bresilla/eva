@@ -326,9 +326,8 @@ local config = settings.open {
       -- Their own search engines ({ bang, name, url }, %s for the words), links
       -- ({ name, url }, {query} for the words) and bookmarks ({ name, url }).
       engines = {}, quicklinks = {}, bookmarks = {},
-      -- The file `note` adds to ("" for ~/.local/share/eva/notes.md), the language
-      -- a translation goes to, Wikipedia's language, and the folders of projects.
-      notes_file = "",
+      -- The language a translation goes to, Wikipedia's language, and the folders
+      -- of projects.
       translate_to = "en",
       wiki_language = "en",
       projects = { "~/code", "~/src", "~/projects" },
@@ -480,6 +479,24 @@ local config = settings.open {
       weather_location = "",
       imperial = false,
     },
+    -- The assistant: `provider` is "", "anthropic", "openai" or "ollama"; keys
+    -- are in the Secret Service, never here. `folder` keeps the conversations
+    -- ("" for the state folder), `history` false keeps none.
+    assistant = {
+      provider = "",
+      anthropic = { base = "https://api.anthropic.com", model = "claude-sonnet-5-5" },
+      openai = { base = "https://api.openai.com/v1", model = "" },
+      ollama = { base = "http://127.0.0.1:11434", model = "" },
+      system = "",
+      history = true,
+      folder = "",
+    },
+    -- Quick notes: plain files in this folder.
+    notes = { folder = "~/Notes" },
+    -- Calendars read besides Taskwarrior: `.ics` files, folders of them (a
+    -- vdir among them) and ICS addresses. `lead` is how many minutes before
+    -- an event its reminder comes, when the event names none.
+    calendar = { files = {}, folders = {}, urls = {}, discover = true, reminders = true, lead = 10 },
     utilities = {
       commands = {
         mic_on = { "wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "0" },
@@ -508,11 +525,11 @@ local config = settings.open {
     quick = {
       tiles = {
         desk = { "wifi", "bluetooth", "wired", "mobile", "mesh", "tunnel", "airplane", "hotspot", "sound", "mic",
-          "nightlight", "powersaver", "battery", "focus", "theme", "eva" },
+          "nightlight", "powersaver", "battery", "focus", "theme", "eva", "notes", "phone" },
         tablet = { "wifi", "bluetooth", "rotation", "keyboard", "airplane", "hotspot", "sound", "mic", "nightlight",
-          "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
+          "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva", "notes", "phone" },
         phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "airplane", "nightlight",
-          "powersaver", "sound", "mic", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
+          "powersaver", "sound", "mic", "battery", "mesh", "tunnel", "focus", "theme", "eva", "notes", "phone" },
       },
       small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "nightlight", "powersaver" } },
     },

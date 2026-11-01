@@ -190,14 +190,41 @@ tabs. Material's maximum size is 1696 × 751, with the same proportional
 reduction on smaller screens (20% narrower and 40% shorter than the previous
 panel). Tsugumori keeps that desktop footprint and uses the available width
 on compact screens, with vertically scrollable pages.
-Assistant awaits a provider; Drop is a placeholder for the future
-[termworks/drop](https://github.com/termworks/drop) messaging and file-sharing
-integration. Open it directly with `morf ipc call bottom open drop`.
+Open a page directly with `morf ipc call page drop`, wherever a panel holds it.
 Click outside the workspace to close it from either tab. When opened by
 hovering the bottom edge, it also closes after the pointer leaves it.
 Add future pages in `shell/bottom_model.lua` and register their builders in
 each visual theme. Assistant, Drop and the workspace container have separate
 Material and Tsugumori layouts.
+
+**Assistant** is a chat with an OpenAI-compatible service, Anthropic or a local
+Ollama, chosen under Settings, Eva, Assistant. Replies stream with markup and
+code blocks; conversations are kept as JSON under the state folder (private ones
+are not), and can be copied, stopped and regenerated. Attach the clipboard, a
+screenshot through `eva-screenshot`, or the focused window's title. Keys live in
+the Secret Service, given to `secret-tool` on stdin and to `curl` the same way:
+never on a command line, in a signal, in a log or in `eva.json`. Type
+`ai <question>` in the launcher, or `morf ipc call ask "<question>"`.
+
+**Drop** is [termworks/drop](https://github.com/termworks/drop) through its
+command line: this machine, people and their machines, who answers, what they
+offer, what is nearby, topics, shared folders, chat, and files sent by dropping
+them on the page or choosing them. Every `drop` command makes this machine's key
+on its first run, listing ones included, so a machine that has never run it runs
+nothing until **Set up Drop** is pressed. The page says when `drop serve` is not
+running, and starts it on a press.
+
+**Phone** is KDE Connect through `kdeconnect-cli`: battery, find, ping, clipboard,
+files and the phone's notifications. **Notes** are plain files in `notes.folder`
+(`~/Notes`), saved as you stop typing; `note <text>` in the launcher adds a line
+to the quick notes. Neither page is in a panel by default: their tiles open them
+as settings pages, and Settings, Eva, Panels moves one into a panel.
+
+**Calendar** adds to Taskwarrior what `calendar.files`, `calendar.folders` and
+`calendar.urls` name, and what vdirsyncer and khal keep, found by themselves:
+month marks, an agenda with the forecast, the next meeting and a Join button
+where an event holds a meeting link. Reminders arrive as notifications at an
+event's own alarm, or `calendar.lead` minutes before.
 
 **Lule** lives in Settings, under Theme. The wallpaper
 gets 60% of the top row, with a narrower color pane beside it and a control
@@ -490,7 +517,8 @@ pasta`.
 |---|---|
 | `task` | adds to and finds in Taskwarrior: `task buy milk due:friday +home` |
 | `timer` `alarm` | `timer 12m pasta`, `alarm tomorrow 7:30 standup` |
-| `note` | adds a line to `launcher.notes_file` |
+| `note` | adds a line to the quick notes of the Notes page, in `notes.folder` |
+| `ai` | asks the assistant: `ai what is a monad`; with a provider set, any search can end there too |
 | `agenda` | what is planned for a day |
 | `tr` | translates: `tr es hello`, `tr french good morning`; `trans` if it is installed, else MyMemory |
 | `define` `spell` `wiki` | a dictionary (`dict`, else dictionaryapi.dev), spelling (`aspell`, `hunspell`), a Wikipedia summary |

@@ -33,13 +33,20 @@ M.all = {
     tall = function() return require("tasks_page").editing() end },
   calendar = { name = "Calendar", icon = "calendar_month", title_id = "planner-title", typed = true,
     build = function(_, w, h) return require("calendar_page").build(w, h) end },
-  assistant = { name = "Assistant", icon = "auto_awesome", title_id = "assistant-title",
-    build = workspace("assistant", "Assistant", "Not connected") },
-  drop = { name = "Drop", icon = "forum", title_id = "drop-title", build = workspace("drop", "Drop", "Not connected yet") },
+  assistant = { name = "Assistant", icon = "auto_awesome", title_id = "assistant-title", typed = true,
+    build = workspace("assistant", "Assistant", "Not connected"),
+    tall = function() return require("assistant_model").state() == "ready" end },
+  drop = { name = "Drop", icon = "forum", title_id = "drop-title", typed = true,
+    build = workspace("drop", "Drop", "Not connected yet") },
+  notes = { name = "Notes", icon = "sticky_note_2", title_id = "notes-title", typed = true,
+    build = function(_, w, h) return require("notes_page").build(M.shown("notes"), w, h) end,
+    tall = function() return require("notes_model").selected:get() ~= "" end },
+  phone = { name = "Phone", icon = "smartphone", title_id = "phone-title", typed = true,
+    build = function(_, w, h) return require("phone_page").build(M.shown("phone"), w, h) end },
 }
 
 -- The order pages are offered in, where order matters and no setting says.
-M.ORDER = { "settings", "notifications", "tasks", "calendar", "assistant", "drop" }
+M.ORDER = { "settings", "notifications", "tasks", "calendar", "assistant", "drop", "notes", "phone" }
 
 -- The panel an edge's pages hang in.
 local PANELS = { right = "sidebar", left = "leftbar", bottom = "bottom", top = "sidebar" }
@@ -125,13 +132,35 @@ function M.active(key)
   end
 end
 
+--- `M.active`, for a page that also stands as the settings page of its key.
+function M.shown(key)
+  local in_panel, in_settings = M.active(key), require("presentation").active("settings." .. key)
+  return function() return in_panel() or in_settings() end
+end
+
+--- Whether the settings page `route` takes text.
+function M.typed_route(route)
+  if route == "calendars" or require("settings_forms").PAGES[route] then return true end
+  return M.all[route] ~= nil and M.all[route].typed == true
+end
+
+--- Opens the settings page `route`.
+function M.settings(route)
+  require("utilities").request(route)
+  return M.open("settings")
+end
+
+--- `key` on show in the panel that holds it, or as a settings page where none does.
+function M.reach(key) return M.open(key) or M.settings(key) end
+
 do
   local KEYWORDS = { settings = "quick tiles toggles", notifications = "history alerts", tasks = "taskwarrior todo",
-    calendar = "agenda dates schedule", assistant = "ai chat ask", drop = "share files send" }
+    calendar = "agenda dates schedule", assistant = "ai chat ask", drop = "share files send", notes = "jot write markdown",
+    phone = "kde connect android" }
   local index = require("lib.shell.launcher.search_index")
   for key, page in pairs(M.all) do
     index.register { id = "page:" .. key, name = page.name, keywords = KEYWORDS[key], material = page.icon, tag = "Panel",
-      description = "Panel", kind = "menu", run = function() return M.open(key) and "close" or "keep" end }
+      description = "Panel", kind = "menu", run = function() return M.reach(key) and "close" or "keep" end }
   end
 end
 

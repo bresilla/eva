@@ -148,6 +148,14 @@ function V.eva_page(model,w,h)
       V.eva_link("capture",inner,model),V.eva_link("osk",inner,model),V.eva_link("weather",inner,model),
       V.eva_link("commands",inner,model),
     },
+    P.section {id="settings-eva-services",width=w,title="Services",
+      P.row {id="settings-eva-assistant",width=inner,icon="auto_awesome",title="Assistant",
+        subtitle=function() return require("assistant_model").summary() end,
+        trailing=P.chevron(),on_clicked=function() model.request("assistant") end},
+      P.row {id="settings-eva-calendars",width=inner,icon="calendar_month",title="Calendars",
+        subtitle=function() return require("calendar_sources").summary() end,
+        trailing=P.chevron(),on_clicked=function() model.request("calendars") end},
+    },
   }
 end
 

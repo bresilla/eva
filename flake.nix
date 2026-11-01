@@ -81,6 +81,9 @@
             pkgs.wl-clipboard
             pkgs.tesseract
             pkgs.zbar
+            # The assistant's transport, and the fake provider its specs ask.
+            pkgs.curl
+            pkgs.python3
           ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.

@@ -59,8 +59,6 @@ M.PAGES = {
       { key = "launcher.wiki_language", kind = "text", title = "Wikipedia language", icon = "language" },
     } },
     { title = "Files", fields = {
-      { key = "launcher.notes_file", kind = "text", title = "Notes file", icon = "edit_note",
-        note = "Empty for the shell's own" },
       { key = "launcher.menus.appimages", kind = "list", title = "AppImage folders", icon = "deployed_code" },
       { key = "launcher.menus.bookmarks", kind = "text", title = "Bookmark folder", icon = "bookmark" },
       { key = "launcher.menus.player", kind = "words", title = "Player", icon = "play_circle" },

@@ -1,0 +1,19 @@
+#!/bin/sh
+# Stands in for kdeconnect-cli of KDE Connect 26.04, with its flags: nothing
+# leaves this machine. STUB_LOG collects every call.
+#
+#   PHONE_FAKE_NONE=1   no phone is paired
+printf 'kdeconnect-cli %s\n' "$*" >> "${STUB_LOG:-/dev/null}"
+case "$*" in
+  *--list-devices*)
+    [ -n "${PHONE_FAKE_NONE:-}" ] && exit 0
+    printf 'a1b2c3d4 Pixel 9\ne5f6a7b8 Old tablet\n'
+    ;;
+  *--list-available*)
+    [ -n "${PHONE_FAKE_NONE:-}" ] && exit 0
+    printf 'a1b2c3d4 Pixel 9\n'
+    ;;
+  *--list-notifications*)
+    printf -- '- Messages: Dinner at seven?\n- Calendar: Standup in ten minutes\n'
+    ;;
+esac

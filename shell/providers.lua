@@ -164,12 +164,18 @@ end
 function M.fallbacks(q)
   if q:match("^%s*$") then return {} end
   local e = web.ENGINES[1]
-  return {
+  local out = {
     row { id = "fallback:web", name = "Search " .. e.name .. " for “" .. q .. "”", description = "?" .. e.bang .. " " .. q,
       material = "travel_explore", run = function() return browse(web.search_url(e, q)) end },
     row { id = "fallback:files", name = "Search files for “" .. q .. "”", description = "/" .. q, material = "folder_open",
       run = function() return "/" .. q end },
   }
+  local assistant = require("assistant_model")
+  if assistant.provider() then
+    out[#out + 1] = row { id = "fallback:ai", name = "Ask the assistant “" .. q .. "”", description = "ai " .. q,
+      material = "auto_awesome", run = function() assistant.ask(q) return "close" end }
+  end
+  return out
 end
 
 -- --------------------------------------------------------------------- web --
@@ -268,11 +274,15 @@ local function system_entries()
     { id = "dnd", name = "Do not disturb", material = "notifications_off",
       run = function() local n = require("notifs") n.dnd:set(not n.dnd:get()) return "close" end },
     { id = "session", name = "Session menu", material = "power", run = drawer("session") },
+    { id = "notes", name = "Notes", material = "sticky_note_2", stands = true,
+      run = function() require("pages").reach("notes") return "close" end },
+    { id = "phone", name = "Phone", material = "smartphone", stands = true,
+      run = function() require("pages").reach("phone") return "close" end },
   }
-  -- A page no panel holds has no row: there is nowhere for it to land.
+  -- A page no panel holds has no row, unless it `stands` as a settings page too.
   local reachable = {}
   for _, s in ipairs(entries) do
-    if not require("pages").all[s.id] or require("pages").panel_name(s.id) then reachable[#reachable + 1] = s end
+    if s.stands or not require("pages").all[s.id] or require("pages").panel_name(s.id) then reachable[#reachable + 1] = s end
   end
   return reachable
 end

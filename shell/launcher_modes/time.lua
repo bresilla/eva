@@ -189,39 +189,32 @@ registry.mode { id = "alarm", name = "Alarm", material = "alarm", shape = "sunny
 
 -- ------------------------------------------------------------------ notes --
 
-local function notes_path()
-  local setting = require("config").get("launcher.notes_file")
-  if setting ~= "" then return rows.untilde(setting) end
-  local base = (morf.env and morf.env("XDG_DATA_HOME")) or (rows.home .. "/.local/share")
-  return base .. "/eva/notes.md"
-end
-
 registry.mode { id = "notes", name = "Notes", material = "edit_note", shape = "pill", words = { "note", "notes", "jot" },
-  hint = "note call the bank  ·  one line added to a file", search = function(term)
-    local path = notes_path()
+  hint = "note call the bank  ·  one line added to the quick notes", search = function(term)
+    local notes = require("notes_model")
     local out = {}
-    local ok, text = pcall(morf.fs.read, path)
-    local lines = {}
-    for line in tostring(ok and text or ""):gmatch("[^\n]+") do
-      local body = line:gsub("^%- ", "")
-      lines[#lines + 1] = { name = body, description = "" }
-    end
     if term ~= "" then
-      out[1] = row { id = "note:new", name = "Note “" .. term .. "”", description = rows.tilde(path) .. "  ·  Return adds it", material = "note_add",
-        run = function()
-          local before = ok and text or ""
-          morf.fs.write(path, tostring(before) .. "- " .. term .. "\n", { atomic = true, parents = true })
-          return "close"
-        end }
+      out[1] = row { id = "word:note", name = "Note “" .. term .. "”", description = rows.tilde(notes.quick_path()) .. "  ·  Return adds it",
+        material = "note_add", run = function() notes.quick(term) return "close" end }
     end
-    local shown = {}
-    for i = #lines, 1, -1 do shown[#shown + 1] = lines[i] end
+    local lines, shown = notes.quick_lines(), {}
+    for i = #lines, 1, -1 do shown[#shown + 1] = { name = lines[i], description = "" } end
     for i, item in ipairs(rows.fuzzy(shown, term)) do
       out[#out + 1] = rows.copy("note:" .. i, item.name, nil, "notes")
       if #out >= 30 then break end
     end
     if #out == 0 then out[1] = note("notes", "No notes yet", "Type one to add it", "edit_note") end
     return out
+  end }
+
+-- -------------------------------------------------------------- assistant --
+
+registry.mode { id = "ai", name = "Assistant", material = "auto_awesome", shape = "sunny", words = { "ai" },
+  hint = "ai what is a monad  ·  asks the assistant", search = function(term)
+    local assistant = require("assistant_model")
+    if term == "" then return { note("ai", "Ask the assistant", assistant.summary(), "auto_awesome") } end
+    return { row { id = "word:ai", name = term, material = "auto_awesome", description = "Ask the assistant  ·  " .. assistant.summary(),
+      run = function() assistant.ask(term) return "close" end } }
   end }
 
 -- ----------------------------------------------------------------- agenda --

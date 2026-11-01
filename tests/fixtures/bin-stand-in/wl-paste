@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stands in for wl-paste: the clipboard says what STUB_CLIPBOARD says.
+printf 'wl-paste %s\n' "$*" >> "${STUB_LOG:-/dev/null}"
+printf '%s' "${STUB_CLIPBOARD-words from the clipboard}"
