@@ -104,12 +104,13 @@ local function add_sms(number, text, state, pdu)
   ids.sms = ids.sms + 1
   local path = ROOT .. "/SMS/" .. ids.sms
   fake.object("system", MM, path, SMS,
-    { State = state, PduType = pdu, Number = number, Text = text, Timestamp = "2026-11-01T12:00:00+01:00",
+    { State = state, PduType = pdu, Number = number, Text = text,
+      Timestamp = morf.time.format("%Y-%m-%dT%H:%M:%S%:z"),
       DeliveryState = 0x100, MessageReference = ids.sms, Storage = 2 },
     {
       Send = function()
         changed(path, SMS, { State = 4 })
-        morf.time.timer(40, function() changed(path, SMS, { State = 5 }) end, false)
+        changed(path, SMS, { State = 5 })
       end,
       Store = function() end,
     })

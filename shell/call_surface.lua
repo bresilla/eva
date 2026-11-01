@@ -32,10 +32,11 @@ end
 
 function M.start(owner)
   local layer
-  local model, sim = owner.model, owner.sim
+  local model, sim, alerts = owner.model, owner.sim, owner.alerts
   local function calling() return model.stage:get() ~= "idle" end
+  local function alerting() return alerts ~= nil and alerts.active() end
   local function open()
-    local compact = not require("responsive").sheets() and not sim.asking()
+    local compact = not require("responsive").sheets() and not sim.asking() and not alerting()
     local function width() local w = size() return compact and CARD_W or w end
     local function height() local _, h = size() return h end
     local call = require("themes").view("call").build {
@@ -45,6 +46,9 @@ function M.start(owner)
       ui.Item { id = "phone-sim", anchors = { fill = true }, z = 10,
         visible = function() return sim.asking() and not calling() end,
         require("themes.sim_prompt").build { sim = sim, look = look(), width = width, height = height } },
+      alerts and ui.Item { id = "phone-alert", anchors = { fill = true }, z = 15,
+        visible = function() return alerting() and not calling() end,
+        require("themes.alert_sheet").build { alerts = alerts, look = look(), width = width, height = height } } or nil,
       ui.Item { id = "phone-call", anchors = { fill = true }, z = 20, visible = calling, call },
       shield(owner) }
     layer = morf.window.layer {
@@ -56,7 +60,7 @@ function M.start(owner)
     M.layer = layer
   end
   morf.effect("eva.phone.surface", function()
-    local up = calling() or sim.asking()
+    local up = calling() or sim.asking() or alerting()
     local primary = not morf.window.primary or morf.window.primary()
     if up and primary and not layer then open()
     elseif not up and layer then

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Messages
+Comment=Text messages, as threads
+Exec=eva-messages
+Icon=mail-message-new
+Terminal=false
+Categories=Utility;Telephony;
+MimeType=x-scheme-handler/sms;
+StartupWMClass=eva.messages

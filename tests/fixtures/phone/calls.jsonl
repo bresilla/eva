@@ -1,0 +1,4 @@
+{"id":"1","number":"+31612345678","direction":"outgoing","outcome":"outgoing","time":1793520000,"duration":312,"seen":true}
+{"id":"2","number":"+4915112345678","direction":"incoming","outcome":"answered","time":1793530000,"duration":64,"seen":true}
+{"id":"3","number":"+38344123456","direction":"incoming","outcome":"missed","time":1793540000,"duration":0,"seen":false}
+{"id":"4","number":"0201234567","direction":"incoming","outcome":"declined","time":1793545000,"duration":0,"seen":true}

@@ -95,7 +95,7 @@ function modem.connect(options)
     available = false, signal = 0, technology = "", operator = "",
     registered = false, connected = false, enabled = false, locked = false,
     data = false, path = "", sim_present = false, roaming = false,
-    unlock = "", tries_pin = -1, tries_puk = -1, number = "",
+    unlock = "", tries_pin = -1, tries_puk = -1, number = "", level_stamp = 0,
   }
   local mobile = { state = state }
   local objects = {}
@@ -154,6 +154,7 @@ function modem.connect(options)
       local held = objects[path] and objects[path][interface]
       if held then
         dbus_client.merge(held, changed, invalidated)
+        if interface == SIGNAL then state.level_stamp = state.level_stamp + 1 end
         publish()
       end
     end) or true

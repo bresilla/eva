@@ -12,7 +12,8 @@ local morf = require("morf")
 local ui = require("morf.ui")
 local config = require("config")
 local services = require("services")
-local M = { near = morf.signal("eva.phone.near", false), rung = morf.signal("eva.phone.rung", "") }
+local M = { near = morf.signal("eva.phone.near", false), rung = morf.signal("eva.phone.rung", ""),
+  ready = morf.signal("eva.phone.ready", false) }
 
 local function flag(name)
   local v = morf.env and morf.env(name)
@@ -70,8 +71,24 @@ local function start()
     end,
   }
   M.sim = require("models.phone_sim").new { mobile = mobile }
+  M.messages = require("models.phone_messages").new {
+    mobile = mobile, book = M.book(), owner = true, ring = ringer(),
+    log = require("lib.services.journal").open { name = "messages" },
+    report = config.get("phone.delivery_reports") == true,
+    notify = function(entry) require("notifs").push(entry) end,
+  }
+  M.alerts = require("models.phone_alerts").new {
+    mobile = mobile, ring = ringer(), log = require("lib.services.journal").open { name = "alerts" },
+    wake = function() screen("wake") end,
+    enabled = function(id) return (config.get("phone.alerts") or {})[id] ~= false end,
+  }
+  require("data_usage").start {
+    limit = function() return config.get("phone.data_limit") end,
+    notify = function(entry) require("notifs").push(entry) end,
+  }
   require("call_surface").start(M)
   require("call_posture").start(M, { screen = screen, dry = dry, flag = flag })
+  M.ready:set(true)
 end
 
 morf.effect("eva.phone.start", function()
@@ -103,17 +120,31 @@ local VERBS = {
   speaker = function(p) return p.set_speaker(not p.on_speaker()) end,
   keypad = function(p) p.keypad:set(not p.keypad:get()) return p.keypad:get() end,
   dial = function(p, number) return p.dial(number) end,
+  reply = function(_, number, text) return M.reply(number, text) end,
+  ok = function() M.alerts.dismiss() return true end,
+  block = function(_, number, how) M.book().block(number, how ~= "off") return true end,
   state = function(p)
     return { stage = p.stage:get(), calls = p.rows:get(), seconds = p.seconds:get(), near = M.near:get(),
-      rung = M.rung:get(), muted = p.muted(), speaker = p.on_speaker() }
+      rung = M.rung:get(), muted = p.muted(), speaker = p.on_speaker(), unread = M.messages.unread(),
+      threads = M.messages.threads(), alert = M.alerts.showing:get().text or "", sim = M.sim.asking(),
+      on_modem = #services.modem.messaging.list:get() }
   end,
 }
+
+--- Answers the thread with `number` from wherever: a notification's inline
+--- reply takes this and the `reply` field of what `notify` pushed.
+function M.reply(number, text)
+  if not M.messages then return false end
+  M.messages.read(number)
+  return M.messages.send(number, text)
+end
 
 local FAKES = {
   ring = function(s, number) return s.ring(number) end,
   text = function(s, number, words) return s.text(number, words) end,
   alert = function(s, channel, words) return s.alert(tonumber(channel), words) end,
   lock = function(s, what) s.lock(what or "") return true end,
+  report = function(s, path, delivery) s.report(path, tonumber(delivery)) return true end,
   hangup = function(s) s.hang_up() return true end,
   near = function(_, how) M.near:set(how == "on") return true end,
 }

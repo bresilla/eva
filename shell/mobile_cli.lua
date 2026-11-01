@@ -1,7 +1,7 @@
 -- Mobile broadband details and actions through ModemManager's and
--- NetworkManager's command lines: `mmcli -J` for the modem, its SIM, bearers
--- and messages, `nmcli` for saved profiles. Parsing is pure; `run` is the
--- only side effect, so tests stub the commands.
+-- NetworkManager's command lines: `mmcli -J` for the modem, its SIM and
+-- bearers, `nmcli` for saved profiles. Parsing is pure; `run` is the only side
+-- effect, so tests stub the commands.
 local morf = require("morf")
 local M = {}
 
@@ -211,22 +211,6 @@ end
 --- The network's words in an `mmcli` USSD reply.
 function M.ussd(text)
   return (text or ""):match("'(.*)'") or (text or ""):gsub("^%s+", ""):gsub("%s+$", "")
-end
-
--- --------------------------------------------------------- messages --
-
---- SMS paths from `mmcli -J --messaging-list-sms`.
-function M.sms_paths(reply)
-  return list((reply or {})["modem.messaging.sms"])
-end
-
---- One message from `mmcli -J -s <path>`.
-function M.sms(reply)
-  local s = (reply or {}).sms
-  if type(s) ~= "table" then return nil end
-  local c, p = s.content or {}, s.properties or {}
-  return { path = s["dbus-path"], number = known(c.number) and c.number or "",
-    text = known(c.text) and c.text or "", state = p.state or "", timestamp = known(p.timestamp) and p.timestamp or "" }
 end
 
 -- --------------------------------------------------------- profiles --

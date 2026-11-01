@@ -292,7 +292,7 @@ local function mobile_page(model,w,h)
   local function has_profile() return profile()~=nil end
   local function busy() return model.pending:get() end
   local draft={}
-  for _,k in ipairs {"apn","user","password","pin","new_pin","ussd","ussd_reply","sms_to","sms_text"} do
+  for _,k in ipairs {"apn","user","password","pin","new_pin","ussd","ussd_reply","sms_to","sms_text","limit"} do
     draft[k]=morf.signal("eva.mobile.draft."..k,"")
   end
   morf.effect("eva.mobile.draft.profile",function()
@@ -440,22 +440,65 @@ local function mobile_page(model,w,h)
               on_clicked=function() model.ussd_respond(draft.ussd_reply:get()) draft.ussd_reply:set("") end},
             {id="mobile-ussd-cancel",label="End",on_clicked=model.ussd_cancel}}},
       },
-      P.section {id="mobile-messages",width=w,title="Messages",visible=model.available,
-        list(w,"mobile-sms-",function() return #model.messages:get() end,function(i,rw)
-          local function s() return model.messages:get()[i] or {} end
-          return P.row {id="mobile-sms-row-"..i,width=rw,icon="sms",on=function() return false end,
-            title=function() return s().number or "" end,subtitle=function() return s().text or "" end,
+      P.section {id="mobile-messages",width=w,title="Messages",visible=model.has_messages,
+        list(w,"mobile-sms-",function() return #model.threads() end,function(i,rw)
+          local function s() return model.threads()[i] or {} end
+          return P.row {id="mobile-sms-row-"..i,width=rw,icon="sms",on=function() return (s().unread or 0)>0 end,
+            title=function() return s().label or "" end,subtitle=function() return s().last or "" end,
             trailing=P.button {id="mobile-sms-delete-"..i,label="Delete",
-              on_clicked=function() if s().path then model.delete_message(s().path) end end}}
-        end,"No messages loaded",24),
+              on_clicked=function() if s().number then model.delete_thread(s().number) end end}}
+        end,"No messages",24),
         field("mobile-sms-to",inner,"Phone number",draft.sms_to),
         field("mobile-sms-text",inner,"Message",draft.sms_text),
         P.buttons {width=inner,
-          {id="mobile-sms-load",icon="refresh",label="Load messages",on_clicked=model.load_messages},
           {id="mobile-sms-send",label="Send",tone="primary",enabled=function() return not busy() end,
             on_clicked=function()
               if model.send_message(draft.sms_to:get(),draft.sms_text:get()) then draft.sms_text:set("") end
             end}},
+      },
+      P.section {id="mobile-signal",width=w,title="Signal",visible=function() return model.levels()~="" end,
+        P.row {id="mobile-levels",width=inner,icon="network_cell",on=function() return false end,
+          title=model.levels,subtitle=function()
+            local number=model.number()
+            return number~="" and ("This SIM: "..number) or "Measured by the modem"
+          end},
+      },
+      P.section {id="mobile-usage",width=w,title="Data this month",visible=model.available,
+        list(w,"mobile-usage-",function() return #model.usage() end,function(i,rw)
+          local function u() return model.usage()[i] or {} end
+          return P.row {id="mobile-usage-row-"..i,width=rw,
+            icon=function() return ({mobile="signal_cellular_alt",wifi="wifi",wired="lan"})[u().kind or ""] or "lan" end,
+            on=function() return u().kind=="mobile" end,title=function() return u().name or "" end,
+            subtitle=function() return model.usage_size(u().bytes) end}
+        end,"Nothing counted yet",24),
+        field("mobile-limit",inner,"Monthly limit in MB (0 for none)",draft.limit),
+        P.buttons {width=inner,
+          {id="mobile-limit-save",label="Set limit",on_clicked=function() model.set_limit(draft.limit:get()) end},
+          {id="mobile-usage-reset",label="Start over",on_clicked=model.usage_reset}},
+      },
+      P.section {id="mobile-calls",width=w,title="Calls",visible=model.has_voice,
+        P.row {id="mobile-waiting",width=inner,icon="phone_paused",title="Call waiting",
+          subtitle="A second call can ask while you talk",
+          trailing=P.switch {id="mobile-waiting-switch",name="Call waiting",on=function() return model.call_waiting:get() end,
+            on_toggled=model.set_call_waiting}},
+      },
+      P.section {id="mobile-alerts",width=w,title="Emergency alerts",visible=model.has_voice,
+        (function()
+          local rows={gap=P.ROW_GAP,width=inner}
+          for _,kind in ipairs(model.alert_kinds()) do
+            rows[#rows+1]=P.row {id="mobile-alert-"..kind.id,width=inner,icon="warning",title=kind.name,
+              on=function() return model.alert_on(kind.id) end,
+              trailing=P.switch {id="mobile-alert-switch-"..kind.id,name=kind.name,
+                on=function() return model.alert_on(kind.id) end,
+                on_toggled=function(on) model.set_alert(kind.id,on) end}}
+          end
+          return ui.Column(rows)
+        end)(),
+        list(w,"mobile-alert-past-",function() return math.min(4,#model.alert_history()) end,function(i,rw)
+          local function a() return model.alert_history()[i] or {} end
+          return P.row {id="mobile-alert-row-"..i,width=rw,icon="history",on=function() return false end,
+            title=function() return a().title or "" end,subtitle=function() return a().text or "" end}
+        end,"No alerts so far",24),
       },
       missing(w,"signal_cellular_nodata","No modem","No mobile modem is available. This page updates when one is detected.",model.available),
     },

@@ -158,6 +158,13 @@ local config = settings.open {
       -- A folder of vCards, and the code bare numbers get: "+31".
       contacts = "~/.local/share/contacts",
       country = "",
+      -- Whether a text asks the network to say when it lands.
+      delivery_reports = false,
+      -- Which public warnings come through: national alerts always do.
+      alerts = { extreme = true, severe = true, amber = true, test = false },
+      -- Mobile data in a calendar month, in megabytes, before a warning; 0
+      -- for none.
+      data_limit = 0,
     },
     -- The shell as the session's polkit agent (polkit.lua): "on", or "off"
     -- to leave the job to another (hyprpolkitagent, polkit-gnome).
