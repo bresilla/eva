@@ -66,13 +66,13 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 end
 
-test.it("sharing Wi-Fi reads the secret over the bus and hands it to qrencode on stdin", function()
+test.it("sharing Wi-Fi reads the secret over the bus and encodes it with no program", function()
   host([[
     local fake = require("lib.services.host_fake")
     local model = require("connection_model")
     local drew, failed
     morf.ipc.share = function()
-      model.share({ ssid = "Home", security = "wpa2" }, function(rows) drew = #rows end, function(why) failed = why end)
+      model.share({ ssid = "Home", security = "wpa2" }, function(code) drew = code.size end, function(why) failed = why end)
       return true
     end
     morf.ipc.state = function() return { drew = drew, failed = failed, stdin = fake.stdin, ran = fake.ran } end
@@ -80,8 +80,8 @@ test.it("sharing Wi-Fi reads the secret over the bus and hands it to qrencode on
   test.ipc("share") test.advance(200)
   local state = test.ipc("state")
   test.eq(state.failed, nil)
-  test.eq(state.drew, 25)
-  test.truthy(state.stdin:find("fixture passphrase", 1, true), "the secret never reached qrencode")
+  test.eq(state.drew, 29)
+  test.falsy((state.stdin or ""):find("fixture passphrase", 1, true), "the secret went to a program")
   for _, argv in ipairs(state.ran) do
     for _, word in ipairs(argv) do test.falsy(tostring(word):find("fixture passphrase", 1, true), "the secret on a command line") end
   end

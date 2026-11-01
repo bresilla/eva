@@ -6,7 +6,7 @@ local rows = require("lib.shell.launcher.rows")
 local run = require("lib.shell.launcher.run")
 local codec = require("lib.shell.launcher.codec")
 local password = require("lib.shell.launcher.password")
-local qr = require("lib.shell.launcher.qr")
+local qr = require("lib.util.qr")
 
 local row, copied = rows.row, rows.copy
 
@@ -244,22 +244,26 @@ registry.mode { id = "unicode", name = "Characters", material = "translate", sha
 
 -- --------------------------------------------------------------------- qr --
 
+-- The most a code in the preview pane can hold and still be read by a camera.
+local QR_BYTES = 400
+
 --- The code for `text`, built off the search, so typing never waits for it.
 local function code_for(text)
   return rows.ask("qr", text, function(done)
-    morf.time.timer(1, function()
-      local code, why = qr.encode(text)
-      if not code then done({ error = why }) return end
-      local ok, svg = pcall(qr.svg, code)
-      done(ok and { svg = svg, size = code.size } or { error = "too big to draw" })
-    end, false)
-    return true
+    if #text > QR_BYTES then
+      done({ error = "too long for a QR code" })
+      return true
+    end
+    local job = qr.encode(text, "M", function(code, why)
+      done(code and { svg = qr.svg(code), size = code.size } or { error = why })
+    end)
+    return { kill = job.cancel }
   end, { debounce_ms = 60 })
 end
 
 registry.mode { id = "qr", name = "QR code", material = "qr_code_2", shape = "pill", words = { "qr", "qrcode" },
   hint = "qr any text or address", search = function(term)
-    if term == "" then return { rows.note("qr", "Type what the code should hold", "Up to " .. qr.MAX_BYTES .. " bytes", "qr_code_2") } end
+    if term == "" then return { rows.note("qr", "Type what the code should hold", "Up to " .. QR_BYTES .. " bytes", "qr_code_2") } end
     local made = code_for(term)
     if not made then return { rows.note("qr", "Drawing…", term, "qr_code_2") } end
     if made.error then return { rows.note("qr", "That will not fit", made.error, "qr_code_2") } end

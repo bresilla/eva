@@ -1,6 +1,6 @@
 -- eva-large's state: the words, where they came from, and their QR. No nodes.
 local morf = require("morf")
-local capture = require("lib.shell.capture")
+local qr = require("lib.util.qr")
 local sys = require("common.sys")
 
 local M = {
@@ -16,9 +16,6 @@ M.QR_LIMIT = 1200
 -- How long it takes to go.
 M.GONE = 300
 
-local session
-local shown = 0
-
 local function trim(words) return (tostring(words or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
 
 -- The theme's dark end and its light end, for the modules and the ground.
@@ -26,19 +23,14 @@ local function qr_colours()
   local C = require("theme").color
   local light, dark = C.onSurface, C.surface
   if C.surface:is_light() then light, dark = C.surface, C.onSurface end
-  return dark:hex():sub(2), light:hex():sub(2)
+  return dark:hex():sub(1, 7), light:hex():sub(1, 7)
 end
 
 local function make_qr(words)
-  if #words > M.QR_LIMIT or not sys.has("qrencode") then return end
-  session = session or capture.session {}
-  shown = shown + 1
-  local path = session.path("qr-" .. shown .. ".png")
-  local dark, light = qr_colours()
-  sys.run({ "qrencode", "-t", "PNG", "-s", "16", "-m", "2", "--foreground=" .. dark, "--background=" .. light, "-o", path },
-    { read = true, stdin = words }, function(result)
-      if result.ok then M.qr:set(path) end
-    end)
+  if #words > M.QR_LIMIT then return end
+  qr.encode(words, "M", function(code)
+    if code then M.qr:set(qr.svg(code, qr_colours())) end
+  end)
 end
 
 --- Shows `words`, told where they came from.
@@ -69,10 +61,7 @@ end
 function M.finish()
   if M.leaving:get() then return end
   M.leaving:set(true)
-  morf.time.timer(M.GONE, function()
-    if session then session.close() end
-    morf.quit()
-  end, false)
+  morf.time.timer(M.GONE, function() morf.quit() end, false)
 end
 
 return M

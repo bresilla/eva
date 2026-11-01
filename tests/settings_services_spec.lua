@@ -212,21 +212,7 @@ local HOST = [[
     local c = require("lib.services.connection")
     eq(c.wifi_uri("My;Net", "wpa2", 'p:a"ss', false), 'WIFI:T:WPA;S:My\\;Net;P:p\\:a\\"ss;;')
     eq(c.wifi_uri("Cafe", "open", nil, true), "WIFI:T:nopass;S:Cafe;H:true;;")
-    local rows = c.parse_qr("##  ##\n  ##  \n")
-    eq(#rows, 2) eq(rows[1][1], true) eq(rows[1][2], false)
-    eq(c.qr_path({ { true, false }, { false, true } }), "M0 0h1v1h-1zM1 1h1v1h-1z")
-  end
-  function tests.secret_stays_off_the_command_line()
-    local host = require("lib.services.host")
-    local seen
-    local real = host.read
-    host.read = function(argv, done, options) seen = { argv = argv, stdin = options and options.stdin } done("##\n") end
-    host.installed = function() return true end
-    local c = require("lib.services.connection")
-    c.qr(c.wifi_uri("Home", "wpa2", "hunter2hunter2", false), function() end)
-    host.read = real
-    for _, word in ipairs(seen.argv) do falsy(word:find("hunter2", 1, true), "the password on a command line") end
-    truthy(seen.stdin:find("hunter2", 1, true), "the password on stdin")
+    eq(c.wifi_uri("Old", "wep", "pw", false), "WIFI:T:WEP;S:Old;P:pw;;")
   end
 
   function tests.sound()
