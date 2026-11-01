@@ -342,6 +342,13 @@ function M.finish(x,y)
   if selecting then if chosen then M.confirm_selection() end
   elseif moving or draft and draft.type~="text" then M.redraw(true) end
 end
+--- Drops the mark in progress: a second finger made it a pinch.
+function M.abandon()
+  local d=M.document
+  if not d then return end
+  d.draft,d.moving,d.origin=nil,nil,nil
+  M.redraw()
+end
 function M.text(value) if M.document and not M.busy:get() then M.document.finish(value) M.redraw(true) end end
 function M.style(key,value)
   if M.document and not M.busy:get() then

@@ -91,9 +91,13 @@ local function pictures_tab(state, pictures, w, h)
       kit.subtitle { font_size = theme.size.small, color = kit.ink("lo"),
         text = function() return state.selected:get() == "" and "Choose a wallpaper" or "Preparing preview…" end } },
   }
+  -- Two fingers look closer at the picture.
+  ui.reparent(ui.MouseArea { anchors = { fill = true }, z = -1 }, frame)
+  local zoom = require("pinch_zoom").attach { node = swap.node, area = frame }
   morf.effect("eva.wallpaper.preview", function()
     local source = state.preview:get()
     if source == "" then return end
+    morf.time.timer(1, zoom.reset, false)
     swap.show(source, { kind = config.get("wallpaper.transition.kind"), width = inner, height = PREVIEW_H,
       x = at.x, y = at.y, soft = math.min(32, config.get("wallpaper.transition.softness")),
       time = math.min(800, config.get("wallpaper.transition.duration")), ease = theme.ease.emphasized,

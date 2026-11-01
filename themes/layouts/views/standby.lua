@@ -153,22 +153,26 @@ function V.build(model, desktop)
     P.button { id = "standby-close", label = "Close", icon = "close", on_clicked = model.dismiss },
   }
 
-  local from
-  local root = ui.Rect { id = "standby", anchors = { fill = true }, color = "#000000",
+  -- The views slide under a finger, and the next comes as it lets go.
+  local views = ui.Item { anchors = { fill = true },
     photo_view,
     ui.Item { id = "standby-drift", anchors = { fill = true },
       loop = function()
         if not model.showing() or config.get("appearance.reduce_motion") == true then return nil end
         return { translate_x = { from = -S.s, to = S.s, duration = 90000, easing = "in_out_sine", alternate = true } }
       end,
-      clock_view(), widget_view, world_view, alarm_view },
+      clock_view(), widget_view, world_view, alarm_view } }
+  local swipe = require("swipe_dismiss").new { id = "standby", node = views, ways = { left = true, right = true },
+    stays = true, distance = SWIPE, on_dismiss = function(way) model.step(way == "left" and 1 or -1) end }
+  local moved = false
+  local root = ui.Rect { id = "standby", anchors = { fill = true }, color = "#000000",
+    views,
     ui.MouseArea { anchors = { fill = true }, z = 1,
-      on_pressed = function(x) from = x end,
-      on_released = function(x)
-        local moved = from and x - from or 0
-        from = nil
-        if math.abs(moved) >= SWIPE then model.step(moved < 0 and 1 or -1) else show_chrome() end
-      end },
+      on_panned = swipe.on_panned,
+      on_pressed = function(x, y) moved = false swipe.press(x, y) end,
+      on_dragged = function(x, y) swipe.drag(x, y) end,
+      on_released = function() moved = swipe.release() end,
+      on_clicked = function() if not moved then show_chrome() end end },
     tray,
   }
   morf.effect("eva.standby.photos", function()
