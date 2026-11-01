@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stands in for notify-send on the sealed session, where nothing answers one and
+# `--wait` would outlive it.
+exit 0

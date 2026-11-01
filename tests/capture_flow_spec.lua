@@ -10,8 +10,7 @@ local SOURCE=[[
       render=function(_,_,cb) morf.time.timer(20,function() cb(true,fixture) end,false) end,
       close=function() closed=closed+1 end,remove=function() end}
   end
-  require("init")
-  require("config").set("polkit.agent","off")
+  require("app")
   -- Services initialise in preview mode. Only the capture exercise below
   -- uses the normal path, with its acquisition backend replaced above.
   local env=morf.env
@@ -23,7 +22,7 @@ local SOURCE=[[
 ]]
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." PrintScreen keeps the bottom panel and waits for selection before editing",function()
-    test.load("../shell/init.lua",{source=SOURCE,size={1200,800},env={EVA_STYLE=style,EVA_DRY_RUN="1"}})
+    test.load("../apps/screenshot/app.lua",{source=SOURCE,size={1200,800},env={EVA_STYLE=style,EVA_DRY_RUN="1"}})
     test.ipc("capture","open") test.advance(500)
     local state=test.ipc("flow")
     test.truthy(state.panel) test.falsy(state.active) test.eq(state.snapshots,0)

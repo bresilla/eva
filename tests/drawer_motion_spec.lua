@@ -97,7 +97,7 @@ for _, style in ipairs { "material", "tsugumori" } do
 end
 
 test.describe("drawer seams", function()
-  local NEIGHBOURS = { "dashboard", "sidebar", "leftbar", "bottom", "session", "capture" }
+  local NEIGHBOURS = { "dashboard", "sidebar", "leftbar", "bottom", "session" }
   local APART = { "launcher", "polkit", "keyring", "authsteps", "headphones" }
 
   test.it("material's working panels melt together and dialogs stand apart", function()

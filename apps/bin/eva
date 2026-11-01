@@ -88,6 +88,9 @@ tools() {
   for folder in "$apps"/*/; do
     if [ -f "$folder/app.lua" ]; then basename "$folder"; fi
   done
+  # The capture tool under its other name, and the shell's StandBy.
+  echo record
+  echo standby
 }
 
 need_shell() {
@@ -120,7 +123,9 @@ open_target() {
     bottom/*) need_shell; eva_ipc bottom open "${1#bottom/}" ;;
     */*) eva_say "no such target: $1"; exit 1 ;;
     settings) need_shell; eva_ipc settings ;;
-    launcher | dashboard | session | utilities | capture | lule | tasks | calendar | assistant)
+    capture) exec sh "$apps/screenshot/cli" ;;
+    record) exec sh "$apps/bin/eva-record" ;;
+    launcher | dashboard | session | utilities | lule | tasks | calendar | assistant)
       need_shell
       eva_ipc "$1" open
       ;;
@@ -148,6 +153,10 @@ case "${1:-help}" in
   dmenu)
     shift
     dmenu "$@"
+    ;;
+  capture | capture-editor | screenshot | record)
+    # The capture tool's verbs, shell or no shell.
+    if eva_shell_up; then eva_ipc "$@"; else exec sh "$apps/screenshot/cli" --ask "$@"; fi
     ;;
   *)
     need_shell

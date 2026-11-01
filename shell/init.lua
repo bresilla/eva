@@ -163,19 +163,20 @@ local capture = require("capture")
 local bottom = require("bottom")
 local pages = require("pages")
 require("planner")
--- These two drawers occupy the same edge; only one can be open. (Where the
--- panels are sheets the bottom edge is the dashboard's, and capture's alone.)
+-- The capture tool's panel and this drawer occupy the same edge; only one can
+-- be open, and a capture takes nothing of the drawer with it. (Where the panels
+-- are sheets the bottom edge is the dashboard's, and capture's alone.)
 if drawer.bottom then
-  for _, pair in ipairs { { capture.drawer, bottom.drawer }, { bottom.drawer, capture.drawer } } do
-    local own, other = pair[1], pair[2]
-    local can_open = own == bottom.drawer and function() return #bottom.panel.tabs > 0 end or nil
-    function own.set(on)
-      if on and can_open and not can_open() then return end
-      if on then other.open:set(false) end
-      own.open:set(on and true or false)
-    end
-    function own.toggle() own.set(not own.open:get()) end
+  local own = bottom.drawer
+  function own.set(on)
+    if on and #bottom.panel.tabs == 0 then return end
+    if on then capture.drawer.set(false) end
+    own.open:set(on and true or false)
   end
+  function own.toggle() own.set(not own.open:get()) end
+  morf.effect("eva.capture.bottom", function()
+    if capture.panel:get() or capture.phase:get() == "countdown" then own.open:set(false) end
+  end)
 end
 local keyboard = require("keyboard")
 local bar = require("bar")
@@ -188,7 +189,7 @@ require("phone")
 -- must not disable typing in the task editor that is still open.
 morf.effect("eva.keyboard.focus", function()
   local exclusive = launcher.drawer.open:get() or session.drawer.open:get() or window_menu.opened:get()
-    or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get() or capture.editor.active:get()
+    or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get()
     or notifs.replying:get() ~= false
   -- Typed into on a click: the Tasks and Calendar pages, the terminal, Lule's
   -- page, wherever their panels hold them.
@@ -289,13 +290,8 @@ require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)
 -- The shell's window, to a screen reader.
 frame_root.accessible_name = "Eva"
-ui.reparent(capture.editor.node,frame_root)
 -- The focused window's menu, over it: in the screen's own coordinates.
 ui.reparent(window_menu.node,frame_root)
-capture.editor.on_export=function(action,result)
-  notifs.push {summary=action=="copy" and "Capture copied" or action=="save" and "Capture saved" or "Capture uploaded",
-    body=action=="upload" and tostring(result or "Link copied to clipboard") or action=="save" and tostring(result or "") or "",app="Morf"}
-end
 -- Authentication can interrupt editing without ending up behind its overlay.
 morf.effect("eva.capture.authentication",function()
   if (polkit.pending:get() or keyring.request:get()) and capture.editor.running() then capture.cancel() end
@@ -393,8 +389,12 @@ ipc.dashboard = function(how, tab)
   if tab and here() then require("dashboard_state").show(tab) end
   return verb(dashboard.drawer)(how)
 end
--- Builds the shell again from its files, in place.
-ipc.reload = function() morf.reload() return true end
+-- Builds the shell and the capture tool again from their files, in place.
+ipc.reload = function()
+  if here() then capture.ask("reload") end
+  morf.reload()
+  return true
+end
 -- The frame, the rail and the bar come in again: a lock lifting.
 ipc.reveal = function() return require("themes.reveal").replay() end
 -- The scale, as the slider sets it: `scale -0.25` (smaller), `scale 0`
@@ -581,14 +581,19 @@ ipc.bar = function(how, id, a, b)
   end
   error("`" .. tostring(how) .. "`: modules, add, remove, move, small, reset or live")
 end
--- PrintScreen opens the original bottom capture panel. Screenshot/Record
--- choose the action and target there; only screenshots enter the editor.
-local capture_popup=verb(capture.drawer)
+-- PrintScreen opens eva-screenshot's panel. The verbs of capture are the tool's;
+-- the focused screen's shell passes each one on, and the tool answers by what it
+-- publishes (shell/capture.lua).
 ipc.capture = function(how)
   how=how or "toggle"
   if how=="menu" then how="open" end
-  if how=="close" or ((how=="open" or how=="toggle") and capture.editor.running()) then capture.cancel() end
-  return capture_popup(how)
+  if how=="state" then return here() and capture.drawer.is_open() or nil end
+  if how~="open" and how~="close" and how~="toggle" then
+    error("`" .. tostring(how) .. "`: open, close, toggle or state")
+  end
+  if not here() then return end
+  capture.ask("capture",how)
+  return how=="open" or (how=="toggle" and not capture.drawer.is_open())
 end
 -- `ask QUESTION`: the assistant opens and answers it, as the launcher's `ai`.
 ipc.ask = function(question)
@@ -639,18 +644,13 @@ do
   end
 end
 ipc["capture-claim"]=function(name)
-  local own=(morf.screens or {})[1]
-  if own and own.name~=name then capture.cancel() capture.drawer.set(false) end
+  if here() then capture.ask("capture-claim",name) end
 end
 ipc["capture-editor"] = function(action,...)
-  if action=="cancel" then capture.cancel() return true end
   if not here() then return end
-  if action=="tool" then capture.editor.choose(...) return true end
-  if action=="copy" or action=="save" or action=="upload" then capture.editor.export(action) return true end
-  if action=="ocr" or action=="qr" then capture.editor.export(action) return true end
-  if action=="last" then return capture.editor.restore_last() end
-  if action=="file" then return capture.editor.open_file((...)) end
-  return {open=capture.editor.active:get(),pending=capture.editor.pending:get(),busy=capture.editor.busy:get(),phase=capture.editor.phase:get()}
+  if action=="cancel" then return capture.cancel() or true end
+  if action then capture.ask("capture-editor",action,...) return true end
+  return {open=capture.editor.active:get(),phase=capture.phase:get()}
 end
 ipc.screenshot = function(what,how)
   if not here() then return nil end
@@ -775,6 +775,7 @@ ipc.focus = function(how, mode, seconds)
 end
 ipc.close = function()
   capture.cancel()
+  capture.drawer.set(false)
   drawer.close_all()
   return true
 end
@@ -784,6 +785,7 @@ ipc.phone = function(...) return require("phone").ipc(...) end
 -- acts on one by name, as the reference's IPC does.
 ipc.drawers = function(how, name)
   if how ~= nil and how ~= "list" then
+    if name == "capture" then return ipc.capture(how) end
     local d = drawer[name or ""]
     -- A desk panel's name reaches the sheet where the panels are sheets.
     if not d and (name == "leftbar" or name == "bottom") then d = sidebar.drawer end
@@ -794,6 +796,7 @@ ipc.drawers = function(how, name)
   for _, d in ipairs(drawer.all) do
     if d.is_open() then open[#open + 1] = d.name end
   end
+  if capture.drawer.is_open() then open[#open + 1] = "capture" end
   return table.concat(open, " ")
 end
 

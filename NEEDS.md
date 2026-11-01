@@ -46,6 +46,15 @@ Open, found while building the assistant, Drop and the pages:
   proved in no harness. `test.drop(id, { paths = { ... } })`, entering, moving
   and dropping on a node, would prove the Drop and Phone pages' targets.
 
+Open, found while splitting capture out:
+
+- A layer on a chosen output from `morf app`. `runtime_bar_config` puts every
+  `morf.window.layer` on its runtime's output, and an application has one
+  runtime, the first output's, so a tool cannot open on the focused monitor.
+  eva-screenshot runs as a plain `morf -i NAME config.lua` instead, one runtime
+  per output as the shell has, with the idle runtimes held under the desk. An
+  `output` key on `morf.window.layer` would let it be an application.
+
 Phase 2 (the other dashboard tabs, the launcher's pickers, the session
 menu, the bar's popouts, notifications and the OSD) found the entries
 below, all now in the engine too; the popouts shut on `contains_pointer`

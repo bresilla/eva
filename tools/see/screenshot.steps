@@ -1,31 +1,76 @@
-# eva-screenshot on this private sway: the CLI alone, the window, the editor
-# with no shell, then through the shell.
+# eva-screenshot on this private sway: asked by the shell, then alone. The screen
+# is frozen from a picture of itself, morf.screencopy finding no format here.
 unset EVA_DRY_RUN
 CLI="sh apps/screenshot/cli"
 FOLDER="$HOME/Pictures/Captures"
-editor() { appipc editor | tr -d ' \n' | cut -c1-120; }
+state() { toolipc state | tr -d '\\ \n' | sed 's/.*result":\["//' | cut -c1-120; }
+running() { morf -i "$(basename "$WAYLAND_DISPLAY")-screenshot" ipc verbs > /dev/null 2>&1 && echo yes || echo no; }
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export BOOT=0
 
-# Alone: the screen into the folder, no shell running.
+# Through the shell: it keeps the tool ready, and its verbs reach it.
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
+note echo "standby: $(state)"
+shot standby
+ipc capture open > /dev/null
+pause 2
+note echo "panel: $(state)"
+note echo "shell sees: $(ipc capture state | tr -d ' \n')"
+shot panel
+ipc capture close > /dev/null
+pause 1.5
+note echo "closed: $(state)"
+shot closed
+
+ipc screenshot region > /dev/null
+pause 2
+note echo "selection: $(state)"
+shot selection
+key s
+pause 1.5
+note echo "editor: $(state)"
+shot editor
+ipc capture-editor tool rect > /dev/null
+pause 1
+shot editor-tool
+ipc capture-editor cancel > /dev/null
+pause 1.5
+note echo "cancelled: $(state)"
+
+# It goes with the shell.
+stop
+pause 7
+note echo "after the shell, running: $(running)"
+
+# Alone, no shell behind it: the same panel, flaring into the screen's edge.
+$CLI &
+TOOL=$!
+toolup
+pause 1.5
+note echo "alone: $(state)"
+shot alone-panel
+toolipc capture close > /dev/null
+pause 2
+note echo "alone, afterwards, running: $(running)"
+
+# A screen, saved through the selection and the editor's export, no shell.
 $CLI screen --save > "$SEE_OUT/saved.txt" 2>&1
-note echo "saved: $(ls "$FOLDER" | wc -l) file(s)"
+note echo "saved: $(cat "$SEE_OUT/saved.txt")"
+note echo "in the folder: $(ls "$FOLDER" | wc -l) file(s)"
 $CLI screen --copy >> "$SEE_OUT/saved.txt" 2>&1
 note echo "clipboard: $(wl-paste --list-types 2>&1 | head -n 1)"
 PICTURE=$(ls "$FOLDER"/*.png | head -n 1)
 
-start app screenshot
-shot window
-stop
-
-# The editor on a picture from grim, no shell behind it.
-start app screenshot file "$PICTURE"
-shot editor-file
-note echo "editor on a file: $(editor)"
-stop
-
-# Through the shell, on the same picture: the notification's Edit button.
-start shell
-$CLI --edit-file "$PICTURE"
+# The editor on a picture, no shell.
+$CLI --edit-file "$PICTURE" &
+TOOL=$!
+toolup
 pause 1
-shot editor-shell
-note echo "editor in shell: $(ipc capture-editor | tr -d ' \n' | cut -c1-120)"
-ipc capture-editor cancel > /dev/null
+shot editor-file
+note echo "editor on a file: $(state)"
+toolipc capture-editor cancel > /dev/null
+pause 2
+note echo "file, afterwards, running: $(running)"
