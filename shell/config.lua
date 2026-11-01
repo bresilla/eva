@@ -365,6 +365,10 @@ local config = settings.open {
       cutout = { x = 0, width = 0, height = 0 },
       -- "on" or "off": the system tray on a desk's bar.
       tray = "on",
+      -- A person's arrangement of its items, `{ id, title, place }`, in order;
+      -- how many icons stand on the bar at most, the rest behind an arrow.
+      tray_items = {},
+      tray_limit = 8,
       -- The wheel over a desk's bar: over the status it changes the volume,
       -- over the clock the workspace.
       wheel_volume = false,

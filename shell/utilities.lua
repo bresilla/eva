@@ -14,6 +14,7 @@ local builders={
   microphone=function(w,h) return require("sound_page").input_page(w,h) end,
   power=function(w,h) return require("power_page").page(w,h) end,
   bar=function(w,h) return require("bar_page").page(w,h) end,
+  ["bar/tray"]=function(w,h) return require("bar_page").tray_page(w,h) end,
   osd=function(w,h) return require("osd_page").page(w,h) end,
   panels=function(w,h) return require("themes").view("panels_page").build(M,w,h) end,
   assistant=function(w,h) return require("themes").view("assistant_settings").page(require("assistant_model"),w,h) end,

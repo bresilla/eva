@@ -157,7 +157,7 @@ function M.build_layouts(model, w, h)
   local inner = P.inner(w)
   local layouts = model.layouts
   local box, handle = P.field { id = "layouts-name", width = inner, placeholder = "A name for what is open",
-    on_accepted = function() if model.save(handle.text) then handle.text = "" end end }
+    on_accepted = function() model.save(handle.text) end }
   local function row(index, width)
     local function layout() return model.saved(index) or {} end
     local remove = kit.action { id = "layouts-remove-" .. index, width = S.TARGET, height = S.TARGET, cursor = "pointer",
@@ -174,8 +174,7 @@ function M.build_layouts(model, w, h)
   end
   return P.page { id = "layouts-scroll", width = w, height = h, active = model.active,
     P.section { id = "layouts-save", caption_id = "layouts-save-caption", width = w, title = "Save what is open", box,
-      P.button { id = "layouts-save-now", label = "Save", tone = "primary",
-        on_clicked = function() if model.save(handle.text) then handle.text = "" end end },
+      P.button { id = "layouts-save-now", label = "Save", tone = "primary", on_clicked = function() model.save(handle.text) end },
       F.note(inner, function() return model.message:get() end, { id = "layouts-message",
         visible = function() return model.message:get() ~= "" end }) },
     P.section { id = "layouts-list", caption_id = "layouts-list-caption", width = w, title = "Saved",

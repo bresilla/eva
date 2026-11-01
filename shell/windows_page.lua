@@ -53,9 +53,9 @@ function M.layouts_page(w, h)
   model.message = require("morf").signal("eva.layouts.message", "")
   function model.saved(index) return model.layouts.list()[index] end
   function model.save(name)
-    local count, why = model.layouts.save(name)
-    model.message:set(count and ("Saved %d windows as %s"):format(count, name) or why)
-    return count ~= nil
+    model.layouts.save(name, function(count, why)
+      model.message:set(count and ("Saved %d windows as %s"):format(count, name) or why)
+    end)
   end
   return require("themes").view("windows_page").build_layouts(model, w, h)
 end

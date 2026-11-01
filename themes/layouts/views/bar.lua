@@ -285,20 +285,37 @@ function V.build(model)
     modules.tip(node, function() return row.title end)
     return node
   end
-  local function tray(_, vertical)
+  local function tray(_, vertical, length)
     if not model.tray then return { node = ui.Item {}, size = function() return 0 end } end
     local suffix = vertical and "-v" or ""
-    local list = ui.Repeater { as = vertical and "column" or "row", gap = S.xs, model = model.tray.rows,
+    local step = TRAY + S.xs
+    local list = ui.Repeater { as = vertical and "column" or "row", gap = S.xs, model = model.tray.bar,
       delegate = function(row) return tray_delegate(row, suffix) end }
-    local function size()
+    local function overflowing() return model.tray.more:len() > 0 end
+    local more
+    more = kit.action { id = "bar-tray-more" .. suffix, width = TRAY, height = TRAY, cursor = "pointer",
+      accessible_name = "More tray items", visible = overflowing, x = function() return vertical and 0 or model.tray.bar:len() * step end,
+      y = function() return vertical and model.tray.bar:len() * step or 0 end,
+      on_clicked = function() modules.open_tray(more) end,
+      kit.icon(vertical and "chevron_right" or "expand_more", 20, ink, { anchors = { center_in = true } }) }
+    local function count() return model.tray.bar:len() + (overflowing() and 1 or 0) end
+    -- What it would like: every item, and the arrow where some are tucked away.
+    local function natural()
       if not model.tray_on() or model.tray.rows:len() == 0 then return 0 end
-      return (vertical and list.layout_height or list.layout_width) or 0
+      return (model.tray.rows:len() + (overflowing() and 1 or 0)) * step - S.xs
     end
-    local node = ui.Item { id = "bar-tray" .. suffix, visible = function() return size() > 0 end,
+    local function shown() return count() * step - S.xs end
+    morf.effect("eva.bar.tray.room" .. suffix, function()
+      if not model.on() or model.vertical() ~= vertical then return end
+      local given = length and length() or 0
+      if given <= 0 or not model.tray_on() then return end
+      model.tray.room:set(require("tray_model").room_for(given + S.xs, step, model.tray.rows:len()))
+    end)
+    local node = ui.Item { id = "bar-tray" .. suffix, visible = function() return natural() > 0 end,
       anchors = { center_in = true },
-      width = function() return size() > 0 and (list.layout_width or 0) or 0.01 end,
-      height = function() return size() > 0 and (list.layout_height or 0) or 0.01 end, list }
-    return { node = node, size = size }
+      width = function() return natural() > 0 and (vertical and TRAY or shown()) or 0.01 end,
+      height = function() return natural() > 0 and (vertical and shown() or TRAY) or 0.01 end, list, more }
+    return { node = node, size = natural, flex = true, hold = true }
   end
 
   -- ------------------------------------------------------------ time --

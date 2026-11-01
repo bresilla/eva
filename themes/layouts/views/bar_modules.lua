@@ -80,6 +80,18 @@ function V.context(spec)
     open_items("more", area, items)
   end
 
+  --- The tray's items behind the arrow, and the way to arrange them.
+  function M.open_tray(area)
+    local items = {}
+    for i = 1, model.tray.more:len() do
+      local row = model.tray.more:get(i)
+      items[#items + 1] = { label = row.title ~= "" and row.title or row.id, icon = "apps",
+        on_clicked = function() model.tray.activate(row.address) end }
+    end
+    items[#items + 1] = { label = "Arrange the tray", icon = "tune", on_clicked = function() require("utilities").request("bar/tray") end }
+    open_items("tray", area, items)
+  end
+
   --- Which apps use what, then what stopped lately.
   function M.open_privacy(area)
     local privacy, items = model.privacy, {}

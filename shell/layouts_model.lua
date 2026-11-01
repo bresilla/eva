@@ -17,6 +17,8 @@ local M = {}
 M.report = morf.signal("eva.layouts.report", false)
 -- How long after starting apps their windows are looked for, in ms.
 M.WAITS = { 1500, 4000, 8000 }
+-- How long the window list takes to come back.
+M.FRESH_MS = 300
 
 function M.list()
   local saved = config.get("windows.layouts")
@@ -37,20 +39,31 @@ local function write(list)
   config.set("windows.layouts", list)
 end
 
---- Saves what is open under `name`, over any of that name. Answers how many
---- windows, or nil and why.
-function M.save(name)
+-- A window's size, place and floating come by no event: `fn` runs once the list
+-- has been asked for again.
+local function fresh(fn)
+  local hyprland = require("services").hyprland
+  if hyprland.refresh then hyprland.refresh() end
+  morf.time.timer(M.FRESH_MS, fn, false)
+end
+
+--- Saves what is open under `name`, over any of that name. `done(count)` with
+--- how many windows, `done(nil, why)` when it cannot.
+function M.save(name, done)
+  done = done or function() end
   name = tostring(name or ""):gsub("^%s+", ""):gsub("%s+$", "")
-  if name == "" then return nil, "A layout needs a name" end
-  local rows = lib.capture(windows.list(), windows.monitors(), known)
-  if #rows == 0 then return nil, "No windows are open" end
-  local list = {}
-  for _, layout in ipairs(M.list()) do
-    if layout.name ~= name then list[#list + 1] = layout end
-  end
-  list[#list + 1] = { name = name, saved = morf.time.now(), windows = rows }
-  write(list)
-  return #rows
+  if name == "" then return done(nil, "A layout needs a name") end
+  fresh(function()
+    local rows = lib.capture(windows.list(), windows.monitors(), known)
+    if #rows == 0 then return done(nil, "No windows are open") end
+    local list = {}
+    for _, layout in ipairs(M.list()) do
+      if layout.name ~= name then list[#list + 1] = layout end
+    end
+    list[#list + 1] = { name = name, saved = morf.time.now(), windows = rows }
+    write(list)
+    done(#rows)
+  end)
 end
 
 function M.remove(name)
@@ -100,45 +113,51 @@ local function labels(rows)
   return out
 end
 
+local restoring = 0
+
 --- Moves what is open into `name`, starts what is not and can be, and keeps
 --- placing as windows arrive. False with no such layout.
 function M.restore(name)
   local layout = M.get(name)
   if not layout then return false end
   local rows = layout.windows or {}
-  local matched, missing = lib.match(rows, windows.list())
-  local moved = 0
-  for _, pair in ipairs(matched) do
-    if place(pair.saved, pair.window) then moved = moved + 1 end
-  end
-  screens(rows)
-  local started, cannot = {}, {}
-  local apps = require("apps")
-  for _, row in ipairs(missing) do
-    local entry = apps.entry_for(row.class)
-    if entry then
-      started[#started + 1] = row
-      apps.launch(entry.id)
-    else
-      cannot[#cannot + 1] = row
+  restoring = restoring + 1
+  local turn = restoring
+  fresh(function()
+    local matched, missing = lib.match(rows, windows.list())
+    local moved = 0
+    for _, pair in ipairs(matched) do
+      if place(pair.saved, pair.window) then moved = moved + 1 end
     end
-  end
-  local report = { name = name, moved = moved, opened = 0, missing = labels(cannot), late = labels(started) }
-  M.report:set(report)
-  for turn, ms in ipairs(M.WAITS) do
-    if #started > 0 then
+    screens(rows)
+    local started, cannot = {}, {}
+    local apps = require("apps")
+    for _, row in ipairs(missing) do
+      local entry = apps.entry_for(row.class)
+      if entry then
+        started[#started + 1] = row
+        apps.launch(entry.id)
+      else
+        cannot[#cannot + 1] = row
+      end
+    end
+    M.report:set({ name = name, moved = moved, opened = 0, missing = labels(cannot), late = labels(started) })
+    if #started == 0 then return end
+    for _, ms in ipairs(M.WAITS) do
       morf.time.timer(ms, function()
-        if M.report:get() ~= report then return end
-        local fresh, late = lib.match(rows, windows.list())
-        for _, pair in ipairs(fresh) do place(pair.saved, pair.window) end
-        report.opened = #started - #late
-        report.late = labels(late)
-        M.report:set({ name = report.name, moved = report.moved, opened = report.opened, missing = report.missing, late = report.late })
-        report = M.report:get()
-        if turn == #M.WAITS then screens(rows) end
+        if turn ~= restoring then return end
+        fresh(function()
+          local arrived, late = lib.match(rows, windows.list())
+          for _, pair in ipairs(arrived) do place(pair.saved, pair.window) end
+          local still = {}
+          for _, row in ipairs(late) do
+            if apps.entry_for(row.class) then still[#still + 1] = row end
+          end
+          M.report:set({ name = name, moved = moved, opened = #started - #still, missing = labels(cannot), late = labels(still) })
+        end)
       end, false)
     end
-  end
+  end)
   return true
 end
 

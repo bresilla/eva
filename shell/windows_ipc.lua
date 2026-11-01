@@ -181,10 +181,7 @@ function M.register(ipc)
     if how == nil or how == "list" then return layouts.list() end
     if how == "report" then return layouts.report:get() end
     if not here() then return end
-    if how == "save" then
-      local count, why = layouts.save(name)
-      return count or why
-    end
+    if how == "save" then layouts.save(name) return true end
     if how == "restore" then return layouts.restore(name) end
     if how == "remove" then layouts.remove(name) return true end
     if how == "login" then layouts.set_login(name) return true end
