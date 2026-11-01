@@ -1,10 +1,6 @@
 -- The clock, the language and the machine's name: systemd's timedate1, locale1
--- and hostname1. Each is asked without waiting: a read may start the daemon, a
--- change may wait on polkit, and the shell is what draws polkit's dialog.
---
--- On NixOS these files are usually built from the system configuration, and
--- the daemons refuse to change them: `*_declared()` says so before anything is
--- tried, and says which option holds the value.
+-- and hostname1, each asked without waiting. `*_declared()` says whether the
+-- system's configuration holds the value.
 local host = require("lib.services.host")
 local dbus_client = require("lib.services.dbus")
 

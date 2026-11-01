@@ -1,5 +1,4 @@
--- This machine, from what the kernel and the system publish: nothing here
--- needs a daemon or a privilege, so it reads the same on any distribution.
+-- This machine, read from /proc, /sys and /etc/os-release.
 local morf = require("morf")
 local host = require("lib.services.host")
 

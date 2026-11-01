@@ -29,7 +29,7 @@ local function sharpened(s)
   local out = {}
   for name, value in pairs(s) do out[name] = value end
   out.onSurfaceVariant, out.outline, out.outlineVariant = s.onSurface, s.onSurface, s.onSurface
-  local ground = color_mode.resolve() == "light" and "#ffffff" or "#000000"
+  local ground = morf.color(color_mode.resolve() == "light" and "#ffffff" or "#000000")
   for _, name in ipairs { "surface", "surfaceDim", "surfaceBright", "surfaceContainerLowest", "surfaceContainerLow",
     "surfaceContainer", "background" } do
     if s[name] ~= nil then out[name] = ground end
@@ -46,7 +46,7 @@ local function initial()
 end
 
 local roles = {}
-for name, value in pairs(initial()) do
+for name, value in pairs(sharpened(initial())) do
   local ok, red = pcall(function() return value.r end)
   if type(value) ~= "string" and ok and type(red) == "number" then roles[name] = value end
 end

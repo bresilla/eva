@@ -296,8 +296,9 @@ local function test_section()
       subtitle = function() return testing() and "Speak as you normally would" or "Shows how loud it hears you" end,
       trailing = P.button { id = "sound-test-button", label = function() return testing() and "Stop" or "Start" end,
         tone = function() return testing() and "primary" or nil end, on_clicked = function() model.test(not testing()) end } },
-    kit.fill { id = "sound-test-level", width = INNER, height = theme.space.m, color = kit.signal("accent"),
-      visible = testing, value = function() return model.level:get() end },
+    ui.Item { id = "sound-test-level", width = INNER, height = theme.space.m, visible = testing,
+      kit.fill { width = INNER, height = theme.space.m, color = kit.signal("accent"),
+        value = function() return model.level:get() end } },
     F.status("sound-test-status", INNER, model),
   }
 end

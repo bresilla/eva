@@ -1,6 +1,5 @@
 -- The machine as the Settings pages reach it: commands, the two buses, and
--- what kind of system this is. Every page goes through here, so one switch
--- stands a whole machine in for the real one.
+-- what kind of system this is.
 --
 --   local host = require("lib.services.host")
 --   host.read({ "lpstat", "-p" }, function(text, why) end)   -- asks, changes nothing

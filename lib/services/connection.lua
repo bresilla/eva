@@ -1,11 +1,9 @@
 -- One NetworkManager connection in depth: its addresses and DNS, whether it is
 -- metered, and the code that shares a Wi-Fi network.
 --
--- Changing a profile goes through `nmcli connection modify`: a saved profile
--- cannot be sent back over the bus field by field, and none of what changes
--- here is a secret. A Wi-Fi password is the other way round: it is read over
--- the bus by `secret`, handed to its caller alone, and reaches `qrencode` on
--- stdin, never on a command line or in a signal.
+-- A profile is changed with `nmcli connection modify`. A Wi-Fi password is read
+-- over the bus by `secret`, goes to its caller alone, and reaches `qrencode`
+-- on stdin.
 local host = require("lib.services.host")
 local dbus_client = require("lib.services.dbus")
 
@@ -47,6 +45,17 @@ local function clean(value)
   return value
 end
 
+-- `connection.dns-over-tls` as `nmcli -t` prints it.
+local DOT = { ["-1"] = "default", ["0"] = "no", ["1"] = "opportunistic", ["2"] = "yes" }
+
+--- The DNS-over-TLS word for what nmcli printed: a number when terse, a word
+--- otherwise.
+function M.parse_dot(value)
+  local word = tostring(value or ""):match("^%-?%d+")
+  if word then return DOT[word] or "default" end
+  return tostring(value or ""):match("%((%a+)%)") or tostring(value or ""):match("^%a+") or "default"
+end
+
 --- `done(details, err)`: the profile `uuid` as a plain table.
 function M.show(uuid, done)
   local keys = {}
@@ -60,7 +69,7 @@ function M.show(uuid, done)
     done {
       id = clean(raw["connection.id"]), uuid = uuid, type = clean(raw["connection.type"]),
       metered = clean(raw["connection.metered"]):match("^%a+") or "unknown",
-      autoconnect = raw["connection.autoconnect"] ~= "no", dot = clean(raw["connection.dns-over-tls"]):match("^[%a%-]+") or "default",
+      autoconnect = raw["connection.autoconnect"] ~= "no", dot = M.parse_dot(raw["connection.dns-over-tls"]),
       method = method, static = method == "manual",
       address = clean(raw["ipv4.addresses"]), gateway = clean(raw["ipv4.gateway"]), dns = clean(raw["ipv4.dns"]),
       search = clean(raw["ipv4.dns-search"]), ignore_auto_dns = raw["ipv4.ignore-auto-dns"] == "yes",

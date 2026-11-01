@@ -1,5 +1,5 @@
 -- What morf.audio leaves out: sound cards' profiles and a Bluetooth headset's
--- codec, through pipewire-pulse's `pactl`, and the event sound theme.
+-- codec, through PipeWire's `pw-dump` and `wpctl`, and the event sound theme.
 local morf = require("morf")
 local host = require("lib.services.host")
 
@@ -17,40 +17,48 @@ function M.codec(profile)
   if profile == "a2dp-sink" then return "SBC" end
 end
 
---- `pactl -f json list cards` as `{ key, name, title, bluetooth, profile,
---- profiles = { { key, name, codec } } }`.
+--- `pw-dump`'s devices as `{ key, id, name, title, bluetooth, active, codec,
+--- profiles = { { key, index, name, codec } } }`. What is off or unavailable
+--- is left out.
 function M.parse_cards(text)
   local ok, list = pcall(morf.json.decode, text or "")
   local out = {}
-  for _, card in ipairs(ok and type(list) == "table" and list or {}) do
-    local properties = card.properties or {}
-    local row = { key = card.name, name = card.name, active = card.active_profile or "",
-      title = properties["device.description"] or card.name,
-      bluetooth = tostring(card.name):find("^bluez_card") ~= nil, profiles = {} }
-    for name, profile in pairs(card.profiles or {}) do
-      if type(profile) == "table" and profile.available ~= false and name ~= "off" then
-        row.profiles[#row.profiles + 1] = { key = name, name = profile.description or name, codec = M.codec(name),
-          priority = tonumber(profile.priority) or 0 }
+  for _, object in ipairs(ok and type(list) == "table" and list or {}) do
+    local info = type(object) == "table" and object.type == "PipeWire:Interface:Device" and object.info
+    if info then
+      local props, params = info.props or {}, info.params or {}
+      local name = props["device.name"] or tostring(object.id)
+      local current = (params.Profile or {})[1] or {}
+      local row = { key = name, id = object.id, name = name, title = props["device.description"] or name,
+        bluetooth = props["device.api"] == "bluez5" or name:find("^bluez_card") ~= nil, active = current.name or "",
+        profiles = {} }
+      for _, profile in ipairs(params.EnumProfile or {}) do
+        if profile.name ~= "off" and profile.available ~= "no" then
+          row.profiles[#row.profiles + 1] = { key = profile.name, index = profile.index, name = profile.description or profile.name,
+            codec = M.codec(profile.name), priority = tonumber(profile.priority) or 0 }
+        end
       end
+      table.sort(row.profiles, function(a, b)
+        if a.priority ~= b.priority then return a.priority > b.priority end
+        return a.key < b.key
+      end)
+      row.codec = M.codec(row.active)
+      out[#out + 1] = row
     end
-    table.sort(row.profiles, function(a, b)
-      if a.priority ~= b.priority then return a.priority > b.priority end
-      return a.key < b.key
-    end)
-    row.codec = M.codec(row.active)
-    out[#out + 1] = row
   end
   return out
 end
 
 --- `done(cards)`.
 function M.cards(done)
-  if not host.installed("pactl") then return done {} end
-  host.read({ "pactl", "-f", "json", "list", "cards" }, function(text) done(M.parse_cards(text)) end)
+  if not host.installed("pw-dump") then return done {} end
+  host.read({ "pw-dump" }, function(text) done(M.parse_cards(text)) end)
 end
 
 --- Sets a card's profile: its codec, for a Bluetooth headset.
-function M.set_profile(card, profile, done) host.act({ "pactl", "set-card-profile", card, profile }, done) end
+function M.set_profile(card, profile, done)
+  host.act({ "wpctl", "set-profile", tostring(card.id), tostring(profile.index) }, done)
+end
 
 -- --------------------------------------------------------------- the theme --
 

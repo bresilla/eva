@@ -1,7 +1,6 @@
 -- Drives and volumes, from UDisks2: what is plugged in, mounting, ejecting and
--- unlocking. Actions go over the system bus without waiting, since polkit may
--- ask first; a LUKS passphrase travels only as the argument of `Unlock` and is
--- kept nowhere here.
+-- unlocking. Actions go over the system bus without waiting. A LUKS passphrase
+-- is the argument of `Unlock` and is kept nowhere here.
 --
 --   local disks = require("lib.services.udisks").connect()
 --   disks.volumes()              -- { { path, device, label, size, fs, mounted, ... } }
@@ -109,7 +108,10 @@ function M.connect(options)
     for _, row in ipairs(volumes) do
       seen[row.path] = true
       if armed and row.removable and not known[row.path] then
-        for _, handler in ipairs(listeners) do pcall(handler, row) end
+        for _, handler in ipairs(listeners) do
+          local ok, why = pcall(handler, row)
+          if not ok then morf.log("warn", "eva: a new drive's handler failed: " .. tostring(why)) end
+        end
       end
     end
     known, armed = seen, true

@@ -1,7 +1,6 @@
 -- Keyboards and pointers: what was chosen, what the compositor has now, and
--- pushing the one onto the other. Only what was changed is ever sent, so
--- everything else stays the person's own Hyprland configuration; it is sent
--- again after every reload, which forgets what was pushed.
+-- pushing the one onto the other: only what was changed, and again after every
+-- reload.
 local morf = require("morf")
 local config = require("config")
 local host = require("lib.services.host")
@@ -36,10 +35,23 @@ end
 
 local function get(key) return config.get("input." .. key) end
 
+--- A list of `{ key, value }` kept in the configuration, as a table.
+local function read_map(key)
+  local out = {}
+  for _, row in ipairs(get(key) or {}) do out[row.key] = row.value end
+  return out
+end
+
+local function write_map(key, map)
+  local rows = {}
+  for name, value in pairs(map) do rows[#rows + 1] = { key = name, value = value } end
+  table.sort(rows, function(a, b) return a.key < b.key end)
+  config.set("input." .. key, rows)
+end
+
 --- What is sent: the choices, as the plan takes them.
 function M.state()
-  local chosen = {}
-  for name, value in pairs(get("chosen") or {}) do chosen[name] = value end
+  local chosen = read_map("chosen")
   local keep = {}
   for _, key in ipairs { "caps", "compose" } do
     local word = chosen[key]
@@ -47,7 +59,7 @@ function M.state()
     if type(word) == "string" and word ~= "" then keep[#keep + 1] = word end
   end
   local layouts = get("layouts") or {}
-  return { chosen = chosen, layouts = layouts, devices = get("devices") or {},
+  return { chosen = chosen, layouts = layouts, devices = read_map("devices"),
     switch = #layouts > 1 and get("switch") or nil,
     options = #keep > 0 and table.concat(keep, ",") or nil }
 end
@@ -79,10 +91,9 @@ end
 
 --- Sets an option by its OPTIONS name, or forgets it for nil.
 function M.choose(name, value)
-  local chosen = {}
-  for key, old in pairs(get("chosen") or {}) do chosen[key] = old end
+  local chosen = read_map("chosen")
   chosen[name] = value
-  config.set("input.chosen", chosen)
+  write_map("chosen", chosen)
   M.apply()
 end
 
@@ -105,7 +116,7 @@ function M.new(key, active)
 
   --- An option as it stands: what was chosen, else what the compositor has.
   function model.value(name, otherwise)
-    local chosen = (get("chosen") or {})[name]
+    local chosen = read_map("chosen")[name]
     if chosen ~= nil then return chosen end
     local now = live:get()[name]
     if now ~= nil then return now end
@@ -117,10 +128,20 @@ function M.new(key, active)
 
   function model.layouts() return get("layouts") or {} end
   function model.current() return hypr().state and hypr().state.keyboard_layout or "" end
-  function model.catalogue()
-    names = names or lib.catalogue()
-    return names
-  end
+  local catalogue = morf.signal("eva.input." .. key .. ".catalogue", {})
+  function model.catalogue() return catalogue:get() end
+  model.on_show(function()
+    if names then return catalogue:set(names) end
+    local rows, short = lib.catalogue()
+    names = rows
+    catalogue:set(rows)
+    if short then
+      lib.catalogue_long(function(found)
+        names = found
+        catalogue:set(found)
+      end)
+    end
+  end)
   function model.layout_name(row)
     local id = row.variant ~= "" and (row.layout .. ":" .. row.variant) or row.layout
     for _, known in ipairs(model.catalogue()) do if known.key == id then return known.name end end
@@ -202,26 +223,23 @@ function M.new(key, active)
   function model.open_keys() return host.open_tool("keys") end
   model.selected = morf.signal("eva.input." .. key .. ".selected", "")
   function model.device_value(name, field, otherwise)
-    local values = (get("devices") or {})[name] or {}
+    local values = read_map("devices")[name] or {}
     if values[field] ~= nil then return values[field] end
     return otherwise
   end
   function model.set_device(name, field, value)
-    local all = {}
-    for device, values in pairs(get("devices") or {}) do
-      local row = {}
-      for k, v in pairs(values) do row[k] = v end
-      all[device] = row
-    end
-    all[name] = all[name] or {}
-    all[name][field] = value
-    config.set("input.devices", all)
+    local all = read_map("devices")
+    local row = {}
+    for k, v in pairs(all[name] or {}) do row[k] = v end
+    row[field] = value
+    all[name] = row
+    write_map("devices", all)
     M.apply()
   end
   function model.forget_device(name)
-    local all = {}
-    for device, values in pairs(get("devices") or {}) do if device ~= name then all[device] = values end end
-    config.set("input.devices", all)
+    local all = read_map("devices")
+    all[name] = nil
+    write_map("devices", all)
     M.apply()
   end
 

@@ -193,6 +193,9 @@ local HOST = [[
     local c = require("lib.services.connection")
     local raw = c.parse_terse("IP4.ADDRESS[1]:10.0.0.2/24\nIP4.ADDRESS[2]:10.0.0.3/24\nIP6.ADDRESS[1]:fe80\\:\\:1/64\nconnection.id:Home\n")
     eq(#raw["IP4.ADDRESS"], 2) eq(raw["IP6.ADDRESS"][1], "fe80::1/64") eq(raw["connection.id"], "Home")
+    eq(c.parse_dot("-1"), "default", "as nmcli 1.56 prints it with -t")
+    eq(c.parse_dot("2"), "yes") eq(c.parse_dot("1"), "opportunistic") eq(c.parse_dot("0"), "no")
+    eq(c.parse_dot("-1 (default)"), "default") eq(c.parse_dot("yes"), "yes") eq(c.parse_dot(nil), "default")
   end
   function tests.connection_validate()
     local c = require("lib.services.connection")
@@ -230,12 +233,36 @@ local HOST = [[
     local s = require("lib.services.sound_extras")
     eq(s.codec("a2dp-sink-ldac"), "LDAC") eq(s.codec("a2dp-sink-sbc_xq"), "SBC XQ") eq(s.codec("a2dp-sink"), "SBC")
     eq(s.codec("output:analog-stereo"), nil)
-    local cards = s.parse_cards(morf.json.encode { { name = "bluez_card.A", active_profile = "a2dp-sink-aac",
-      properties = { ["device.description"] = "Buds" },
-      profiles = { ["a2dp-sink-aac"] = { description = "AAC", available = true, priority = 2 },
-        ["a2dp-sink-ldac"] = { description = "LDAC", available = false, priority = 3 }, off = { description = "Off", available = true } } } })
-    eq(#cards, 1) eq(cards[1].bluetooth, true) eq(cards[1].codec, "AAC")
-    eq(#cards[1].profiles, 1, "what is unavailable or off is not offered")
+    -- The shape pw-dump gives on a real system: `available` is a word.
+    local cards = s.parse_cards(morf.json.encode {
+      { id = 7, type = "PipeWire:Interface:Node", info = { props = {} } },
+      { id = 43, type = "PipeWire:Interface:Device", info = {
+        props = { ["device.name"] = "bluez_card.A", ["device.api"] = "bluez5", ["device.description"] = "Buds" },
+        params = { Profile = { { index = 1, name = "a2dp-sink-aac" } }, EnumProfile = {
+          { index = 0, name = "off", available = "yes", priority = 0 },
+          { index = 1, name = "a2dp-sink-aac", available = "yes", priority = 2 },
+          { index = 2, name = "a2dp-sink-ldac", available = "no", priority = 3 },
+          { index = 3, name = "headset-head-unit", available = "unknown", priority = 1 } } } } } })
+    eq(#cards, 1, "only devices") eq(cards[1].bluetooth, true) eq(cards[1].codec, "AAC") eq(cards[1].id, 43)
+    eq(#cards[1].profiles, 2, "what is off or unavailable is not offered")
+    eq(cards[1].profiles[1].index, 1)
+  end
+  function tests.encryption_walks_the_stack()
+    local privacy = require("privacy_model")
+    local root = morf.env("XDG_CACHE_HOME") .. "/sys-block-fixture"
+    morf.fs.mkdir(root .. "/dm-2/dm") morf.fs.write(root .. "/dm-2/dm/uuid", "LVM-abc\n")
+    morf.fs.mkdir(root .. "/dm-2/slaves/dm-0")
+    morf.fs.mkdir(root .. "/dm-0/dm") morf.fs.write(root .. "/dm-0/dm/uuid", "CRYPT-LUKS2-abc\n")
+    morf.fs.mkdir(root .. "/dm-5/dm") morf.fs.write(root .. "/dm-5/dm/uuid", "LVM-def\n")
+    morf.fs.mkdir(root .. "/dm-5/slaves/nvme0n1p2")
+    truthy(privacy.on_crypt("dm-2", root), "LVM on LUKS")
+    falsy(privacy.on_crypt("dm-5", root), "LVM on a plain partition")
+  end
+  function tests.xkbcli_list()
+    local lib = require("lib.services.input_config")
+    local rows = lib.parse_xkbcli("models:\n- name: 'pc104'\nlayouts:\n- layout: 'al'\n  variant: ''\n  brief: 'sq'\n  description: Albanian\n  iso639: ['sqi']\n- layout: 'al'\n  variant: 'plisi'\n  brief: 'sq'\n  description: Albanian (Plisi)\n")
+    eq(#rows, 2) eq(rows[1].key, "al") eq(rows[1].name, "Albanian") eq(rows[2].key, "al:plisi")
+    truthy(rows[2].words:find("Albanian", 1, true), "the parent's name to search by")
   end
   function tests.audio_rules()
     local r = require("audio_rules")

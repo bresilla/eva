@@ -20,7 +20,12 @@ end
 
 local ACTIONS = { open = open, human = udisks.human,
   eject = function(row) storage.disks().eject(row) end,
-  settings = function() require("utilities").request("storage") require("sidebar").drawer.set(true) end }
+  settings = function()
+    local sidebar = require("sidebar")
+    require("utilities").request("storage")
+    sidebar.select("settings")
+    sidebar.drawer.set(true)
+  end }
 
 --- Shows the popup for `row`, unless the setting says not to.
 function M.plugged(row)
@@ -56,6 +61,7 @@ end
 function M.start()
   if morf.window.primary and not morf.window.primary() then return end
   storage.disks().on_added(M.plugged)
+  if host.fake() then morf.ipc["fake-plug"] = function() require("lib.services.host_fake").plug() return true end end
   morf.time.timer(CHECK, function() M.check() end, true)
   morf.time.timer(20000, function() M.check() end, false)
 end

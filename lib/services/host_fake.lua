@@ -15,7 +15,7 @@ function M.nixos() return NIXOS end
 function M.declared() return NIXOS end
 function M.managed() return false end
 
-local PROGRAMS = { qrencode = true, pactl = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
+local PROGRAMS = { qrencode = true, ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
   scanimage = not NIXOS, lpstat = not NIXOS, ["firewall-cmd"] = not NIXOS, gsettings = true, lspci = true, ["xdg-open"] = true,
   gio = true, ["eva-battery"] = true }
 
@@ -34,18 +34,24 @@ local autostart_rows = {
   { key = "geoclue-demo.desktop", id = "geoclue-demo.desktop", name = "Location agent", enabled = false, own = true, system = true },
 }
 
-local CARDS = morf.json.encode {
-  { name = "alsa_card.pci-0000_00_1f.3", active_profile = "output:analog-stereo+input:analog-stereo",
-    properties = { ["device.description"] = "Built-in Audio" },
-    profiles = { ["output:analog-stereo+input:analog-stereo"] = { description = "Analog Stereo Duplex", available = true, priority = 6565 },
-      ["output:hdmi-stereo"] = { description = "Digital Stereo (HDMI)", available = true, priority = 5900 },
-      off = { description = "Off", available = true, priority = 0 } } },
-  { name = "bluez_card.AA_BB_CC_DD_EE_01", active_profile = "a2dp-sink-ldac",
-    properties = { ["device.description"] = "Pixel Buds Pro" },
-    profiles = { ["a2dp-sink-ldac"] = { description = "High Fidelity Playback (LDAC)", available = true, priority = 130 },
-      ["a2dp-sink-aac"] = { description = "High Fidelity Playback (AAC)", available = true, priority = 120 },
-      ["a2dp-sink-sbc_xq"] = { description = "High Fidelity Playback (SBC XQ)", available = true, priority = 110 },
-      ["headset-head-unit-msbc"] = { description = "Headset Head Unit (mSBC)", available = true, priority = 50 } } },
+local function device(id, name, api, title, active, profiles)
+  return { id = id, type = "PipeWire:Interface:Device", info = {
+    props = { ["device.name"] = name, ["device.api"] = api, ["device.description"] = title },
+    params = { Profile = { { index = active, name = profiles[active + 1].name } }, EnumProfile = profiles } } }
+end
+
+local DEVICES = morf.json.encode {
+  device(42, "alsa_card.pci-0000_00_1f.3", "alsa", "Built-in Audio", 1, {
+    { index = 0, name = "off", description = "Off", available = "yes", priority = 0 },
+    { index = 1, name = "output:analog-stereo+input:analog-stereo", description = "Analog Stereo Duplex", available = "yes", priority = 6565 },
+    { index = 2, name = "output:hdmi-stereo", description = "Digital Stereo (HDMI)", available = "yes", priority = 5900 },
+    { index = 3, name = "output:hdmi-stereo-extra1", description = "Digital Stereo (HDMI 2)", available = "no", priority = 5700 } }),
+  device(43, "bluez_card.AA_BB_CC_DD_EE_01", "bluez5", "Pixel Buds Pro", 1, {
+    { index = 0, name = "off", description = "Off", available = "yes", priority = 0 },
+    { index = 1, name = "a2dp-sink-ldac", description = "High Fidelity Playback (LDAC)", available = "yes", priority = 130 },
+    { index = 2, name = "a2dp-sink-aac", description = "High Fidelity Playback (AAC)", available = "yes", priority = 120 },
+    { index = 3, name = "a2dp-sink-sbc_xq", description = "High Fidelity Playback (SBC XQ)", available = "yes", priority = 110 },
+    { index = 4, name = "headset-head-unit-msbc", description = "Headset Head Unit (mSBC)", available = "yes", priority = 50 } }),
 }
 
 local OUTPUT = {
@@ -84,10 +90,10 @@ local function answer(argv, options)
   if line:find("list-units", 1, true) then
     return { ok = true, stdout = "eva-clipboard.service loaded active running eva clipboard history\nsyncthing.service loaded active running Syncthing\nredshift.service loaded inactive dead Redshift\n" }
   end
-  if argv[1] == "pactl" and argv[2] == "-f" then return { ok = true, stdout = CARDS } end
+  if argv[1] == "pw-dump" then return { ok = true, stdout = DEVICES } end
   if argv[1] == "nmcli" and argv[2] == "-t" then
     return { ok = true, stdout = table.concat({ "connection.id:Home", "connection.uuid:u-home", "connection.type:802-11-wireless",
-      "connection.metered:unknown", "connection.autoconnect:yes", "connection.dns-over-tls:-1 (default)", "ipv4.method:auto", "ipv4.addresses:",
+      "connection.metered:unknown", "connection.autoconnect:yes", "connection.dns-over-tls:-1", "ipv4.method:auto", "ipv4.addresses:",
       "ipv4.gateway:--", "ipv4.dns:", "ipv4.ignore-auto-dns:no", "ipv6.method:auto", "802-11-wireless.hidden:no",
       "802-11-wireless.cloned-mac-address:", "IP4.ADDRESS[1]:192.168.1.23/24", "IP4.GATEWAY:192.168.1.1", "IP4.DNS[1]:192.168.1.1",
       "IP4.DNS[2]:9.9.9.9", "IP6.ADDRESS[1]:fe80\\:\\:1/64", "GENERAL.DEVICES:wlan0" }, "\n") .. "\n" }
@@ -114,6 +120,7 @@ end
 --- A command's result. Changes land in the fixture, so a page reads them back.
 function M.run(argv, options)
   M.ran[#M.ran + 1] = argv
+  M.stdin = options and options.stdin or M.stdin
   if argv[1] == "pkexec" and argv[3] == "systemctl" then firewall_on = argv[4] == "enable" return { ok = true, stdout = "" } end
   if argv[1] == "lpadmin" or argv[1] == "cancel" or argv[1] == "cupsenable" or argv[1] == "cupsdisable" then
     printers_on[argv[#argv]] = true
@@ -173,7 +180,11 @@ end
 --- A double of lib.compositor.hyprland with one mouse, one keyboard and a
 --- touchpad, answering as a Lua-configured Hyprland does.
 function M.hyprland()
-  local double = { sent = {}, state = { keyboard_layout = "English (US)" } }
+  local double = { sent = {}, state = { keyboard_layout = "English (US)" }, listeners = {} }
+  M.last_hyprland = double
+  function double.fire(name)
+    for _, handler in ipairs(double.listeners[name] or {}) do handler() end
+  end
   function double.available() return true end
   function double.eval(_, callback) if callback then callback("ok") end end
   function double.request(command, callback)
@@ -189,7 +200,11 @@ function M.hyprland()
     callback { mice = { { name = "logitech-mx-master-3" }, { name = "pixa3854-touchpad" } },
       keyboards = { { name = "at-translated-set-2-keyboard", active_keymap = "English (US)", main = true } }, tablets = {}, touch = {} }
   end
-  function double.on() return { off = function() end } end
+  function double.on(name, handler)
+    double.listeners[name] = double.listeners[name] or {}
+    table.insert(double.listeners[name], handler)
+    return { off = function() end }
+  end
   function double.reload(_, callback) if callback then callback("ok") end end
   return double
 end
@@ -301,6 +316,22 @@ bus.object(S, UD, ROOT .. "/block_devices/sdb1", UD .. ".Encrypted", {}, {
     return ROOT .. "/block_devices/dm_2d0"
   end, Lock = function() end })
 bus.object(S, UD, ROOT .. "/block_devices/dm_2d0", UD .. ".Filesystem", { MountPoints = {} }, { Mount = function() return "/run/media/kate/VAULT" end })
+
+--- A drive arriving, as UDisks2 announces one.
+function M.plug()
+  local path = ROOT .. "/block_devices/sdc1"
+  drive_object(ROOT .. "/drives/new", "SanDisk", "Ultra", 16e9, true)
+  bus.object(S, UD, path, UD .. ".Block", block("/dev/sdc1", ROOT .. "/drives/new", 16e9, "CAMERA", "vfat", false))
+  bus.object(S, UD, path, UD .. ".Filesystem", { MountPoints = {} }, {})
+  bus.emit(S, UD, ROOT, "org.freedesktop.DBus.ObjectManager", "InterfacesAdded", { path, {} })
+end
+
+--- The lid moving, as logind announces it.
+function M.lid(closed)
+  local path, name = "/org/freedesktop/login1", "org.freedesktop.login1"
+  bus.props(S, name, path, name .. ".Manager").LidClosed = closed == true
+  bus.emit(S, name, path, "org.freedesktop.DBus.Properties", "PropertiesChanged", { name .. ".Manager", { LidClosed = closed == true }, {} })
+end
 
 local NM, NM_ROOT = "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager"
 local AP = NM_ROOT .. "/AccessPoint/1"

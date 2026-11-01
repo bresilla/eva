@@ -51,13 +51,13 @@ local config = settings.open {
     -- What the Input pages chose (shell/input_model.lua): only what was
     -- changed, so everything else stays the compositor's own configuration.
     input = {
-      -- The Hyprland options chosen, by their name there.
+      -- The options chosen, each `{ key, value }`: input_config's names.
       chosen = {},
       -- The layouts, in order, each `{ layout, variant }`; empty keeps the
       -- compositor's. And what switches between them, an xkb option.
       layouts = {},
       switch = "grp:alt_shift_toggle",
-      -- Each device's own options, by device name.
+      -- Each device's own options, `{ key = device name, value = options }`.
       devices = {},
     },
     -- What the Accessibility page keeps on (shell/access_model.lua).

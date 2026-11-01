@@ -125,30 +125,40 @@ function M.new(active)
   return model
 end
 
+local SECURE_BOOT = "/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c"
+
+--- Whether block device `name` is, or sits on, a dm-crypt device: walks the
+--- device mapper's stack under `root`.
+function M.on_crypt(name, root, depth)
+  root = root or "/sys/block"
+  depth = depth or 0
+  if depth > 8 then return false end
+  local ok, uuid = pcall(morf.fs.read, root .. "/" .. name .. "/dm/uuid")
+  if ok and tostring(uuid):find("^CRYPT%-") then return true end
+  local listed, slaves = pcall(morf.fs.list, root .. "/" .. name .. "/slaves", { follow = true })
+  for _, entry in ipairs(listed and type(slaves) == "table" and slaves or {}) do
+    if M.on_crypt(type(entry) == "table" and entry.name or entry, root, depth + 1) then return true end
+  end
+  return false
+end
+
 --- Secure boot from its EFI variable, and whether the root filesystem sits on
 --- an encrypted device. Either is nil where it cannot be told.
 function M.read_security()
   local out = {}
-  local ok, names = pcall(morf.fs.glob, "/sys/firmware/efi/efivars/SecureBoot-*")
-  local path = ok and type(names) == "table" and names[1]
-  if path then
-    local read, bytes = pcall(morf.fs.read, path)
-    if read and type(bytes) == "string" and #bytes > 0 then out.secure_boot = bytes:byte(#bytes) == 1 end
-  end
+  local read, bytes = pcall(morf.fs.read, SECURE_BOOT)
+  if read and type(bytes) == "string" and #bytes > 0 then out.secure_boot = bytes:byte(#bytes) == 1 end
   local mounts_ok, mounts = pcall(morf.fs.read, "/proc/mounts")
-  local device = mounts_ok and tostring(mounts):match("\n(%S+) / ") or tostring(mounts):match("^(%S+) / ")
-  local name = device and device:match("/dev/(dm%-%d+)")
+  local text = mounts_ok and tostring(mounts) or ""
+  local device = text:match("^(%S+) / ") or text:match("\n(%S+) / ")
   if device then
+    local name = device:match("/dev/(dm%-%d+)")
     if not name then
       local target_ok, target = pcall(morf.fs.read_link, device)
       name = target_ok and tostring(target):match("(dm%-%d+)") or nil
     end
-    if name then
-      local uuid_ok, uuid = pcall(morf.fs.read, "/sys/block/" .. name .. "/dm/uuid")
-      out.encrypted = uuid_ok and tostring(uuid):find("^CRYPT%-") ~= nil
-    else
-      out.encrypted = false
-    end
+    name = name or device:match("/dev/(.+)$")
+    if name then out.encrypted = M.on_crypt(name) end
   end
   return out
 end

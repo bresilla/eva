@@ -1,7 +1,6 @@
--- The lid and the power button, as Settings chose: logind is told to leave
--- them alone by an inhibitor held only while something other than System is
--- chosen, and the shell acts instead. The lock lasts as long as the shell, so
--- a crash hands them straight back to logind.
+-- The lid and the power button, as Settings chose: while anything but System
+-- is chosen the shell holds logind's inhibitor and acts itself. The inhibitor
+-- ends with the shell.
 local morf = require("morf")
 local config = require("config")
 local host = require("lib.services.host")

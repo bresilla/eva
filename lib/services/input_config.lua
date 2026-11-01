@@ -177,7 +177,43 @@ function M.parse_rules(text)
   return layouts
 end
 
---- The layouts this system has, `{ key, layout, variant, name, words }`.
+--- `xkbcli list` as layouts. It prints YAML, one key to a line.
+function M.parse_xkbcli(text)
+  local out, row, parents = {}, nil, {}
+  local function close()
+    if not (row and row.layout and row.name) then return end
+    if row.variant == "" then parents[row.layout] = row.name end
+    row.key = row.variant ~= "" and (row.layout .. ":" .. row.variant) or row.layout
+    row.words = row.layout .. " " .. row.variant .. " " .. (parents[row.layout] or "")
+    out[#out + 1] = row
+  end
+  for line in tostring(text or ""):gmatch("[^\n]+") do
+    local layout = line:match("^%- layout: '([^']*)'")
+    if layout then
+      close()
+      row = { layout = layout, variant = "" }
+    elseif row then
+      local variant = line:match("^%s+variant: '([^']*)'")
+      if variant then row.variant = variant end
+      local name = line:match("^%s+description: (.+)$")
+      if name then row.name = (name:gsub("^'(.*)'$", "%1")) end
+    end
+  end
+  close()
+  return out
+end
+
+--- `done(rows)` with the whole list where the rules file cannot be found.
+function M.catalogue_long(done)
+  if not require("lib.services.host").installed("xkbcli") then return end
+  require("lib.services.host").read({ "xkbcli", "list" }, function(text)
+    local rows = M.parse_xkbcli(text)
+    if #rows > 0 then done(rows) end
+  end)
+end
+
+--- The layouts this system has, `{ key, layout, variant, name, words }`, and
+--- whether that is the short list of common ones.
 function M.catalogue()
   local root = morf.env("XKB_CONFIG_ROOT")
   for _, path in ipairs { root and (root .. "/rules/base.lst") or "/nonexistent",
@@ -193,7 +229,7 @@ function M.catalogue()
   for index, row in ipairs(COMMON) do
     out[index] = { key = row[1], layout = row[1], variant = "", name = row[2], words = row[1] }
   end
-  return out
+  return out, true
 end
 
 -- ----------------------------------------------------------- the cursors --

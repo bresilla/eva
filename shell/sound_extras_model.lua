@@ -35,7 +35,7 @@ function M.extend(model)
     return out
   end
   function model.set_profile(card, profile)
-    return model.action(function(done) extras.set_profile(card.name, profile.key, done) return true end, refresh)
+    return model.action(function(done) extras.set_profile(card, profile, done) return true end, refresh)
   end
 
   function model.themes() return themes:get() end

@@ -1,6 +1,5 @@
--- The devices a person wants when they are there: when one on the list
--- appears and outranks the default, it becomes the default. It acts only as
--- devices come and go, so a choice made by hand holds until the next change.
+-- The devices a person wants when they are there: as devices come and go, one
+-- on the list that outranks the default becomes the default.
 local morf = require("morf")
 local config = require("config")
 local M = {}

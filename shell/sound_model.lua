@@ -161,7 +161,9 @@ function M.new(kind,active,page)
       if v>.92 then return "Too loud" end
       return "A good level"
     end
-    morf.effect("eva.microphone.test.gone",function() if not active() and model.testing:get() then model.test(false) end end)
+    morf.effect("eva.microphone.test.gone",function()
+      if not active() then morf.time.timer(1,function() model.test(false) end,false) end
+    end)
   end
   return model
 end

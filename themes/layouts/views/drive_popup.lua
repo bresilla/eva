@@ -25,7 +25,7 @@ function M.show(row, actions)
   M.close()
   local inner = WIDTH - 2 * P.PAD
   local function act(fn) return function() M.close() fn(row) end end
-  local card = kit.card { id = "drive-popup", width = WIDTH, height = HEIGHT, radius = kit.round(P.RADIUS),
+  local card = kit.card { width = WIDTH, height = HEIGHT, radius = kit.round(P.RADIUS),
     ui.Column { x = P.PAD, y = P.PAD, gap = S.s, width = inner,
       P.row { id = "drive-popup-row", width = inner, height = 56, icon = row.encrypted and "lock" or "usb", title = row.name,
         subtitle = actions.human(row.size) .. (row.encrypted and " · Encrypted" or "") },
@@ -38,7 +38,7 @@ function M.show(row, actions)
   layer = morf.window.layer { blend = "srgb", namespace = "eva-drive", layer = "overlay",
     anchors = { top = true, right = true }, margin_top = S.xl + S.xl, margin_right = S.xl,
     width = WIDTH, height = HEIGHT, exclusive_zone = -1, keyboard_focus = "none", visible = true,
-    root = ui.Item { width = WIDTH, height = HEIGHT, card } }
+    root = ui.Item { id = "drive-popup", width = WIDTH, height = HEIGHT, card } }
   timer = morf.time.timer(M.SHOWN, M.close, false)
   return card
 end
