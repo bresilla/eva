@@ -1,0 +1,25 @@
+# Two screens, one server. The primary owns the bus; the popups stand on the
+# other screen by the setting, so what they show there crossed `morf.shared`.
+export BOOT=5
+export EVA_SETTINGS=$SEE_OUT/settings.json
+swaymsg create_output > /dev/null
+swaymsg output HEADLESS-2 mode 1280x800@60Hz pos 1920 0 > /dev/null
+pause 0.5
+printf '{"notifications":{"output":"HEADLESS-2"}}\n' > "$EVA_SETTINGS"
+start shell
+BUS() { local verb=$1; shift; busctl --address="$DBUS_SESSION_BUS_ADDRESS" "$verb" -- "$@"; }
+SERVICE="org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications"
+note echo "== one owner of the name"
+note BUS call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus GetNameOwner s org.freedesktop.Notifications
+ID=$(BUS call $SERVICE Notify susssasa{sv}i Mail 0 "" "On the other screen" "This card crossed morf.shared" \
+  2 act Act 1 urgency y 2 0 | awk '{print $2}')
+note echo "id=$ID"
+pause 1.6
+grim -o HEADLESS-1 "$SEE_OUT/screen-1.png"
+grim -o HEADLESS-2 "$SEE_OUT/screen-2.png"
+note ipc notifications status
+note ipc notifications list
+note ipc notifications invoke "$ID" act
+pause 1
+note ipc notifications status
+stop

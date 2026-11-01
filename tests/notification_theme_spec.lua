@@ -26,7 +26,7 @@ local HOST=[[
       notifications.drawer.panel},
   }
   morf.ipc.push=function(summary,body,urgency,timeout)
-    return notifications.push {summary=summary,body=body,urgency=tonumber(urgency),timeout_ms=tonumber(timeout),app="Example app"}
+    return notifications.push {summary=summary,body=body,urgency=tonumber(urgency),timeout_ms=tonumber(timeout),app=summary}
   end
   morf.ipc.state=function()
     local ids={} for _,entry in ipairs(notifications.shown()) do ids[#ids+1]=entry.id end

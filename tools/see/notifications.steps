@@ -1,0 +1,76 @@
+# Every face a notification card has, sent over the real session bus, then the
+# history that keeps them, the settings that rule them and the Focus pages.
+export BOOT=4
+export EVA_FAKE_SOUND=$SEE_OUT/sound.log
+export EVA_SETTINGS=$SEE_OUT/settings.json
+PICTURE=$SEE_EVA/tests/fixtures/wallpaper.png
+start shell
+BUS() { local verb=$1; shift; busctl --address="$DBUS_SESSION_BUS_ADDRESS" "$verb" -- "$@"; }
+SERVICE="org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications"
+SEND() { BUS call $SERVICE Notify susssasa{sv}i "$@" | awk '{print $2}'; }
+
+# A message with a picture, buttons and a reply.
+ID=$(SEND Chat 0 "" "Ada Lovelace" "Are we still on for <b>lunch</b>? <a href=\"https://example.org\">The menu</a>" \
+  6 default Open inline-reply Reply mark "Mark read" 2 category s im.received image-path s "$PICTURE" 0)
+pause 1.2; shot card-message
+ipc notifications dismiss "$ID"; pause 0.6
+
+# A one-time code.
+ID=$(SEND Bank 0 "" "Your verification code" "Use 482913 to sign in. It expires in ten minutes." 0 0 0)
+pause 1.2; shot card-code
+ipc notifications dismiss "$ID"; pause 0.6
+
+# A job, moving.
+ID=$(SEND Files 0 "" "Copying photos" "312 of 1042 files" 0 2 value i 12 category s transfer 0)
+pause 0.7
+SEND Files "$ID" "" "Copying photos" "512 of 1042 files" 0 2 value i 49 category s transfer 0 > /dev/null
+pause 0.9; shot card-progress
+ipc notifications dismiss "$ID"; pause 0.6
+
+# Media, with its controls.
+ID=$(SEND Player 0 "" "Blue in Green" "Miles Davis — Kind of Blue" \
+  8 media-skip-backward Previous media-playback-pause Pause media-skip-forward Next default Open \
+  3 action-icons b true resident b true image-path s "$PICTURE" 0)
+pause 1.2; shot card-media
+ipc notifications dismiss "$ID"; pause 0.6
+
+# A call, and something critical.
+ID=$(SEND Phone 0 "" "Grace Hopper" "Incoming call" 4 answer Answer decline Decline 1 category s call.incoming 0)
+pause 1.2; shot card-call
+ipc notifications dismiss "$ID"; pause 0.6
+ID=$(SEND Backup 0 "" "Disk almost full" "The backup volume has 2% left" 0 1 urgency y 2 0)
+pause 1.2; shot card-critical
+ipc notifications dismiss "$ID"; pause 0.6
+
+# Several at once, one app folding.
+SEND Chat 0 "" "Ada" "One" 0 1 urgency y 2 0 > /dev/null
+SEND Chat 0 "" "Ada" "Two" 0 1 urgency y 2 0 > /dev/null
+SEND Chat 0 "" "Ada" "Three" 0 1 urgency y 2 0 > /dev/null
+SEND Mail 0 "" "New mail" "From Grace" 0 1 urgency y 2 0 > /dev/null
+pause 1.4; shot cards-folded
+ipc close; pause 0.3
+
+# The history, by shelf.
+SEND Build 0 "" "Build finished" "All checks passed" 2 rerun Rerun 1 urgency y 0 0 > /dev/null
+pause 0.4
+ipc sidebar open notifications; pause 1.8; shot history
+ipc notifications clear; pause 1; shot history-undo
+ipc notifications undo; pause 0.6
+ipc close; pause 0.6
+
+# The pages.
+ipc settings notifications; pause 1.6; shot settings-notifications
+ipc settings focus; pause 1.6; shot settings-focus
+ipc focus on work 3600; pause 2.2; shot focus-on
+ipc settings focus/mode; pause 1.6; shot settings-mode
+ipc focus off; pause 0.6
+ipc close; pause 0.4
+
+# The edge lights, sounds ask to play, and the ring mode says no.
+printf '{"notifications":{"edge_light":true,"sounds":true}}\n' > "$EVA_SETTINGS"
+pause 0.6
+SEND Doorbell 0 "" "Someone at the door" "Front camera" 0 0 0 > /dev/null
+pause 0.5; shot edge-light
+pause 1
+note cat "$SEE_OUT/sound.log"
+stop

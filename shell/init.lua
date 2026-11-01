@@ -166,6 +166,7 @@ require("panel_room").watch()
 morf.effect("eva.keyboard.focus", function()
   local exclusive = launcher.drawer.open:get() or session.drawer.open:get() or window_menu.opened:get()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get() or capture.editor.active:get()
+    or notifs.replying:get() ~= false
   -- Typed into on a click: the Tasks and Calendar pages, the terminal, Lule's
   -- page, wherever their panels hold them.
   local settings_open = pages.on_show("settings")
@@ -174,6 +175,7 @@ morf.effect("eva.keyboard.focus", function()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
     or (settings_open and (shown == "theme/lule" or shown == "theme/desktop" or shown == "theme/look"
       or shown == "theme" or shown == "hotspot" or shown == "panels" or shown == "bar"
+      or shown == "notifications" or shown == "focus/mode"
       or require("utilities").tiles.editing:get()))
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
@@ -191,6 +193,8 @@ end
 local overlays={
   -- The desk dims under the session menu.
   session.dim(),
+  -- A notification lights the screen's edge.
+  notifs.overlay(),
   -- A press on the desk shuts what is open: each drawer's close policy
   -- (shell/drawer.lua), not catchers here.
 }
@@ -577,10 +581,61 @@ ipc.osd = function(kind)
   if not here() then return nil end
   return osd.flash(kind)
 end
--- `notify SUMMARY [BODY [critical|normal [APP]]]` raises a notification of
--- the shell's own, as the reference's toaster does.
-ipc.notify = function(summary, body, urgency, app)
-  return notifs.push { summary = summary, body = body, urgency = urgency == "critical" and 2 or 1, app = app }
+-- `notify SUMMARY [BODY [critical|normal|low [APP [ICON [IMAGE]]]]]` raises a
+-- notification of the shell's own, as the reference's toaster does.
+ipc.notify = function(summary, body, urgency, app, icon, image)
+  if morf.window.primary and not morf.window.primary() then return nil end
+  return notifs.push { summary = summary, body = body, app = app, icon = icon, image = image,
+    urgency = urgency == "critical" and 2 or urgency == "low" and 0 or 1 }
+end
+-- `notifications VERB ...`: status; list; invoke [ID [KEY]]; reply ID TEXT;
+-- dismiss [ID]; clear; clear-app KEY; clear-silent; undo; snooze ID PRESET;
+-- mute KEY [SECONDS]; unmute KEY. Without an ID, the newest.
+ipc.notifications = function(how, a, b)
+  if morf.window.primary and not morf.window.primary() then return nil end
+  how = how or "status"
+  local function newest()
+    local list = notifs.list:get()
+    return list[#list] and list[#list].id or nil
+  end
+  if how == "status" then return notifs.status() end
+  if how == "list" then return notifs.history:get() end
+  if how == "invoke" then
+    local id = tonumber(a) or newest()
+    return id ~= nil and notifs.invoke(id, b or "default") or false
+  end
+  if how == "reply" then return notifs.reply(tonumber(a), b) end
+  if how == "dismiss" then
+    local id = tonumber(a) or newest()
+    if id then notifs.dismiss(id) end
+    return id ~= nil
+  end
+  if how == "clear" then return notifs.clear() end
+  if how == "clear-app" then return notifs.clear_app(a) end
+  if how == "clear-silent" then return notifs.clear_silent() end
+  if how == "undo" then return notifs.restore() end
+  if how == "snooze" then return notifs.snooze(tonumber(a) or newest(), b or 900) end
+  if how == "mute" then notifs.mute_app(a, tonumber(b) or 0) return true end
+  if how == "unmute" then require("notification_rules").unmute(a) return true end
+  error("`" .. tostring(how) .. "`: no such verb")
+end
+-- `focus VERB ...`: status; list; on MODE [SECONDS]; off; toggle.
+ipc.focus = function(how, mode, seconds)
+  local focus = require("focus_model")
+  how = how or "status"
+  if how == "status" then
+    return { active = focus.active_id(), status = focus.status(), quiet = focus.quiet(), ends = focus.ends() }
+  end
+  if how == "list" then
+    local names = {}
+    for i, row in ipairs(focus.modes()) do names[i] = row.id end
+    return names
+  end
+  if morf.window.primary and not morf.window.primary() then return nil end
+  if how == "on" then return focus.start(mode, { seconds = tonumber(seconds) or 0 }) end
+  if how == "off" then return focus.stop() end
+  if how == "toggle" then return focus.toggle(tonumber(mode)) end
+  error("`" .. tostring(how) .. "`: no such verb")
 end
 ipc.close = function()
   capture.cancel()

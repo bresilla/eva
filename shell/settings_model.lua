@@ -464,6 +464,9 @@ M.TOGGLES = {
 --- The detail page on show over the settings ("" for none): a tile's
 --- ">" opens one, the back arrow shuts it.
 M.detail = require("themes.session").keep("eva.settings.detail", "")
+--- Which app's rules, and which Focus mode, their pages show.
+M.rules_app = require("themes.session").keep("eva.settings.rules_app", "")
+M.focus_mode = require("themes.session").keep("eva.settings.focus_mode", "dnd")
 if M.detail:get()=="tor" then M.detail:set("tunnel") end
 
 -- The catalogue: every tile a machine could show. Which are shown, in what
@@ -474,20 +477,38 @@ do
   for _, t in ipairs(require("quick_tiles").list(M, local_state.gamemode)) do M.TOGGLES[#M.TOGGLES + 1] = t end
   for _, t in ipairs(M.TOGGLES) do M.CONTROLS[t.id]=t end
   -- Focus is one entry point; each setting remains independent inside it.
+  local focus=require("focus_model")
   M.TOGGLES[#M.TOGGLES + 1] = {id="focus",name="Focus",detail="focus",
     icon=function()
       if notifs.dnd:get() then return "notifications_off" end
+      local mode=focus.active()
+      if mode then return mode.icon end
+      if focus.quiet() then return "notifications_off" end
       if M.awake:get() then return "coffee" end
       return "tune"
     end,
-    on=function() return M.awake:get() or notifs.dnd:get() or M.CONTROLS.ringer.on() end,
+    on=function() return M.awake:get() or notifs.dnd:get() or focus.quiet() or M.CONTROLS.ringer.on() end,
     set=function() M.detail:set("focus") end,
     status=function()
       local names={}
       if M.awake:get() then names[#names+1]="Awake" end
       if M.CONTROLS.ringer.on() then names[#names+1]=M.CONTROLS.ringer.status() end
-      if notifs.dnd:get() then names[#names+1]="DND" end
+      if notifs.dnd:get() then names[#names+1]="DND"
+      elseif focus.quiet() then names[#names+1]=focus.status() end
       return #names>0 and table.concat(names," · ") or "Sound · Normal sleep"
+    end}
+  -- One press on the mode last used, for the board that wants it.
+  M.TOGGLES[#M.TOGGLES + 1] = {id="focus-mode",name="Focus mode",detail="focus",
+    icon=function()
+      local mode=focus.active() or focus.mode(config.get("focus.last"))
+      return mode and mode.icon or "do_not_disturb_on"
+    end,
+    on=function() return focus.active()~=nil end,
+    set=function() focus.toggle() end,
+    status=function()
+      if focus.active() then return focus.status() end
+      local mode=focus.mode(config.get("focus.last"))
+      return mode and mode.name or "Off"
     end}
   -- The theme: the tile flips dark and light and never lights; its page has
   -- that, and Lule (wallpaper, colours, the shell's theme and font) one page in.
@@ -542,6 +563,9 @@ M.DETAILS = {
   {key="osd",name="On-screen displays",parent="eva"},
   {key="panels",name="Panels",parent="eva"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
+  {key="focus/mode",name="Mode",parent="focus"},
+  {key="notifications",name="Notifications",parent="eva"},
+  {key="notifications/app",name="App",parent="notifications"},
   {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},
   {key="theme/wallpaper",name="Wallpaper",parent="theme"},

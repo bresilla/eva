@@ -187,6 +187,22 @@ M.sources = {
       return { icon = "bluetooth_connected", title = "Connected", detail = name, on = true }
     end },
   dnd = flag("Do not disturb", "notifications_off", "notifications", dnd),
+  -- A named mode; Do not disturb has its own display.
+  focus = { shown_in_settings = true,
+    present = function() return package.loaded.focus_model ~= nil end,
+    key = function()
+      local focus = package.loaded.focus_model
+      local id = focus.active_id()
+      return id == "dnd" and "" or id
+    end,
+    read = function()
+      local focus = require("focus_model")
+      local mode = focus.active()
+      if mode and mode.id ~= "dnd" then
+        return { icon = mode.icon, title = mode.name, detail = focus.status(), on = true }
+      end
+      return { icon = "self_improvement", title = "Focus", detail = "Off", on = false }
+    end },
   awake = flag("Keep awake", "coffee", "bedtime", awake),
   night = flag("Night light", "nightlight", "light_mode", night),
 }

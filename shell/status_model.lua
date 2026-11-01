@@ -8,8 +8,8 @@ local morf = require("morf")
 
 local M = {}
 
-M.KEYS = { "alarm", "night", "awake", "hotspot", "ring", "muted", "headphones", "bluetooth", "vpn", "tor", "dnd",
-  "mic", "camera", "screen", "location" }
+M.KEYS = { "alarm", "night", "awake", "hotspot", "ring", "muted", "headphones", "bluetooth", "vpn", "tor", "focus",
+  "dnd", "mic", "camera", "screen", "location" }
 --- What the privacy module takes over when it is on the bar.
 M.PRIVATE = { mic = true, camera = true, screen = true, location = true }
 local LOW = require("battery_status_model").LOW
@@ -76,6 +76,14 @@ local function headphones()
   end)
 end
 
+-- The named Focus mode on, or nil; Do not disturb has its own indicator.
+local function focus_mode()
+  local focus = package.loaded.focus_model
+  local mode = focus and focus.active() or nil
+  if mode and mode.id ~= "dnd" then return mode end
+  return nil
+end
+
 local SOURCES = {
   { key = "alarm", tier = 1, icon = "alarm", label = "Alarm set",
     on = function(s) return s.alarm ~= nil and s.alarm.armed() == true end },
@@ -96,6 +104,9 @@ local SOURCES = {
     on = function(s) return vpn(s.net) end },
   { key = "tor", tier = 3, icon = "travel_explore", label = "Tor",
     on = function(s) return s.tor ~= nil and s.tor.on() == true end },
+  { key = "focus", tier = 3, label = "Focus mode",
+    icon = function() return focus_mode() and focus_mode().icon or "self_improvement" end,
+    on = function() return focus_mode() ~= nil end },
   { key = "dnd", tier = 3, icon = "do_not_disturb_on", label = "Do not disturb",
     on = function() return kept("eva.notifications.dnd") end },
   { key = "mic", tier = 0, icon = "mic", label = "Microphone in use", on = privacy("mic") },

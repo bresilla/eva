@@ -1,62 +1,139 @@
 -- History grouping, expansion and actions. Themes receive no server access.
 local morf = require("morf")
+local config = require("config")
 local notifs = require("notifs")
-local M = {}
+local rules = require("notification_rules")
+local M = { notifs = notifs }
 local expanded = morf.signal("eva.sidebar.opened", {})
+local pages = morf.signal("eva.sidebar.pages", {})
 local visual, clearing
+M.PAGE = 6
+
+local function key_of(n) return n.key or (n.app ~= "" and n.app) or "Unknown" end
+
+-- A group's shelf: messages above the rest, what never asked for attention
+-- below them.
+local function shelf(group)
+  if group.priority then return 1 end
+  if group.conversation then return 2 end
+  if group.urgency == 0 then return 4 end
+  return 3
+end
+M.SHELVES = { "Priority", "Conversations", "Notifications", "Silent" }
+
+local grouped_from, grouped
 function M.groups()
-  local history, groups, by_app = notifs.history:get(), {}, {}
+  local history, groups, by_app = notifs.records(), {}, {}
+  if history == grouped_from then return grouped end
   for i = #history, 1, -1 do
     local n = history[i]
-    local app = n.app ~= "" and n.app or "Unknown"
-    local group = by_app[app]
+    local key = key_of(n)
+    local group = by_app[key]
     if not group then
-      group = { app = app, items = {}, urgency = 0 }
-      by_app[app], groups[#groups + 1] = group, group
+      group = { key = key, app = n.app ~= "" and n.app or "Unknown", items = {}, urgency = 0, unread = 0 }
+      by_app[key], groups[#groups + 1] = group, group
     end
     group.items[#group.items + 1] = n
     group.urgency = math.max(group.urgency, n.urgency or 1)
+    group.priority = group.priority or n.priority == true
+    group.conversation = group.conversation or tostring(n.category or ""):match("^im") ~= nil
   end
+  for index, group in ipairs(groups) do group.order, group.shelf = index, shelf(group) end
+  table.sort(groups, function(a, b)
+    if a.shelf ~= b.shelf then return a.shelf < b.shelf end
+    return a.order < b.order
+  end)
+  grouped_from, grouped = history, groups
   return groups
 end
-function M.count() return #notifs.history:get() end
-function M.is_open(app) return expanded:get()[app] == true end
-function M.toggle(app)
+function M.count() return #notifs.records() end
+--- How many lines a shut group shows.
+function M.preview() return config.get("notifications.history.preview") end
+function M.is_open(key)
+  local flag = expanded:get()[key]
+  if flag == nil then return config.get("notifications.history.open_groups") == true end
+  return flag == true
+end
+function M.toggle(key)
   local next = {}
-  for key, on in pairs(expanded:get()) do next[key] = on end
-  next[app] = not next[app] or nil
+  for k, on in pairs(expanded:get()) do next[k] = on end
+  next[key] = not M.is_open(key)
   expanded:set(next)
 end
+
+--- How far down an open group its list starts.
+function M.offset(key) return (pages:get()[key] or 0) * M.PAGE end
+--- Whether `group` has entries past what its list shows.
+function M.has_more(group) return #group.items > M.offset(group.key) + M.PAGE end
+function M.has_less(group) return M.offset(group.key) > 0 end
+function M.page(key, by)
+  local next = {}
+  for k, page in pairs(pages:get()) do next[k] = page end
+  next[key] = math.max(0, (next[key] or 0) + by)
+  pages:set(next)
+end
+
 function M.forget(id) notifs.forget(id) end
 function M.copy(entry)
   local plain = require("themes.notification_text").plain
   pcall(morf.clipboard.set, plain(entry.body ~= "" and entry.body or entry.summary))
 end
-function M.clear()
+
+--- Whether the entry's sender is still there to hear its buttons.
+function M.answers(n) return n ~= nil and notifs.answers:get()[tostring(n.id)] == true end
+
+local function clear_with(ids, label)
   if clearing then return end
-  local ids = {}
-  for _, n in ipairs(notifs.history:get()) do ids[#ids + 1] = n.id end
   if #ids == 0 then return end
   local delay = visual and visual.animate_clear() or 0
   local function finish()
     clearing = nil
     -- New arrivals during the exit belong to the next batch, not this click.
-    for _, id in ipairs(ids) do notifs.forget(id) end
+    notifs.forget_ids(ids, label)
     if visual then visual.reset_clear() end
   end
   if delay > 0 then clearing = morf.time.timer(delay, finish, false) else finish() end
 end
+
+function M.clear()
+  local ids = {}
+  for _, n in ipairs(notifs.history:get()) do
+    if not notifs.ongoing(n) then ids[#ids + 1] = n.id end
+  end
+  clear_with(ids, "Cleared")
+end
+
+function M.clear_app(key) notifs.clear_app(key) end
+function M.clear_silent() notifs.clear_silent() end
+function M.undo() return notifs.undo:get() end
+function M.restore() return notifs.restore() end
+M.snoozed, M.dismissed = notifs.asleep, notifs.recent
+
+--- Opens the app's rules, in Settings.
+function M.rules_of(key)
+  local utilities = require("utilities")
+  utilities.rules_app:set(key)
+  utilities.request("notifications/app")
+  require("pages").open("settings")
+end
+--- Opens the notification settings.
+function M.settings()
+  require("utilities").request("notifications")
+  require("pages").open("settings")
+end
+function M.mute(key, seconds) rules.mute(key, seconds or 0, require("focus_model").now()) end
+
 M.active = require("presentation").active("sidebar.notifications")
 function M.build(width, height)
   visual = require("themes").view("notification_history").build(M, width, height)
-  return visual.node
+  return visual.node, visual.head
 end
 -- Remember expansion only while that application's history exists.
 morf.effect("eva.history.expansion", function()
-  local live, next, changed = {}, {}, false
-  for _, n in ipairs(notifs.history:get()) do live[n.app ~= "" and n.app or "Unknown"] = true end
-  for app, on in pairs(expanded:get()) do
-    if live[app] then next[app] = on else changed = true end
+  local alive, next, changed = {}, {}, false
+  for _, n in ipairs(notifs.history:get()) do alive[key_of(n)] = true end
+  for key, on in pairs(expanded:get()) do
+    if alive[key] then next[key] = on else changed = true end
   end
   if changed then expanded:set(next) end
 end)
