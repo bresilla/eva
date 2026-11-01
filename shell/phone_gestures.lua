@@ -12,6 +12,8 @@ local attached = {}
 local EDGE = 20 -- Matches the runtime's on_edge_swiped recognition zone.
 local SIDE = 2 * EDGE -- How far in from a side a drag along it starts.
 local CATCH = require("themes.keyboard").CATCH -- How far above the bottom strip a second finger may land.
+-- A pull up this far, resting this long within this much, is a hold.
+local HOLD_RISE, HOLD_MS, HOLD_SLOP = 64, 220, 6
 local function native_enabled()
   local gate=rawget(_G,"__morf_global_recognizers_enabled")
   return type(gate)~="function" or gate()==true
@@ -239,13 +241,45 @@ function M.attach(root)
   M.workspace_controller=preview
   M.workspace_preview=preview.state
   local mode,drawer
+  -- A pull up from the bottom that stops and holds is recents, not the panel.
+  local waiting,held_at
+  local function stop_waiting()
+    if waiting then waiting:cancel() waiting=nil end
+    held_at=nil
+  end
+  local function recents_amount(dy)
+    local height=(morf.screens[1] or {}).height or morf.surface.height
+    return .4+.6*math.min(1,-dy/math.max(1,height*.4))
+  end
+  local function watch_hold(dy)
+    if held_at and math.abs(dy-held_at)<=HOLD_SLOP then return end
+    stop_waiting()
+    held_at=dy
+    if -dy<HOLD_RISE or #require("windows_model").list()==0 then return end
+    waiting=morf.time.timer(HOLD_MS,function()
+      waiting=nil
+      if mode~="dashboard" or not drawer then return end
+      drawer.end_drag(0,true)
+      drawer=nil
+      mode="recents"
+      require("overview").follow(recents_amount(held_at))
+    end,false)
+  end
+  -- The bottom edge walks the apps on a phone, and the workspaces elsewhere.
+  local function by_apps()
+    return require("responsive").phone() and require("config").get("windows.scrub")~="workspaces"
+      and #require("windows_model").list()>1
+  end
   local function single(phase,dx,dy,vx,vy)
     if phase=="begin" then
       mode,drawer=nil,nil
+      stop_waiting()
       return
     end
     if phase=="cancel" then
+      stop_waiting()
       if mode=="workspace" then preview.cancel()
+      elseif mode=="recents" then require("overview").settle(false)
       elseif drawer then drawer.end_drag(0,true) end
       mode,drawer=nil,nil
       return
@@ -254,7 +288,7 @@ function M.attach(root)
       if not mode and math.max(math.abs(dx),math.abs(dy))>=8 then
         if math.abs(dx)>math.abs(dy)*1.2 then
           close_other_panels(nil)
-          preview.begin() mode="workspace"
+          preview.begin("x",by_apps()) mode="workspace"
         elseif -dy>math.abs(dx)*1.2 and drawer_at("bottom") then
           drawer=drawer_at("bottom")
           close_other_panels(drawer)
@@ -262,9 +296,12 @@ function M.attach(root)
         elseif math.abs(dy)>math.abs(dx)*1.2 then mode="ignored" end
       end
       if mode=="workspace" then preview.update(dx)
-      elseif drawer then drawer.drag_by(dy) end
+      elseif mode=="recents" then require("overview").follow(recents_amount(dy))
+      elseif drawer then drawer.drag_by(dy) watch_hold(dy) end
     elseif phase=="end" then
+      stop_waiting()
       if mode=="workspace" then preview.update(dx) preview.finish(false,vx,M.global_allowed)
+      elseif mode=="recents" then require("overview").settle(true)
       elseif drawer then
         drawer.drag_by(dy) drawer.end_drag(vy or 0,false)
       end

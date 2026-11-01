@@ -252,6 +252,7 @@ frame_root.accessible_name = "Eva"
 ui.reparent(capture.editor.node,frame_root)
 -- The focused window's menu, over it: in the screen's own coordinates.
 ui.reparent(dock.node,frame_root)
+ui.reparent(require("window_modes").node,frame_root)
 ui.reparent(window_menu.node,frame_root)
 ui.reparent(overview.node,frame_root)
 ui.reparent(window_switcher.node,frame_root)

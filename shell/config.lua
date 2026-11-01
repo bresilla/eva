@@ -220,6 +220,8 @@ local config = settings.open {
       pins = {},
     },
     windows = {
+      -- What a phone's bottom edge walks: "apps" or "workspaces".
+      scrub = "apps",
       switcher = {
         -- What Alt+Tab walks: "all", "workspace" or "output".
         scope = "all",

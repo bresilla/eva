@@ -31,9 +31,10 @@ function V.build(model)
     local rect = model.rect(address)
     local t = pull:get()
     if not slot then return rect end
-    return { x = lerp(rect.x, slot.x, t), y = lerp(rect.y, slot.y, t),
+    return { x = lerp(rect.x - model.scrolled:get(), slot.x, t), y = lerp(rect.y, slot.y, t),
       width = lerp(rect.width, slot.width, t), height = lerp(rect.height, slot.height, t) }
   end
+  local function cards() return model.layout() == "cards" end
 
   -- ------------------------------------------------------------ the field --
   local shapes = {}
@@ -72,9 +73,9 @@ function V.build(model)
     local function dragged() return model.drag.address == address end
     local area, node
     local pressed_on
-    local function on_pan(phase, _, dy, _, vy)
+    local function on_pan(phase, dx, dy, _, vy)
       if model.layout() ~= "cards" then return false end
-      if phase == "begin" then return math.abs(dy) > 0 end
+      if phase == "begin" then return dy < 0 and math.abs(dy) > math.abs(dx) end
       if phase == "update" then node.translate_y = math.min(0, dy)
       elseif phase == "end" and model.thrown(dy, vy) then
         morf.animation.play { { node = node, property = "translate_y", to = -2 * (node.height or 800),
@@ -86,13 +87,16 @@ function V.build(model)
       end
     end
     area = ui.MouseArea { id = "overview-card-area-" .. row.index, anchors = { fill = true }, cursor = "pointer",
-      accepted_buttons = { "left", "middle" },
+      accepted_buttons = { "left", "middle", "right" },
       accessible_role = "button", accessible_name = function() return title:get() end,
       on_panned = on_pan,
       on_pressed = function(x, y, _, _, button) pressed_on = { x = x, y = y, button = button } end,
       on_clicked = function(_, _, _, _, button)
-        if button == "middle" then model.close_window(address) else model.activate(address) end
+        if button == "middle" then model.close_window(address)
+        elseif button == "right" then model.menu_for:set(address)
+        else model.activate(address) end
       end,
+      on_long_pressed = function() model.menu_for:set(address) end,
       on_drag_started = function(x, y)
         if model.layout() == "cards" then return end
         local from = pressed_on or { x = x, y = y }
@@ -120,7 +124,11 @@ function V.build(model)
       card.picture { id = "overview-card-picture-" .. row.index, radius = radius(),
         address = function() return address end, class = function() return class end,
         initial = function() return row.initial_class end, title = function() return title:get() end },
-      ui.Item { id = "overview-card-caption-" .. row.index, anchors = { bottom = true, horizontal_center = true, bottom_margin = S.s },
+      ui.Item { id = "overview-card-caption-" .. row.index, anchors = { horizontal_center = true },
+        y = function()
+          if cards() then return -(32 + S.s) end
+          return box(address).height - 32 - S.s
+        end,
         width = function() return math.min(280, math.max(40, box(address).width - 2 * S.s)) end, height = 32, z = 2,
         opacity = function() return pull:get() end, behavior = { opacity = fade },
         card.caption { id = "overview-card-title-" .. row.index, class = function() return class end,
@@ -128,8 +136,19 @@ function V.build(model)
           room = function() return math.max(40, box(address).width - 2 * S.s) end } },
       kit.surface { id = "overview-card-focus-" .. row.index, anchors = { fill = true }, z = 2, color = "transparent",
         radius = radius(), border_width = 2, border_color = kit.stroke("hot"),
-        visible = selected },
+        visible = function() return selected() and not cards() end },
+      kit.surface { id = "overview-card-kept-" .. row.index, z = 3, width = S.xl, height = S.xl, radius = S.s,
+        anchors = { top = true, left = true, top_margin = S.xs, left_margin = S.xs },
+        color = function() return C.surfaceContainerHighest end,
+        visible = function() return model.is_kept(address) end,
+        kit.icon("lock", 14, kit.ink("hi"), { anchors = { center_in = true } }) },
       area, close,
+      kit.action { id = "overview-card-more-" .. row.index, width = S.TARGET, height = S.TARGET, z = 4,
+        accessible_name = "Window actions", cursor = "pointer",
+        anchors = { right = true, right_margin = -S.xs }, y = -(S.TARGET + S.xs),
+        visible = cards,
+        on_clicked = function() model.menu_for:set(address) end,
+        kit.icon("more_vert", 20, kit.ink("hi"), { anchors = { center_in = true } }) },
     }
     nodes[address] = node
     return node, function(next_row)
@@ -139,6 +158,7 @@ function V.build(model)
   end
 
   local repeater = ui.Repeater { id = "overview-cards", model = model.cards, delegate = delegate }
+  local track = ui.Item { id = "overview-track", anchors = { fill = true }, sdf, repeater }
   morf.effect("eva.overview.shapes", function()
     model.cards:len()
     model.slots:get()
@@ -241,9 +261,48 @@ function V.build(model)
   local dim = kit.surface { id = "overview-dim", anchors = { fill = true },
     color = function() return C.surface:alpha(.78) end,
     opacity = function() return pull:get() end, behavior = { opacity = fade } }
+  local stepper = require("gesture_motion")
+  local running
+  local function rest_at(target, velocity)
+    if running then running:stop() end
+    local step = model.card_box(2).x - model.card_box(1).x
+    running = morf.animation.play { stepper.step(track, "translate_x", target, velocity, step),
+      on_finished = function() running = nil end }
+    model.scrolled:set(target)
+  end
+  local function row_limit()
+    local step = model.card_box(2).x - model.card_box(1).x
+    return -math.max(0, model.cards:len() - 1) * step, step
+  end
   local catcher = ui.MouseArea { id = "overview-catcher", anchors = { fill = true },
     on_clicked = function() model.close() end,
-    on_wheel = function(_, _, _, _, _, step_y) model.scroll(step_y > 0 and 1 or -1) end }
+    on_wheel = function(_, _, _, _, _, step_y)
+      if not cards() then model.scroll(step_y > 0 and 1 or -1) return end
+      local limit, step = row_limit()
+      rest_at(math.max(limit, math.min(0, model.scrolled:get() - (step_y > 0 and step or -step))))
+    end }
+  local clear = kit.action { id = "overview-clear", width = 160, height = S.TOUCH, cursor = "pointer", z = 2,
+    accessible_name = "Clear all",
+    anchors = { bottom = true, horizontal_center = true, bottom_margin = S.xxl },
+    visible = function() return cards() and model.cards:len() > 0 end,
+    on_clicked = function() model.clear_all() end,
+    kit.surface { anchors = { fill = true }, radius = S.TOUCH / 2, color = function() return C.surfaceContainerHigh end },
+    L.label { anchors = { center_in = true }, text = "Clear all", font_size = L.SIZE.body, color = kit.ink("hi") } }
+  local action_menu = require("themes.layouts.action_menu")
+  local menu = action_menu.build { id = "overview-menu", name = "Window actions",
+    items = function()
+      local a = model.menu_for:get()
+      return a ~= "" and model.card_actions(a) or {}
+    end,
+    at = function(h)
+      local slot = model.slots:get()[model.menu_for:get()] or { x = 0, y = 0, width = 0, height = 0 }
+      local w, screen_h = model.size()
+      local scroll = cards() and model.scrolled:get() or 0
+      return math.max(S.s, math.min(w - action_menu.WIDTH - S.s, slot.x + scroll + slot.width / 2 - action_menu.WIDTH / 2)),
+        math.max(S.s, math.min(screen_h - h - S.s, slot.y + slot.height / 2 - h / 2))
+    end,
+    close = function() model.menu_for:set("") end,
+    opened = function() return model.menu_for:get() ~= "" end }
 
   local lingering = morf.signal("eva.overview.lingering", false)
   local leaving
@@ -254,14 +313,39 @@ function V.build(model)
     leaving = morf.time.timer(theme.bounce.spatial.duration, function() leaving = nil lingering:set(false) end, false)
   end)
 
+  local strip_shown = ui.Item { id = "overview-strip-holder", anchors = { fill = true },
+    visible = function() return not cards() end, strip }
   local root = ui.Item { id = "overview", anchors = { fill = true },
     accessible_role = "dialog", accessible_name = "Overview",
     visible = function() return model.opened:get() or lingering:get() end,
-    dim, catcher, sdf, repeater, strip, search, empty, ghost }
+    dim, catcher, track, strip_shown, search, empty, ghost, clear, menu }
+
+  -- Along the row of cards, under a finger; it rests on a card.
+  local origin
+  root.on_panned = function(phase, dx, dy, vx)
+    if not cards() then return false end
+    if phase == "begin" then
+      if math.abs(dx) < math.abs(dy) then return false end
+      if running then running:stop() running = nil end
+      origin = track.translate_x or 0
+      return true
+    end
+    local limit, step = row_limit()
+    if phase == "update" then
+      track.translate_x = math.max(limit, math.min(0, origin + dx))
+    else
+      local throw = origin + dx + (vx or 0) * .15
+      rest_at(math.max(limit, math.min(0, math.floor(throw / step + .5) * step)), vx)
+    end
+  end
 
   return { node = root, shown = function(open)
     input.text = ""
     input.focus = open
+    if open then
+      track.translate_x = 0
+      model.scrolled:set(0)
+    end
   end }
 end
 

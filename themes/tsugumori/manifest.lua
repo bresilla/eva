@@ -42,6 +42,7 @@ return {
     snap = "themes.layouts.views.snap",
     kill_mode = "themes.layouts.views.kill_mode",
     dock = "themes.tsugumori.views.dock",
+    window_modes = "themes.layouts.views.window_modes",
     launcher = "themes.layouts.views.launcher",
     capture_view = "themes.layouts.views.capture_view",
     capture_editor = "themes.layouts.views.capture_editor",

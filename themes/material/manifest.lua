@@ -27,6 +27,7 @@ return {
     snap = "themes.layouts.views.snap",
     kill_mode = "themes.layouts.views.kill_mode",
     dock = "themes.material.views.dock",
+    window_modes = "themes.layouts.views.window_modes",
     launcher = "themes.layouts.views.launcher",
     assistant = "themes.layouts.views.assistant",
     drop = "themes.layouts.views.drop",

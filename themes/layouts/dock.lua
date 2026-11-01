@@ -183,11 +183,8 @@ function M.build(model, style)
     local key = model.menu_for:get()
     return key ~= "" and model.menu(key) or {}
   end
-  local ROW = S.TARGET
-  local menu_w = 260
-  local function menu_box()
-    local list = menu_items()
-    local h = #list * ROW + 2 * S.s
+  local action_menu = require("themes.layouts.action_menu")
+  local function menu_at(h)
     local b = plate_box()
     local w, screen_h = screen()
     local key, x = model.menu_for:get(), b.x
@@ -195,37 +192,12 @@ function M.build(model, style)
       local row = model.rows:get(r)
       if row.key == key then x = icon_box(math.floor(row.index)).x end
     end
-    if model.edge() == "left" then return { x = b.x + b.width + S.s, y = math.min(screen_h - h, b.y), height = h } end
-    if model.edge() == "right" then return { x = b.x - menu_w - S.s, y = math.min(screen_h - h, b.y), height = h } end
-    return { x = math.max(S.s, math.min(w - menu_w - S.s, x)), y = b.y - h - S.m, height = h }
+    if model.edge() == "left" then return b.x + b.width + S.s, math.min(screen_h - h, b.y) end
+    if model.edge() == "right" then return b.x - action_menu.WIDTH - S.s, math.min(screen_h - h, b.y) end
+    return math.max(S.s, math.min(w - action_menu.WIDTH - S.s, x)), b.y - h - S.m
   end
-  local menu_rows = { x = S.s, y = S.s, gap = 0 }
-  for i = 1, 12 do
-    local function item() return menu_items()[i] end
-    local area = kit.action { id = "dock-menu-" .. i, width = menu_w - 2 * S.s, height = ROW, cursor = "pointer",
-      accessible_name = function() local it = item() return it and it.label or "" end,
-      visible = function() return item() ~= nil end,
-      on_clicked = function()
-        local it = item()
-        model.close_menu()
-        if it then it.run() end
-      end,
-      kit.icon(function() local it = item() return it and it.icon or "" end, 18, kit.ink("lo"), { x = S.s, y = (ROW - 18) / 2 }),
-      kit.text { x = S.xxl, y = 0, height = ROW, width = menu_w - 2 * S.s - S.xxl - S.s, vertical_alignment = "center",
-        elide = "right", font_size = L.SIZE.body, color = kit.ink("hi"),
-        text = function() local it = item() return it and it.label or "" end } }
-    kit.hover(area, function(hovered) return hovered and C.onSurface:alpha(.08) or C.onSurface:alpha(0) end, S.xs)
-    menu_rows[#menu_rows + 1] = area
-  end
-  local menu = kit.card { id = "dock-menu", width = menu_w, z = 10,
-    x = function() return menu_box().x end, y = function() return menu_box().y end,
-    height = function() return menu_box().height end,
-    accessible_role = "menu", accessible_name = "Application menu",
-    visible = function() return model.menu_for:get() ~= "" end,
-    ui.MouseArea { anchors = { fill = true } },
-    ui.Column(menu_rows) }
-  require("themes.kit.popup").track(menu, { open = function() return model.menu_for:get() ~= "" end,
-    close_policy = "escape+outside", on_close = function() model.close_menu() end })
+  local menu = action_menu.build { id = "dock-menu", name = "Application menu", items = menu_items, at = menu_at,
+    close = model.close_menu, opened = function() return model.menu_for:get() ~= "" end }
 
   -- -------------------------------------------------------------- previews --
   local function shown_windows()

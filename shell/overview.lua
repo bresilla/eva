@@ -170,6 +170,7 @@ function M.close()
   if not M.opened:get() then return false end
   stop_live()
   M.drag.address = ""
+  M.menu_for:set("")
   M.pull:set(0)
   M.opened:set(false)
   return false
@@ -304,6 +305,60 @@ end
 function M.thrown(dy, vy)
   return dy <= -MIN_THROW or (vy or 0) <= -900
 end
+
+-- ------------------------------------------------------------------- menu --
+
+M.menu_for = morf.signal("eva.overview.menu_for", "")
+-- The windows Clear all passes over.
+M.kept = require("themes.session").keep("eva.overview.kept", {})
+
+function M.is_kept(address) return M.kept:get()[address] == true end
+
+function M.toggle_kept(address)
+  local all = {}
+  for k, v in pairs(M.kept:get()) do all[k] = v end
+  all[address] = not all[address] or nil
+  M.kept:set(all)
+end
+
+--- Closes every window on show, but for those kept.
+function M.clear_all()
+  for r = 1, M.cards:len() do
+    local address = M.cards:get(r).address
+    if not M.is_kept(address) then M.close_window(address) end
+  end
+end
+
+--- What a card offers: `{ label, icon, run }`.
+function M.card_actions(address)
+  local c = windows.get(address)
+  if not c then return {} end
+  local modes = require("window_modes")
+  local items = {
+    { label = "Split with the last app", icon = "splitscreen", run = function()
+      M.close()
+      modes.split_with(address)
+    end },
+    { label = c.floating and "Back to the tiles" or "Float", icon = "open_in_new", run = function()
+      M.close()
+      modes.toggle_float(address)
+    end },
+    { label = modes.pip:get() == address and "Leave picture in picture" or "Picture in picture",
+      icon = "picture_in_picture", run = function()
+        M.close()
+        modes.toggle_pip(address)
+      end },
+    { label = M.is_kept(address) and "Let go" or "Keep open", icon = "lock", run = function() M.toggle_kept(address) end },
+    { label = "Close", icon = "close", run = function() M.close_window(address) end },
+    { label = "Force quit", icon = "dangerous", run = function()
+      shots.forget(address)
+      windows.kill(address)
+    end },
+  }
+  return items
+end
+
+M.scrolled = morf.signal("eva.overview.scrolled", 0)
 
 local view = require("themes").view("overview").build(M)
 M.node = view.node
