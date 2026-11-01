@@ -4,9 +4,10 @@
 -- -- as a display in the place its kind stands (levels.lua). Over IPC: `osd
 -- [KIND]`.
 --
--- The volume is `morf.audio`'s default output; the brightness is the
--- backlight lib/services/sysinfo.lua reads (and writes when it may). Without
--- either the level rests at zero and its display never appears.
+-- The volume is `morf.audio`'s default output; the brightness is this screen's:
+-- over DDC/CI where shell/ddc_model.lua reaches it, else the backlight
+-- lib/services/sysinfo.lua reads (and writes when it may). Without either the
+-- level rests at zero and its display never appears.
 
 local morf = require("morf")
 local model = require("osd_model")
@@ -37,6 +38,8 @@ end
 
 function M.brightness()
   if dry.brightness then return dry.brightness, true end
+  local level = require("ddc_model").level()
+  if level then return level / 100, true end
   local ok, b = pcall(sysinfo.backlight)
   if not ok or not b or not b.percent then return 0, false end
   return b.percent / 100, true
@@ -48,7 +51,9 @@ function M.set_volume(v)
 end
 
 function M.set_brightness(v)
-  pcall(sysinfo.set_brightness, math.max(1, math.min(100, v * 100)))
+  local percent = math.max(1, math.min(100, v * 100))
+  if require("ddc_model").set(percent) then return end
+  pcall(sysinfo.set_brightness, percent)
 end
 
 local volume, brightness = M.volume, M.brightness

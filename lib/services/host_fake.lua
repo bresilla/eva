@@ -17,7 +17,7 @@ function M.managed() return false end
 
 local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
   scanimage = not NIXOS, lpstat = not NIXOS, ["firewall-cmd"] = not NIXOS, gsettings = true, lspci = true, ["xdg-open"] = true,
-  gio = true, ["eva-battery"] = true }
+  gio = true, ["eva-battery"] = true, ddcutil = true }
 
 function M.installed(program) return PROGRAMS[program] == true end
 function M.tool(name)
@@ -105,9 +105,29 @@ local function answer(argv, options)
 end
 
 --- A command's result. Changes land in the fixture, so a page reads them back.
+-- One external monitor on the screen the shell is on, at 60 of 100.
+M.ddc_level = 60
+
+local function ddcutil(argv)
+  if argv[2] == "detect" then
+    local screen = (morf.screens or {})[1] or {}
+    return { ok = true, stdout = ("Display 1\n   I2C bus:  /dev/i2c-6\n   DRM connector:           card0-%s\n"
+      .. "   Monitor:                 DEL:DELL U2720Q:7H3KD\n\nInvalid display\n   I2C bus:  /dev/i2c-7\n"):format(screen.name or "DP-1") }
+  end
+  if argv[#argv - 1] == "getvcp" or argv[#argv] == "10" and argv[5] == "getvcp" then
+    return { ok = true, stdout = ("VCP 10 C %d 100\n"):format(M.ddc_level) }
+  end
+  if argv[#argv - 2] == "setvcp" then
+    M.ddc_level = tonumber(argv[#argv])
+    return { ok = true, stdout = "" }
+  end
+  return { ok = false, code = 1, stderr = "unknown" }
+end
+
 function M.run(argv, options)
   M.ran[#M.ran + 1] = argv
   M.stdin = options and options.stdin or M.stdin
+  if argv[1] == "ddcutil" then return ddcutil(argv) end
   if argv[1] == "pkexec" and argv[3] == "systemctl" then firewall_on = argv[4] == "enable" return { ok = true, stdout = "" } end
   if argv[1] == "lpadmin" or argv[1] == "cancel" or argv[1] == "cupsenable" or argv[1] == "cupsdisable" then
     printers_on[argv[#argv]] = true

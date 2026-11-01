@@ -174,6 +174,20 @@ function M.register(ipc)
     if layout == "next" then return spaces.cycle_layout(id) end
     return spaces.set_layout(id, layout)
   end
+  -- `remap [state]`, `remap set KEY VALUE`: the keys remapped for every program.
+  ipc.remap = function(how, key, value)
+    local remap = require("remap_model")
+    if how == nil or how == "state" then
+      remap.refresh()
+      return { allowed = remap.allowed(), running = remap.running:get(), summary = remap.summary(), choices = remap.choices() }
+    end
+    if how == "set" then
+      if value == "true" then value = true elseif value == "false" then value = false end
+      remap.set(key, tonumber(value) or value or "")
+      return true
+    end
+    error("`" .. tostring(how) .. "`: state or set KEY VALUE")
+  end
   -- `layouts [list]`, `layouts save NAME`, `layouts restore NAME`, `layouts
   -- remove NAME`, `layouts login [NAME]`, `layouts report`.
   ipc.layouts = function(how, name)

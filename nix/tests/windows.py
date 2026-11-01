@@ -170,6 +170,18 @@ def keys_section():
         check("the old chord is gone", (64, "W") not in bound())
         check("it keeps its words", bound().get((64, "Y"), {}).get("description") == "Open the window menu")
 
+        tool(keys, "reload")
+        machine.sleep(2)
+        tool(keys, "record", "verb:snap picker")
+        print("SUBMAP", hyprctl("submap"))
+        machine.send_key("meta_l-j")
+        machine.sleep(2)
+        check("a second row hears its chord too", (tool(keys, "state") or {}).get("recording") == "", str(tool(keys, "state")))
+        tool(keys, "reset", "verb:snap picker")
+        machine.sleep(3)
+        tool(keys, "reload")
+        machine.sleep(2)
+
         machine.send_key("meta_l-w")
         machine.sleep(2)
         check("the old chord does nothing", ask("window_menu", "state") in (False, None), str(ask("window_menu", "state")))
@@ -422,8 +434,97 @@ def spaces_section():
         machine.sleep(4)
 
 
+def ddc_section():
+    # A stand-in ddcutil: a VM has no monitor to answer on an I2C bus. What this
+    # proves is the shell's side, and that the system lets the seat reach a bus.
+    with subtest("external brightness, a stand-in monitor"):
+        machine.succeed("echo 60 > /tmp/ddc-level; chmod 666 /tmp/ddc-level; : > /tmp/ddc-calls; chmod 666 /tmp/ddc-calls")
+        print("I2C", machine.execute("lsmod | grep i2c_dev; udevadm verify /etc/udev/rules.d 2>&1 | tail -2; "
+                                     "cat /run/current-system/sw/lib/udev/rules.d/70-eva-ddc.rules 2>&1 | head -3")[1])
+        check("i2c-dev is loaded", machine.execute("lsmod | grep -q i2c_dev")[0] == 0)
+        check("the rule is in place", machine.execute("grep -rq 'SUBSYSTEMS==\"drm\", TAG+=\"uaccess\"' /etc/udev/rules.d")[0] == 0)
+        check("alice joins no i2c group", "i2c" not in machine.succeed("id alice"))
+        check("the session is told", "1" in machine.succeed(session("printenv EVA_DDC || true")))
+        ask("reload")
+        machine.sleep(15)
+        check("the level comes from the monitor", eventually(lambda: ask("brightness") == 60), str(ask("brightness")))
+        ipc("brightness", "35")
+        check("the slider's path reaches the monitor", eventually(lambda: "35" in machine.succeed("cat /tmp/ddc-level")), machine.succeed("cat /tmp/ddc-level"))
+        check("the shell's level follows", ask("brightness") == 35, str(ask("brightness")))
+        ipc("brightness", "up")
+        check("up steps it", eventually(lambda: "40" in machine.succeed("cat /tmp/ddc-level")), machine.succeed("cat /tmp/ddc-level"))
+        print("CALLS", machine.succeed("cat /tmp/ddc-calls"))
+        keys = {b.get("key"): b for b in json.loads(hyprctl("-j", "binds"))}
+        check("the brightness keys are the shell's", "XF86MonBrightnessUp" in keys, str(sorted(keys))[:200])
+
+
+def remap_section():
+    # kanata for real, on the VM's own keyboards.
+    with subtest("key remapping"):
+        def active():
+            return machine.execute("systemctl is-active kanata-eva.service")[1].strip()
+
+        def fired(name):
+            return machine.execute(f"ls /tmp/{name}")[0] == 0
+
+        def press(*keys):
+            for key in keys:
+                machine.succeed(f"YDOTOOL_SOCKET=/tmp/ydotool ydotool key {key}")
+                machine.sleep(0.4)
+
+        check("nothing reads the keyboards until something is chosen", active() != "active", active())
+        print("UNIT", machine.succeed("systemctl cat kanata-eva.service | grep -E 'DynamicUser|CapabilityBoundingSet|SupplementaryGroups|PrivateNetwork|ExecCondition'"))
+        check("alice is in no input group", "input" not in machine.succeed("id alice"))
+        check("Settings can reach the option", (ask("remap", "state") or {}).get("allowed") is True, str(ask("remap", "state")))
+
+        hyprctl("eval", 'hl.bind("escape", hl.dsp.exec_cmd("touch /tmp/esc-fired"))')
+        hyprctl("eval", 'hl.bind("CTRL + Y", hl.dsp.exec_cmd("touch /tmp/ctrl-fired"))')
+        hyprctl("eval", 'hl.bind("CTRL + ALT + SHIFT + SUPER + Y", hl.dsp.exec_cmd("touch /tmp/hyper-fired"))')
+        machine.sleep(1)
+
+        ipc("remap", "set", "caps", "tap_escape_hold_control")
+        check("a choice starts it", eventually(lambda: active() == "active", 30), active())
+        print("RENDERED", machine.succeed("cat /run/eva-remap/kanata.kbd"))
+        print("JOURNAL", machine.execute("journalctl -u kanata-eva.service -n 8 --no-pager")[1][-500:])
+        check("the shell hears it run", eventually(lambda: (ask("remap", "state") or {}).get("running") is True, 15), str(ask("remap", "state")))
+
+        press("58:1", "58:0")
+        machine.sleep(1)
+        check("a tap on Caps Lock is Escape", fired("esc-fired"))
+        machine.succeed("rm -f /tmp/esc-fired")
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 58:1")
+        machine.sleep(0.6)
+        press("21:1", "21:0", "58:0")
+        machine.sleep(1)
+        check("held, Caps Lock is Control", fired("ctrl-fired"))
+        check("and no Escape", not fired("esc-fired"))
+
+        ipc("remap", "set", "caps", "hyper")
+        machine.sleep(5)
+        print("RENDERED", machine.succeed("cat /run/eva-remap/kanata.kbd"))
+        check("a change takes", eventually(lambda: active() == "active", 30), active())
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 58:1")
+        machine.sleep(0.4)
+        press("21:1", "21:0", "58:0")
+        machine.sleep(1)
+        check("Caps Lock as Hyper holds all four", fired("hyper-fired"))
+
+        # What is not on the list never reaches kanata's file.
+        machine.succeed(f"echo '{{\"caps\":\"(cmd rm -rf /)\",\"tap\":\"1); (cmd x\"}}' > /tmp/bad.json")
+        unit = machine.succeed("systemctl cat kanata-eva.service")
+        render = next(word for word in unit.split() if word.endswith("eva-remap-render") or "eva-remap-render" in word).lstrip("+=").split("ExecCondition=")[-1].lstrip("+")
+        code, out = machine.execute(f"{render} /tmp/bad.json /tmp/bad.kbd")
+        check("an unknown word renders nothing", code != 0 and machine.execute("ls /tmp/bad.kbd")[0] != 0, f"{code} {out}")
+
+        ipc("remap", "set", "caps", "")
+        check("choosing nothing stops it", eventually(lambda: active() != "active", 30), active())
+        for chord in ("escape", "CTRL + Y", "CTRL + ALT + SHIFT + SUPER + Y"):
+            hyprctl("eval", f'hl.unbind("{chord}")')
+
+
 def sections(names):
-    table = {"keys": keys_section, "rules": rules_section, "layouts": layouts_section, "spaces": spaces_section}
+    table = {"keys": keys_section, "rules": rules_section, "layouts": layouts_section, "spaces": spaces_section,
+             "ddc": ddc_section, "remap": remap_section}
     for name in names or table:
         table[name]()
 

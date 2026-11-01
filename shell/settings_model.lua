@@ -599,6 +599,8 @@ local PRESENT={
   ["windows/rules"]=function() return not require("responsive").phone() end,
   ["windows/rule"]=function() return not require("responsive").phone() end,
   ["windows/layouts"]=function() return not require("responsive").phone() end,
+  -- A phone has no keyboard to remap.
+  ["input/remap"]=function() return not require("responsive").phone() end,
   -- The tray stands on a desk's bar alone.
   ["bar/tray"]=function() return require("responsive").form()=="desk" end,
 }

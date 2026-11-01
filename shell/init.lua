@@ -51,8 +51,8 @@ if config.path then
 end
 
 require("displays_hotplug").start()
-for _, name in ipairs { "input_model", "access_model", "keys_model", "window_rules_model", "layouts_model", "audio_rules",
-  "lid_watch", "privacy_page_model", "drive_watch" } do
+for _, name in ipairs { "input_model", "access_model", "keys_model", "remap_model", "window_rules_model", "layouts_model",
+  "audio_rules", "lid_watch", "privacy_page_model", "drive_watch" } do
   require(name).start()
 end
 
@@ -136,6 +136,7 @@ require("auto_rotate").start()
 require("quick_hardware").nightlight()
 require("quick_hardware").start()
 require("charge_limit_model").start()
+require("ddc_model").start()
 do
   local alarm = require("services").alarm
   alarm.load()
@@ -754,6 +755,16 @@ ipc.standby = function(how, ...) return require("standby_model").verb(how, ...) 
 ipc.osd = function(kind)
   if not here() then return nil end
   return osd.flash(kind)
+end
+-- `brightness up|down|PERCENT`: this screen's level, whichever way it is set,
+-- on the focused screen. With nothing it says the level.
+ipc.brightness = function(how)
+  if not here() then return nil end
+  local level = osd.brightness()
+  if how == nil then return math.floor(level * 100 + .5) end
+  local to = how == "up" and level + .05 or how == "down" and level - .05 or (tonumber(how) or level * 100) / 100
+  osd.adjust("brightness", to)
+  return true
 end
 -- `notify SUMMARY [BODY [critical|normal|low [APP [ICON [IMAGE]]]]]` raises a
 -- notification of the shell's own, as the reference's toaster does.

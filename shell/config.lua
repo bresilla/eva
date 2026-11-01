@@ -706,6 +706,13 @@ local config = settings.open {
         group = true,
       },
     },
+    -- External screens' brightness over DDC/CI, where the system allows it
+    -- (`programs.eva.hardware.ddc.enable`; shell/ddc_model.lua).
+    displays = { ddc = true },
+    -- Keys remapped for every program, where the system allows it
+    -- (`programs.eva.remap.enable`; shell/remap_model.lua). `caps` and `hyper`
+    -- choose what those keys do, `tap` and `hold` are in ms.
+    remap = { caps = "", hyper = "", swap_alt_super = false, home_row = false, tap = 200, hold = 200 },
     -- New chords for the compositor's keys, eva-keys' to write: `{ id, keys }`,
     -- an empty chord for none (shell/keys_model.lua).
     keys = { overrides = {} },

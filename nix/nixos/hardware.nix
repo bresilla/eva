@@ -20,6 +20,12 @@ let
 in
 {
   options.programs.eva.hardware = {
+    ddc.enable = lib.mkEnableOption ''
+      external monitors' brightness over DDC/CI, on the one brightness slider and
+      keys. Installs ddcutil and loads i2c-dev; a udev rule tags only the buses
+      that lead to a display `uaccess`, so the person at the seat can reach those
+      while they are at it, with no group and no other I2C device
+    '';
     tabletSwitch = {
       enable = lib.mkEnableOption "following a convertible's hinge: evtest, and read access to switch devices alone";
       name = lib.mkOption {
@@ -34,7 +40,7 @@ in
   };
 
   config =
-    lib.mkIf (config.programs.eva.enable && (cfg.tabletSwitch.enable || cfg.chargeLimit || cfg.usbTether))
+    lib.mkIf (config.programs.eva.enable && (cfg.ddc.enable || cfg.tabletSwitch.enable || cfg.chargeLimit || cfg.usbTether))
       (
         lib.mkMerge [
           (lib.mkIf (cfg.tabletSwitch.enable || cfg.chargeLimit) {
@@ -50,6 +56,27 @@ in
             programs.eva.hyprland.extraConfig = ''
               hl.bind("switch:on:${cfg.tabletSwitch.name}", hl.dsp.exec_cmd("eva tablet on"), { locked = true })
               hl.bind("switch:off:${cfg.tabletSwitch.name}", hl.dsp.exec_cmd("eva tablet off"), { locked = true })
+            '';
+          })
+          (lib.mkIf cfg.ddc.enable {
+            boot.kernelModules = [ "i2c-dev" ];
+            environment.systemPackages = [ pkgs.ddcutil ];
+            environment.sessionVariables.EVA_DDC = "1";
+            systemd.user.services.eva.environment.EVA_DDC = "1";
+            # Named to sort before 73-seat-late, which reads the tag. A display's
+            # bus hangs under a DRM connector, or, on NVIDIA's own driver, carries
+            # its adapter's name.
+            services.udev.packages = [
+              (pkgs.writeTextDir "lib/udev/rules.d/70-eva-ddc.rules" ''
+                SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", SUBSYSTEMS=="drm", TAG+="uaccess"
+                SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", ATTR{name}=="NVIDIA i2c adapter*", TAG+="uaccess"
+              '')
+            ];
+            programs.eva.hyprland.extraConfig = ''
+              hl.unbind("XF86MonBrightnessUp")
+              hl.unbind("XF86MonBrightnessDown")
+              hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("eva brightness up"), { locked = true, repeating = true })
+              hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("eva brightness down"), { locked = true, repeating = true })
             '';
           })
           (lib.mkIf cfg.chargeLimit {

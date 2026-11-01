@@ -89,8 +89,10 @@
               tabletSwitch = { enable = true; name = "Intel HID switches"; };
               chargeLimit = true;
               usbTether = true;
+              ddc.enable = true;
             };
           };
+          module-remap = machine { programs.eva.remap.enable = true; };
           module-fixed = machine {
             programs.eva.idle = {
               lockTimeout = 300;

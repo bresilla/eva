@@ -56,7 +56,7 @@ local function themed(name) return require("themes").view(name) end
 builders.home=function(w,h)
   return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
 end
-for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard/more","lock/more","windows/more","phone"} do
+for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard/more","lock/more","windows/more","phone","input/remap"} do
   builders[name]=function(w,h) return themed("settings_form").build(name,w,h) end
 end
 

@@ -158,6 +158,20 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 end
 
+test.it("a second row listens as the first did", function()
+  tool("twice")
+  test.ipc("search", "close the window") test.settle(100)
+  test.click("keys-row-1-press") test.settle(100)
+  test.key("y", "super") test.settle(100)
+  test.eq(test.ipc("state").recording, "")
+  test.ipc("search", "fullscreen") test.settle(100)
+  test.click("keys-row-1-press") test.settle(100)
+  test.contains(test.ipc("state").recording, "bind:")
+  test.key("u", "super") test.settle(100)
+  test.eq(test.ipc("state").recording, "", "the second chord was heard")
+  test.eq(test.ipc("overrides")["bind:ALT + SUPER + F"] or test.ipc("overrides")["bind:SUPER + ALT + F"], "SUPER + U")
+end)
+
 test.it("Escape gives up, leaving the row as it was", function()
   tool("escape")
   test.ipc("search", "close the window") test.settle(100)
