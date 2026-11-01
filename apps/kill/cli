@@ -11,7 +11,10 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" kill ;;
+  '')
+    # The shell's kill mode where it runs, the same dispatch without it.
+    if eva_shell_up; then eva_ipc kill_mode > /dev/null; else exec sh "$apps/launch" kill; fi
+    ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
   --active) exec sh "$apps/launch" kill --active ;;
   *)
