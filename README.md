@@ -452,7 +452,8 @@ zenity on PATH.
 Source Project's LatinIME dictionaries, under the Apache License 2.0, with
 offensive entries removed. `sq.txt` is from Hermit Dave's FrequencyWords and stays
 under CC BY-SA 4.0. `en.next.txt` was written for eva. `tools/words.lua` makes
-them from the published lists. The emoji pane uses Noto Color Emoji.
+them from the published lists, and `shell/assets/words-LICENSE.md` holds the
+licences. The emoji pane uses Noto Color Emoji.
 
 ## Visual themes (in progress)
 
