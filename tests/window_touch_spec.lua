@@ -113,6 +113,12 @@ test.it("split shares the workspace, and the divider moves it", function()
   test.eq(test.ipc("split"), true)
   test.advance(50)
   test.contains(table.concat(test.ipc("windows", "wire"), "\n"), "hl.dsp.window.float")
+  local grip = test.get("split-divider")
+  local x, y = grip.x + grip.width / 2, grip.y + grip.height / 2
+  test.drag({ x, y }, { x + 240, y }, { steps = 6 })
+  test.advance(50)
+  test.contains(table.concat(test.ipc("windows", "wire"), "\n"), "splitratio +0.400",
+    "the divider did not rest on the 70:30 stop")
 end)
 
 test.it("a pull in from a page's left edge goes back, with the page behind in view", function()

@@ -29,8 +29,13 @@ function V.build(model)
     height = function() local d = divider() if not d then return 0 end return d.vertical and d.length or GRIP end,
     visible = function() return touch_only() and divider() ~= nil end,
     on_pressed = function(x, y) drag_from = { x = x, y = y } end,
+    on_dragged = function(x, y)
+      if not drag_from then return end
+      grip_shape.translate_x, grip_shape.translate_y = x - drag_from.x, y - drag_from.y
+    end,
     on_released = function(x, y)
       local d = divider()
+      grip_shape.translate_x, grip_shape.translate_y = 0, 0
       if not drag_from or not d then return end
       local moved = d.vertical and x - drag_from.x or y - drag_from.y
       drag_from = nil

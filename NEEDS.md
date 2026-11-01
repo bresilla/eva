@@ -58,6 +58,36 @@ like the dashboard.
   duration, easing } })` eases every colour written to it in OkLab, frame by
   frame; the port's scheme, variant and mode changes cross-fade in 400 ms.
 
+## The window features: open
+
+- A window capture with `gpu = true` on a software renderer ends the session's
+  connection. Under Hyprland 0.55.4 on llvmpipe (`nix build .#windows-test`),
+  `morf.screencopy.capture_window` with `{ gpu = true }` draws
+  `wl_display#1: error 1: invalid arguments for
+  ext_image_copy_capture_frame_v1.attach_buffer` and the shell exits. A refused
+  dmabuf should fall back to shared memory, or fail the one capture.
+  `shell/window_shots.lua` asks for shared memory when `LIBGL_ALWAYS_SOFTWARE`
+  is set; a machine on a software GPU without it set still dies.
+- A capture of a window that has just gone ends the connection too:
+  `ext_foreign_toplevel_image_capture_source_manager_v1: invalid foreign toplevel
+  resource`, from Hyprland 0.55.4, for a `create_source` on a handle it destroyed
+  before `closed` reached the shell. `shell/window_shots.lua` holds captures back
+  around a close and on `closewindow`, which narrows the race and does not end
+  it; the unit restarts the shell. It needs a guard in `capture_window`, or a
+  capture that fails on its own without the connection.
+- D-Bus signals from any sender. `proxy:subscribe` needs a destination and a
+  path, and `com.canonical.Unity.LauncherEntry.Update` is a broadcast from an
+  application's own path, so dock badges cannot hear unread counts or progress
+  from applications. The dock counts the notification history instead.
+- Which modifiers are held. `on_key_released` is the only way to learn that Alt
+  came up, and a surface that takes the keyboard after the key came up never
+  hears it: the switcher relies on a compositor bind for that case. Something
+  like `morf.keys.modifiers()`, from the `wl_keyboard.modifiers` event, would
+  settle it. Hyprland has `hl.is_key_down` from 0.56, not in 0.55.
+- Drag and drop from a layer surface into a window, for a dock taking a dropped
+  file: `DropArea` takes one, and a launch with arguments does not exist
+  (`index:launch(id)` passes no URIs).
+
 ## Phase 3: the sidebar and the utilities
 
 Nothing open. The idle inhibitor reads back: `morf.idle.inhibited()` is

@@ -16,6 +16,7 @@ function M.register(ipc)
   -- to the stand-in. `windows real`: what morf.toplevels says.
   ipc.windows = function(how)
     if how == "wire" then return hyprland.wire or {} end
+    if how == "sent" then return windows.sent end
     if how == "real" then return morf.toplevels and morf.toplevels.list() or {} end
     if how == "shots" then
       local shots, out = require("window_shots"), { refused = require("window_shots").refused }
@@ -183,6 +184,11 @@ function M.register(ipc)
     return corners.action(name)
   end
   ipc.settings_detail = function() return require("settings_model").detail:get() end
+  ipc.split_nudge = function(delta) return modes.nudge(tonumber(delta) or 0) end
+  ipc.split_pair = function()
+    local a, b = modes.pair()
+    return a and { a.title, b.title } or {}
+  end
   -- `keep_above`, `opacity [VALUE]`: the focused window.
   ipc.keep_above = function()
     local c = windows.active()

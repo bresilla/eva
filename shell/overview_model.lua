@@ -30,7 +30,7 @@ end
 --- large as they go, no larger than they are: a box per size, in order.
 function M.arrange(sizes, area, gap)
   if #sizes == 0 then return {} end
-  local best, best_scale, best_rows
+  local best_scale, best_rows
   for count = 1, #sizes do
     local rows = rows_of(sizes, gap, count)
     local heights, widest = 0, 0
@@ -45,9 +45,8 @@ function M.arrange(sizes, area, gap)
     end
     local free_h = area.height - gap * (#rows - 1)
     local scale = math.min(1, area.width / math.max(1, widest), free_h / math.max(1, heights))
-    if not best_scale or scale > best_scale + 1e-6 then best, best_scale, best_rows = count, scale, rows end
+    if not best_scale or scale > best_scale + 1e-6 then best_scale, best_rows = scale, rows end
   end
-  local _ = best
   local out, heights = {}, 0
   local row_heights = {}
   for r, row in ipairs(best_rows) do

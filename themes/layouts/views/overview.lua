@@ -234,10 +234,15 @@ function V.build(model)
     placeholder = "Type to find a window", placeholder_color = function() return C.onSurfaceVariant end,
     caret_color = function() return C.primary end,
     selection_color = function() return C.primary:alpha(.35) end,
-    on_text_changed = function(text) model.query:set(text) end,
+    on_text_changed = function(text) if text ~= model.query:get() then model.query:set(text) end end,
     on_accepted = function() model.activate() end,
-    on_escape = function() model.close() end,
-    on_key_pressed = model.key }
+    on_escape = function() model.close() end }
+  morf.effect("eva.overview.search", function()
+    local text = model.query:get()
+    if input.text ~= text then input.text = text end
+  end)
+  -- The keys: the field takes them only once it is pressed.
+  local keys = ui.Item { id = "overview-keys", width = 1, height = 1, tab_navigation = false, on_key_pressed = model.key }
   local search = kit.card { id = "overview-search-box", width = field_w, height = model.SEARCH_H,
     x = function() return (select(1, model.size()) - field_w) / 2 end, y = S.xl + model.STRIP_H + S.l,
     opacity = function() return pull:get() end, behavior = { opacity = fade },
@@ -304,7 +309,7 @@ function V.build(model)
     if id ~= 0 then
       name_input.text = require("workspaces_model").name(id)
       name_input.focus = true
-    elseif model.opened:get() then input.focus = true end
+    elseif model.opened:get() then keys.focus = true end
   end)
 
   local empty = L.label { id = "overview-empty", anchors = { center_in = true }, font_size = L.SIZE.value,
@@ -380,7 +385,7 @@ function V.build(model)
   local root = ui.Item { id = "overview", anchors = { fill = true },
     accessible_role = "dialog", accessible_name = "Overview",
     visible = function() return model.opened:get() or lingering:get() end,
-    dim, catcher, track, strip_shown, search, ui.Row(layouts), pads, naming, empty, ghost, clear, menu }
+    dim, catcher, track, strip_shown, search, ui.Row(layouts), pads, naming, empty, ghost, clear, menu, keys }
 
   -- Along the row of cards, under a finger; it rests on a card.
   local origin
@@ -401,16 +406,8 @@ function V.build(model)
     end
   end
 
-  morf.effect("eva.overview.typed", function()
-    local text = model.typed:get()
-    if text ~= "" then
-      input.text = text
-      model.typed:set("")
-    end
-  end)
   return { node = root, shown = function(open)
-    if not open or model.query:get() == "" then input.text = "" end
-    input.focus = open
+    keys.focus = open
     if open then
       track.translate_x = 0
       model.scrolled:set(0)

@@ -177,6 +177,13 @@ function M.step(lua, conf) return { lua = lua, conf = conf } end
 --- A step on what has the focus, sent after the window is focused.
 function M.global(lua, conf) return { global = true, lua = lua, conf = conf } end
 
+-- The latest of what was sent, for `windows sent`.
+M.sent = {}
+local function note(text)
+  table.insert(M.sent, 1, text)
+  M.sent[17] = nil
+end
+
 --- Runs `steps` on `address`: the Lua form on a Lua-configured Hyprland and
 --- the classic one elsewhere. False with no window.
 function M.run(address, steps)
@@ -205,6 +212,7 @@ function M.run(address, steps)
         end
         chunk[#chunk + 1] = ("hl.dispatch(hl.dsp.%s(%s))"):format(s.lua[1], args)
       end
+      note(table.concat(chunk, " "))
       hyprland.eval(table.concat(chunk, " "), checked)
     else
       local queue = { { "focuswindow", "$W" } }
@@ -229,6 +237,7 @@ function M.send(lua, dispatcher, argument)
     return true
   end
   flavour(function(is_lua)
+    note(lua)
     if is_lua then hyprland.eval(lua, checked)
     elseif dispatcher then hyprland.dispatch(dispatcher, argument) end
   end)
@@ -367,8 +376,21 @@ function M.focus(address)
   if hyprland.available() then hyprland.dispatch("focuswindow", "address:" .. address) return true end
   return false
 end
-function M.close(address) return M.run(address, steps.close()) end
-function M.kill(address) return M.run(address, steps.kill()) end
+function M.close(address)
+  require("window_shots").pause()
+  return M.run(address, steps.close())
+end
+function M.kill(address)
+  require("window_shots").pause()
+  return M.run(address, steps.kill())
+end
+if hyprland.on then
+  hyprland.on("closewindow", function(address)
+    local shots = require("window_shots")
+    shots.pause()
+    if address then shots.forget(address) end
+  end)
+end
 function M.to_workspace(address, id, follow) return M.run(address, steps.to_workspace(id, follow)) end
 function M.to_monitor(address, name) return M.run(address, steps.to_monitor(name)) end
 

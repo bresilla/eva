@@ -18,7 +18,12 @@ def hyprctl(*words):
 
 def ipc(*words):
     quoted = " ".join(shlex.quote(word) for word in words)
-    out = machine.execute(session(f"morf ipc call {quoted}"))[1].strip()
+    # A software GPU on a busy machine can hold the shell for seconds at a time.
+    for _ in range(6):
+        out = machine.execute(session(f"morf ipc call {quoted}"))[1].strip()
+        if "timed out" not in out:
+            break
+        machine.sleep(2)
     print(f"IPC {quoted} => {out[:400]}")
     try:
         reply = json.loads(out)
@@ -95,6 +100,7 @@ def run(password):
     machine.succeed("ydotoold --socket-path=/tmp/ydotool --socket-perm=0666 >/tmp/ydotoold.log 2>&1 &")
     machine.sleep(1)
     print("EVA", machine.execute("systemctl --user --machine=alice@.host is-active eva.service")[1].strip())
+    machine.wait_until_succeeds(session("morf ipc call windows | grep -q '\"ok\":true'"), timeout=240)
     print("BINDS", hyprctl("binds")[:300])
     binds = json.loads(hyprctl("-j", "binds"))
     keys = {(bind.get("modmask"), bind.get("key")) for bind in binds}
@@ -218,6 +224,17 @@ def run(password):
         three = client("three")
         check("picture in picture pins it small", three["pinned"] and three["size"][0] < 500, str(three))
         machine.screenshot("pip")
+        before = client("three")["at"]
+        pointer(before[0] + 40, before[1] + 40)
+        machine.sleep(1)
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x40")
+        machine.sleep(1)
+        pointer(before[0] - 160, before[1] - 120)
+        machine.sleep(2)
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x80")
+        machine.sleep(2)
+        after = client("three")["at"]
+        check("a real pointer drags the picture", near(after[0], before[0] - 200, 30), f"{before} to {after}")
         ipc("pip")
         machine.sleep(2)
         check("leaving picture in picture unpins it", not client("three")["pinned"])
@@ -230,8 +247,24 @@ def run(password):
         ipc("float")
         machine.sleep(2)
         print("AFTER TILE", client("three")["floating"], json.loads(hyprctl("-j", "activewindow")).get("title"))
-        print("WIRE LOG", machine.execute("journalctl -b -n 400 --no-pager | grep -c 'eva: windows'")[1].strip())
+        print("SENT", (ipc("windows", "sent") or [])[:4])
         check("float again tiles", not client("three")["floating"])
+
+    with subtest("split"):
+        hyprctl("eval", 'hl.dispatch(hl.dsp.focus({ workspace = "4" }))')
+        machine.sleep(1)
+        open_window("left")
+        open_window("right")
+        machine.sleep(1)
+        print("PAIR", ipc("split_pair"))
+        width = client("right")["size"][0]
+        ipc("split_nudge", "-0.1")
+        machine.sleep(2)
+        check("the divider moves a signed share of the screen", abs(client("right")["size"][0] - width) > 60,
+              f'{width} to {client("right")["size"][0]}')
+        machine.screenshot("split")
+        hyprctl("eval", 'hl.dispatch(hl.dsp.focus({ workspace = "1" }))')
+        machine.sleep(1)
 
     with subtest("workspaces"):
         ipc("workspace_name", "code")
@@ -306,6 +339,7 @@ def run(password):
         machine.screenshot("kill-mode")
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0xC0")
         machine.sleep(3)
+        print("SENT", (ipc("windows", "sent") or [])[:2])
         check("kill mode force-quits the window pressed", client("one") is None, str(client("one")))
 
     print("SHELL ALIVE", ipc("overview", "state"))

@@ -36,6 +36,7 @@ function M.take(queue, wanted)
   local index = 0
   local function next_one()
     if wanted and not wanted() then return end
+    if M.paused then return end
     index = index + 1
     local item = queue[index]
     if not item or not morf.screencopy or not morf.screencopy.capture_window then return end
@@ -49,6 +50,19 @@ function M.take(queue, wanted)
     if not ok then next_one() end
   end
   next_one()
+end
+
+--- Holds every capture back for `ms`: the compositor ends the connection over
+--- a capture of a window it has just destroyed (NEEDS.md).
+M.paused = false
+local paused_by
+function M.pause(ms)
+  M.paused = true
+  if paused_by then paused_by:cancel() end
+  paused_by = morf.time.timer(ms or 1500, function()
+    paused_by = nil
+    M.paused = false
+  end, false)
 end
 
 -- ------------------------------------------------------------------ cache --
@@ -82,7 +96,7 @@ end
 --- Captures `clients` into the cache, those longest unseen first; false
 --- while a pass is running.
 function M.refresh(clients)
-  if running then return false end
+  if running or M.paused then return false end
   local ordered = {}
   for _, c in ipairs(clients) do
     local identifier = M.toplevel(c)

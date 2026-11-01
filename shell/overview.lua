@@ -19,8 +19,6 @@ local M = {}
 M.opened = morf.signal("eva.overview.opened", false)
 M.pull = morf.signal("eva.overview.pull", 0)
 M.query = morf.signal("eva.overview.query", "")
--- What the search field is told to hold.
-M.typed = morf.signal("eva.overview.typed", "")
 -- The window the keys are on.
 M.selected = morf.signal("eva.overview.selected", "")
 -- The workspace whose windows are spread out.
@@ -33,7 +31,7 @@ M.slots = morf.signal("eva.overview.slots", {})
 M.strip = morf.signal("eva.overview.strip", {})
 M.drag = morf.state { address = "", x = 0, y = 0, width = 0, height = 0, over = 0, pad = "", grab_x = 0, grab_y = 0 }
 
-local LIVE_MS = 700
+local LIVE_MS = 1500
 local MIN_THROW = 120
 M.STRIP_H, M.SEARCH_H, M.BOTTOM = 148, 48, S.xxl
 M.PAD_W = 132
@@ -115,9 +113,9 @@ local function rebuild()
   for _, c in ipairs(list) do if c.address == chosen then found = true end end
   if not found then M.selected:set(list[1] and list[1].address or "") end
   local desks = model.desks()
-  local rows_d, w = {}, (size())
+  local rows_d, w, h = {}, size()
   local boxes = model.strip(#desks, { x = S.xxl, y = S.xl, width = w - 2 * S.xxl, height = M.STRIP_H },
-    (select(1, size())) / math.max(1, (select(2, size()))), S.m)
+    w / math.max(1, h), S.m)
   local strip = {}
   for i, d in ipairs(desks) do
     rows_d[i] = { id = d.id, name = d.name, named = d.named, monitor = d.monitor, active = d.active }
@@ -142,9 +140,13 @@ morf.effect("eva.overview.rebuild", function()
   if M.opened:get() then rebuild() end
 end)
 
-local function others()
+-- The cards on show keep up; the rest keep the picture taken on opening.
+local function on_show()
   local list = {}
-  for _, c in ipairs(windows.list()) do list[#list + 1] = c end
+  for r = 1, M.cards:len() do
+    local c = windows.get(M.cards:get(r).address)
+    if c then list[#list + 1] = c end
+  end
   return list
 end
 
@@ -154,8 +156,8 @@ local function stop_live()
 end
 local function start_live()
   stop_live()
-  shots.refresh(others())
-  live = morf.time.timer(LIVE_MS, function() shots.refresh(others()) end, true)
+  shots.refresh(windows.list())
+  live = morf.time.timer(LIVE_MS, function() shots.refresh(on_show()) end, true)
 end
 
 --- Shows it, the cards leaving their windows.
@@ -221,7 +223,6 @@ function M.view(id) M.viewing:set(id) end
 
 --- Fills the search with `text`.
 function M.search(text)
-  M.typed:set(text)
   M.query:set(text)
   return true
 end
@@ -303,7 +304,7 @@ end
 
 local DIRECTIONS = { Up = { 0, -1 }, Down = { 0, 1 }, Left = { -1, 0 }, Right = { 1, 0 } }
 
-function M.key(_, _, modifiers, _, name)
+function M.key(_, text, modifiers, _, name)
   if name == "Escape" then M.close() return true end
   if name == "Return" or name == "KP_Enter" then M.activate() return true end
   local d = DIRECTIONS[name]
@@ -328,6 +329,18 @@ function M.key(_, _, modifiers, _, name)
       if desk then M.view(desk.id) end
       return true
     end
+    return false
+  end
+  -- What is typed goes to the search, wherever the keys are.
+  if name == "BackSpace" then
+    local query = M.query:get()
+    local cut = utf8.offset(query, -1)
+    M.query:set(cut and query:sub(1, cut - 1) or "")
+    return true
+  end
+  if text and text ~= "" and not (modifiers or ""):find("alt") and text:byte(1) >= 32 and text:byte(1) ~= 127 then
+    M.query:set(M.query:get() .. text)
+    return true
   end
   return false
 end
