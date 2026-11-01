@@ -271,6 +271,16 @@ def run(password):
         ipc("close")
         machine.sleep(1)
 
+    with subtest("a panel keeps two fingers"):
+        ipc("bottom", "open")
+        machine.sleep(2)
+        machine.screenshot("panel-open")
+        stroke(line([(640, 770), (720, 690)]), line([(640, 470), (720, 390)]))
+        machine.sleep(2)
+        check("two fingers starting on an open panel do not raise the keyboard", not keyboard_up(), str(ipc("touch")))
+        ipc("close")
+        machine.sleep(1)
+
     with subtest("three fingers"):
         go_to(1)
         stroke(line([(900, 300), (980, 320), (1060, 300)]), line([(300, 300), (380, 320), (460, 300)]), steps=30)

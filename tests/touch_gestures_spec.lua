@@ -8,9 +8,11 @@ local HOST=[[
   morf.ipc.drive=function(text)
     local log={}
     local regions=text:find("KEYBOARD",1,true) and {{name="keyboard",x=0,y=500,width=1280,height=300}} or {}
+    local panel=text:find("PANEL",1,true)
     local g=gestures.new {size=function() return 1280,800 end,regions=function() return regions end,
+      owned=function(x,y) return panel~=nil and x>=400 and x<900 and y>=500 end,
       on=function(event) log[#log+1]=event end}
-    for _,step in ipairs(morf.json.decode((text:gsub("KEYBOARD","")))) do
+    for _,step in ipairs(morf.json.decode((text:gsub("KEYBOARD",""):gsub("PANEL","")))) do
       local kind=step[1]
       if kind=="down" then g.down(step[2],step[3],step[4],step[5])
       elseif kind=="move" then g.move(step[2],step[3],step[4])
@@ -93,6 +95,23 @@ test.describe("two fingers",function()
     test.eq(first(log).region,"keyboard")
     test.eq(test.ipc("key",morf.json.encode(first(log))),"two_down_keyboard")
     test.truthy(last(log).committed)
+  end)
+end)
+
+test.describe("where the shell keeps its fingers",function()
+  local function on_panel(steps) return test.ipc("drive","PANEL"..morf.json.encode(steps)) end
+  test.it("two fingers starting there begin nothing, even from an edge",function()
+    test.eq(#on_panel(stroke({{640,770},{720,700}},0,-300,300,24)),0)
+  end)
+  test.it("one finger there is enough",function()
+    test.eq(#on_panel(stroke({{640,770},{1000,700}},0,-300,300,24)),0)
+  end)
+  test.it("two fingers beside it go on as ever",function()
+    test.eq(first(on_panel(stroke({{100,770},{200,700}},0,-300,300,24))).edge,"bottom")
+  end)
+  test.it("three fingers are global, wherever they start",function()
+    local log=on_panel(stroke({{500,700},{570,700},{640,700}},-300,0,300,24))
+    test.eq(first(log).fingers,3) test.eq(first(log).direction,"left")
   end)
 end)
 

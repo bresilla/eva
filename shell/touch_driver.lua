@@ -5,8 +5,9 @@
 -- password prompt and the capture editor stop the reader outright, so it cannot
 -- see where a finger lands on a PIN pad.
 --
--- It owns what it binds: a gesture it begins cancels what an edge strip was
--- doing, and while it reads, phone_gestures leaves two fingers to it (`owns`).
+-- One gesture has one owner. A gesture it begins cancels what an edge strip or a
+-- panel's pan was doing, and while it reads, phone_gestures leaves two fingers to
+-- it (`owns`). Two fingers starting on an open panel are the panel's.
 local morf = require("morf")
 local config = require("config")
 local service = require("lib.services.touch_reader")
@@ -148,7 +149,7 @@ local function begin(event, key)
   if dark or M.trying:get() or chosen == "none" then return end
   local action = actions.BY_KEY[chosen]
   if not action then return end
-  require("phone_gestures").yield()
+  require("phone_gestures").yield(true)
   current = { action = action, key = key, name = chosen, handle = action.follow and action.follow(event) or nil }
   if event.kind == "hold" then
     require("haptics").fire("long")
@@ -212,9 +213,17 @@ local function stand_in()
   end }
 end
 
+-- Where the shell keeps its own fingers: an open panel, and the overview.
+local function owned(x, y)
+  local overview = package.loaded.overview
+  if overview and overview.opened:get() then return true end
+  return require("phone_gestures").on_panel(x, y)
+end
+
 local function build()
   if reader then return end
-  recogniser = gestures.new { size = function() return require("responsive").size() end, regions = regions, on = hear }
+  recogniser = gestures.new { size = function() return require("responsive").size() end, regions = regions,
+    owned = owned, on = hear }
   local sink = {
     down = function(id, x, y, ms)
       stamp(ms)

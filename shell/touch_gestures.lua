@@ -17,7 +17,8 @@
 --
 -- One or two fingers swipe only from an edge they started near, or from a region:
 -- a scroll in an app is two fingers anywhere else. Three or more swipe anywhere,
--- and pinch. Every finger must travel with the rest.
+-- and pinch. Every finger must travel with the rest. `owned(x, y)`, if given, says
+-- where the shell keeps its own fingers: one or two starting there begin nothing.
 local motion = require("gesture_motion")
 
 local M = {
@@ -108,6 +109,13 @@ function M.new(spec)
     end
   end
 
+  local function claimed()
+    for _, f in ipairs(fingers) do
+      if spec.owned and spec.owned(f.sx, f.sy) then return true end
+    end
+    return false
+  end
+
   local function direction_of(dx, dy)
     if math.abs(dx) > math.abs(dy) * M.AXIS then return dx < 0 and "left" or "right" end
     if math.abs(dy) > math.abs(dx) * M.AXIS then return dy < 0 and "up" or "down" end
@@ -194,7 +202,7 @@ function M.new(spec)
         if edges[name] and inward == direction then edge = name end
       end
       local region = region_of()
-      if n >= 3 or edge or region then return begin("swipe", direction, n, edge, region) end
+      if n >= 3 or ((edge or region) and not claimed()) then return begin("swipe", direction, n, edge, region) end
       run.spent = true
     elseif travel >= M.START * M.WANDER then
       run.spent = true

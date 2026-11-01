@@ -20,6 +20,7 @@ local function native_enabled()
 end
 local global_enabled=morf.signal("eva.global.recognizers",native_enabled())
 local cancel_global={}
+local cancel_surface={}
 function M.global_allowed() local enabled=global_enabled:get() return enabled and native_enabled() end
 local function regions_visible() return global_enabled:get() end
 function M.handoff(enabled)
@@ -74,9 +75,13 @@ local function driven()
   return driver~=nil and driver.owns()
 end
 
---- Lets go of whatever an edge strip holds: a global gesture has begun.
-function M.yield()
+--- Lets go of whatever an edge strip holds: two fingers landed together. With
+--- `panels`, what a panel's own pan holds as well: a global gesture has begun.
+function M.yield(panels)
   for _,cancel in ipairs(cancel_global) do cancel() end
+  if not panels then return end
+  for _,cancel in ipairs(cancel_surface) do cancel() end
+  for _,drawer in ipairs(require("drawer").all) do drawer.end_drag(0,true) end
 end
 
 local function top_page(x)
@@ -139,6 +144,9 @@ local function over_panel(x, y)
   end
 end
 
+--- Whether an open panel lies under (`x`, `y`).
+function M.on_panel(x, y) return over_panel(x, y) ~= nil end
+
 --- Whether a pull `direction` from (`x`, `y`) drags an open panel shut, so a
 --- list under the finger leaves it to the panel.
 function M.pulls_shut(direction, x, y)
@@ -154,6 +162,10 @@ end
 function M.pan(spec)
   if not M.continuous then return nil end
   local drawer, pager
+  cancel_surface[#cancel_surface+1]=function()
+    if pager then pager.finish(0,true) pager=nil end
+    drawer=nil
+  end
   return function(phase, dx, dy, vx, vy, x, y)
     if phase == "begin" then
       if blocked(spec.drawer) then return false end

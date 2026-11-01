@@ -357,3 +357,8 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   its fingers away from the app under them. Hyprland also keeps one touch focus:
   with a finger on eva and a finger on an app, both lifts go to the app, so the
   strip under the first finger never hears it lift.
+- Cancelling a surface's contacts. A second finger on a surface interrupts its
+  pan, but one landing on an app does not, so `phone_gestures.yield` reaches the
+  panels' pans and drawers by hand. A list's scroll or `themes/swipe_dismiss.lua`
+  under one of three fingers runs on. `morf.surface.cancel_touches()` would end
+  them all.

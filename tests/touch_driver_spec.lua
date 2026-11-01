@@ -40,6 +40,7 @@ local SOURCE=[[
   morf.ipc.reset_bindings=function(form) require("touch_bindings").reset(form) end
   morf.ipc.command=function(key,words) require("touch_bindings").set_command(key,{words}) end
   morf.ipc.osd_level=function(kind) return (require("osd")[kind]()) end
+  morf.ipc.dashboard_tab=function() return require("dashboard").tab:get() end
   morf.ipc.compositor=function(locked,off)
     local hyprland=require("lib.compositor.hyprland")
     hyprland.available=function() return true end
@@ -479,6 +480,78 @@ test.describe("one owner",function()
     test.falsy(spy().preview,"the rest of the strip's drag stays cancelled")
     test.touch("up",0,540,795) test.settle(800)
     test.eq(#spy().switches,0)
+  end)
+end)
+
+test.describe("a panel under the fingers",function()
+  local DEVICES=morf.env("EVA_INPUT_DEVICES")
+  -- A tablet: the dashboard hangs from the bottom edge, over the edge band.
+  local function on_tablet()
+    load({EVA_INPUT_DEVICES=DEVICES.."-touch"},{1280,800})
+    test.eq(touch().form,"tablet")
+    test.ipc("dashboard","open") test.settle(1200)
+    test.truthy(spy().dashboard)
+  end
+  local ON_PANEL={{640,770},{720,700}}
+  -- Fingers on the shell as well as read: what a real touch does, both at once.
+  local function both(from,dx,dy,steps)
+    for id,at in ipairs(from) do test.touch("down",id,at[1],at[2]) end
+    land(from)
+    for n=1,steps do
+      for id,at in ipairs(from) do test.touch("move",id,at[1]+dx*n/steps,at[2]+dy*n/steps) end
+      for id,at in ipairs(from) do
+        feed(lines("TOUCH_MOTION",id,at[1]+dx*n/steps,at[2]+dy*n/steps))
+      end
+      frame()
+    end
+    for id,at in ipairs(from) do test.touch("up",id,at[1]+dx,at[2]+dy) end
+    lift(from) test.settle(1000)
+  end
+  test.it("two fingers from the edge band on an open panel are the panel's",function()
+    on_tablet()
+    both(ON_PANEL,0,-300,8)
+    local s=spy()
+    test.falsy(s.keyboard,"the driver left it alone")
+    test.eq(s.shown,0)
+    test.eq(touch().heard.key,nil)
+    test.eq(#test.logs("error"),0)
+  end)
+  test.it("two fingers beside an open panel are the driver's as ever",function()
+    load()
+    test.ipc("sidebar","open","notifications") test.settle(1200)
+    stroke({{300,770},{380,700}},0,-300,12)
+    test.truthy(spy().keyboard)
+  end)
+  test.it("two fingers on the overview are the overview's",function()
+    load()
+    test.ipc("overview","open") test.settle(1200)
+    stroke(TWO,0,-300,12)
+    test.falsy(spy().keyboard)
+    test.ipc("overview","close") test.settle(800)
+    stroke(TWO,0,-300,12)
+    test.truthy(spy().keyboard,"and the driver's again once it has gone")
+  end)
+  test.it("one finger on a panel never reaches the driver's bindings",function()
+    on_tablet()
+    both({{640,560}},0,200,14)
+    test.eq(#spy().fired,0)
+    test.falsy(spy().keyboard)
+  end)
+  test.it("three fingers are global: the panel's own pull lets go",function()
+    on_tablet()
+    local before=test.ipc("dashboard_tab")
+    -- The first finger on the panel drags its pages; the others land on an app.
+    test.touch("down",1,700,560) test.advance(16)
+    for i=1,5 do test.touch("move",1,700-i*20,560) test.advance(16) end
+    local three={{700,560},{780,300},{860,300}}
+    land(three)
+    move(three,-500,0,16,1)
+    test.truthy(spy().preview,"the workspaces follow the fingers")
+    for i=6,20 do test.touch("move",1,700-i*20,560) test.advance(16) end
+    test.touch("up",1,300,560) lift(three) test.settle(1200)
+    test.eq(test.ipc("dashboard_tab"),before,"its page did not turn as well")
+    test.eq(spy().switches[1],2)
+    test.eq(#test.logs("error"),0)
   end)
 end)
 
