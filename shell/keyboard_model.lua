@@ -52,9 +52,9 @@ function M.purpose()
   local asked = M.asked:get()
   if asked ~= "" and M.PURPOSES[asked] then return asked end
   local app = M.app:get()
-  local classes = config.get("keyboard.classes")
-  local wanted = app ~= "" and classes and classes[app]
-  if wanted and M.PURPOSES[wanted] then return wanted end
+  for _, pair in ipairs(config.get("keyboard.classes")) do
+    if pair[1] == app and M.PURPOSES[pair[2]] then return pair[2] end
+  end
   return "normal"
 end
 
@@ -216,21 +216,17 @@ end
 
 --- The language in use.
 function M.layout()
-  local list = M.languages()
-  local id = config.get("keyboard.language")
-  for _, layout in ipairs(list) do if layout.id == id then return layout end end
-  return list[1]
+  return layouts.get(config.get("keyboard.language")) or M.languages()[1]
 end
 
 --- Moves to the next language in the list.
 function M.next_language()
   local list, now = M.languages(), M.layout()
+  local to = list[1]
   for i, layout in ipairs(list) do
-    if layout.id == now.id then
-      config.set("keyboard.language", list[i % #list + 1].id)
-      return
-    end
+    if layout.id == now.id then to = list[i % #list + 1] end
   end
+  config.set("keyboard.language", to.id)
 end
 
 --- Uses language `id`.

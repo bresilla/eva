@@ -10,6 +10,7 @@ local M = {}
 M.font = "Google Sans Flex, Rubik"
 M.auth_font = "Roboto"
 M.icon_font = "Material Symbols Rounded"
+M.emoji_font = "Noto Color Emoji"
 M.mono = "CaskaydiaCove Nerd Font, JetBrainsMono Nerd Font, monospace"
 
 -- In pixels. The reference sets type in points, which Qt draws at 4/3 of

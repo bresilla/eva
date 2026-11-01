@@ -201,12 +201,12 @@ local config = settings.open {
       float_y = 0.6,
       -- Shortcuts typed that expand, as { "omw", "on my way" } pairs.
       replacements = {},
-      -- What a window's class asks of the keyboard: a purpose from
-      -- shell/keyboard_model.lua.
+      -- What a window's class asks of the keyboard, as { "class", "purpose" }
+      -- pairs: a purpose from shell/keyboard_model.lua.
       classes = {
-        kitty = "dev", foot = "dev", alacritty = "dev", wezterm = "dev", ghostty = "dev",
-        ["org.wezfurlong.wezterm"] = "dev", ["com.mitchellh.ghostty"] = "dev",
-        ["eva.phone"] = "phone",
+        { "kitty", "dev" }, { "foot", "dev" }, { "alacritty", "dev" }, { "wezterm", "dev" }, { "ghostty", "dev" },
+        { "org.wezfurlong.wezterm", "dev" }, { "com.mitchellh.ghostty", "dev" },
+        { "eva.phone", "phone" },
       },
     },
     services = {

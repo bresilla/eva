@@ -9,6 +9,7 @@ M.auth_font = M.font
 M.mono = M.font
 -- The shared glyph set for icons; Tsugumori draws them at its own weights.
 M.icon_font = "Material Symbols Rounded"
+M.emoji_font = "Noto Color Emoji"
 -- Pixel sizes shared with every theme's layouts (a layout reserves the box,
 -- so the set of names and their sizes must match across themes).
 M.size = {

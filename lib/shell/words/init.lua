@@ -16,7 +16,7 @@ local unicase = require("lib.util.unicase")
 
 local M = { revision = morf.signal("eva.words.revision", 0) }
 
-local PIECE = 1500
+local PIECE = 300
 local books = {}
 
 local function shipped(language) return morf.paths.shell("assets/words/" .. language .. ".txt") end

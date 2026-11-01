@@ -71,16 +71,20 @@ local grouped -- group id to its rows, made on first use
 function emoji.group(id)
   if not grouped then
     grouped = {}
-    for _, group in ipairs(emoji.GROUPS) do grouped[group.id] = {} end
+    local spans = {}
+    for _, group in ipairs(emoji.GROUPS) do
+      local rows = {}
+      grouped[group.id] = rows
+      for _, range in ipairs(group.ranges) do
+        spans[#spans + 1] = { range[1], range[2], rows }
+      end
+    end
     for _, row in ipairs(load()) do
       local cp = utf8.codepoint(row.char)
-      for _, group in ipairs(emoji.GROUPS) do
-        local found = false
-        for _, range in ipairs(group.ranges) do
-          if cp >= range[1] and cp <= range[2] then found = true end
-        end
-        if found then
-          local rows = grouped[group.id]
+      for i = 1, #spans do
+        local span = spans[i]
+        if cp >= span[1] and cp <= span[2] then
+          local rows = span[3]
           rows[#rows + 1] = row
           break
         end

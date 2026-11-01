@@ -36,7 +36,7 @@ function V.build(parts)
     columns = columns, overscan = 2, model = rows,
     delegate = function(row)
       local text = ui.Text { anchors = { center_in = true }, text = row.char, font_size = math.floor(cell * .6),
-        color = kit.ink("hi") }
+        font_family = theme.emoji_font, color = kit.ink("hi") }
       return ui.Item { width = cell, height = cell, text }, function(next_row) text.text = next_row.char end
     end,
   }
