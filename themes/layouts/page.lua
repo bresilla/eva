@@ -173,16 +173,20 @@ function P.row(spec)
   local text_x = spec.icon and 50 or 14
   local text_w = function() return math.max(1e-3, get(w) - text_x - (trailing and trailing_w() + 28 or 14)) end
   local lit = spec.on or function() return true end
+  local text = ui.Column { x = text_x, width=text_w,clip=true,anchors = { vertical_center = true }, gap = 2,
+    kit.text { id = spec.id and spec.id .. "-title", text = spec.title, width = text_w, elide = "right",
+      font_size = theme.size.normal, font_weight = 500, color = kit.ink("hi") },
+    spec.subtitle and kit.text { id = spec.id and spec.id .. "-subtitle", text = spec.subtitle, width = text_w,
+      wrap = true, max_lines = 3, font_size = SUB, color = kit.ink("lo") } or nil,
+  }
+  -- A note that wraps takes the room it needs.
+  local fixed = h
+  h = function() return math.max(get(fixed), text.layout_height or 0) end
   local body = {
     id = spec.id, width = w, height = h, enter = spec.enter,
     spec.icon and kit.icon(spec.icon, 22, function() return lit() and kit.ink("accent")() or kit.ink("lo")() end,
       { x = 14, anchors = { vertical_center = true } }) or nil,
-    ui.Column { x = text_x, width=text_w,clip=true,anchors = { vertical_center = true }, gap = 2,
-      kit.text { id = spec.id and spec.id .. "-title", text = spec.title, width = text_w, elide = "right",
-        font_size = theme.size.normal, font_weight = 500, color = kit.ink("hi") },
-      spec.subtitle and kit.text { id = spec.id and spec.id .. "-subtitle", text = spec.subtitle, width = text_w,
-        elide = "right", font_size = SUB, color = kit.ink("lo") } or nil,
-    },
+    text,
   }
   if trailing then
     body[#body + 1] = ui.Item { anchors = { right = true, right_margin = 12, vertical_center = true },
