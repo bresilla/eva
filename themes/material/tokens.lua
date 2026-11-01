@@ -62,7 +62,12 @@ M.springs = {
 -- percent and relaxes at once, near critical damping, so it never wobbles.
 M.stretch = {
   drawer = { stiffness = 520, damping = 42, scale = 0.022, max = 0.05 },
+  thumb = { stiffness = 420, damping = 26, scale = 0.9, max = 0.3 },
 }
+
+-- What a press gives: how far a surface sinks under the finger, how much tighter
+-- its corners close, and how much wider a range's handle grows while held.
+M.give = { scale = 0.97, corner = 0.7, handle = 1.8 }
 
 -- Durations and curves fitted to films of the reference in the sandbox
 -- (tools/sandbox/eva-motion.steps): a drawer opens on the spatial

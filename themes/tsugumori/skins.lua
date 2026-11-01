@@ -139,9 +139,10 @@ return function(theme, M, hud)
       background = ui.Rect { anchors = { fill = true }, radius = 0, border_width = 1,
         color = function() return C.surfaceContainerHighest end,
         border_color = function() return t.checked and stroke(C, "focus") or stroke(C, "idle") end },
-      indicator = ui.Rect { y = 5, x = function() return (t.checked ~= (t.mirrored == true)) and 28 or 5 end, width = 19, height = 22,
+      indicator = ui.Rect { id = spec.id and spec.id .. "-thumb", y = 5,
+        x = function() return (t.checked ~= (t.mirrored == true)) and 28 or 5 end, width = 19, height = 22,
         color = function() return t.checked and C.primary or C.outline end,
-        behavior = { x = { duration = 150, easing = "out_cubic" } } },
+        behavior = { x = theme.spring.press } },
       badge = feedback(t, spec.id),
     }
   end

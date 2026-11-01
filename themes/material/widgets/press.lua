@@ -15,9 +15,17 @@ return function(S, theme, M)
   local function C() return theme.color end
   local function get(v) if type(v) == "function" then return v() end return v end
   local function fade() return { duration = theme.duration.small, easing = theme.ease.standard } end
-  -- The shape spring: quick, with a touch of overshoot.
-  local function bounce() return M.spring(520, 22) end
+  -- The shape spring: quick, overshooting a little as a press lets go.
+  local function bounce() return theme.spring.press end
   local function none() return nil end
+  local function held(t) return function() return t.down and theme.give.scale or 1 end end
+  --- `node` sinks with the press: claims give a built caption its spring.
+  local function sinks(t, node)
+    ui.claims(node, { motion = bounce(),
+      held = { when = function() return t.down end, set = { scale = theme.give.scale } },
+      free = { set = { scale = 1 } } })
+    return node
+  end
   local SLOTS = { "background", "content", "indicator", "icon", "label", "badge" }
   local function full(slots)
     for _, name in ipairs(SLOTS) do if slots[name] == nil then slots[name] = none end end
@@ -93,7 +101,7 @@ return function(S, theme, M)
   local function button(t, spec, o)
     local function ink() return get(o.ink) end
     local rest = o.rest or function(h) return h / 2 end
-    local pressed = o.pressed or rest
+    local pressed = o.pressed or function(h) return rest(h) * theme.give.corner end
     local function radius()
       local h = math.min(H(t), W(t))
       if t.down then return pressed(h) end
@@ -102,14 +110,15 @@ return function(S, theme, M)
     end
     local sc, sb, sy
     if o.level then sc, sb, sy = shadow(t, o.level, o.hover_level) end
+    local body = o.content == false and none or sinks(t, o.content or content(t, spec, ink, o))
     return full {
-      background = ui.Rect { anchors = { fill = true }, radius = radius,
-        color = layer(t, o.container, ink),
+      background = ui.Rect { id = spec.id and spec.id .. "-plate", anchors = { fill = true }, radius = radius,
+        scale = held(t), color = layer(t, o.container, ink),
         border_width = o.outline and (o.outline_width or 1) or 0,
         border_color = o.outline,
         shadow_color = sc, shadow_blur = sb, shadow_offset_y = sy,
-        behavior = { radius = bounce(), color = fade(), shadow_blur = fade(), shadow_offset_y = fade() } },
-      content = (o.content == false) and none or (o.content or content(t, spec, ink, o)),
+        behavior = { radius = bounce(), scale = bounce(), color = fade(), shadow_blur = fade(), shadow_offset_y = fade() } },
+      content = body,
       indicator = ring(t, radius),
     }
   end
@@ -197,8 +206,8 @@ return function(S, theme, M)
       selected = o.selected, pressed = o.pressed, content = false })
     slots.icon = ui.Item { anchors = { center_in = true }, width = 24, height = 24,
       translate_x = o.nudge and function() return t.hovered and o.nudge() or 0 end or nil,
-      rotation = o.turn, scale = o.scale,
-      behavior = { translate_x = bounce(), rotation = M.spring(420, 18), scale = M.spring(520, 14) },
+      rotation = o.turn, scale = o.scale or held(t),
+      behavior = { translate_x = bounce(), rotation = M.spring(420, 18), scale = bounce() },
       M.icon(glyph, o.size or 24, ink, { anchors = { center_in = true }, fill = o.fill }) }
     return slots
   end
@@ -325,10 +334,11 @@ return function(S, theme, M)
       background = ui.Rect { anchors = { fill = true, left_margin = outer_l and 0 or 1, right_margin = outer_r and 0 or 1 },
         top_left_radius = corner(outer_l), bottom_left_radius = corner(outer_l),
         top_right_radius = corner(outer_r), bottom_right_radius = corner(outer_r),
+        scale = held(t),
         color = layer(t, function() return t.checked and C().secondaryContainer or C().surfaceContainerHigh end, ink),
         behavior = { top_left_radius = bounce(), bottom_left_radius = bounce(), top_right_radius = bounce(),
-          bottom_right_radius = bounce(), color = fade() } },
-      content = inner,
+          bottom_right_radius = bounce(), scale = bounce(), color = fade() } },
+      content = sinks(t, inner),
       indicator = ring(t, function() return H(t) / 2 end),
     }
   end
