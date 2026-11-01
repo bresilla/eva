@@ -9,6 +9,7 @@
   material-symbols,
   ibm-plex,
   nerd-fonts,
+  noto-fonts-color-emoji,
   runtimeShell,
   src,
   version,
@@ -23,6 +24,7 @@ let
     { package = ibm-plex; name = "IBMPlexMono-Regular.otf"; }
     { package = nerd-fonts."m+"; name = "M+1NerdFont-Regular.ttf"; }
     { package = nerd-fonts.caskaydia-cove; name = "CaskaydiaCoveNerdFont-Regular.ttf"; }
+    { package = noto-fonts-color-emoji; name = "NotoColorEmoji.ttf"; }
   ];
 in
 # Everything eva installs, in one output:

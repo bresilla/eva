@@ -7,6 +7,9 @@ return {
   views = {
     keyboard = "themes.layouts.views.keyboard",
     call = "themes.layouts.views.call",
+    keyboard_strip = "themes.layouts.views.keyboard_strip",
+    keyboard_emoji = "themes.layouts.views.keyboard_emoji",
+    keyboard_page = "themes.layouts.views.keyboard_page",
     bar = "themes.layouts.views.bar",
     side_panel = "themes.layouts.views.side_panel",
     connectivity = "themes.layouts.views.connectivity",

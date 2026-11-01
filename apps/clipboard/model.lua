@@ -1,6 +1,7 @@
 -- eva-clipboard's history: text and pictures copied, newest first, pins on top,
 -- kept in a private folder. What a password manager marks is never read.
 local morf = require("morf")
+local store = require("lib.shell.clipboard.store")
 
 local M = {
   items = morf.signal("clipboard.items", {}),
@@ -18,11 +19,7 @@ M.SECRET = {
   ["application/x-nspasteboard-concealed-type"] = true,
 }
 
-local function folder()
-  return (morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")) .. "/eva/clipboard"
-end
-
-local function index() return folder() .. "/history.json" end
+local folder, index = store.folder, store.index
 
 local function dry()
   local value = morf.env("EVA_DRY_RUN")
@@ -35,8 +32,8 @@ local function save(list)
 end
 
 function M.load()
-  local ok, list = pcall(function() return morf.json.decode(morf.fs.read(index())) end)
-  if ok and type(list) == "table" then M.items:set(list) end
+  local list = store.read()
+  if list then M.items:set(list) end
 end
 
 -- `list` with pins first, within the limit; what falls off loses its file.

@@ -442,6 +442,83 @@ encoder onto a real `dbus-daemon` and reads the types back off the wire, which n
 spec can: it checks what goes out, not what a modem does with it.
 `FEEDBACKD=... tools/phone-daemons.sh` runs the ringer against the real feedbackd.
 
+## On-screen keyboard
+
+The keyboard comes up by itself when a program asks for text and no real
+keyboard is attached, and two fingers bring it up or take it away anywhere. It
+is in the settings under Eva, On-screen keyboard; `keyboard` over IPC opens it,
+and `keyboard language sq`, `keyboard hand left`, `keyboard floating on`,
+`keyboard purpose phone` drive the rest.
+
+The strip over the keys offers what the word at the cursor might be, from
+offline lists in `shell/assets/words`; a list of your own at
+`$XDG_DATA_HOME/eva/words/<language>.txt` comes first, one word a line, the most
+common at the top. It offers corrections in the accent colour, an emoji when
+the word names one, the date for `today`, `date` and `now`, your shortcuts
+(`keyboard.replacements`, as `{ "omw", "on my way" }` pairs) and, between words
+in English, what tends to come next. The chevron swaps the strip for the tools:
+the clipboard, emoji, the cursor keys, the boards, the next language, one hand,
+floating, split, private typing, the settings and hide.
+
+Holding a key offers its accents; holding shift locks capitals; holding
+backspace moves on to whole words; a finger along the space bar moves the cursor
+(with shift, it selects). Two spaces make a full stop, a sentence starts with a
+capital, and punctuation after a picked word pulls over its space. The handle
+over the strip takes a finger down to shut the keyboard, or carries it about
+while it floats.
+
+Languages: English, Shqip, Deutsch, Nederlands, Français, Español, Italiano,
+Português, Svenska, Suomi, Norsk, Dansk, Polski, Čeština, Türkçe, Русский,
+Українська and Ελληνικά, with Dvorak and Colemak. Ukrainian has no word list.
+`keyboard.languages` picks those to switch between; empty takes the locale's,
+then English. `keyboard.layouts` adds your own, as `{ id, name, short, rows,
+alts, words }`. Letters past QWERTY's 26 stand on the digit keys, so with the
+number row on such a language keeps its extra letters on a long press, and
+Russian and Ukrainian go without the row.
+
+**What it cannot tell.** A program's text field says what it is for (a password,
+a phone number, a URL) in the protocol, but morf 0.6.2 drops that message
+(NEEDS.md). So the keyboard cannot recognise a password field in another program.
+It reads a masked field (`••••`) as private, but not an empty one, and an empty
+password field gets a capital like any other: shift lights up, and a tap takes
+it off. For the same reason two things that would rewrite or keep what you type
+are **off** until you turn them on, under Privacy on the settings page:
+
+- **Autocorrect** would rewrite a password on space.
+- **Learn new words** would write a password to disk, in
+  `~/.local/state/morf/*/eva-keyboard-words.json`, readable by you alone.
+  Forget learned words deletes it.
+
+Prediction only reads the field's text in memory, and keeps nothing. Private
+typing in the tools turns all of it off by hand. Emoji picked stay in memory
+until the shell stops.
+
+The window's class stands in for the field: `keyboard.classes` says a terminal
+wants the `dev` board and `eva.phone` the dial pad, and a tool of eva's own can
+say `keyboard purpose phone`. When the engine reports a field's purpose, that
+goes first, with no change to anything that asks.
+
+The clipboard strip reads what `eva-clipboard` holds and never writes to it. It
+lives in the shell's own view: the lock screen and the greeter share only the
+panel of keys (`themes/keyboard.lua`), so a locked screen cannot show it, and it
+reads nothing while the session is locked.
+
+`keyboard.voice` names a command that listens and prints what it heard, for a
+microphone in the tools; eva ships no speech engine. Swipe typing is not here:
+there is no free decoder to build on yet.
+
+`EVA_FAKE_IME=1` stands in for a text field: `keyboard field TEXT`, `keyboard
+type TEXT` and `keyboard pick N` drive the keyboard, as `tools/see/keyboard.steps`
+does. `tools/see/keyboard-ime.steps` runs it against a real GTK field, with
+zenity on PATH.
+
+**Sources.** The word lists in `shell/assets/words` are cut from the Android Open
+Source Project's LatinIME dictionaries, under the Apache License 2.0, with
+offensive entries removed. `sq.txt` is from Hermit Dave's FrequencyWords and stays
+under CC BY-SA 4.0. `en.next.txt` was written for eva. `tools/words.lua` makes
+them from the published lists, and `shell/assets/words-LICENSE.md` holds the
+licences. The emoji pane uses Noto Color Emoji.
+
 ## Visual themes (in progress)
 
 The shell, lock and greeter select a visual package with
