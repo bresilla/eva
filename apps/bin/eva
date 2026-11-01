@@ -3,7 +3,9 @@
 #
 #   eva VERB [ARGS]         a verb of the running shell
 #   eva open TARGET         a deep link: settings/power, sidebar/notifications,
-#                           bottom/drop, or a tool such as displays
+#                           bottom/drop, launcher/timer, or a tool such as displays
+#   eva dmenu [-p PROMPT]   the lines of stdin to choose from in the launcher; the
+#                           choice on stdout, or exit 1 with none
 #   eva commands [--json]   the verbs, with what each one takes
 #   eva tools               the tools of this install
 #
@@ -14,7 +16,7 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 
 verbs() {
   cat <<'VERBS'
-launcher|toggle, open or close|The application launcher
+launcher|toggle, open, close, apps, web, mode WORD, query TEXT or selection|The application launcher
 dashboard|toggle, open or close|The dashboard
 session|toggle, open or close|The session menu
 sidebar|HOW [TAB]|The right panel: settings or notifications
@@ -87,8 +89,23 @@ need_shell() {
   fi
 }
 
+# The lines of stdin as a menu in the launcher; what was chosen on stdout.
+dmenu() {
+  prompt=Choose
+  if [ "${1:-}" = -p ]; then prompt=${2:?usage: eva dmenu [-p PROMPT]}; fi
+  need_shell
+  folder=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/eva-dmenu.XXXXXX")
+  trap 'rm -rf "$folder"' EXIT
+  cat > "$folder/in"
+  eva_ipc launcher dmenu "$folder/in" "$folder/out" "$prompt" > /dev/null
+  while [ ! -e "$folder/out" ]; do sleep 0.05; done
+  [ -s "$folder/out" ] || exit 1
+  cat "$folder/out"
+}
+
 open_target() {
   case "$1" in
+    launcher/*) need_shell; eva_ipc launcher mode "${1#launcher/}" ;;
     settings/*) need_shell; eva_ipc settings "${1#settings/}" ;;
     sidebar/*) need_shell; eva_ipc sidebar open "${1#sidebar/}" ;;
     leftbar/*) need_shell; eva_ipc leftbar open "${1#leftbar/}" ;;
@@ -119,6 +136,10 @@ case "${1:-help}" in
     ;;
   open)
     open_target "${2:?usage: eva open TARGET}"
+    ;;
+  dmenu)
+    shift
+    dmenu "$@"
     ;;
   *)
     need_shell
