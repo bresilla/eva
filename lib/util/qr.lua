@@ -14,8 +14,8 @@ local poll = require("lib.util.poll")
 
 local M = { LEVELS = { "L", "M", "Q", "H" } }
 
--- Calls of work to a tick: half a handler's fuel, a call being some 25 instructions.
-local SLICE = 20000
+-- Calls of work to a tick: about a third of a handler's fuel.
+local SLICE = 12000
 
 local ECC_PER_BLOCK = {
   L = { 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28,
@@ -438,7 +438,7 @@ local function chunk(kind, data, spend)
   local value, body = 0xFFFFFFFF, kind .. data
   for i = 1, #body do
     value = CRC[(value ~ body:byte(i)) & 255] ~ (value >> 8)
-    if i % 1024 == 0 then spend(1024) end
+    if i % 1024 == 0 then spend(2048) end
   end
   return string.pack(">I4", #data) .. body .. string.pack(">I4", value ~ 0xFFFFFFFF)
 end
@@ -449,7 +449,7 @@ local function stored(data, spend)
   for i = 1, #data do
     low = (low + data:byte(i)) % 65521
     high = (high + low) % 65521
-    if i % 1024 == 0 then spend(1024) end
+    if i % 1024 == 0 then spend(2048) end
   end
   local parts = { "\x78\x01" }
   for at = 1, math.max(#data, 1), 65535 do
