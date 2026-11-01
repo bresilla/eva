@@ -342,29 +342,13 @@ M.TOGGLES = {
   {
     -- The battery: its charge, and a ">" to the Power page (profiles,
     -- health, how it charges). A tap opens the page too.
-    id = "battery", name = "Battery", detail = "power",
-    icon = function()
-      local u = services.upower
-      local d = u and u.state.available and u.state.display or {}
-      if not d.present then return "power" end
-      if d.charging then return "battery_charging_full" end
-      local pct = d.percentage or 0
-      if pct > 90 then return "battery_full" end
-      if pct > 50 then return "battery_5_bar" end
-      if pct > 20 then return "battery_3_bar" end
-      return "battery_alert"
-    end,
-    on = function()
-      local u = services.upower
-      local d = u and u.state.available and u.state.display or {}
-      return d.charging == true
-    end,
+    id = "battery", name = "Battery", detail = "power", icon = "power",
+    glyph = function() return require("battery_status_model").read() end,
+    on = function() return require("battery_status_model").read().charging end,
     set = function() M.detail:set("power") end,
     status = function()
-      local u = services.upower
-      local d = u and u.state.available and u.state.display or {}
-      if not d.present then return "On mains power" end
-      return ("%d%%%s"):format(math.floor((d.percentage or 0) + 0.5), d.charging and ", charging" or "")
+      local battery = require("battery_status_model")
+      return battery.describe(battery.read())
     end,
   },
   {
@@ -518,6 +502,7 @@ for _, toggle in ipairs(M.TOGGLES) do
   toggle.on=reading(toggle.on,false)
   if toggle.status then toggle.status=reading(toggle.status,nil) end
   if type(toggle.icon)=="function" then toggle.icon=reading(toggle.icon,"") end
+  if toggle.glyph then toggle.glyph=reading(toggle.glyph,require("battery_status_model").NONE) end
 end
 M.focus={}
 local function focus_active() return M.opened:get() and M.displayed:get()=="focus" end

@@ -90,7 +90,11 @@ local function tile(t)
     accessible_name = t.name or t.id,
     width = TILE_W, height = TILE_H, cursor = "pointer",
     on_clicked = function() t.set(not on()) end,
-    kit.icon(t.icon, 22, fg, { x = 16, anchors = { vertical_center = true }, fill = t.fill or on }),
+    kit.icon(t.icon, 22, fg, { x = 16, anchors = { vertical_center = true }, fill = t.fill or on,
+      visible = not t.glyph or function() return not t.glyph().present end }),
+    t.glyph and ui.Item { x = 13, anchors = { vertical_center = true }, width = 28, height = 14,
+      visible = function() return t.glyph().present end,
+      kit.battery { id = "utilities-glyph-" .. t.id, size = 14, status = t.glyph, color = fg, plain = on } } or ui.Item {},
     ui.Column {
       x = 48, anchors = { vertical_center = true }, gap = 0,
       kit.heading { id = "settings-tile-title-" .. t.id, scope = "settings.overview", level = "caption",
