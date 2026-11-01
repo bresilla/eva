@@ -61,7 +61,7 @@ in
         isNormalUser = true;
         inherit password;
       };
-      environment.systemPackages = [ pkgs.foot pkgs.ydotool (lib.hiPrio ddcutil) ];
+      environment.systemPackages = [ pkgs.foot pkgs.ydotool pkgs.libinput (lib.hiPrio ddcutil) ];
       boot.kernelModules = [ "uinput" ];
       # No sound, modem or Bluetooth service, even in the guest.
       services.pipewire.enable = lib.mkForce false;
