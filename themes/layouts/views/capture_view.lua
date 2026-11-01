@@ -82,7 +82,7 @@ function M.build(capture, w, h)
     local words = capture.message:get()
     if capture.replay:get() > 0 then
       if words:match("^Saving") or words:match("^Replay saved") then return words end
-      return ("Keeping the last %d s"):format(capture.replay:get())
+      return ("Keeping %d s"):format(capture.replay:get())
     end
     if active() then
       local n = capture.elapsed:get()
