@@ -27,9 +27,11 @@ function V.context(spec)
   local M = { model = model, ITEM = ITEM, ICONS_H = ICONS_H, GLYPH = GLYPH }
 
   --- A tooltip on `target`, under a bar along an edge and beside a side one.
-  function M.tip(target, text, vertical)
+  function M.tip(target, text, vertical, when)
     popup.tooltip(target, { text = text, placement = vertical and "right" or "bottom",
-      when = function() return model.on() and model.vertical() == (vertical == true) end }, 500)
+      when = function()
+        return model.on() and model.vertical() == (vertical == true) and (when == nil or when())
+      end }, 500)
   end
 
   local menus = {}
@@ -85,10 +87,9 @@ function V.context(spec)
     open_items("privacy", area, items)
   end
 
-  --- `area` with its tooltip and its right press; a long press is the same.
-  function M.dress(area, m, vertical, tooltip)
-    local words = tooltip or m.tooltip
-    if words then M.tip(area, words, vertical) end
+  --- `area` with its tooltip and its right press.
+  function M.dress(area, m, vertical)
+    if m.tooltip then M.tip(area, m.tooltip, vertical) end
     ui.reparent(ui.MouseArea { id = "bar-right-" .. m.id .. (vertical and "-v" or ""), anchors = { fill = true },
       accepted_buttons = { "right" }, on_pressed = function() M.open_menu(area, m) end }, area)
     return area
@@ -116,7 +117,7 @@ function V.context(spec)
         if m.press then m.press() else M.open_menu(area, m) end
       end,
       on_long_pressed = function() M.open_menu(area, m) end,
-      m.wheel and ui.MouseArea { anchors = { fill = true }, z = -1,
+      m.wheel and ui.MouseArea { anchors = { fill = true }, z = -1, accepted_buttons = {},
         on_wheel = function(_, _, _, pixels, _, steps)
           m.wheel((steps and steps ~= 0) and steps or (pixels or 0) / NOTCH_PX)
         end } or ui.Item {},
@@ -258,7 +259,7 @@ function V.context(spec)
       delegate = function(entry)
         return ui.Row { id = "bar-device-" .. entry.name:gsub("%W", "-"), gap = S.xxs, align = "center",
           kit.icon(BATTERY_ICONS[entry.kind] or "bluetooth", 16, ink),
-          kit.text { text = function() return entry.level .. "%" end, font_size = theme.size.small, font_weight = 600,
+          kit.text { text = ("%d%%"):format(entry.level), font_size = theme.size.small, font_weight = 600,
             color = function()
               if entry.level <= 10 then return kit.signal("alert")() end
               return entry.level <= 20 and kit.signal("warn")() or ink()

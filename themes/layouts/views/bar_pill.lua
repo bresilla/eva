@@ -224,7 +224,7 @@ function V.build(ctx)
     on_clicked = live.toggle, on_long_pressed = live.cycle }
   ui.reparent(ui.MouseArea { id = "bar-live-right", anchors = { fill = true }, accepted_buttons = { "right" },
     on_pressed = live.cycle }, press)
-  ctx.tip(press, live.summary, false)
+  ctx.tip(press, live.summary, model.vertical(), function() return not expanded() end)
   local bubble_press = kit.action { id = "bar-live-bubble-press", anchors = { fill = true }, cursor = "pointer",
     accessible_name = "Next activity", visible = function() return second() ~= nil and not expanded() end,
     on_clicked = live.cycle,

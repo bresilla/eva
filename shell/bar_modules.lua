@@ -216,6 +216,10 @@ function M.list(bar)
     menu = function() return { item("Calendar", "calendar_month", function() bar.open_calendar() end),
       item("Clock settings", "tune", settings_page("bar")) } end }
   add { id = "status", name = "Status", icon = "signal_cellular_alt", kind = "status", tier = 0, press = bar.open_settings,
+    tooltip = function()
+      local b = bar.reading:get().battery
+      return b.present and ("Quick settings. Battery " .. require("battery_status_model").describe(b)) or "Quick settings"
+    end,
     menu = function() return { item("Quick settings", "tune", bar.open_settings),
       item("Network", "wifi", settings_page("network")), item("Sound", "volume_up", settings_page("sound")) } end }
   add { id = "tray", name = "System tray", icon = "apps", kind = "tray", tier = 2,
@@ -355,7 +359,7 @@ function M.list(bar)
     active = function() return #M.batteries() > 0 end,
     tooltip = function()
       local lines = {}
-      for i, row in ipairs(M.batteries()) do lines[i] = row.name .. " " .. row.level .. "%" end
+      for i, row in ipairs(M.batteries()) do lines[i] = ("%s %d%%"):format(row.name, row.level) end
       return table.concat(lines, "\n")
     end,
     press = settings_page("bluetooth") }

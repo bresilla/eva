@@ -20,8 +20,12 @@ end
 local function media(spec)
   local title, artist, art = spec:match("^([^|]*)|?([^|]*)|?(.*)$")
   local length = 240
-  local state = morf.state { available = true, players = {}, active = { name = "Stand-in", title = title,
-    artist = artist ~= "" and { artist } or {}, album = "", art_url = art or "", playing = true, length = length, position = 96 } }
+  local state = morf.state { available = true, players = {}, active = { name = "Stand-in", identity = "Stand-in",
+    desktop_entry = "", status = "playing", title = title, artist = artist, album_artist = "", album = "",
+    art_url = art or "", url = "", track_id = "", playing = true, length = length, position = 96, rate = 1,
+    volume = 1, shuffle = false, loop = "none", can_play = true, can_pause = true, can_go_next = true,
+    can_go_previous = true, can_seek = true, can_control = true, can_raise = false, ignores_shuffle = false,
+    ignores_loop = false } }
   morf.time.timer(1000, function()
     if state.active.playing then state.active.position = (state.active.position + 1) % length end
   end, true)

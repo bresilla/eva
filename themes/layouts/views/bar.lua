@@ -231,13 +231,9 @@ function V.build(model)
     end
     -- One segment, one press: all of it opens the quick settings.
     local row = (vertical and ui.Column or ui.Row)(nodes)
-    local function label()
-      local b = reading().battery
-      return b.present and ("Quick settings. Battery " .. require("battery_status_model").describe(b)) or "Quick settings"
-    end
     local area
     area = kit.action {
-      id = "bar-status" .. v, cursor = "pointer", accessible_name = label,
+      id = "bar-status" .. v, cursor = "pointer", accessible_name = m.tooltip,
       anchors = vertical and { bottom = true } or { right = true },
       width = function() return vertical and ITEM or (row.layout_width or 160) + S.l end,
       height = function() return vertical and (row.layout_height or 160) + S.l or ITEM end,
@@ -254,7 +250,7 @@ function V.build(model)
         return hovered and C.onSurface:alpha(0.07) or C.onSurface:alpha(0)
       end, 10)
     end
-    dress(area, m, vertical, label)
+    dress(area, m, vertical)
     return { node = ui.Item { anchors = { fill = true }, area }, flex = true, hold = true,
       size = function()
         return fixed(vertical) + #indicators() * SLOT + S.l + ((vertical or not reading().battery.present) and 0 or PERCENT)
