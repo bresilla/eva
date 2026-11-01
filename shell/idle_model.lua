@@ -250,6 +250,19 @@ function M.start(options)
   local subscribe = options.subscribe or (morf.idle and morf.idle.subscribe)
   if not subscribe then return end
   if require("themes.phone_wake").present() then return end
+  -- The name browsers ask on. A client's request becomes this session's own
+  -- inhibitor, which any idle timer honours.
+  if primary() and morf.dbus and not options.subscribe then
+    pcall(function()
+      require("lib.services.screensaver").serve {
+        on_change = function(holders)
+          local copy = {}
+          for i, row in ipairs(holders) do copy[i] = row end
+          M.holders:set(copy)
+        end,
+      }
+    end)
+  end
   local subscriptions = {}
   morf.effect("eva.idle.timers", function()
     local plan = M.plan()

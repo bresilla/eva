@@ -27,15 +27,26 @@ function M.new()
     return login.can(action.can) == "yes"
   end
 
+  --- Whether a greeter should offer `id`: all of them, unless logind says no.
+  function self.offered(id)
+    local action = M.ACTIONS[id]
+    if not action then return false end
+    if not login or not login.available() then return true end
+    local answer = login.can(action.can)
+    return answer ~= "no" and answer ~= "na"
+  end
+
   --- Whether the machine's firmware setup can be booted into.
   function self.firmware_available()
     return login ~= nil and login.can_firmware() == "yes"
   end
 
-  --- Runs `id`: true, or nil and why.
-  function self.run(id)
+  --- Runs `id`: true, or nil and why. `options.offered` asks only that logind
+  --- did not refuse, as a greeter does.
+  function self.run(id, options)
     local action = M.ACTIONS[id]
-    if not action or not self.available(id) then return nil, "Not available here" end
+    local allowed = options and options.offered and self.offered(id) or self.available(id)
+    if not action or not allowed then return nil, "Not available here" end
     if dry() then
       morf.log("info", "eva: " .. action.method .. " (dry run)")
       return true

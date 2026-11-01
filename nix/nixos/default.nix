@@ -180,6 +180,7 @@ in
     ./authentication.nix
     ./compositor.nix
     ./idle.nix
+    ./lock.nix
     ./phone.nix
     ./seamless.nix
   ];

@@ -129,6 +129,7 @@ local function lift()
   stage:set("opening")
   say("")
   keyboard.restore()
+  phone_screen.allow_ambient(false)
   if HELD and morf.env("EVA_DRY_RUN") ~= "1" then
     morf.process.run({ "morf", "ipc", "call", "reveal" }, { timeout_ms = 2000, max_output = 256 }, function() end)
     if waiting then
@@ -434,6 +435,8 @@ end)
 
 -- The window after an idle lock starts when the compositor confirms the lock.
 if HELD then morf.lock.on_locked(function() grace.arm() end) end
+-- The screen script may leave the panel lit while this lock stands, if chosen.
+if prefs.always_on.enabled then phone_screen.allow_ambient(true) end
 
 -- A locked screen goes dark after a while at rest, and comes back with input.
 -- The phone's blanking is its own.

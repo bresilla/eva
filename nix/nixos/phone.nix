@@ -26,6 +26,7 @@ let
     runtimeInputs = [
       hyprland
       dpms
+      pkgs.brightnessctl
       pkgs.coreutils
       pkgs.gawk
       pkgs.jq
@@ -103,6 +104,12 @@ in
     default = 60;
     description = "Seconds before locking and blanking a phone session; zero disables automatic locking.";
   };
+  options.programs.eva.phone.alwaysOn = lib.mkEnableOption ''
+    the lock's ambient face instead of a blank screen, where a person turns it
+    on in Settings. For OLED panels only: there is no low-power panel mode to
+    ask for, so this is a black frame at the lowest backlight, and the phone
+    stays awake and spends power while it shows
+  '';
   options.programs.eva.phone.gestureDriver = lib.mkOption {
     type = lib.types.enum [ "native" "lisgd" ];
     default = "native";
@@ -127,6 +134,7 @@ in
         environment.etc."eva/phone-screen.json".text = builtins.toJSON {
           command = "${screen}/bin/phone-screen";
           doubleTap = true;
+          inherit (config.programs.eva.phone) alwaysOn;
         };
         environment.etc."xdg/hypr/hypridle.conf".source = lib.mkForce idleConfig;
         environment.etc."xdg/hypr/hypridle.conf".text = lib.mkForce null;

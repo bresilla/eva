@@ -558,6 +558,15 @@ return function(W, H, NAME)
     },
     not kb.embedded and kb.node or ui.Item {}, kb.edge,
     reveal,
+    -- Lit dark and dim, on a panel that can stay lit. Under the wake shield.
+    require("themes.phone_wake").always_on() and prefs.always_on.enabled
+      and require("themes.layouts.auth.ambient").build(view, {
+        clock = clock, day = day, width = W, height = H,
+        shown = require("themes.phone_wake").ambient,
+        notifications = prefs.always_on.notifications and parts.notifications or nil,
+        title = prefs.always_on.music and desktop.media_available()
+          and function() return desktop.player().title or "" end or nil,
+      }) or ui.Item {},
   }
   require("themes.phone_wake").attach(root,{prefix="lock",output=NAME,width=W,height=H,
     rest=function() clear() if stage:get()=="sheet" then escape() end pull:set(0) end})

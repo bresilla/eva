@@ -100,6 +100,7 @@ local function swell_w()
 end
 local GROW = skin.grow or { duration = 420, easing = "out_back" }
 local SETTLE = skin.settle or { duration = 340, easing = "out_cubic" }
+if ctx.reduce_motion then GROW, SETTLE = { duration = 0 }, { duration = 0 } end
 local function showing() return stage:get() == "rest" or stage:get() == "sheet" end
 local function leaving() return stage:get() == "leaving" or stage:get() == "left" end
 local function opened() return stage:get() == "closed" or leaving() end
@@ -160,24 +161,10 @@ local backdrop=require("themes.auth_backdrop")(setmetatable({scene_leaving=leavi
 
 -- ---------------------------------------------------------------- pieces --
 
+local view = { ui = ui, s = s, C = C, icon = icon, text = text }
+local button = require("themes.layouts.auth.button")
 local function round_button(id, name, on_clicked, size)
-  size = size or s(44)
-  local area
-  area = ui.MouseArea {
-    id = id, width = size, height = size, cursor = "pointer",
-    on_clicked = on_clicked,
-    scale = function() return (area and area.pressed) and 0.9 or 1 end,
-    behavior = { scale = ui.spring { stiffness = 700, damping = 18 } },
-    ui.Rect {
-      id = id .. "-surface", anchors = { fill = true }, radius = size / 2,
-      color = function()
-        return (area and area.hovered) and C.surfaceContainerHighest or C.surfaceContainerHigh
-      end,
-      behavior = { color = { duration = 160 } },
-    },
-    icon(name, math.floor(size * 0.5), C.onSurface, { anchors = { center_in = true } }),
-  }
-  return area
+  return button.round(view, { id = id, icon = name, on_clicked = on_clicked, size = size })
 end
 
 --- An account's face in a cookie (or its initial on one), `size` across.
@@ -320,7 +307,7 @@ local hint = ui.Column {
   behavior = { opacity = { duration = 260 } },
   icon("keyboard_arrow_up", s(30), function() return C.onSurfaceVariant end, {
     loop = function()
-      if SHORT or stage:get() ~= "rest" then return nil end
+      if SHORT or ctx.reduce_motion or stage:get() ~= "rest" then return nil end
       return { translate_y = { from = 0, to = -s(6), duration = 900, alternate = true, loops = 6, easing = "in_out_sine" } }
     end,
   }),
@@ -331,18 +318,39 @@ local hint = ui.Column {
 }
 
 -- Power, in the top-right corner of the frame; the machine's name, top-left.
-local power_row = ui.Row {
+-- Each button stands only where logind does not refuse it. Beside them, what
+-- the machine is doing and the accessibility menu.
+local actions = ctx.power_actions
+local access_parts = ctx.access and require("themes.layouts.auth.access")
+local power_nodes = {
   id="greet-power",
   visible = main,
   anchors = SHORT and {right=true,right_margin=BORDER+s(12),bottom=true,bottom_margin=BORDER+s(8)}
     or { right = true, right_margin = BORDER + s(24), top = true, top_margin = BORDER + s(22) },
-  gap = s(10),
+  gap = s(10), align = "center",
   opacity = function() return showing() and 1 or 0 end,
   behavior = { opacity = { duration = 320, delay = 200 } },
-  round_button("greet-suspend", "bedtime", function() power("Suspend", "suspend") end),
-  round_button("greet-reboot", "restart_alt", function() power("Reboot", "reboot") end),
-  round_button("greet-poweroff", "power_settings_new", function() power("PowerOff", "power off") end),
 }
+if ctx.status then
+  power_nodes[#power_nodes + 1] = require("themes.layouts.auth.status").row(view, { prefix = "greet", status = ctx.status })
+end
+if ctx.access then power_nodes[#power_nodes + 1] = access_parts.button(view, { access = ctx.access }) end
+for _, action in ipairs {
+  { "suspend", "bedtime", "suspend" }, { "reboot", "restart_alt", "reboot" },
+  { "poweroff", "power_settings_new", "power off" } } do
+  if not actions or actions.offered(action[1]) then
+    power_nodes[#power_nodes + 1] = round_button("greet-" .. action[1], action[2], function() power(action[1], action[3]) end)
+  end
+end
+if actions and actions.firmware_available() then
+  power_nodes[#power_nodes + 1] = button.round(view, { id = "greet-firmware", name = "Firmware setup", icon = "developer_board",
+    hold = 800, on_clicked = function() power("firmware", "start the firmware setup") end })
+end
+local power_row = ui.Row(power_nodes)
+local access_panel = ctx.access and access_parts.panel(view, { access = ctx.access, options = ctx.access_options,
+  anchors = SHORT and { right = true, right_margin = BORDER + s(12), bottom = true, bottom_margin = BORDER + s(68) }
+    or { right = true, right_margin = BORDER + s(24), top = true, top_margin = BORDER + s(76) },
+  visible = main }) or ui.Item {}
 local host = ctx.hostname
 local host_label = ui.Row {
   visible = function() return W>s(800) end,
@@ -362,16 +370,19 @@ local field=require("themes.auth_form").password {
 }
 
 -- The session to start: a chip; a click (or F2) moves to the next.
+local keyboard = ctx.keyboard
+local has_layouts = keyboard and #keyboard.list() > 1
+local CHIP_W = has_layouts and math.min(s(260), SW - s(48) - s(102)) or math.min(s(260), SW - s(48))
 local session_chip = ui.MouseArea {
   id = "greet-session",
-  width = math.min(s(260),SW-s(48)), height = s(40), cursor = "pointer",
+  width = CHIP_W, height = s(40), cursor = "pointer",
   on_clicked = function() step_session(1) end,
   ui.Rect { id = "greet-session-surface", anchors = { fill = true }, radius = s(20), color = function() return C.secondaryContainer end },
   ui.Row {
     anchors = { center_in = true }, gap = s(8), align = "center",
     icon("desktop_windows", s(18), C.onSecondaryContainer),
     text {
-      width=math.max(1,math.min(s(260),SW-s(48))-s(88)),elide="right",horizontal_alignment="center",
+      width=math.max(1,CHIP_W-s(88)),elide="right",horizontal_alignment="center",
       font_size = s(15), font_weight = 500, color = C.onSecondaryContainer,
       text = function()
         local sn = session()
@@ -381,6 +392,12 @@ local session_chip = ui.MouseArea {
     icon("unfold_more", s(18), C.onSecondaryContainer, { visible = #list > 1 }),
   },
 }
+local chips = session_chip
+if has_layouts then
+  chips = ui.Row { gap = s(10), align = "center", session_chip,
+    button.chip(view, { id = "greet-layout", icon = "keyboard", name = "Keyboard layout",
+      text = keyboard.current, on_clicked = keyboard.step }) }
+end
 
 -- The chosen account, on the sheet: one face per account, the chosen shown.
 local sheet_faces = { width = AV, height = AV }
@@ -402,10 +419,15 @@ form=require("themes.auth_form").sheet {
   message=text {id="greet-message",width=FIELD_W,height=s(24),elide="right",font_size=s(14),
     text=function()
       local value=message:get()
-      return busy:get() and value=="" and "Checking password…" or value
+      if busy:get() and value=="" then return "Checking password…" end
+      if value=="" and keyboard and keyboard.caps() then return "Caps Lock is on" end
+      return value
     end,
-    color=function() return bad:get() and C.error or C.onSurfaceVariant end},
-  session=session_chip,
+    color=function()
+      if bad:get() then return C.error end
+      return keyboard and keyboard.caps() and message:get()=="" and C.tertiary or C.onSurfaceVariant
+    end},
+  session=chips,
 }
 local sheet=form.node
 formed:set(formed:get()+1)
@@ -421,7 +443,7 @@ local root = ui.Item {
       opacity = function() return leaving() and 0 or 1 end,
       behavior = { opacity = require("themes.reveal").MOTION },
       skin.chrome and skin.chrome(W, H, s, "greet") or ui.Item {},
-      frame,band,glance,choosing,hint,sheet,power_row,host_label,
+      frame,band,glance,choosing,hint,sheet,power_row,host_label,access_panel,
     },
   },
   not kb.embedded and kb.node or ui.Item {}, kb.edge,
