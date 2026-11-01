@@ -76,6 +76,22 @@ local function folder_page(w, h)
       local crumb = crumbs()[index]
       if crumb and crumb.path ~= model.path:get() then model.open(crumb.path) end
     end,
+    delegate = function(_, item, s)
+      local label = tostring(item.label)
+      local width = model.crumb_width(label)
+      if s.area then s.area.width = width end
+      return ui.Item {
+        width = width, height = CRUMB_H,
+        kit.surface {
+          anchors = { fill = true, margins = S.xxs }, radius = kit.round(S.s),
+          color = function() return kit.signal("accent")():alpha(s.hovered() and 0.08 or s.current() and 0.14 or 0) end,
+        },
+        kit.text {
+          anchors = { center_in = true }, width = width - S.l, elide = "middle", text = label, font_weight = 500,
+          horizontal_alignment = "center", color = function() return (s.current() and kit.ink("hi") or kit.ink("lo"))() end,
+        },
+      }
+    end,
   }
   local field = controls.cards({
     id = "disk", width = w, height = body_h, busy = function() return model.moving:get() end,

@@ -6,7 +6,7 @@ unset EVA_DRY_RUN
 sh -c 'trap "" TERM; exec sleep 300' > /dev/null 2>&1 &
 STUBBORN=$!
 
-BOOT=4 start app monitor
+BOOT=10 start app monitor
 pause 3
 shot processes
 note echo "sampling: $(appipc sampling)"

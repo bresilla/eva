@@ -3,7 +3,7 @@
 # rebuild. EVA_DRY_RUN stays set: nothing here rebuilds anything.
 export EVA_UPDATE_FLAKE=$SEE_EVA/flake.lock
 
-BOOT=8 start app update
+BOOT=10 start app update
 pause 3
 shot overview
 note echo "state: $(appipc state | cut -c1-260)"

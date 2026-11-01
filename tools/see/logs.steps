@@ -1,7 +1,7 @@
 # eva-logs on the sealed session: first the stand-in journal of tests/fixtures for
 # the shots, a live follow arriving through morf.process.spawn, the filters and the
 # last boot; then the machine's real journalctl, read and followed.
-BOOT=7 start app logs
+BOOT=10 start app logs
 pause 3
 shot follow
 note echo "state: $(appipc state | cut -c1-200)"
@@ -23,7 +23,7 @@ shot last-boot
 stop
 
 export EVA_JOURNALCTL=/run/current-system/sw/bin/journalctl
-BOOT=7 start app logs
+BOOT=10 start app logs
 pause 3
 shot real
 note echo "real: $(appipc state | cut -c1-260)"
