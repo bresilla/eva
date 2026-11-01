@@ -25,19 +25,32 @@ local function release(slot)
   if slot.timer then slot.timer:cancel() slot.timer=nil end
 end
 
+local function leave(slot)
+  local own=slot.generation
+  slot.out=false
+  publish()
+  slot.bud.hide(function()
+    if own==slot.generation then slot.kind=nil publish() end
+  end)
+end
+
 local function hold(slot)
   release(slot)
   slot.generation=slot.generation+1
-  local own=slot.generation
   if slot.bud.held() then return end
   slot.timer=morf.time.timer(model.hold(slot.kind),function()
     slot.timer=nil
-    slot.out=false
-    publish()
-    slot.bud.hide(function()
-      if own==slot.generation then slot.kind=nil publish() end
-    end)
+    leave(slot)
   end,false)
+end
+
+--- Sends the bud numbered `index` away now: a swipe let it go.
+function M.dismiss(index)
+  local slot=slots[index]
+  if not (slot and slot.out) then return end
+  release(slot)
+  slot.generation=slot.generation+1
+  leave(slot)
 end
 
 -- A kind keeps its bud, or takes over one in its way, a free one, or the
@@ -75,7 +88,7 @@ function M.build()
       brightness=function() return math.max(0,math.min(1,(osd.brightness()))) end},
     icon={volume=osd.volume_icon,brightness=osd.brightness_icon},
     muted=function() local _,muted=osd.volume() return muted end,
-    adjust=osd.adjust,toggle_mute=osd.toggle_mute,
+    adjust=osd.adjust,toggle_mute=osd.toggle_mute,dismiss=M.dismiss,
     rail_geometry=require("rail").geometry,desk=require("bar").desk,sidebar=require("sidebar"),
     portrait=require("responsive").portrait(),
   }

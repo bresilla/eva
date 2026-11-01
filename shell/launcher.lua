@@ -607,6 +607,16 @@ M.drawer = drawer.new {
   -- Escape is the launcher's own: it backs out of a menu first.
   close_policy = "outside",
 }
+M.swipe = require("swipe_dismiss").new {
+  id = "launcher", node = M.drawer.panel, axes = { x = true, y = true },
+  ways = function()
+    return { down = true, [require("menus").source:get() == "web" and "right" or "left"] = true }
+  end,
+  on_dismiss = function() M.drawer.set(false) end,
+}
+morf.effect("eva.launcher.swipe", function()
+  if M.drawer.open:get() then morf.time.timer(1, M.swipe.reset, false) end
+end)
 -- Without a real keyboard (a phone) the on-screen one comes up with the
 -- launcher -- its field is the shell's own, which no program asks text
 -- for -- and goes with it, when the launcher was what brought it. Over the grid

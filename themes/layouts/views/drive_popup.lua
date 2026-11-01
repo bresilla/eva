@@ -35,6 +35,9 @@ function M.show(row, actions)
         { id = "drive-popup-eject", label = "Eject", on_clicked = act(actions.eject) },
         { id = "drive-popup-close", label = "Close", on_clicked = M.close } },
     } }
+  -- Swiped off toward either side or the top of the screen, it closes.
+  card.on_panned = require("swipe_dismiss").new { id = "drive-popup", node = card,
+    ways = { left = true, right = true, up = true }, on_dismiss = M.close }.on_panned
   layer = morf.window.layer { blend = "srgb", namespace = "eva-drive", layer = "overlay",
     anchors = { top = true, right = true }, margin_top = S.xl + S.xl, margin_right = S.xl,
     width = WIDTH, height = HEIGHT, exclusive_zone = -1, keyboard_focus = "none", visible = true,

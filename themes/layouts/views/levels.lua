@@ -308,6 +308,8 @@ function V.build(model)
 
     local faces = { tall = tall_face, wide = wide_face, pill = pill(ctx, tag), media = cover(ctx, tag) }
     local body = ui.Item { id = "levels-bud" .. tag, clip = true,
+      -- Under the faces, so a finger on a pill is on the bud.
+      ui.MouseArea { anchors = { fill = true }, z = -1 },
       faces.tall, faces.wide, faces.pill, faces.media, area }
     local panel = ui.Item { id = "levels-swell" .. tag, visible = function() return not gone() end,
       stretch = STRETCH, body }
@@ -339,6 +341,21 @@ function V.build(model)
         scale = function() return floats() and .96 or 1 end } },
       e_fading = { when = leaving, motion = FADE, set = { opacity = 0 } },
     })
+    -- Swiped toward the edge it swells from, or any way where it floats, it
+    -- goes. A meter keeps the drag along it; a pill has none.
+    local swipe = require("swipe_dismiss").new { id = "levels." .. i, node = panel, axes = { x = true, y = true },
+      ways = function()
+        local edge = place().edge
+        if not edge then return { left = true, right = true, up = true, down = true } end
+        local ways = { [({ left = "left", right = "right", top = "up", bottom = "down" })[edge]] = true }
+        if not level() and (edge == "top" or edge == "bottom") then ways.left, ways.right = true, true end
+        if not level() and (edge == "left" or edge == "right") then ways.up, ways.down = true, true end
+        return ways
+      end,
+      on_dismiss = function() model.dismiss(i) end,
+    }
+    panel.on_panned = swipe.on_panned
+    morf.effect(name .. ".swipe", function() if gone() then morf.time.timer(1, swipe.reset, false) end end, { owner = panel })
     local function body_x() return place().body_x end
     local function body_y() return place().body_y end
     local function body_w() return place().body_w end

@@ -46,10 +46,11 @@ local function pulls_sidebar(edge,drawer)
   return edge=="top" and drawer==require("sidebar").drawer
 end
 
-local function blocked()
+-- `own`: the drawer asking, which does not block its own pull.
+local function blocked(own)
   for _, name in ipairs { "polkit", "keyring", "authsteps", "session" } do
     local controller = package.loaded[name]
-    if controller and controller.drawer and controller.drawer.open:get() then return true end
+    if name ~= own and controller and controller.drawer and controller.drawer.open:get() then return true end
   end
   local capture = package.loaded.capture
   return capture and capture.editor and capture.editor.active:get()
@@ -132,7 +133,7 @@ function M.pan(spec)
   local drawer, pager
   return function(phase, dx, dy, vx, vy, x, y)
     if phase == "begin" then
-      if blocked() then return false end
+      if blocked(spec.drawer) then return false end
       local dismiss = type(spec.dismiss) == "function" and spec.dismiss() or spec.dismiss
       local across = dismiss == "left" or dismiss == "right"
       local horizontal = math.abs(dx) >= math.abs(dy)
@@ -149,7 +150,7 @@ function M.pan(spec)
         return drawer.begin_drag()
       end
       return false
-    elseif (pager or drawer) and blocked() then
+    elseif (pager or drawer) and blocked(spec.drawer) then
       if pager then pager.finish(0,true) pager=nil end
       if drawer then drawer.end_drag(0,true) drawer=nil end
     elseif pager then

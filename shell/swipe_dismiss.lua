@@ -147,6 +147,18 @@ function M.new(spec)
     morf.time.timer(1, function() jumping:set(false) end, false)
   end
 
+  --- Comes in from the far side of `way`, on its spring: the next of a set.
+  function s.arrive(way)
+    local on = axes[AXIS[way]]
+    jumping:set(true)
+    on.hand.stop()
+    on.rest:set(-flown(way))
+    morf.time.timer(1, function()
+      jumping:set(false)
+      on.rest:set(0)
+    end, false)
+  end
+
   --- Which way it stands latched open, if it does.
   function s.opened() return opened end
 

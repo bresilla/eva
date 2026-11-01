@@ -12,7 +12,9 @@ local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
+local rubber = require("rubber_band")
 local C = theme.color
+local S = theme.space
 local V = {}
 
 -- The badge of what is not a mode: the shape it morphs to, and the glyph on it. A
@@ -508,21 +510,34 @@ function V.build(M)
       color = function() return C.primary:alpha(0.14) end,
     }
 
-    local pan_from = 0
+    local pan_from, pan_pages, pages = 0, false, nil
     results = ui.Item {
       id = "launcher-results",
       x = PAD, y = body_top, width = function() return gridded() and TILES or INNER end, height = view_height,
       visible = function() return not wide() and not pane_over() end,
       clip = true,
-      on_panned = function(phase, dx, dy, _, vy)
+      on_panned = function(phase, dx, dy, vx, vy, x, y)
         if phase == "begin" then
-          if math.abs(dy) < math.abs(dx) then return false end
+          -- Sideways the grid turns to the next category, if there is one;
+          -- past the last, or down from the top, the launcher shuts.
+          if math.abs(dy) < math.abs(dx) then
+            pan_pages = gridded() and pages.on_panned(phase, dx, dy, vx, vy, x, y) ~= false
+            return pan_pages
+          end
+          if dy > 0 and offset <= 0 then return false end
           stop_coasting()
           pan_from = offset
           return true
+        elseif pan_pages then
+          pages.on_panned(phase, dx, dy, vx, vy, x, y)
+          if phase ~= "update" then pan_pages = false end
         elseif phase == "update" then
+          local room = math.max(0, list_height() - view_height())
           scroll_to(pan_from - dy)
+          -- Past the end the list runs on elastically.
+          scroll:set(rubber.between(pan_from - dy, 0, room, S.xxl * 3))
         else
+          scroll:set(offset)
           coast(vy or 0)
         end
       end,
@@ -535,6 +550,22 @@ function V.build(M)
       highlight,
       list,
       empty,
+    }
+    local function neighbour(way)
+      local chips = M.chips()
+      for i, chip in ipairs(chips) do
+        if chip.key == M.category:get() then
+          local next_chip = chips[i + (way == "left" and 1 or -1)]
+          return next_chip and next_chip.key
+        end
+      end
+    end
+    pages = require("swipe_dismiss").new { id = "launcher.pages", node = results, axes = { x = true },
+      ways = function() return { left = neighbour("left") ~= nil, right = neighbour("right") ~= nil } end,
+      on_dismiss = function(way)
+        M.choose_category(neighbour(way))
+        pages.arrive(way)
+      end,
     }
 
     --- Goes to the first app of the grid whose name starts at `letter` or later.
@@ -740,19 +771,9 @@ function V.build(M)
     end)
     local content = ui.Item {
       anchors = { fill = true },
-      -- A pull back toward the side it came from shuts it on release.
-      on_panned = function(phase, dx, dy, vx)
-        local sign = require("menus").source:get() == "web" and 1 or -1
-        if phase == "begin" then
-          return math.abs(dx) > math.abs(dy) * 1.2 and dx * sign > 0
-        elseif phase == "end" then
-          local motion = require("gesture_motion")
-          local distance, velocity = dx * sign, (vx or 0) * sign
-          if distance >= 80 or (distance >= motion.TRAVEL and velocity >= motion.FLING) then
-            require("launcher").drawer.set(false)
-          end
-        end
-      end,
+      -- Pulled down, or back toward the side it came from, it follows the
+      -- finger and shuts.
+      on_panned = function(...) return M.swipe.on_panned(...) end,
       -- The sheet's empty parts take presses too.
       ui.MouseArea { anchors = { fill = true }, z = -1 },
       -- An instrument's panel: a hairline frame, and L-brackets on its corners.

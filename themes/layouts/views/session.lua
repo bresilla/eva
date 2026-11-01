@@ -201,13 +201,7 @@ function V.build(M)
   local content = ui.Item {
     anchors = { fill = true },
     -- A pull toward its edge drags it shut.
-    on_panned = function(phase, dx, dy, vx)
-      local drawer = require("session").drawer
-      if phase == "begin" then
-        return dx > 0 and math.abs(dx) > math.abs(dy) * 1.2 and drawer.begin_drag()
-      elseif phase == "update" then drawer.drag_by(dx)
-      else drawer.end_drag(vx or 0, phase == "cancel") end
-    end,
+    on_panned = require("phone_gestures").pan { drawer = "session", dismiss = "right" },
     -- The panel's empty parts take presses too.
     ui.MouseArea { anchors = { fill = true }, z = -1 },
     L.decor_box("corners", { length = 10 }),

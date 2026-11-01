@@ -309,10 +309,9 @@ for _, size in ipairs { UPRIGHT, SIDEWAYS } do
     test.falsy(state().open.session, "a flick shuts the session menu")
     test.ipc("launcher", "open") test.advance(800)
     x, y = middle("launcher")
-    local away = state().menu == "web" and 70 or -70
-    nudge(x, y, away / 2, 0)
+    nudge(x, y, 0, 35)
     test.truthy(state().open.launcher, "a slow nudge leaves it open")
-    flick(x, y, away, 0)
-    test.falsy(state().open.launcher, "a flick shuts the launcher")
+    flick(x, y, 0, 70)
+    test.falsy(state().open.launcher, "a flick down shuts the launcher")
   end)
 end
