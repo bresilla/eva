@@ -345,13 +345,30 @@ function M.new(options)
     return answer
   end
 
+  local running_now, settled = 0, {}
+
   local function run(argv, done)
     if flag("EVA_DRY_RUN") and not morf.env("EVA_ALARM_ENGINE") then
       morf.log("info", "eva: " .. table.concat(argv, " ") .. " (dry run)")
       if done then done { ok = true } end
       return
     end
-    morf.process.run(argv, { timeout_ms = 5000 }, done or function() end)
+    running_now = running_now + 1
+    morf.process.run(argv, { timeout_ms = 5000 }, function(result)
+      if done then done(result) end
+      running_now = running_now - 1
+      if running_now > 0 then return end
+      local waiting = settled
+      settled = {}
+      for _, each in ipairs(waiting) do each() end
+    end)
+  end
+
+  --- `done()` once every command given to the machine has finished: a process
+  --- that ends sooner takes them with it.
+  function a.settled(done)
+    if running_now == 0 then return done() end
+    settled[#settled + 1] = done
   end
 
   local function arm(item)
@@ -607,8 +624,7 @@ function M.job(args, done)
   local how = args[1]
   local words = {}
   for index = 2, #args do words[#words + 1] = args[index] end
-  -- A running unit is started by a process that ends with the job.
-  local function after(text, why) morf.time.timer(300, function() done(text, why) end, false) end
+  local function after(text, why) a.settled(function() done(text, why) end) end
   if how == "add" then
     local item, why = a.add(table.concat(words, " "))
     if not item then done(nil, why) return end

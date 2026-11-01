@@ -843,6 +843,8 @@ ipc.drawers = function(how, name)
     if d.is_open() then open[#open + 1] = d.name end
   end
   if capture.drawer.is_open() then open[#open + 1] = "capture" end
+  -- The first answer wins: a screen out of focus with nothing open stays out of it.
+  if #open == 0 and not here() then return nil end
   return table.concat(open, " ")
 end
 
