@@ -46,7 +46,7 @@ local function load(extra)
     size = { W, H },
     -- EVA_DRY_RUN: the session menu logs its commands instead of
     -- running them (and they are stubbed besides).
-    env = { EVA_WALLPAPER = "", EVA_FONT_FILE = "", EVA_DRY_RUN = "1",
+    env = { EVA_WALLPAPER = "", EVA_FONT_FILE = "", EVA_DRY_RUN = "1", EVA_FAKE_OSD = "1",
       -- Not the person's own colour tool's scheme.
       LULE_A = "/nonexistent/lule", HOME = morf.env("XDG_CACHE_HOME"),
       EVA_SETTINGS = extra and extra.settings or nil },

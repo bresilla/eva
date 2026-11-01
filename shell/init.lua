@@ -426,10 +426,11 @@ ipc.lule = function(how)
   local tty = require("terminal_colors").tty
   return tty and tty.path or "", theme.lule.accent:hex(), theme.color.primary:hex()
 end
+-- `osd [KIND]`: shows that display (the volume without one). False when its
+-- service is absent or its setting has it off.
 ipc.osd = function(kind)
   if not here() then return nil end
-  osd.flash(kind)
-  return true
+  return osd.flash(kind)
 end
 -- `notify SUMMARY [BODY [critical|normal [APP]]]` raises a notification of
 -- the shell's own, as the reference's toaster does.

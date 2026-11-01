@@ -31,7 +31,7 @@ return {
     notifications = "themes.layouts.views.notifications",
     polkit = "themes.layouts.views.polkit",
     authsteps = "themes.layouts.views.authsteps",
-    headphones = "themes.layouts.views.headphones",
+    osd_page = "themes.layouts.views.osd_page",
     session = "themes.layouts.views.session",
     window_menu = "themes.layouts.views.window_menu",
     launcher = "themes.layouts.views.launcher",
