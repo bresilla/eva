@@ -19,8 +19,6 @@ export MORF_FONT_PATH EVA_INPUT_DEVICES
 
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/eva-test.XXXXXX")
 trap 'rm -rf "$scratch"' EXIT
-mkdir -p "$scratch/home" "$scratch/state" "$scratch/cache" "$scratch/config" "$scratch/run"
-chmod 700 "$scratch/run"
 
 if [ "$#" -gt 0 ]; then printf '%s\n' "$@"; else ls tests/*_spec.lua; fi > "$scratch/specs"
 split -n "l/$jobs" -d "$scratch/specs" "$scratch/shard."
@@ -28,8 +26,12 @@ split -n "l/$jobs" -d "$scratch/specs" "$scratch/shard."
 for shard in "$scratch"/shard.*; do
   [ -s "$shard" ] || continue
   (
-    HOME="$scratch/home" XDG_STATE_HOME="$scratch/state" XDG_CACHE_HOME="$scratch/cache" \
-    XDG_CONFIG_HOME="$scratch/config" XDG_RUNTIME_DIR="$scratch/run" \
+    # Each shard has its own folders.
+    own="$shard.own"
+    mkdir -p "$own/home" "$own/state" "$own/cache" "$own/config" "$own/run"
+    chmod 700 "$own/run"
+    HOME="$own/home" XDG_STATE_HOME="$own/state" XDG_CACHE_HOME="$own/cache" \
+    XDG_CONFIG_HOME="$own/config" XDG_RUNTIME_DIR="$own/run" \
     DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent \
     DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \
       "$morf" test --no-dbus $(cat "$shard") > "$shard.tap" 2>&1 || true
