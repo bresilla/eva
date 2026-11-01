@@ -16,6 +16,18 @@ local HOST = ([[
   }
 ]]):format(LONG, LONG)
 
+local LISTED = ([[
+  local ui = require("morf.ui")
+  local P = require("themes.layouts.page")
+  local F = require("themes.layouts.form")
+  ui.Column { width = 300,
+    F.list(300, "slot-", function() return 2 end, function(index, width)
+      return P.row { id = "listed-" .. index, width = width, icon = "info", title = "Row", subtitle = %q }
+    end, nil, 2),
+    ui.Item { id = "after", width = 300, height = 10 },
+  }
+]]):format(LONG)
+
 local NOTE = "Camera and commands ask for the password first"
 local CAPTION = ([[
   local P = require("themes.layouts.page")
@@ -23,6 +35,13 @@ local CAPTION = ([[
 ]]):format(NOTE)
 
 for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. ": a list's slot grows with its row", function()
+    test.load("../shell/init.lua", { source = LISTED, size = { 400, 500 }, env = { EVA_STYLE = style } })
+    test.settle(1000)
+    local first, second = test.get("listed-1"), test.get("listed-2")
+    test.truthy(second.y >= first.y + first.height, "the rows stand apart")
+    test.truthy(test.get("after").y >= second.y + second.height, "what follows clears the list")
+  end)
   test.it(style .. ": a caption's note stands in full on the card's width", function()
     test.load("../shell/init.lua", { source = CAPTION, size = { 500, 200 }, env = { EVA_STYLE = style } })
     test.settle(1000)

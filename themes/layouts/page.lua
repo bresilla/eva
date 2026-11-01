@@ -177,7 +177,7 @@ function P.row(spec)
     kit.text { id = spec.id and spec.id .. "-title", text = spec.title, width = text_w, wrap = true, max_lines = 2,
       font_size = theme.size.normal, font_weight = 500, color = kit.ink("hi") },
     spec.subtitle and kit.text { id = spec.id and spec.id .. "-subtitle", text = spec.subtitle, width = text_w,
-      wrap = true, max_lines = 3, font_size = SUB, color = kit.ink("lo") } or nil,
+      wrap = true, max_lines = 4, font_size = SUB, color = kit.ink("lo") } or nil,
   }
   -- Text that wraps takes the room it needs.
   local fixed = h
