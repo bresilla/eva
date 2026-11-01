@@ -571,6 +571,8 @@ local config = settings.open {
     -- vdir among them) and ICS addresses. `lead` is how many minutes before
     -- an event its reminder comes, when the event names none.
     calendar = { files = {}, folders = {}, urls = {}, discover = true, reminders = true, lead = 10 },
+    -- eva-update: the flake it reads, or its folder; empty finds /etc/nixos's.
+    update = { flake = "" },
     utilities = {
       commands = {
         mic_on = { "wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "0" },
@@ -609,8 +611,9 @@ local config = settings.open {
       small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "autobrightness", "nfc", "nightlight",
         "powersaver", "location", "datasaver", "camera", "calculator", "voicenote", "alarm" } },
     },
-    -- The night light (hyprsunset): whether it is on, and how warm, in kelvin.
-    nightlight = { on = false, temperature = 4500 },
+    -- The night light (hyprsunset): whether it is on, how warm, in kelvin, and
+    -- whether the sun at the weather's place turns it on and off.
+    nightlight = { on = false, temperature = 4500, follow = false },
     -- The flashlight's strength, 0 to 1 of what the LED can do.
     flashlight = { level = 1 },
     -- The screen following the light sensor.

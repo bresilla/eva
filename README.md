@@ -109,6 +109,7 @@ Quick controls stay in the shell; heavier work has a tool of its own, in
 `apps/`. A tool is a real window that draws with the shell's theme, kit and
 palette, follows lule's colours and the chosen appearance live, and works when
 the shell is not running. On NixOS they are on `PATH`, each with a desktop entry.
+Launching one a second time raises the window it has open; an overlay shuts.
 
 | Command | What it does |
 |---------|--------------|
@@ -118,13 +119,52 @@ the shell is not running. On NixOS they are on `PATH`, each with a desktop entry
 | `eva-record region\|window\|monitor [--audio KIND]`, `eva-record stop` | `gpu-screen-recorder` with a stop indicator |
 | `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
 | `eva-keys` | a searchable sheet of the live bindings and the shell's own |
-| `eva-nightlight on\|off\|toggle\|auto\|daemon\|times` | warmer light over `hyprsunset`, by the sun at `services.weather_location` |
+| `eva-nightlight on\|off\|toggle\|status\|temperature\|follow\|times\|auto\|daemon` | the quick settings' night light from a command line, one implementation with one state; `follow on` has the shell turn it on and off by the sun at `services.weather_location` |
 | `eva-clipboard [--watch]` | a history of text and pictures with pins, skipping what a password manager marks; on NixOS `--watch` runs as a user service |
 | `eva-battery status`, `eva-battery limit on\|off\|NN` | what feeds the battery and how fast, and the charge limit: UPower's `EnableChargeThreshold`, or a level in the kernel's own threshold file |
 | `eva-phone [tel:NUMBER]` | a dial pad that finds people by their letters, recent calls and contacts; the shell shows the call |
 | `eva-messages [sms:NUMBER]` | text threads with delivery marks; the shell receives them and notifies |
+| `eva-clock`, `eva-clock timer 12 min pasta`, `eva-clock at 6pm`, `eva-clock every weekday 7:30 gym`, `eva-clock list\|cancel\|snooze\|sync` | alarms, timers, a stopwatch and world clocks, said in plain words; each alarm is a systemd user timer, so it rings with no shell running, through the notifications server with sound, Stop and Snooze |
+| `eva-monitor` | processes with search, sort and kill, per-core load, memory, GPU, disks, network and sensors |
+| `eva-info [--text\|--json\|--copy]` | about this machine, in a window or as words: hardware, Nix generation, USB, session |
+| `eva-update [--check]` | flake input ages, package counts and a rebuild with its live log; `update.flake` names the flake |
+| `eva-logs [UNIT]` | the journal, live, by priority, boot, unit and words |
+| `eva-disk [FOLDER]` | what takes the room under a folder, as a treemap |
+| `eva-audio [next [input]\|list]` | a full mixer on the shell's own sound pages: apps, recording, routing, channels, equalizer |
+| `eva-awake [30m\|on\|off\|status\|--pid N]` | keep awake for a time, or while a process runs, on the shell's own inhibitor |
+| `eva-webapp add NAME URL [--icon FILE]\|list\|remove NAME` | turn a site into an app with its own desktop entry and icon |
+| `eva-startup list\|enable NAME\|disable NAME\|remove NAME\|timers` | startup apps and scheduled jobs |
+| `eva-breaks [--watch\|status\|pause MINUTES\|resume]` | break reminders that count idle time as rest, and screen time; on NixOS `--watch` runs as a user service |
+| `eva-zoom [in\|out\|reset\|N\|get\|lens]` | a magnifier: Hyprland's cursor zoom, or a lens over the frozen screen |
+| `eva-ruler [horizontal\|vertical\|bounds]` | an on-screen pixel ruler: edge detection, a dragged box, a click copies |
+| `eva-find [--crosshairs\|--ripple]` | shows where the pointer is: a spotlight, crosshairs, or rings on a press |
+| `eva-kill [--active]` | press a window to end it, or end the focused one |
+| `eva-draw` | draw and write over the screen, with a toolbar |
+| `eva-large [WORDS]` | words huge across the screen, from arguments, stdin or the clipboard |
+| `eva-pomodoro [start\|pause\|skip\|reset\|status]` | a focus timer whose phases ring through eva-clock and hold do not disturb |
+| `eva-fonts [list [--mono]\|current\|set NAME\|reset]` | browse and preview installed fonts, and set the shell's |
+| `eva-qr [TEXT\|-]`, `eva-qr wifi SSID`, `eva-qr --png FILE TEXT` | a QR code from text or a Wi-Fi network, on screen or in a file; `-` reads stdin, and a Wi-Fi password never reaches a command line |
+| `eva-translate [-s LANG] [-t LANG] [-e ENGINE] TEXT\|-\|--clipboard\|--selection` | free translation, offline with Argos where it is set up, else `trans` or MyMemory; text leaves the machine only on a press, and the window says when an online engine is in use |
+| `eva-text TRANSFORM < FILE`, `eva-text list` | a developer's scratchpad: case, lines, encodings, JSON, hashes, UUIDs, passwords, placeholder text |
+| `eva-standby [--when-charging] [--night]` | the shell's StandBy on demand, on any form: a second call closes it |
 
 `make app displays` runs one from a checkout.
+
+Alarms and timers live in `$XDG_STATE_HOME/eva/clock/alarms.json`, written by
+`lib/services/alarm.lua`, which is also `services.alarm` in the shell: `armed()`
+lights the bar's alarm indicator and `ongoing`, a signal, is the running timers
+for its status pill. On NixOS `eva-clock-sync` puts them back on systemd after a
+login, ringing what came due within the hour and reporting the rest as missed.
+Without a user systemd the shell keeps the time instead. A timer does not wake a
+suspended machine: a user timer cannot.
+
+The clipboard's store is an interface other code may read,
+`$XDG_STATE_HOME/eva/clipboard/history.json`: a JSON array, pinned entries first
+and then newest first, mode 600, replaced atomically. An entry has `id`, `kind`
+(`text` or `image`), `text`, or `path` and `mime` for a picture, `time` in unix
+milliseconds, and `pinned`. Fields are only ever added. The head of
+`apps/clipboard/model.lua` has the whole contract and `tests/clipboard_spec.lua`
+holds it.
 
 `eva-displays` writes what you keep to `$XDG_STATE_HOME/eva/displays/`. eva's
 Hyprland session loads `monitors.lua` from there; on sway, add
@@ -134,6 +174,17 @@ A tool's folder holds `app.lua` and three links: `lua -> ../../shell`, which is
 how it reaches `theme`, `kit`, `palette` and `config`, `common -> ../common`, and
 `fonts -> ../../shell/fonts`. `apps/launch` finds the shell's appearance and
 settings files, which the shell names in `$XDG_STATE_HOME/eva/settings-path`.
+
+`apps/common/frame.lua` draws a window as the shell draws its frame, one distance
+field in the theme's `app_frame` view: a band round an opening, the title and the
+close button tabs of that band on the theme's seams and springs. It also gives a
+tool `frame.overlay` for the whole screen and `frame.quiet` for no window at all.
+`common/controls.lua` is what a window is built from, `common/sys.lua` the one
+door to the machine, honouring `EVA_DRY_RUN`, and `common/freeze.lua` the screen
+held still for a tool that reads its pixels. `common/job` runs the shell's own
+code for a command line with no shell running, so a tool and the shell share one
+module (`lib/services/nightlight.lua`, `charge_limit.lua`, `alarm.lua`) rather
+than having two.
 
 ## Helpers
 
@@ -442,9 +493,10 @@ picture itself is the time.
     morf ipc call desktop edit               # or done, state, add ID, hide ID, size ID
 
 **StandBy**: a phone or tablet on charge, turned sideways, becomes a bedside
-screen with a great clock, the folder's pictures, or two stacks of widgets. A
-swipe turns the view and a touch shows the way out. At night it is a dim red, and
-it drifts so nothing burns in. `morf ipc call standby [on|off|clock|photos|widgets]`.
+screen with a great clock, the folder's pictures, two stacks of widgets, the
+cities of `eva-clock` or the next thing to ring, the screen awake while it shows.
+A swipe turns the view and a touch shows the way out. At night it is a dim red,
+and it drifts so nothing burns in. `morf ipc call standby [on|off|toggle|VIEW]`.
 
 ## Look
 

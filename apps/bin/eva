@@ -38,6 +38,8 @@ notify|SUMMARY [BODY URGENCY APP ICON IMAGE]|Post a notification
 notifications|open, close, toggle, state, status, list, invoke, reply, dismiss, clear, clear-app, clear-silent, undo, snooze, mute, unmute|The page, and notifications from a key
 focus|status, list, on MODE [SECONDS], off or toggle|Focus modes
 phone|answer, decline, hangup, mute, speaker, hold, dial N or state|The call in progress
+nightlight|on, off, toggle, status, temperature or follow|The night light
+awake|on [MINUTES], off, toggle or state|Keep the session awake
 workspace|N|Go to workspace N
 window_menu|toggle, open or close|The window menu
 appearance|material, tsugumori, font:NAME or state|Change or read the theme

@@ -1,14 +1,20 @@
 # eva-colorpick on this private sway: the window, the frozen screen with its
-# magnifier, a colour taken, the formats.
+# magnifier, a colour taken, the formats, and a real Escape letting go.
 unset EVA_DRY_RUN
 state() { appipc state | tr -d ' \n' | cut -c1-220; }
+held() {
+  for _ in $(seq 100); do
+    state | grep -q 'frozen\\":true' && return
+    sleep 0.1
+  done
+}
 
 start app colorpick
 shot window
 
 appipc freeze > /dev/null
-pause 1.6
-appipc point 1400 500 > /dev/null
+held
+appipc point 1100 500 > /dev/null
 pause 0.6
 shot frozen
 note echo "frozen: $(state)"
@@ -22,3 +28,17 @@ note echo "clipboard: $(wl-paste -n 2>&1)"
 appipc format oklch > /dev/null
 pause 0.3
 shot oklch
+
+appipc freeze > /dev/null
+held
+note echo "frozen again: $(state | grep -o 'frozen[^,]*')"
+key Escape
+pause 0.6
+note echo "after Escape: $(state | grep -o 'frozen[^,]*')"
+appipc freeze > /dev/null
+held
+note echo "frozen a third time: $(state | grep -o 'frozen[^,]*')"
+key Escape
+pause 0.6
+note echo "after Escape again: $(state | grep -o 'frozen[^,]*')"
+shot let-go

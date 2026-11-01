@@ -1,0 +1,75 @@
+# eva-breaks on the sealed session, with the real shell and sway's real idle
+# notification: a break through the shell's notifications server and its
+# overlay, do not disturb holding it off, Escape, idle time counted as rest, then
+# the window. Minutes are short here, through the settings file.
+unset EVA_DRY_RUN
+mkdir -p "$XDG_STATE_HOME/eva/breaks"
+settings() {
+  printf '{"eyes":{"on":true,"every":%s,"length":%s},"rest":{"on":%s,"every":60,"length":300},"pause_until":0}' "$1" "$2" "${3:-false}" \
+    > "$XDG_STATE_HOME/eva/breaks/settings.json"
+  sleep 0.3
+}
+watcher() { timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-app-$WATCH" ipc call "$@"; }
+poke() { wtype -k space; }
+# A fresh count: the watcher starts over when a pause lifts.
+again() {
+  sh apps/breaks/cli pause 30 > /dev/null
+  sleep 0.3
+  sh apps/breaks/cli resume > /dev/null
+  sleep 0.3
+}
+
+settings 0.12 9
+BOOT=4 start shell
+pause 1
+sh apps/breaks/cli --watch > "$SEE_OUT/watch.log" 2>&1 &
+WATCH=$!
+note sh apps/breaks/cli status
+pause 3
+poke
+pause 4
+note sh apps/breaks/cli status
+note watcher state
+shot overlay
+watcher postpone > /dev/null
+pause 0.6
+note sh apps/breaks/cli status
+shot back
+
+# Do not disturb holds the next one off.
+ipc focus on > /dev/null
+settings 0.03 9
+again
+pause 3
+note sh apps/breaks/cli status
+shot held
+ipc focus off > /dev/null
+
+# A real Escape, on the real keyboard focus the overlay holds.
+settings 0.03 30
+again
+pause 3
+note sh apps/breaks/cli status
+key Escape
+pause 0.8
+note sh apps/breaks/cli status
+
+# With no input, sway says idle, and the count waits.
+settings 60 6
+watcher skip > /dev/null
+again
+pause 8
+note sh apps/breaks/cli status
+poke
+pause 1
+note sh apps/breaks/cli status
+
+sh apps/breaks/cli pause 30 > /dev/null
+note sh apps/breaks/cli status
+
+BOOT=5 start app breaks
+shot window
+appipc pause 0 > /dev/null
+pause 0.6
+shot window-resumed
+kill "$WATCH" 2> /dev/null

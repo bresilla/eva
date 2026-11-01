@@ -94,10 +94,13 @@ function M.apply(services)
   spec = env("EVA_FAKE_CALL")
   if spec then services.call = call(spec) end
   spec = env("EVA_FAKE_TIMER")
-  if spec then services.alarm = timer(spec) end
-  if not (services.call or services.alarm) then return end
+  local fake_timer = spec and timer(spec)
+  if fake_timer then
+    for name, stand_in in pairs(fake_timer) do services.alarm[name] = stand_in end
+  end
+  if not (services.call or fake_timer) then return end
   morf.ipc["fake-live"] = function(kind, value)
-    local service = kind == "call" and services.call or kind == "timer" and services.alarm
+    local service = kind == "call" and services.call or kind == "timer" and fake_timer
     if service then service.set(value ~= "off") end
     return true
   end

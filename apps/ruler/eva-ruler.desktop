@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Screen ruler
+Comment=Measure what is on the screen in pixels
+Exec=eva-ruler
+Icon=applications-engineering
+Terminal=false
+Categories=Utility;Graphics;Development;
+StartupWMClass=eva.ruler

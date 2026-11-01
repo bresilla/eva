@@ -272,8 +272,15 @@ in
         # The assistant's streaming replies, and its keys in the Secret Service.
         pkgs.curl
         pkgs.libsecret
+        pkgs.fontconfig
+        pkgs.libnotify
+        pkgs.pipewire
+        pkgs.wl-clipboard
+        pkgs.xdg-utils
         tools
       ];
+      environment.sessionVariables.EVA_ALARM_SOUND =
+        "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga";
       hardware.sensor.iio.enable = lib.mkIf config.programs.eva.rotation.enable true;
       services.power-profiles-daemon.enable = lib.mkIf (
         !config.services.tlp.enable && !config.services.auto-cpufreq.enable
@@ -344,6 +351,44 @@ in
           ExecStartPre = "-${bridge}/bin/eva-wallpaper adopt";
           ExecStart = "${morfDefault}/bin/morf shell";
           ExecStopPost = "-${bridge}/bin/eva-wallpaper publish";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
+      # The night light's daemon, neutral until the shell's device speaks to it.
+      systemd.user.services.eva-hyprsunset = {
+        description = "hyprsunset, for eva's night light";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        serviceConfig = {
+          ExecStart = "${pkgs.hyprsunset}/bin/hyprsunset --identity";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
+      # Alarms set before this login: each is a timer unit, gone with the last
+      # session, put back from the store here.
+      systemd.user.services.eva-clock-sync = {
+        description = "eva alarms and timers";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        # Each unit it makes carries this PATH, for notify-send and pw-play.
+        path = [ "/run/current-system/sw" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${tools}/bin/eva-clock sync";
+        };
+      };
+      systemd.user.services.eva-breaks = {
+        description = "eva break reminders";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        path = [ "/run/current-system/sw" ];
+        serviceConfig = {
+          ExecStart = "${tools}/bin/eva-breaks --watch";
           Restart = "on-failure";
           RestartSec = 2;
         };

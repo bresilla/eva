@@ -118,6 +118,7 @@ function M.refresh(force)
         terminal = entry.run_in_terminal == true,
         window_class = entry.startup_class ~= "" and entry.startup_class or nil,
         source = entry.source,
+        folder = entry.source,
       }
       if not pins.hidden(entry.id) then list[#list + 1] = row end
       by_id[entry.id] = row
@@ -134,6 +135,9 @@ function M.refresh(force)
 end
 
 M.refresh()
+
+--- The installed applications the launcher lists, by name.
+function M.installed() return rows end
 
 local used = frecency.open { path = morf.paths.state("eva-launches.json") }
 M.used = used

@@ -15,6 +15,51 @@ eva_ipc() {
   eva_morf ipc call "$@"
 }
 
+# The answer of a verb alone, unwrapped from morf's JSON reply.
+eva_answer() {
+  sed -e 's/.*"result":\[*//' -e 's/\]*}[[:space:]]*$//' -e 's/^"//' -e 's/"$//'
+}
+
+# Runs a job, which answers in the file EVA_JOB_OUT names (lib/util/job.lua):
+# prints its answer to the byte and returns its status.
+eva_relay() {
+  out=$(eva_private_file job)
+  EVA_JOB_OUT=$out "$@" > /dev/null 2>&1 || true
+  code=$(head -n 1 "$out" 2>/dev/null || true)
+  if [ "${code:-1}" = 0 ]; then
+    tail -n +2 "$out"
+    rm -f "$out"
+    return 0
+  fi
+  words=$(tail -n +2 "$out" 2>/dev/null || true)
+  rm -f "$out"
+  eva_say "${words:-the job did not finish}"
+  return 1
+}
+
+# A command of the shell's own code with no shell running (apps/common/job).
+eva_job() {
+  eva_relay "${MORF:-morf}" app "$apps/common/job/app.lua" -- "$@"
+}
+
+# A tool's own job with no window, `eva_tool_job TOOL ARGS`.
+eva_tool_job() {
+  tool=$1
+  shift
+  eva_relay sh "$apps/launch" "$tool" "$@"
+}
+
+# The same, with this command's stdin handed over in a private file.
+eva_tool_job_stdin() {
+  EVA_JOB_IN=$(eva_private_file in)
+  export EVA_JOB_IN
+  cat > "$EVA_JOB_IN"
+  status=0
+  eva_tool_job "$@" || status=$?
+  rm -f "$EVA_JOB_IN"
+  return "$status"
+}
+
 eva_dry() {
   [ -n "${EVA_DRY_RUN:-}" ] && [ "$EVA_DRY_RUN" != 0 ]
 }

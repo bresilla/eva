@@ -1,0 +1,91 @@
+# eva-zoom on the sealed sway: the small window, the lens over a really frozen
+# screen with a tool window in it, the factor and the size changing, a second
+# launch shutting it, and `eva-zoom in` with no cursor zoom here opening the lens.
+# The cursor zoom path runs against tests/fixtures/bin-see/hyprctl, a stand-in.
+unset EVA_DRY_RUN
+export EVA_FAKE_POINTER=420,300
+state() { appipc state | tr -d ' \n' | cut -c1-220; }
+until_tool() { for _ in $(seq 80); do appipc state > /dev/null 2>&1 && return 0; sleep 0.25; done; }
+drawn() { swaymsg -t get_tree | jq -e --arg id "$1" '[.. | objects | select(.app_id? == $id)] | length > 0' > /dev/null; }
+until_window() { for _ in $(seq 80); do drawn "$1" && return 0; sleep 0.25; done; }
+until_open() { for _ in $(seq 80); do state | grep -q 'open\\":true' && return 0; sleep 0.25; done; }
+
+sh apps/launch keys > "$SEE_OUT/keys.log" 2>&1 &
+until_window eva.keys
+pause 3
+
+BOOT=0.5 start app zoom
+until_tool
+until_window eva.zoom
+pause 3
+shot window
+appipc set 3.5 > /dev/null
+pause 0.6
+shot window-factor
+note echo "window: $(state)"
+
+appipc lens > /dev/null
+until_open
+pause 1.5
+appipc point 300 240 > /dev/null
+pause 0.8
+shot lens
+note echo "lens in the window: $(state)"
+appipc lens > /dev/null
+pause 0.5
+note echo "shut: $(state)"
+
+# A real Escape over the lens shuts it from its own handler: the window stays.
+appipc lens > /dev/null
+until_open
+pause 1.5
+key Escape
+pause 1
+note echo "after Escape in the window: $(state)"
+note echo "stale handles: $(grep -c 'stale scene' "$SEE_OUT/app-zoom.log")"
+shot after-escape
+stop
+
+EVA_ZOOM_LENS=lens BOOT=0.5 start app zoom
+until_tool
+until_open
+pause 1.5
+appipc point 500 420 > /dev/null
+appipc set 5 > /dev/null
+pause 0.8
+shot lens-alone
+note echo "lens alone: $(state)"
+sh apps/zoom/cli lens
+pause 1
+note echo "second launch, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+
+EVA_ZOOM_LENS=lens BOOT=0.5 start app zoom
+until_tool
+until_open
+pause 1.5
+key Escape
+pause 1
+note echo "after Escape, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+ROLE=""
+
+sh apps/zoom/cli in > "$SEE_OUT/in.log" 2>&1 &
+pause 6
+shot in-elsewhere
+note echo "eva-zoom get: $(sh apps/zoom/cli get)"
+sh apps/zoom/cli lens
+pause 1
+
+# The cursor zoom path, against the stand-in hyprctl.
+export HYPRLAND_INSTANCE_SIGNATURE=stand-in
+sh apps/zoom/cli 3
+note echo "stand-in factor after 3: $(sh apps/zoom/cli get)"
+sh apps/zoom/cli in
+note echo "stand-in factor after in: $(sh apps/zoom/cli get)"
+sh apps/zoom/cli reset
+note echo "stand-in factor after reset: $(sh apps/zoom/cli get)"
+BOOT=0.5 start app zoom
+until_tool
+pause 3
+shot window-cursor
+note echo "cursor window: $(state)"
+unset HYPRLAND_INSTANCE_SIGNATURE

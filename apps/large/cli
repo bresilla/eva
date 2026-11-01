@@ -1,0 +1,27 @@
+#!/bin/sh
+# eva-large: Large Type. Shows words huge across the screen, fitted to it, with a
+# QR beside them where qrencode is installed. A press or Escape ends it, and so
+# does a second launch.
+#
+#   eva-large WORDS            the words
+#   echo words | eva-large     what comes on stdin
+#   eva-large                  the clipboard
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  -h | --help | help)
+    sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
+    exit 0
+    ;;
+esac
+
+file=$(eva_private_file txt)
+if [ "$#" -gt 0 ]; then
+  printf '%s' "$*" > "$file"
+elif [ ! -t 0 ]; then
+  cat > "$file"
+fi
+EVA_LARGE_FILE=$file sh "$apps/launch" large
+rm -f "$file"

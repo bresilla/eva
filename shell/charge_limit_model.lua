@@ -33,14 +33,11 @@ local function dir()
   return u and u.power_supply or charger.DIR
 end
 
--- UPower's path for the machine's own battery, or nil.
-local function battery_path()
-  local u = upower()
-  local rows = u and u.state and u.state.devices
-  for i = 1, rows and rows.len and rows:len() or 0 do
-    local row = rows:get(i)
-    if row.kind == "battery" and row.power_supply ~= false then return row.path end
-  end
+-- UPower's switch.
+local switch_client
+local function switch()
+  switch_client = switch_client or require("lib.services.charge_limit").new()
+  return switch_client
 end
 
 --- What the kernel's limit should be. `c`: `limit`, `adaptive`, `plugged`,
@@ -120,10 +117,9 @@ end
 --- Turns the limit on at HOLD, or off; through UPower where that is the way.
 function M.set_on(on)
   if route:get() ~= "upower" then return M.set_limit(on and M.HOLD or 100) end
-  if dry() then morf.log("info", "eva: charge limit " .. tostring(on) .. " (dry run)") return end
-  charger.upower(battery_path()).enable(on, function(ok, why)
+  switch().set(on, function(ok, why)
     M.message:set(ok and "" or tostring(why))
-    if ok then threshold:set(charger.upower(battery_path()).get()) end
+    if ok then threshold:set(switch().state:get()) end
   end)
 end
 
@@ -152,15 +148,21 @@ function M.probe()
     route:set(charger.limit_file(dir()) and "file" or "")
     return
   end
+  -- A machine with no battery has nothing to ask UPower.
+  if not charger.read(dir()).present and not morf.env("EVA_FAKE_CHARGE_LIMIT") then
+    route:set("")
+    return
+  end
   charger.writable(function(ok)
     if ok then return route:set("file") end
-    local state = charger.upower(battery_path()).get()
-    if state.supported then
-      threshold:set(state)
-      route:set("upower")
-    else
-      route:set(charger.limit_file(dir()) and "locked" or "")
-    end
+    switch().refresh(function(state)
+      if state.supported then
+        threshold:set(state)
+        route:set("upower")
+      else
+        route:set(charger.limit_file(dir()) and "locked" or "")
+      end
+    end)
   end, dir())
 end
 

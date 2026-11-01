@@ -56,6 +56,12 @@
               wallpaper = ./tests/fixtures/wallpaper.png;
             }
           );
+          clock-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/clock.nix {
+              inherit eva;
+              morf = engine;
+            }
+          );
         };
         checks = {
           inherit eva;
@@ -100,6 +106,8 @@
             pkgs.python3
             # A real text field for tools/see/keyboard-ime.steps.
             pkgs.zenity
+            pkgs.libnotify
+            pkgs.qrencode
           ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.

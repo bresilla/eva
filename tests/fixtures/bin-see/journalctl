@@ -1,0 +1,58 @@
+#!/bin/sh
+# Stands in for journalctl: says a fixed journal as JSON, narrowed by -p, -u, -b
+# and --grep as the real one does, and with --follow a new entry a second until
+# it is stopped. $STUB_JOURNAL_LOG, when set, records each call.
+[ -z "${STUB_JOURNAL_LOG:-}" ] || printf '%s\n' "$*" >> "$STUB_JOURNAL_LOG"
+level=7
+unit=""
+boot=0
+grep=""
+follow=""
+limit=0
+for word in "$@"; do
+  case "$word" in
+    -p*) level=${word#-p} ;;
+    -u*) unit=${word#-u} ;;
+    -b*) boot=${word#-b} ;;
+    -n*) limit=${word#-n} ;;
+    --grep=*) grep=${word#--grep=} ;;
+    --follow) follow=1 ;;
+    --no-such) echo "journalctl: unrecognized option" >&2; exit 1 ;;
+  esac
+done
+
+entry() {
+  [ "$2" -le "$level" ] || return 0
+  [ -z "$unit" ] || [ "$unit" = "$3" ] || return 0
+  [ -z "$grep" ] || case "$4" in *"$grep"*) ;; *) return 0 ;; esac
+  printf '{"__CURSOR":"c%s","__REALTIME_TIMESTAMP":"%s000000","PRIORITY":"%s","_SYSTEMD_UNIT":"%s","SYSLOG_IDENTIFIER":"%s","_PID":"%s","MESSAGE":"%s"}\n' \
+    "$1" "$((1793613600 + $1 * 7))" "$2" "$3" "${3%%.*}" "$((1000 + $1))" "$4"
+}
+
+if [ "$boot" = -1 ]; then
+  entry 1 6 systemd-logind.service 'The last boot began'
+  entry 2 3 sshd.service 'Last boot: fatal error on port 22'
+  exit 0
+fi
+
+entry 10 6 NetworkManager.service 'wlan0: connected to home'
+entry 11 6 systemd-logind.service 'New session 4 of user ada'
+entry 12 5 sshd.service 'Accepted publickey for ada from 192.168.1.5 port 51422'
+entry 13 4 bluetoothd.service 'Failed to set mode: Busy'
+entry 14 4 pipewire.service 'spa.alsa: hw:0: snd_pcm_avail after recover: Broken pipe'
+entry 15 3 kernel.service 'nvme nvme0: I/O 12 QID 3 timeout, aborting'
+entry 16 2 kernel.service 'CPU0: Package temperature above threshold, cpu clock throttled'
+entry 17 6 cron.service 'pam_unix(cron:session): session opened for user root'
+entry 18 7 NetworkManager.service 'dhcp4 (wlan0): state changed new lease'
+if [ "$level" -ge 6 ] && [ -z "$grep" ] && [ -z "$unit" ]; then
+  printf '{"__CURSOR":"c19","__REALTIME_TIMESTAMP":"1793613733000000","PRIORITY":"6","_SYSTEMD_UNIT":"blob.service","SYSLOG_IDENTIFIER":"blob","_PID":"1019","MESSAGE":[104,105,33]}\n'
+fi
+
+if [ -n "$follow" ]; then
+  index=100
+  while [ "$index" -lt 400 ]; do
+    sleep "${STUB_JOURNAL_PACE:-1}"
+    entry "$index" 6 sshd.service "Followed entry $index"
+    index=$((index + 1))
+  done
+fi

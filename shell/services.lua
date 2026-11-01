@@ -311,6 +311,15 @@ function M.duration(seconds)
   return ("%d:%02d"):format(m, s)
 end
 
+-- ---------------------------------------------------------------- alarms --
+
+--- Alarms and timers (lib/services/alarm.lua), eva-clock's store: `armed()` for
+--- the bar's indicator, `ongoing` (a signal) for its status pill. The primary
+--- screen keeps the time where there is no systemd.
+M.alarm = require("lib.services.alarm").new {
+  ring = not morf.window.primary or morf.window.primary(),
+}
+
 -- --------------------------------------------------------------- weather --
 
 local weather, weather_key

@@ -1,0 +1,68 @@
+# eva-pomodoro on the sealed session: a session started from the command line
+# with the shell up, its quiet through the shell's own focus verb, its timer in
+# the bar, a close of the window it outlives, and a phase rung by the shell.
+unset EVA_DRY_RUN
+export EVA_ALARM_ENGINE=local
+
+start shell
+pause 1
+note echo "--- before: focus $(ipc focus state)"
+note sh apps/pomodoro/cli start
+note sh apps/pomodoro/cli status
+note echo "--- running: focus $(ipc focus state)"
+note sh apps/clock/cli list
+pause 0.5
+shot bar-running
+
+BOOT=4 start app pomodoro
+appipc skip > /dev/null
+appipc skip > /dev/null
+pause 1
+shot running
+note echo "--- window: $(appipc state | tr -d ' \n' | cut -c1-200)"
+note sh apps/clock/cli list
+
+appipc pause > /dev/null
+pause 0.6
+shot paused
+note echo "--- paused: $(appipc state | tr -d ' \n' | cut -c1-200)"
+stop
+
+note echo "--- no window: $(sh apps/pomodoro/cli status)"
+note sh apps/pomodoro/cli start
+note sh apps/pomodoro/cli skip
+note echo "--- skipped, no window: $(sh apps/pomodoro/cli status)"
+note sh apps/pomodoro/cli reset
+
+# A real ring, with the shell keeping the time: a phase left at two seconds, its
+# ring answered as a press of Stop would, the quiet lifted by eva-pomodoro rang.
+SESSION=$XDG_STATE_HOME/eva/pomodoro/session.json
+seed() {
+  printf '{"phase":"work","running":false,"at":0,"left":%s,"seconds":1500,"plan":1,"round":%s,"today":%s,"total":%s,"day":"%s"}' \
+    "$1" "$2" "$2" "$2" "$(date +%Y-%m-%d)" > "$SESSION"
+}
+answer() {
+  for found in $(grep -lsa -- '--category=alarm' /proc/[0-9]*/cmdline); do
+    pid=${found#/proc/}
+    kill "${pid%/cmdline}" 2>/dev/null
+  done
+}
+start shell
+pause 1
+seed 2 2
+note sh apps/pomodoro/cli start
+note echo "--- phase left at 2 s: focus $(ipc focus state)"
+pause 3.5
+shot rung
+answer
+pause 3
+note echo "--- rung and answered: $(sh apps/pomodoro/cli status)"
+note echo "--- rung and answered: focus $(ipc focus state)"
+note sh apps/clock/cli list
+
+# The set's beads, and a window following a file another process wrote.
+BOOT=4 start app pomodoro
+seed 720 3
+pause 1.2
+shot beads
+note echo "--- followed: $(appipc state | tr -d ' \n' | cut -c1-200)"

@@ -274,6 +274,8 @@ local function system_entries()
     { id = "dnd", name = "Do not disturb", material = "notifications_off",
       run = function() local n = require("notifs") n.dnd:set(not n.dnd:get()) return "close" end },
     { id = "session", name = "Session menu", material = "power", run = drawer("session") },
+    { id = "standby", name = "StandBy", material = "bedtime_off",
+      run = function() require("standby_model").verb("on") return "close" end },
     { id = "notes", name = "Notes", material = "sticky_note_2", stands = true,
       run = function() require("pages").reach("notes") return "close" end },
     { id = "linked_phone", name = "Linked phone", material = "smartphone", stands = true,

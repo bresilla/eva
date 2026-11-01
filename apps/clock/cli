@@ -1,0 +1,79 @@
+#!/bin/sh
+# eva-clock: alarms and timers, said in plain words, and they ring whether or not
+# the shell or this window is running.
+#
+#   eva-clock                       the window
+#   eva-clock timer 12 min pasta    a timer
+#   eva-clock at 6pm call mum       an alarm; also "tomorrow 7am", "every
+#                                   weekday 6:30 gym", "tue thu 18:00"
+#   eva-clock list                  what is set
+#   eva-clock cancel ID|LABEL|all
+#   eva-clock snooze ID [MINUTES]
+#   eva-clock sync                  puts what is set back on the machine
+#   eva-clock fire ID LABEL         rings, for the timers that call it
+#
+# EVA_ALARM_SOUND is the sound; by default the sound theme's alarm-clock-elapsed.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+# The sound of an alarm, from the sound theme.
+sound() {
+  if [ -n "${EVA_ALARM_SOUND:-}" ]; then
+    printf '%s' "$EVA_ALARM_SOUND"
+    return 0
+  fi
+  old_ifs=$IFS
+  IFS=:
+  for dir in ${XDG_DATA_DIRS:-/usr/local/share:/usr/share}; do
+    file=$dir/sounds/freedesktop/stereo/alarm-clock-elapsed.oga
+    if [ -r "$file" ]; then
+      IFS=$old_ifs
+      printf '%s' "$file"
+      return 0
+    fi
+  done
+  IFS=$old_ifs
+  return 1
+}
+
+# Rings until it is answered, or for five minutes: the notifications server shows
+# it, and its Stop and Snooze decide what happens next.
+fire() {
+  id=$1
+  label=${2:-Alarm}
+  ringer=""
+  player=""
+  if eva_has pw-play; then player=pw-play; elif eva_has paplay; then player=paplay; fi
+  if [ -n "$player" ] && file=$(sound); then
+    timeout 300 sh -c 'while :; do "$1" "$2"; sleep 1; done' ring "$player" "$file" > /dev/null 2>&1 &
+    ringer=$!
+  fi
+  answer=""
+  if eva_has notify-send; then
+    answer=$(timeout 300 notify-send --app-name=eva --urgency=critical --category=alarm --icon=alarm \
+      --action=stop=Stop --action=snooze=Snooze --wait "$label" "$(date +%H:%M)" 2>/dev/null || true)
+  else
+    eva_notify "$label" "$(date +%H:%M)"
+  fi
+  if [ -n "$ringer" ]; then kill "$ringer" 2>/dev/null || true; fi
+  case "$answer" in
+    snooze) eva_job clock snooze "$id" || true ;;
+    *) eva_job clock done "$id" || true ;;
+  esac
+}
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" clock ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  fire)
+    shift
+    fire "$@"
+    ;;
+  list | cancel | snooze | sync) eva_job clock "$@" ;;
+  add)
+    shift
+    eva_job clock add "$@"
+    ;;
+  *) eva_job clock add "$@" ;;
+esac

@@ -1,7 +1,18 @@
 #!/bin/sh
 # Stands in for hyprctl on the sealed session: answers from $STUB_HYPR_BINDS, or
-# with nothing, and never reaches a real compositor.
+# with nothing, and never reaches a real compositor. The zoom factor lives in a
+# file of the session.
+factor=${XDG_RUNTIME_DIR:-/tmp}/stub-hypr-zoom
 case "$*" in
   *binds*) cat "${STUB_HYPR_BINDS:-/dev/null}" 2>/dev/null || printf '[]\n' ;;
+  *cursorpos*) printf '%s\n' "${STUB_HYPR_POINTER:-640, 400}" ;;
+  *getoption*cursor:zoom_factor*)
+    printf '{"option":"cursor:zoom_factor","float":%s,"set":true}\n' "$(cat "$factor" 2>/dev/null || echo 1)"
+    ;;
+  *keyword*cursor:zoom_factor*)
+    for last in "$@"; do :; done
+    printf '%s' "$last" > "$factor"
+    printf 'ok\n'
+    ;;
   *) printf '[]\n' ;;
 esac

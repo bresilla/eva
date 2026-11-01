@@ -9,14 +9,12 @@
 -- Reading needs nothing. The threshold files are root's unless a udev rule
 -- hands them over (nix/nixos/convertible.nix does, for its group): `writable`
 -- says which, and `set_limit` answers why not. UPower's own switch over its
--- fixed thresholds is `supported`, `enabled` and `enable`; polkit lets an
--- active session use it. `dir` is the fixture seam, as for lib.services.torch.
+-- fixed thresholds is lib/services/charge_limit.lua's. `dir` is the fixture
+-- seam, as for lib.services.torch.
 local morf = require("morf")
-local dbus_client = require("lib.services.dbus")
 
 local M = { DIR = "/sys/class/power_supply", FAST = 15, SLOW = 7.5, LOWEST = 50 }
 
-local UPOWER, DEVICE = "org.freedesktop.UPower", "org.freedesktop.UPower.Device"
 local END_FILE, START_FILE = "charge_control_end_threshold", "charge_control_start_threshold"
 local INPUTS = { USB = "usb", Wireless = "wireless", Mains = "mains" }
 -- The kernel's micro-units, as whole units of the product of two of them.
@@ -165,29 +163,6 @@ function M.set_limit(value, dir)
     if not done then return nil, why end
   end
   return write(base .. "/" .. END_FILE, value)
-end
-
--- ---------------------------------------------------------------- UPower --
-
---- UPower's own threshold switch on the battery at `path`. `options.dbus` is
---- the bus seam. `get()` answers `{ supported, enabled, start, stop }`.
-function M.upower(path, options)
-  options = options or {}
-  local client = dbus_client.new({ dbus = options.dbus, bus = "system" })
-  local u = {}
-  function u.get()
-    if not path or not client.has_owner(UPOWER) then return { supported = false } end
-    local p = client.get_all(UPOWER, path, DEVICE) or {}
-    return { supported = p.ChargeThresholdSupported == true, enabled = p.ChargeThresholdEnabled == true,
-      start = p.ChargeStartThreshold, stop = p.ChargeEndThreshold }
-  end
-  --- Turns it on or off. `done(ok, err)`.
-  function u.enable(on, done)
-    return client.call_async(UPOWER, path, DEVICE, "EnableChargeThreshold", { on == true }, 25000, function(reply, err)
-      if done then done(reply ~= nil, err) end
-    end)
-  end
-  return u
 end
 
 -- ------------------------------------------------------------ the stand-in --

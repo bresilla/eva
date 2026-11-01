@@ -78,7 +78,7 @@ return function(spec)
   ui.destroy(kit.text(probe), true)
   local focused = morf.state { on = false }
   local search_node, search = widgets.search { id = id and (id .. "-search"), accessible_name = "Search fonts",
-    x = 10, width = W - 20, height = SEARCH, inset = { 0, 0, 34, 0 },
+    x = 10, width = W - 20, height = SEARCH, inset = { kit.search_lead or 0, 0, 34, 0 },
     placeholder = spec.placeholder or "Search fonts…",
     font_family = probe.font_family, font_source = probe.font_source, font_size = probe.font_size,
     color = kit.ink("hi"), placeholder_color = kit.ink("lo"), caret_color = kit.signal("accent"),

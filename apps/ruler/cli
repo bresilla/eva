@@ -1,0 +1,28 @@
+#!/bin/sh
+# eva-ruler: an on-screen pixel ruler, over a frozen picture of the screen. A
+# second launch shuts it, as Escape does.
+#
+#   eva-ruler                 spacing: the gaps both ways round the pointer
+#   eva-ruler horizontal      across only
+#   eva-ruler vertical        down only
+#   eva-ruler bounds          drag a box
+#
+#   s h v b, 1 to 4           the modes
+#   the wheel, + -            how much a colour may change before it is an edge
+#   a click                   copies the measure
+#
+# Reads in pixels, and in mm and inches where the screen says its size.
+# EVA_FAKE_SCREEN_MM=WxH stands in for that size.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" ruler ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  spacing | horizontal | vertical | bounds) EVA_RULER_MODE=$1 exec sh "$apps/launch" ruler ;;
+  *)
+    eva_say "eva-ruler: no mode $1"
+    exit 2
+    ;;
+esac

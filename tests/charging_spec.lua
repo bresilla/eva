@@ -146,39 +146,10 @@ local HOST=[[
     eq(at(5,59,{watts=false}),80) eq(at(6,0,{watts=false}),100,"an hour's lead without a rate")
     return true
   end
-  local function bus(props,fail)
-    local calls={}
-    return calls,{
-      name_has_owner=function() return props~=nil end,
-      proxy=function()
-        return {call_with=function() return {props or {}} end,call=function() return {props or {}} end}
-      end,
-      on_name_owner_changed=function() return {close=function() end} end,
-      call_async=function(_,destination,path,interface,method,arguments,_,done)
-        calls[#calls+1]={path=path,interface=interface,method=method,on=arguments[1]}
-        if fail then done(false,fail) else done(true) end
-      end}
-  end
-  morf.ipc.upower=function()
-    local calls,fake=bus {ChargeThresholdSupported=true,ChargeThresholdEnabled=false,ChargeStartThreshold=40,ChargeEndThreshold=80}
-    local u=charger.upower("/org/freedesktop/UPower/devices/battery_BAT0",{dbus=fake})
-    local s=u.get()
-    truthy(s.supported) falsy(s.enabled,"enabled") eq(s.start,40) eq(s.stop,80)
-    local heard
-    u.enable(true,function(ok) heard=ok end)
-    truthy(heard) eq(calls[1].method,"EnableChargeThreshold") eq(calls[1].on,true)
-    eq(calls[1].interface,"org.freedesktop.UPower.Device")
-    return true
-  end
-  morf.ipc.upower_absent=function()
-    local _,fake=bus(nil)
-    falsy(charger.upower("/x",{dbus=fake}).get().supported,"supported")
-    return true
-  end
 ]]
 local function load() test.load("../shell/init.lua",{source=HOST,size={100,100}}) end
 for _,name in ipairs {"pd","wireless","slow","mains","on_battery","current","flow_unknown","charge_size","best_input",
-  "peripheral","none","seconds","limit","no_limit","adaptive","upower","upower_absent"} do
+  "peripheral","none","seconds","limit","no_limit","adaptive"} do
   test.it(name:gsub("_"," "),function()
     load()
     test.eq(test.ipc(name),true)

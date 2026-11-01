@@ -85,6 +85,20 @@ function M.new(active,open_battery)
     {key="charger",name="Charger",value=model.charger_name},
   }
   morf.effect("eva.power.visibility",function() if not active() then model.message:set("") end end)
+  -- The charge limit, the module eva-battery runs too.
+  local charge=require("lib.services.charge_limit").new()
+  morf.effect("eva.power.charge",function() if active() then charge.refresh() end end)
+  function model.limit_supported() return charge.state:get().supported==true end
+  function model.limit_on() return charge.state:get().enabled==true end
+  function model.limit_note()
+    local message=charge.message:get()
+    if message~="" then return message end
+    local s=charge.state:get()
+    if not s.stop then return "Stops charging early to spare the battery" end
+    return s.start and ("Holds the charge between %d and %d%%"):format(s.start,s.stop)
+      or ("Stops charging at %d%%"):format(s.stop)
+  end
+  function model.set_limit(on) charge.set(on) end
   return model
 end
 return M

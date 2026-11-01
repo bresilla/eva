@@ -50,6 +50,18 @@ local function with(extra)
   return out
 end
 
+test.it("a timer from the launcher is the pill and the indicator, and the pill stops it",function()
+  load_shell {}
+  test.ipc("q_run",[[require('timers_model').timer(600,'pasta') return true]]) test.settle(300)
+  test.eq(test.ipc("q_list"),{"timer"})
+  test.eq(test.ipc("q_run",[[return require('services').alarm.timer().label]]),"pasta")
+  test.truthy(test.ipc("q_run",[[return require('services').alarm.armed()]]),"the bar's indicator stays dark")
+  test.eq(test.ipc("q_run",[[return #require('timers_model').list()]]),1)
+  test.ipc("q_run",[[require('services').alarm.cancel_timer() return true]]) test.settle(300)
+  test.eq(test.ipc("q_list"),{})
+  test.eq(test.ipc("q_run",[[return #require('timers_model').list()]]),0)
+end)
+
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." takes no room while nothing is going on",function()
     load_shell {style=style}

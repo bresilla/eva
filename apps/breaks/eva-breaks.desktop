@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Breaks
+Comment=Reminders to rest your eyes, and your screen time
+Exec=eva-breaks
+Icon=preferences-desktop-accessibility
+Terminal=false
+Categories=Utility;
+StartupWMClass=eva.breaks

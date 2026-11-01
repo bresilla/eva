@@ -1,0 +1,39 @@
+# eva-clock on the sealed session: words added from the command line, the bar's
+# alarm indicator following the store, a timer rung by the shell through its own
+# notifications server, then the window's pages.
+unset EVA_DRY_RUN
+export EVA_ALARM_ENGINE=local
+
+start shell
+pause 1
+sh apps/clock/cli timer 12 min pasta
+sh apps/clock/cli every weekday 7:30 gym
+sh apps/clock/cli at 18:00 call home
+note sh apps/clock/cli list
+pause 0.5
+shot bar-armed
+sh apps/clock/cli timer 2 s egg
+pause 4
+shot rung
+
+BOOT=4 start app clock
+appipc city Tokyo > /dev/null
+appipc city "New York" > /dev/null
+appipc add timer 90 s tea > /dev/null
+shot alarms
+appipc tab timers > /dev/null
+pause 0.8
+shot timers
+appipc tab stopwatch > /dev/null
+appipc watch start > /dev/null
+pause 1.2
+appipc watch lap > /dev/null
+pause 0.8
+appipc watch lap > /dev/null
+shot stopwatch
+appipc tab world > /dev/null
+pause 0.8
+shot world
+text "timer 2 h 5 min bread"
+pause 0.3
+shot typed

@@ -1,5 +1,7 @@
 #!/bin/sh
-# apps/launch TOOL [ARGS]: one tool of apps/ as a program of its own.
+# apps/launch TOOL [ARGS]: one tool of apps/ as a program of its own. With no
+# ARGS it is the tool's window, and one window at a time: a second launch raises
+# the first and ends. With ARGS it is a job or a daemon, which runs beside it.
 #
 # MORF is the binary (default: morf on PATH). EVA_APPEARANCE and EVA_SETTINGS
 # name the shell's files; unset, they are found here.
@@ -25,5 +27,26 @@ fi
 
 if [ "$#" -gt 0 ]; then
   exec "${MORF:-morf}" app "$here/$tool/app.lua" -- "$@"
+fi
+
+# The pid of the window this tool has open, while it lives: the launcher's own,
+# which `exec` hands to morf.
+guard_dir=${XDG_RUNTIME_DIR:-/tmp}/eva
+guard=$guard_dir/$tool.window
+mkdir -p "$guard_dir"
+chmod 700 "$guard_dir" 2>/dev/null || true
+
+open_window() {
+  pid=$(cat "$guard" 2>/dev/null || true)
+  [ -n "$pid" ] && grep -qa "$tool/app.lua" "/proc/$pid/cmdline" 2>/dev/null
+}
+
+if ! (set -C; printf '%s' "$$" > "$guard") 2>/dev/null; then
+  if open_window; then
+    env -u MORF_APP "${MORF:-morf}" -i "$(basename -- "${WAYLAND_DISPLAY:-wayland-0}")-app-$pid" \
+      ipc call eva-raise > /dev/null 2>&1 || true
+    exit 0
+  fi
+  printf '%s' "$$" > "$guard"
 fi
 exec "${MORF:-morf}" app "$here/$tool/app.lua"

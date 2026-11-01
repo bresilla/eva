@@ -11,6 +11,6 @@ for role in shell lock greet; do
   [ "$role" = lock ] && set -- "$@" -- window preview
   EVA_DRY_RUN=1 "$morf" check "$@"
 done
-for app in apps/*/app.lua; do
+for app in apps/*/app.lua apps/common/job/app.lua; do
   EVA_DRY_RUN=1 "$morf" check "$app" --no-dbus --isolate --after 0
 done

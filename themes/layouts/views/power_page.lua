@@ -152,6 +152,10 @@ function M.build(model, w, h)
   for _, entry in ipairs(model.FACTS) do rows[#rows + 1] = { entry.name, entry.value } end
   local health = P.section { id = "power-health", caption_id = "power-heading-battery", width = w, title = "Battery",
     visible = model.present,
+    P.row { id = "power-limit", width = inner, icon = "battery_saver", on = model.limit_on,
+      title = "Charge limit", subtitle = model.limit_note, visible = model.limit_supported,
+      trailing = P.switch { id = "power-limit-switch", name = "Charge limit", on = model.limit_on,
+        on_toggled = function(now) model.set_limit(now) end } },
     kit.facts(rows, inner, 30),
     P.buttons { width = inner,
       { id = "power-open-battery", icon = "monitoring", label = "Battery graphs and details",

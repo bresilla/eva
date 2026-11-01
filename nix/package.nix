@@ -10,6 +10,9 @@
   ibm-plex,
   nerd-fonts,
   noto-fonts-color-emoji,
+  coreutils,
+  gnugrep,
+  gnused,
   runtimeShell,
   src,
   version,
@@ -85,9 +88,12 @@ runCommandCC "eva-${version}"
     $CC -std=gnu11 -O2 -Wall -Wextra -Werror ${src}/helpers/keyring/eva-keyring.c \
       $(pkg-config --cflags --libs gcr-4 gio-unix-2.0 json-glib-1.0) \
       -o "$out/bin/eva-keyring"
+    # What a tool's script runs on, wherever it is started from: a user unit's
+    # PATH holds none of it.
     launcher() {
-      printf '#!%s\nexport MORF="''${MORF:-%s}"\nexec %s %s "$@"\n' \
-        ${runtimeShell} ${morf}/bin/morf ${runtimeShell} "$2" > "$out/bin/$1"
+      printf '#!%s\nexport MORF="''${MORF:-%s}"\nexport PATH="$PATH:%s"\nexec %s %s "$@"\n' \
+        ${runtimeShell} ${morf}/bin/morf ${lib.makeBinPath [ coreutils gnugrep gnused ]} \
+        ${runtimeShell} "$2" > "$out/bin/$1"
       chmod +x "$out/bin/$1"
     }
     mkdir -p "$out/share/applications"

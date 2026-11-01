@@ -1,5 +1,5 @@
--- eva-nightlight: the sun's times for a place and a day, what `auto` decides, and
--- turning hyprsunset, a stand-in here, on and off.
+-- The night light: the sun's times for a place and a day, the commands the tile
+-- and eva-nightlight share, and eva-nightlight reaching them.
 --
 --     morf test --no-dbus tests/nightlight_spec.lua
 
@@ -12,76 +12,146 @@ local BIN = ROOT .. "tests/fixtures/bin"
 local JUNE, DECEMBER = "1782043200", "1797854400"
 local AMSTERDAM, TROMSO = "52.37,4.90", "69.65,18.96"
 
-local function host()
-  test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/cli_host.lua") })
+local HOST = [[
+  local morf = require("morf")
+  local ui = require("morf.ui")
+  ui.Item { width = 1, height = 1 }
+  local lib = require("lib.services.nightlight")
+  local state = { on = false, temperature = 4500, follow = false }
+  local device = {
+    on = function() return state.on end,
+    set = function(now) state.on = now end,
+    temperature = function() return state.temperature end,
+    set_temperature = function(value) state.temperature = lib.clamp(value) end,
+    follow = function() return state.follow end,
+    set_follow = function(now) state.follow = now end,
+  }
+  local answer
+  local function hold(text, why) answer = { text = text, why = why } end
+  morf.ipc.times = function(where) answer = nil lib.times(where, hold) return true end
+  morf.ipc.decide = function(where) answer = nil lib.decide(device, where, hold) return true end
+  morf.ipc.answer = function() return answer end
+  morf.ipc.state = function() return state end
+  morf.ipc.command = function(how, value)
+    local text, why = lib.command(device, how, value)
+    return { text = text, why = why }
+  end
+  morf.ipc.coordinates = function(where)
+    local lat, lon = lib.coordinates(where)
+    return { lat = lat, lon = lon }
+  end
+]]
+
+local function host(now)
+  test.load("../shell/init.lua", { source = HOST, env = { EVA_NOW = now or JUNE } })
 end
 
-local function night(args, env)
-  local state = morf.env("XDG_STATE_HOME")
-  local argv = { "env", "PATH=" .. BIN .. ":" .. morf.env("PATH"), "MORF=" .. BIN .. "/morf", "STUB_LOG=/dev/null",
-    "HOME=" .. state, "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR"), "XDG_STATE_HOME=" .. state }
-  for _, word in ipairs(env or {}) do argv[#argv + 1] = word end
-  argv[#argv + 1] = "sh"
-  argv[#argv + 1] = ROOT .. "apps/bin/eva-nightlight"
-  for _, word in ipairs(args) do argv[#argv + 1] = word end
-  test.ipc("run", table.unpack(argv))
-  return test.wait(function() return test.ipc("result") end, 5000, "the tool answered")
+local function times(place, now)
+  host(now)
+  test.ipc("times", place)
+  return test.wait(function() return test.ipc("answer") end, 2000, "the sun answered")
 end
 
-local function at(place, now) return { "EVA_NIGHTLIGHT_PLACE=" .. place, "EVA_NOW=" .. now } end
+local function decide(place, now)
+  host(now)
+  test.ipc("decide", place)
+  return test.wait(function() return test.ipc("answer") end, 2000, "the sun answered")
+end
 
 test.it("works out the sun's times for a place and a day", function()
-  host()
-  local result = night({ "times" }, at(AMSTERDAM, JUNE))
-  test.truthy(result.ok)
-  test.contains(result.stdout, "sunrise 03:")
-  test.contains(result.stdout, "sunset 20:")
-  local winter = night({ "times" }, at(AMSTERDAM, DECEMBER))
-  test.contains(winter.stdout, "sunrise 07:")
-  test.contains(winter.stdout, "sunset 15:")
+  local summer = times(AMSTERDAM, JUNE).text
+  test.contains(summer, "sunrise 03:")
+  test.contains(summer, "sunset 20:")
+  local winter = times(AMSTERDAM, DECEMBER).text
+  test.contains(winter, "sunrise 07:")
+  test.contains(winter, "sunset 15:")
 end)
 
 test.it("knows when the sun stays up or stays down", function()
-  host()
-  test.contains(night({ "times" }, at(TROMSO, JUNE)).stdout, "does not set")
-  test.contains(night({ "times" }, at(TROMSO, DECEMBER)).stdout, "does not rise")
+  test.contains(times(TROMSO, JUNE).text, "does not set")
+  test.contains(times(TROMSO, DECEMBER).text, "does not rise")
 end)
 
-test.it("decides day or night, holding back under a dry run", function()
-  host()
-  local dry = { "EVA_DRY_RUN=1" }
-  local function auto(place, now)
-    local env = at(place, now)
-    env[#env + 1] = dry[1]
-    return night({ "auto" }, env)
-  end
-  test.contains(auto(AMSTERDAM, JUNE).stdout, "day")
-  test.contains(auto(AMSTERDAM, "1782086400").stdout, "night")
-  test.contains(auto(TROMSO, JUNE).stdout, "day")
-  local polar = auto(TROMSO, DECEMBER)
-  test.contains(polar.stdout, "night")
-  test.contains(polar.stderr, "dry run: hyprsunset -t 4000")
+test.it("decides day or night and sets the light", function()
+  test.eq(decide(AMSTERDAM, JUNE).text, "day")
+  test.falsy(test.ipc("state").on)
+  test.eq(decide(AMSTERDAM, "1782086400").text, "night")
+  test.truthy(test.ipc("state").on)
+  test.eq(decide(TROMSO, JUNE).text, "day")
+  test.eq(decide(TROMSO, DECEMBER).text, "night")
 end)
 
 test.it("says when it has no place", function()
-  host()
-  local result = night({ "times" }, { "EVA_SETTINGS=/nonexistent/eva.json" })
-  test.falsy(result.ok)
-  test.contains(result.stderr, "no place")
+  local answer = times("")
+  test.falsy(answer.text)
+  test.contains(answer.why, "no place")
 end)
 
-test.it("runs hyprsunset and stops it", function()
+test.it("reads coordinates however they are written", function()
   host()
-  test.eq(night({ "status" }).stdout, "off\n")
-  test.truthy(night({ "on", "3500" }).ok)
-  test.eq(night({ "status" }).stdout, "on\n")
-  test.truthy(night({ "toggle" }).ok)
-  test.eq(night({ "status" }).stdout, "off\n")
+  test.eq(test.ipc("coordinates", "52.37,4.90").lat, 52.37)
+  test.eq(test.ipc("coordinates", " -33.9, 151.2 ").lon, 151.2)
+  test.eq(test.ipc("coordinates", "Amsterdam").lat, nil)
+end)
+
+test.it("takes the commands both surfaces take", function()
+  host()
+  test.eq(test.ipc("command", "status").text, "off")
+  test.eq(test.ipc("command", "on", "3500").text, "on")
+  test.eq(test.ipc("state").temperature, 3500)
+  test.eq(test.ipc("command", "toggle").text, "off")
+  test.eq(test.ipc("command", "temperature", "9000").text, "6000")
+  test.eq(test.ipc("command", "follow", "on").text, "on")
+  test.truthy(test.ipc("state").follow)
 end)
 
 test.it("refuses what it does not know", function()
   host()
-  local result = night { "sideways" }
+  test.contains(test.ipc("command", "sideways").why, "unknown command")
+end)
+
+-- ---------------------------------------------------------- the command line --
+
+local function cli(args, env)
+  local state = morf.env("XDG_STATE_HOME")
+  local log = state .. "/night-" .. tostring(morf.time.now_ms()) .. ".log"
+  morf.fs.write(log, "")
+  local argv = { "env", "MORF=" .. BIN .. "/morf", "STUB_LOG=" .. log, "HOME=" .. state,
+    "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR") }
+  for _, word in ipairs(env or {}) do argv[#argv + 1] = word end
+  argv[#argv + 1] = "sh"
+  argv[#argv + 1] = ROOT .. "apps/bin/eva-nightlight"
+  for _, word in ipairs(args) do argv[#argv + 1] = word end
+  test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/cli_host.lua") })
+  test.ipc("run", table.unpack(argv))
+  return test.wait(function() return test.ipc("result") end, 5000, "the tool answered"), morf.fs.read(log) or ""
+end
+
+test.it("eva-nightlight asks the shell when it is up", function()
+  local _, calls = cli({ "on", "3500" }, { "STUB_UP=1" })
+  test.contains(calls, "ipc call nightlight on 3500")
+  test.falsy(calls:find("job/app.lua", 1, true))
+end)
+
+test.it("eva-nightlight runs the same code as a job with the shell down", function()
+  local _, calls = cli { "off" }
+  test.contains(calls, "apps/common/job/app.lua -- nightlight off")
+end)
+
+test.it("the sun's times are a job whether the shell is up or not", function()
+  local _, calls = cli({ "times" }, { "STUB_UP=1" })
+  test.contains(calls, "apps/common/job/app.lua -- nightlight times")
+end)
+
+test.it("eva-nightlight holds no copy of what the module does", function()
+  local script = morf.fs.read(ROOT .. "apps/bin/eva-nightlight")
+  test.falsy(script:find("hyprsunset -t", 1, true))
+  test.falsy(script:find("awk", 1, true))
+  test.falsy(script:find("curl", 1, true))
+end)
+
+test.it("refuses a command the shell would not take", function()
+  local result = cli { "sideways" }
   test.falsy(result.ok)
   test.contains(result.stderr, "unknown command")
 end)

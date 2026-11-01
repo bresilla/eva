@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=QR code
+Comment=Make a QR code from text or a Wi-Fi network
+Exec=eva-qr
+Icon=qrcode
+Terminal=false
+Categories=Utility;
+StartupWMClass=eva.qr

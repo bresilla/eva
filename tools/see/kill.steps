@@ -1,0 +1,70 @@
+# eva-kill on the sealed sway, ending a real window: two eva tools stand as real
+# windows, the box rides from one to the other, and a real `swaymsg kill` ends the
+# second. `swaymsg -t get_tree` shows it before and after.
+unset EVA_DRY_RUN
+state() { appipc state | tr -d ' \n' | cut -c1-200; }
+titles() { swaymsg -t get_tree | jq -c '[.. | objects | select(.app_id? != null) | .app_id]'; }
+windows() { swaymsg -t get_tree | jq -c '[.. | objects | select(.app_id? != null) | {id, app_id, rect: [.rect.x, .rect.y, .rect.width, .rect.height]}]'; }
+has() { titles | grep -q "$1"; }
+until_window() { for _ in $(seq 60); do has "$1" && return 0; sleep 0.25; done; }
+until_gone() { for _ in $(seq 40); do has "$1" || return 0; sleep 0.25; done; }
+until_tool() { for _ in $(seq 60); do appipc state > /dev/null 2>&1 && return 0; sleep 0.25; done; }
+
+sh apps/launch keys > "$SEE_OUT/keys.log" 2>&1 &
+until_window eva.keys
+sh apps/launch colorpick > "$SEE_OUT/colorpick.log" 2>&1 &
+until_window eva.colorpick
+pause 1.5
+note echo "before: $(windows)"
+
+export EVA_FAKE_POINTER=20,20
+BOOT=0.5 start app kill
+unset EVA_FAKE_POINTER
+until_tool
+pause 4
+shot left
+note echo "over the first: $(state)"
+
+X=$(swaymsg -t get_tree | jq -r '[.. | objects | select(.app_id? == "eva.colorpick")][0].rect | (.x + 40)')
+Y=$(swaymsg -t get_tree | jq -r '[.. | objects | select(.app_id? == "eva.colorpick")][0].rect | (.y + 40)')
+appipc point "$X" "$Y" > /dev/null
+shot riding
+pause 1
+shot right
+note echo "over the second: $(state)"
+
+appipc kill > /dev/null
+pause 0.1
+shot ending
+until_gone eva.colorpick
+pause 1
+shot ended
+note echo "after: $(titles)"
+note echo "kill role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+
+# A window over the whole screen leaves the field nothing to dim; Escape ends nothing.
+BOOT=0.5 start app kill
+until_tool
+pause 3
+appipc point 100 100 > /dev/null
+pause 1
+shot whole-screen
+note echo "over the whole screen: $(state)"
+key Escape
+pause 1
+note echo "after Escape: $(titles), role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+
+# A second launch cancels too.
+BOOT=0.5 start app kill
+until_tool
+pause 3
+sh apps/kill/cli
+pause 1
+note echo "second launch: $(titles), role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+ROLE=""
+
+# --active ends the focused window with no overlay.
+swaymsg '[app_id="eva.keys"] focus' > /dev/null
+sh apps/kill/cli --active > "$SEE_OUT/active.log" 2>&1 &
+until_gone eva.keys
+note echo "after --active: $(titles)"

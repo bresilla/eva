@@ -1,7 +1,6 @@
 -- eva-colorpick: the window, or with `--pick` the frozen screen alone: one
 -- click copies a colour and ends, for a keybinding.
 local morf = require("morf")
-local ui = require("morf.ui")
 local frame = require("common.frame")
 local model = require("model")
 local view = require("view")
@@ -19,12 +18,8 @@ morf.ipc.pick = function() return model.pick() end
 morf.ipc.format = function(name) model.format:set(name) return true end
 morf.ipc.lule = function(hex) model.send_to_lule(hex) return true end
 
-if morf.operands[1] == "--pick" then
-  ui.Item { width = 1, height = 1 }
-  morf.surface.layer = "background"
-  morf.surface.width, morf.surface.height = 1, 1
-  morf.surface.keyboard_focus = "none"
-  frame.follow_scheme()
+if morf.options.pick then
+  frame.quiet(true)
   view.overlay(function() morf.quit() end)
   model.freeze()
   return

@@ -1,5 +1,6 @@
 -- StandBy's face: a great clock, the folder's pictures changing through the
--- shell's transitions, or two stacks of widgets. Faces are the desktop's. A swipe
+-- shell's transitions, two stacks of widgets, eva-clock's cities, or the next
+-- thing to ring. Faces are the desktop's. A swipe
 -- turns the view; a touch shows the way out. At night the ink is a dim red, and
 -- everything drifts a little so nothing burns in.
 local morf = require("morf")
@@ -87,6 +88,52 @@ function V.build(model, desktop)
     stack("standby-right", half, math.min(sh - 2 * S.xl, 348), { "media", "system" }),
   }
 
+  -- ---------------------------------------------------------------- world --
+  local CITIES = 6
+  local list_w = math.floor(sw * 0.6)
+  local world_rows = { id = "standby-world-rows", anchors = { center_in = true }, width = list_w, gap = S.m }
+  for index = 1, CITIES do
+    local function city() return model.cities()[index] end
+    local function reading()
+      local entry = city()
+      if not entry then return "", "" end
+      return model.city_time(entry)
+    end
+    world_rows[#world_rows + 1] = ui.Item { width = list_w, height = 2 * S.xxl, visible = function() return city() ~= nil end,
+      ui.Column { anchors = { vertical_center = true }, gap = S.xxs,
+        kit.text { id = "standby-city-name-" .. index, color = ink, font_size = theme.size.large,
+          text = function() local entry = city() return entry and entry.name or "" end },
+        kit.text { id = "standby-city-apart-" .. index, color = soft, font_size = theme.size.small,
+          text = function() local _, apart = reading() return apart end } },
+      kit.text { id = "standby-city-time-" .. index, anchors = { right = true, vertical_center = true }, color = ink,
+        font_size = theme.size.extra * 1.6, font_weight = 200, text = function() local time = reading() return time end },
+    }
+  end
+  local world_view = ui.Item { id = "standby-world", anchors = { fill = true },
+    visible = function() return model.view:get() == "world" end,
+    ui.Column(world_rows),
+    kit.text { id = "standby-world-empty", anchors = { center_in = true }, color = soft, font_size = theme.size.large,
+      text = "Add cities in Clock", visible = function() return #model.cities() == 0 end },
+  }
+
+  -- ---------------------------------------------------------------- alarm --
+  local function next_one() return model.next_alarm() end
+  local alarm_view = ui.Item { id = "standby-alarm", anchors = { fill = true },
+    visible = function() return model.view:get() == "alarm" end,
+    kit.text { id = "standby-alarm-empty", anchors = { center_in = true }, color = soft, font_size = theme.size.large,
+      text = "Nothing set to ring", visible = function() return next_one() == nil end },
+    ui.Column { anchors = { center_in = true }, gap = S.s, align = "center", visible = function() return next_one() ~= nil end,
+      kit.icon("alarm", S.xxl, ink),
+      kit.text { id = "standby-alarm-time", color = ink, font_size = math.floor(math.min(sh * 0.3, sw * 0.2)), font_weight = 200,
+        text = function() local one = next_one() return one and one.time or "" end },
+      kit.text { id = "standby-alarm-label", color = soft, font_size = theme.size.large,
+        text = function()
+          local one = next_one()
+          return one and (one.label .. " · " .. one.left) or ""
+        end },
+    },
+  }
+
   -- ----------------------------------------------------------- the way out --
   local chrome = morf.signal("eva.standby.chrome", false)
   local hide
@@ -95,7 +142,7 @@ function V.build(model, desktop)
     if hide then hide:cancel() end
     hide = morf.time.timer(4000, function() hide = nil chrome:set(false) end, false)
   end
-  local buttons = { id = "standby-buttons", width = 3 * S.xxl * 3 + 2 * S.s }
+  local buttons = { id = "standby-buttons", width = #model.VIEWS * S.xxl * 3 + (#model.VIEWS - 1) * S.s }
   for _, view in ipairs(model.VIEWS) do
     buttons[#buttons + 1] = { id = "standby-view-" .. view[1], label = view[2], icon = view[3], group = "standby-view",
       selected = function() return model.view:get() == view[1] end, on_clicked = function() model.view:set(view[1]) show_chrome() end }
@@ -114,7 +161,7 @@ function V.build(model, desktop)
         if not model.showing() or config.get("appearance.reduce_motion") == true then return nil end
         return { translate_x = { from = -S.s, to = S.s, duration = 90000, easing = "in_out_sine", alternate = true } }
       end,
-      clock_view(), widget_view },
+      clock_view(), widget_view, world_view, alarm_view },
     ui.MouseArea { anchors = { fill = true }, z = 1,
       on_pressed = function(x) from = x end,
       on_released = function(x)

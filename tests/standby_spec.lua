@@ -36,7 +36,7 @@ for _, style in ipairs { "material", "tsugumori" } do
       load { style = style }
       test.truthy(shown(), "it did not come")
       test.truthy(test.find { id = "standby-clock", visible = true })
-      for _, view in ipairs { "photos", "widgets", "clock" } do
+      for _, view in ipairs { "photos", "widgets", "world", "alarm", "clock" } do
         test.ipc("standby", view) test.settle(500)
         test.truthy(test.find { id = "standby-" .. view, visible = true }, "no " .. view)
       end
@@ -44,6 +44,40 @@ for _, style in ipairs { "material", "tsugumori" } do
     end)
   end)
 end
+
+test.describe("eva-standby's way in", function()
+  test.it("opens on any form, closes on a second call, and holds the screen awake", function()
+    load { battery = "64", desk = true, size = { 1920, 1080 } }
+    test.falsy(shown())
+    test.ipc("standby", "toggle") test.settle(600)
+    test.truthy(shown(), "the verb did not open it")
+    test.truthy(test.ipc("awake", "state").on, "the screen may sleep under it")
+    test.ipc("standby", "toggle") test.settle(600)
+    test.falsy(shown())
+    test.falsy(test.ipc("awake", "state").on, "the screen stayed held")
+  end)
+
+  test.it("ends with the power when asked to, and is red when asked to", function()
+    load { battery = "64,charging", desk = true, size = { 1920, 1080 } }
+    test.ipc("standby", "on", "when-charging", "night") test.settle(600)
+    test.truthy(shown())
+    test.truthy(test.ipc("standby", "state").night)
+    test.ipc("fake-battery", "64") test.settle(600)
+    test.falsy(shown(), "it outlived the power")
+    test.falsy(test.ipc("standby", "state").night)
+  end)
+
+  test.it("shows eva-clock's cities and the next thing to ring", function()
+    local state = morf.env("XDG_STATE_HOME") .. "/eva/clock"
+    morf.fs.write(state .. "/world.json", morf.json.encode { { name = "Tirana", zone = "Europe/Tirane" } }, { parents = true })
+    load {}
+    test.ipc("standby", "world") test.settle(500)
+    test.truthy(test.find { id = "standby-city-name-1", text = "Tirana", visible = true })
+    morf.fs.remove(state .. "/world.json")
+    test.ipc("standby", "alarm") test.settle(500)
+    test.truthy(test.find { id = "standby-alarm-empty", visible = true })
+  end)
+end)
 
 test.describe("when it shows", function()
   test.it("stays away off charge, upright, on a desk, or switched off", function()

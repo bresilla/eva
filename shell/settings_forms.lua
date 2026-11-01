@@ -145,6 +145,10 @@ M.PAGES = {
     } },
   } },
   commands = { sections = {
+    { title = "Updates", fields = {
+      { key = "update.flake", kind = "text", title = "Flake", icon = "account_tree",
+        note = "What eva-update reads, or its folder; empty finds /etc/nixos's" },
+    } },
     { title = "Session", note = "$USER is your name", fields = commands("session.commands.", {
       { "lock", "Lock", "lock" }, { "logout", "Log out", "logout" }, { "suspend", "Suspend", "bedtime" },
       { "hibernate", "Hibernate", "downloading" }, { "reboot", "Restart", "restart_alt" },

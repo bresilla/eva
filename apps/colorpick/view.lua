@@ -89,10 +89,7 @@ end
 
 local function frozen_screen(done)
   local function picture() return model.picture:get() end
-  local function scale()
-    local p, screen = picture(), (morf.screens or {})[1]
-    return p and screen and screen.width and screen.width > 0 and p.width / screen.width or 1
-  end
+  local scale = model.scale
   local function hover() return model.hover:get() end
   local zoom = model.ZOOM
   local lens = ui.ClipRect {
@@ -150,8 +147,8 @@ local function frozen_screen(done)
         model.point(sx, sy, scale())
         finish(model.pick())
       end,
-      on_key_pressed = function(key)
-        if key == "Escape" then
+      on_key_pressed = function(_, _, _, _, name)
+        if name == "Escape" then
           model.thaw()
           finish(nil)
           return true
@@ -160,26 +157,13 @@ local function frozen_screen(done)
     },
     lens, label, hint,
   }
-  return morf.window.layer {
-    blend = "srgb", namespace = "eva-colorpick", layer = "overlay",
-    anchors = { top = true, bottom = true, left = true, right = true },
-    width = 0, height = 0, exclusive_zone = -1, keyboard_focus = "exclusive", visible = true,
-    root = root,
-  }
+  return require("common.frame").overlay { id = "colorpick", root = root }
 end
 
 --- The frozen screen for as long as there is a picture: a click takes a colour,
 --- Escape lets go. `done(hex)` after either.
 function M.overlay(done)
-  local layer
-  morf.effect("eva.colorpick.overlay", function()
-    local shown = model.picture:get() ~= nil
-    if shown and not layer then layer = frozen_screen(done)
-    elseif not shown and layer then
-      layer:destroy()
-      layer = nil
-    end
-  end)
+  model.overlay(function() return frozen_screen(done) end)
 end
 
 return M

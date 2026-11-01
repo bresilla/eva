@@ -132,6 +132,14 @@ require("auto_rotate").start()
 require("quick_hardware").nightlight()
 require("quick_hardware").start()
 require("charge_limit_model").start()
+do
+  local alarm = require("services").alarm
+  alarm.load()
+  morf.time.timer(3000, alarm.sync, false)
+  -- What the launcher sets rings the one way anything rings.
+  local ok, timers = pcall(require, "timers_model")
+  if ok then timers.use(alarm) end
+end
 
 -- ---------------------------------------------------------------- drawers --
 
@@ -652,6 +660,25 @@ ipc.record = function(what)
   if not here() then return nil end
   return capture.record(what)
 end
+-- `nightlight on|off|toggle|status|temperature|follow [VALUE]`: the tile's own
+-- device, for eva-nightlight.
+ipc.nightlight = function(how, value)
+  if not here() then return nil end
+  local text, why = require("quick_hardware").nightlight().command(how, value)
+  if not text then error(why) end
+  return text
+end
+-- `awake on|off|toggle|state [MINUTES]`: the quick settings' keep awake, the
+-- shell's own inhibitor, for eva-awake.
+ipc.awake = function(how, minutes)
+  if not here() then return nil end
+  local settings = require("settings_model")
+  if how == "toggle" then how = settings.awake:get() and "off" or "on" end
+  if how == "on" then settings.awake_for(tonumber(minutes))
+  elseif how == "off" then settings.set_awake(false)
+  elseif how ~= "state" and how ~= nil then error("`" .. tostring(how) .. "`: on, off, toggle or state") end
+  return settings.awake_state()
+end
 ipc.workspace = function(n)
   if not here() then return nil end
   require("services").workspace.go(n)
@@ -673,8 +700,8 @@ ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, .
 ipc.desktop = function(how, id) return require("desktop").verb(how, id) end
 -- `island [on|off|toggle|next|state]`.
 ipc.island = function(how) return require("island").verb(how) end
--- `standby [on|off|state|clock|photos|widgets]`.
-ipc.standby = function(how) return require("standby_model").verb(how) end
+-- `standby [on [when-charging] [night]|off|toggle|state|clock|photos|widgets|world|alarm]`.
+ipc.standby = function(how, ...) return require("standby_model").verb(how, ...) end
 -- `osd [KIND]`: shows that display (the volume without one). False when its
 -- service is absent or its setting has it off.
 ipc.osd = function(kind)
@@ -723,22 +750,27 @@ ipc.notifications = function(how, a, b)
   if how == "unmute" then require("notification_rules").unmute(a) return true end
   error("`" .. tostring(how) .. "`: no such verb")
 end
--- `focus VERB ...`: status; list; on MODE [SECONDS]; off; toggle.
+-- `focus VERB ...`: status; state, whether it is quiet; list; on [MODE [SECONDS]],
+-- the last mode without one; off; toggle.
 ipc.focus = function(how, mode, seconds)
   local focus = require("focus_model")
   how = how or "status"
   if how == "status" then
     return { active = focus.active_id(), status = focus.status(), quiet = focus.quiet(), ends = focus.ends() }
   end
+  if how == "state" then return focus.quiet() end
   if how == "list" then
     local names = {}
     for i, row in ipairs(focus.modes()) do names[i] = row.id end
     return names
   end
   if morf.window.primary and not morf.window.primary() then return nil end
-  if how == "on" then return focus.start(mode, { seconds = tonumber(seconds) or 0 }) end
+  if how == "on" then return focus.start(mode or config.get("focus.last"), { seconds = tonumber(seconds) or 0 }) end
   if how == "off" then return focus.stop() end
-  if how == "toggle" then return focus.toggle(tonumber(mode)) end
+  if how == "toggle" then
+    focus.toggle(tonumber(mode))
+    return focus.quiet()
+  end
   error("`" .. tostring(how) .. "`: no such verb")
 end
 ipc.close = function()

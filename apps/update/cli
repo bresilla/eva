@@ -1,0 +1,26 @@
+#!/bin/sh
+# eva-update: what waits on this machine, and on NixOS a rebuild with its log.
+#
+#   eva-update          the window
+#   eva-update --check  how many wait, as a number: flake inputs a month behind
+#                       on NixOS, packages from checkupdates, apt, dnf and flatpak
+#
+# EVA_UPDATE_FLAKE names the flake.lock, or the folder it is in.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" update ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  --check)
+    out=$(eva_private_file update)
+    EVA_UPDATE_OUT=$out "${MORF:-morf}" app "$apps/update/app.lua" -- --check > /dev/null 2>&1 || true
+    cat "$out"
+    rm -f "$out"
+    ;;
+  *)
+    eva_say "no such option: $1"
+    exit 1
+    ;;
+esac

@@ -224,6 +224,37 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   stops GeoClue's demo agent, and a per-program prompt or an accuracy choice
   cannot be the shell's.
 
+## Tools: open
+
+- A surface ending inside its own event. `win:destroy()` on a layer surface,
+  reached from a key handler on that surface or from an effect the handler
+  flushes, logs `scene layout error: stale scene node handle` and the runtime is
+  gone. `frame.dismiss` in `apps/common/frame.lua` closes the surface and destroys
+  it on the next turn. `destroy` deferring itself past the running event would
+  cover it.
+- A key sent to a surface in `morf test`. `test.click` takes a `surface`;
+  `test.key` goes to the focused surface alone, so Escape on an overlay is proven
+  with a real key in `tools/see/` and has no spec.
+- ICO images. A favicon holding only BMP frames cannot be decoded: `eva-webapp`
+  takes the PNG frames out of an `.ico` in Lua and otherwise draws a letter.
+- A panic on an empty field. `command_reach`
+  (`crates/graphics/morf-render/src/gpu/backend_render/frame_draw.rs:242`) indexes
+  out of bounds when a full-screen field resolves to no tiles and is the frame's
+  last instance: a box minus a circle wider than the screen does it on the first
+  frame. eva-find's centre dot and eva-kill's hint are drawn after the field so
+  it never is the last.
+- A layer surface with nothing to paint on its first frame never shows, so
+  `eva-find --ripple` keeps a hint card.
+- `morf.image.pixel` decodes the whole file on each call and refuses pictures over
+  4 MP. `common/freeze.lua` samples through `morf.image.preview`.
+- `morf.ipc` limits a call's arguments, so eva-draw's `stroke` verb takes one string.
+- A job without a compositor. `morf app` needs Wayland and has no stdin, stdout or
+  exit status for a configuration, so a tool's command line runs through files
+  (`lib/util/job.lua`) and fails on a TTY or over SSH, `eva-text` included.
+- `xdg_toplevel`'s suspended state. A window cannot hear that nothing shows it:
+  `eva-monitor` stops sampling when minimised, paused or away, and keeps sampling
+  on a hidden workspace.
+
 ## Seamless login: open
 
 - Custom shaders on a held lock. Every renderer calls `register_shaders` except
