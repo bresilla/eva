@@ -3,14 +3,11 @@
 -- place, width and presence follow on springs, so rearranging moves the tiles
 -- that are there instead of drawing new ones.
 --
--- A tile hangs on a `sortable_grid` holder beside the drag control rather
--- than inside it, and the control is there only while editing: at rest a
--- finger on a tile scrolls the page, as an ancestor with a drag handler
--- would not let it.
+-- A tile hangs on a `sortable_grid` holder beside the drag control, which is
+-- there only while editing.
 --
--- The hidden tiles wait in the same space below the shown ones while editing,
--- so a hidden tile flies down to the Available section and an added one flies
--- back.
+-- While editing the hidden tiles wait in the same space below the shown ones:
+-- a hidden tile flies down to the Available section and an added one back.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
@@ -104,8 +101,9 @@ function V.build(model, w, ctx)
     local fg = rows.ink(on, true, C.onSurface)
     local function sub() return on() and fg():alpha(0.8) or C.onSurfaceVariant end
     local more
-    -- Up to the chevron's glyph, or to the badges that take its place.
-    local TEXT_W = SLOT - S.xxl - S.l - (t.detail and S.xxl + S.xs or S.xl + S.xs)
+    -- A title reaches the chevron's glyph, a status stops at its box.
+    local TEXT_W = SLOT - S.xxl - S.l - (t.detail and S.xxl + S.xs or S.l + S.xs)
+    local STATUS_W = t.detail and TEXT_W - S.m or TEXT_W
 
     local area = kit.action {
       id = "utilities-toggle-" .. id, accessible_name = name, anchors = { fill = true }, cursor = "pointer",
@@ -126,7 +124,7 @@ function V.build(model, w, ctx)
         kit.heading { id = "settings-tile-title-" .. id, scope = "settings.overview", level = "caption",
           viewport = ctx.viewport, width = TEXT_W, elide = "right", text = name,
           font_size = theme.size.normal, font_weight = 500, color = fg, ink = fg },
-        kit.subtitle { width = TEXT_W, elide = "right", font_size = theme.size.small, color = sub,
+        kit.subtitle { width = STATUS_W, elide = "right", font_size = theme.size.small, color = sub,
           text = function()
             local s = t.status and t.status()
             if s and s ~= "" then return s end

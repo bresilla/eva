@@ -1330,7 +1330,7 @@ function M.tile_surface(spec)
     behavior = { color = theme.spring.effects },
   }
   ui.claims(node, {
-    -- (Byte order decides between claims of one class: the press comes first.)
+    -- (Claims of one class go in byte order: the press first.)
     a_pressed = { when = pressed, motion = theme.spring.fast,
       set = { radius = function() return on() and math.floor(LIT * 0.6) or math.floor(OFF * 0.6) end } },
     b_lit = { when = on, motion = theme.spring.spatial, set = { radius = LIT } },

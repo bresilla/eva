@@ -33,8 +33,7 @@ function M.attach(d, ctx, stop_theme)
     if not drag then return end
     drag.delta = delta
     local tucked = ctx.tucked()
-    -- A pull from tucked is measured from where tucked is now: a panel that
-    -- fits its page changes height as the pull picks the page.
+    -- A pull from tucked is measured from where tucked is now.
     local origin = drag.from_tucked and tucked or drag.origin
     panel[axis] = math.max(math.min(0,tucked), math.min(math.max(0,tucked), origin + delta))
   end

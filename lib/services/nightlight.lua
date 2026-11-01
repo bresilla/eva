@@ -1,7 +1,6 @@
 -- The night light: Hyprland's hyprsunset, told what to do with
 -- `hyprctl hyprsunset temperature N` and `hyprctl hyprsunset identity`. A
--- machine where the daemon is not up yet has it started through the
--- compositor, so it outlives the shell.
+-- daemon that is not up yet is started through the compositor.
 --
 --   local night = require("lib.services.nightlight").new { run = morf.process.run }
 --   night.apply(true, 4000)
@@ -32,8 +31,7 @@ function M.new(options)
     sent_on, sent_temperature = on, temperature
   end
 
-  --- Tells the daemon, a moment after the last change: a slider's drag
-  --- runs one command, not one for each step.
+  --- Tells the daemon, a moment after the last change.
   function night.apply(on, temperature)
     temperature = M.clamp(temperature)
     if sent_on == nil and not on then return end

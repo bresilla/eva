@@ -44,8 +44,7 @@ end
 G.moved = moved
 
 --- The index `id` belongs at for its centre to rest nearest (x, y): every
---- insertion is flowed and the closest kept, so the answer is a function of
---- the point alone and a tile never flickers between two places.
+--- insertion is flowed and the closest kept.
 function G.nearest(items, id, x, y, columns, metrics)
   local best, distance
   for index = 1, #items do

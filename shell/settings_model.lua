@@ -505,9 +505,8 @@ do
       if notifs.dnd:get() then names[#names+1]="DND" end
       return #names>0 and table.concat(names," · ") or "Sound · Normal sleep"
     end}
-  -- The theme: the tile flips dark and light, neither of which is a thing
-  -- switched on, so it never lights; its page has that, and Lule (wallpaper,
-  -- colours, the shell's theme and font) one page in.
+  -- The theme: the tile flips dark and light and never lights; its page has
+  -- that, and Lule (wallpaper, colours, the shell's theme and font) one page in.
   local color_mode = require("themes.color_mode")
   local function dark()
     local tool = require("terminal_colors").current:get()

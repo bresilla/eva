@@ -97,8 +97,9 @@ morf.effect("eva.rotation", function()
     morf.reload { output = true }
   end
 end)
--- Auto-rotation, while the rotation is not locked.
+-- Auto-rotation while the rotation is not locked, and a night light left on.
 require("auto_rotate").start()
+require("quick_hardware").nightlight()
 
 -- ---------------------------------------------------------------- drawers --
 
