@@ -19,6 +19,7 @@ return {
     bottom = "themes.layouts.views.bottom",
     dashboard = "themes.layouts.views.dashboard",
     notification_history = "themes.layouts.views.notification_history",
+    notification_digest = "themes.layouts.views.notification_digest",
     rail = "themes.material.views.rail",
     frame = "themes.material.views.frame",
     app_frame = "themes.material.views.app_frame",

@@ -1,0 +1,18 @@
+# The scheduled summary, on the notifications panel: apps set to wait, their
+# notices arriving over the real session bus, what waits, then the card.
+export BOOT=4
+export EVA_SETTINGS="$HOME/eva.json"
+printf '{ "notifications": { "rules": [{ "app": "Signal", "category": "", "match": "", "digest": true }, { "app": "News", "category": "", "match": "", "digest": true }] } }\n' > "$EVA_SETTINGS"
+start shell
+SEND() {
+  gdbus call --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications \
+    --method org.freedesktop.Notifications.Notify "$1" 0 "" "$2" "$3" "[]" "$4" 0 >> "$SEE_OUT/bus.log" 2>&1
+}
+SEND Signal "Kate" "Are we still on for lunch?" "{'category': <'im.received'>}"
+SEND Signal "Kate" "Or tea at four?" "{'category': <'im.received'>}"
+SEND Signal "Sam" "Sent you the photos" "{'category': <'im.received'>}"
+SEND News "Morning briefing" "Three stories to read" "@a{sv} {}"
+SEND News "Weather warning" "Wind tonight" "@a{sv} {}"
+pause 0.8; shot digest-held
+ipc page notifications; pause 1.4; shot digest-waiting
+ipc notifications digest; pause 1; shot digest-card

@@ -797,6 +797,7 @@ ipc.notifications = function(how, a, b)
   if how == "clear" then return notifs.clear() end
   if how == "clear-app" then return notifs.clear_app(a) end
   if how == "clear-silent" then return notifs.clear_silent() end
+  if how == "digest" then require("notification_history").digest_now() return true end
   if how == "undo" then return notifs.restore() end
   if how == "snooze" then return notifs.snooze(tonumber(a) or newest(), b or 900) end
   if how == "mute" then notifs.mute_app(a, tonumber(b) or 0) return true end

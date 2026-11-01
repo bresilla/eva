@@ -57,6 +57,7 @@ return {
     dashboard_terminal = "themes.layouts.views.dashboard_terminal",
     dashboard = "themes.layouts.views.dashboard",
     notification_history = "themes.layouts.views.notification_history",
+    notification_digest = "themes.layouts.views.notification_digest",
     rail = "themes.tsugumori.views.rail",
     frame = "themes.tsugumori.views.frame",
     app_frame = "themes.tsugumori.views.app_frame",
