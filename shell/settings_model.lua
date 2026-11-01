@@ -480,19 +480,21 @@ do
   local focus=require("focus_model")
   M.TOGGLES[#M.TOGGLES + 1] = {id="focus",name="Focus",detail="focus",
     icon=function()
+      if notifs.dnd:get() then return "notifications_off" end
       local mode=focus.active()
       if mode then return mode.icon end
       if focus.quiet() then return "notifications_off" end
       if M.awake:get() then return "coffee" end
       return "tune"
     end,
-    on=function() return M.awake:get() or focus.quiet() or M.CONTROLS.ringer.on() end,
+    on=function() return M.awake:get() or notifs.dnd:get() or focus.quiet() or M.CONTROLS.ringer.on() end,
     set=function() M.detail:set("focus") end,
     status=function()
       local names={}
       if M.awake:get() then names[#names+1]="Awake" end
       if M.CONTROLS.ringer.on() then names[#names+1]=M.CONTROLS.ringer.status() end
-      if focus.quiet() then names[#names+1]=focus.active_id()=="dnd" and "DND" or focus.status() end
+      if notifs.dnd:get() then names[#names+1]="DND"
+      elseif focus.quiet() then names[#names+1]=focus.status() end
       return #names>0 and table.concat(names," · ") or "Sound · Normal sleep"
     end}
   -- One press on the mode last used, for the board that wants it.

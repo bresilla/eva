@@ -271,9 +271,13 @@ function V.build(M)
     local across = swipe_with("x", function() return true end)
     local away = swipe_with("y", function(direction) return direction == AWAY end)
     local function held() return axis == "y" and away or across end
+    local holding_press, long_press = nil, false
+    local function release_hold()
+      if holding_press then holding_press:cancel() holding_press = nil end
+    end
     card = kit.action {
       id = "notification-" .. i,
-      width = CARD_W, cursor = "pointer",
+      width = CARD_W, cursor = "pointer", accepted_buttons = { "left", "right", "middle" },
       height = function() return card_height(n()) end,
       translate_x = function() return across.t.delta_x end,
       translate_y = function()
@@ -283,34 +287,47 @@ function V.build(M)
       behavior = { height = motion, translate_x = { duration = 160, easing = "out_cubic" },
         translate_y = { duration = 160, easing = "out_cubic" } },
       clip = true,
-      on_pressed = function(sx, sy)
+      on_pressed = function(sx, sy, _, _, button)
+        -- The right button opens the tools, the middle one dismisses.
+        if button == "right" then
+          local x = n()
+          if x then M.toggle_tools(x.id) end
+          return
+        end
+        if button == "middle" then M.dismiss_at(i) return end
         swiped, axis, start_x, start_y = false, nil, sx, sy
         across.send("pressed", sx, sy)
         away.send("pressed", sx, sy)
+        -- Held still for half a second, the press opens the tools.
+        long_press = false
+        holding_press = morf.time.timer(500, function()
+          holding_press, long_press = nil, true
+          local x = n()
+          if x then M.toggle_tools(x.id) end
+        end, false)
       end,
       on_dragged = function(sx, sy)
         if not axis then
           local dx, dy = math.abs(sx - start_x), math.abs(sy - start_y)
           if math.max(dx, dy) < theme.space.s then return end
           axis = dy > dx and total() <= room() and "y" or "x"
+          release_hold()
         end
         held().send("dragged", sx, sy)
       end,
       on_released = function()
+        release_hold()
         across.send("released", 0, 0)
         away.send("released", 0, 0)
       end,
       on_swiped = function(_, vx, vy) held().send("fling", vx, vy) end,
       -- A click runs the sender's default or dismisses -- unless it ended a
-      -- swipe that already did. A right click or a long press opens the tools.
-      on_clicked = function(_, _, _, _, button)
+      -- swipe that already did, or a long press.
+      on_clicked = function()
         if swiped then swiped = false return end
-        local x = n()
-        if button == "right" then if x then M.toggle_tools(x.id) end return end
-        if button == "middle" then M.dismiss_at(i) return end
+        if long_press then long_press = false return end
         M.click_at(i)
       end,
-      on_long_pressed = function() local x = n() if x then M.toggle_tools(x.id) end end,
       ui.Rect { id = "notification-ring-" .. i, anchors = { fill = true }, radius = L.control_round(40), color = "transparent",
         border_color = signal, border_width = function()
           local x = n()
