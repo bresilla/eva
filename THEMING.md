@@ -121,8 +121,10 @@ captions are measured by characters and clipped within the available slot.
 A heading must receive `active = function() ... end` or `scope = "panel.page"`.
 `presentation.lua` publishes controller visibility without importing a
 partially constructed controller into a view. Drawers publish their name;
-tabbed pages publish `bottom.assistant`, `bottom.drop`, `leftbar.tasks`,
-`leftbar.calendar`, `sidebar.settings` and `sidebar.notifications`. Dashboard
+tabbed pages publish `<panel>.<page>` for the panel holding them
+(`pages.active(key)` reads it wherever that is): `bottom.assistant`,
+`bottom.drop`, `leftbar.tasks`, `leftbar.calendar`, `sidebar.settings` and
+`sidebar.notifications` on a desk as it starts, `sidebar.*` on a sheet. Dashboard
 and settings subpages publish their own scopes. Closing cancels the decode;
 reopening or entering a new page starts it again. Lock/greeter supply their
 authentication sheet state directly.
@@ -448,8 +450,11 @@ checks do not establish completion of the other theme boundaries above.
   interaction tests do not reproduce it. The reproducible Cage sequence and
   state captures are in `/tmp/morf-planner-stationary-cage/`.
 - Side-panel containers: `side_panel_model.lua` owns selected/displayed tabs
-  and presentation scopes. `leftbar.lua` owns Taskwarrior polling lifetime;
-  `sidebar.lua` owns notification coverage. The selected `side_panel` builder
+  and presentation scopes. `pages.lua` says which panel holds which page on this
+  form; `planner.lua` owns Taskwarrior polling lifetime, while Tasks or Calendar
+  is on show; `sidebar.lua` owns notification coverage. `panel_room.lua` places
+  the bottom panel and the dashboard among the side panels. On a sheets form
+  `leftbar` and `bottom` are the sheet. The selected `side_panel` builder
   owns drawer dimensions, page composition and tab transitions. Material's
   legacy tab implementation now lives in `themes/material/tabbed.lua`, with a
   compatibility constructor in `shell/tabbed.lua`. All four Material fixture
@@ -826,6 +831,10 @@ so the shared OSD can align itself without instantiating the rail. Both views
 cancel transient motion when disabled, including the separately painted frame
 shape. The short-lived Tsugumori indicator uses the shared heading with shorter
 decode lead/stagger; ordinary headings retain their original timing.
+Presses and the wheel are shared, not the views': `themes/layouts/rail_hits.lua`
+stands over the panels and reads each theme's `geometry`, giving the view
+`model.hovered(slot)`. Under a finger the bottom strip takes the tap
+(`phone_gestures.lua`), keeping the swipes that start on the rail.
 
 ## Theme rules
 

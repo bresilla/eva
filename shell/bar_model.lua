@@ -27,20 +27,9 @@ function M.new(ctx)
     local volume=require("osd").volume()
     require("settings_model").levels.set_volume(math.max(0,math.min(1,volume-steps*VOLUME_STEP)))
   end
-  -- A touchpad turns in fractions: a workspace goes by for each whole notch.
-  local turned=0
   function model.wheel_workspace(steps)
     if not (model.on() and model.wheel_on("workspace")) then return end
-    turned=turned+steps
-    if math.abs(turned)<1 then return end
-    local delta=turned>0 and 1 or -1
-    turned=0
-    local dry=morf.env("EVA_DRY_RUN")
-    if dry and dry~="" and dry~="0" then
-      morf.log("info","eva: workspace "..delta.." (dry run)")
-      return
-    end
-    services.workspace.step(delta)
+    require("workspace_turn")(steps)
   end
   -- What collapses, in `room` pixels: status_model.arrange.
   function model.arrange(room,sizes)
@@ -110,23 +99,19 @@ function M.new(ctx)
   end
   function model.open_settings()
     if not model.on() then return end
-    local sidebar=require("sidebar")
-    sidebar.select("settings")
     require("utilities").detail:set("")
-    sidebar.drawer.set(true)
+    require("pages").open("settings")
   end
   function model.open_notifications()
     if not model.on() then return end
-    local sidebar=require("sidebar")
-    sidebar.select("notifications")
-    sidebar.drawer.set(true)
+    require("pages").open("notifications")
   end
   function model.toggle_dashboard()
     if not model.on() then return end
     local d=require("dashboard").drawer d.set(not d.open:get())
   end
   function model.settings_open()
-    local s=package.loaded.sidebar
+    local s=package.loaded.sidebar and require("pages").holder("settings")
     return s and s.drawer and s.drawer.open:get() or false
   end
   function model.dashboard_open()

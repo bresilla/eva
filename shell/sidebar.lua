@@ -19,18 +19,20 @@ local M = { groups = history.groups, clear = history.clear, TABS = model.tabs, p
 M.drawer = require("drawer").new {
   name = "sidebar", edge = view.edge, width = view.width, height = view.height,
   content = view.content, props = view.props, close_policy = "escape+outside",
+  can_open = function() return #model.tabs > 0 end,
 }
+local pages = require("pages")
+pages.publish("sidebar", M)
 morf.effect("eva.sidebar.covered", function()
-  notifs.covered:set(M.drawer.open:get() and model.showing("notifications"))
+  notifs.covered:set(pages.on_show("notifications"))
 end)
 morf.effect("eva.sidebar.shown", function() model.opened:set(M.drawer.open:get()) end)
--- The Lule studio works while its page is on show: the panel open, on its
--- settings, at Theme, Lule.
+-- The Lule studio works while its page is on show: the panel holding
+-- Settings open on it, at Theme, Lule.
 morf.effect("eva.sidebar.lule", function()
   local studio = require("lule_studio")
   local settings = require("utilities")
   if not (studio.active and settings.displayed) then return end
-  studio.active:set(M.drawer.open:get() and model.showing("settings")
-    and settings.displayed:get() == "theme/lule")
+  studio.active:set(pages.on_show("settings") and settings.displayed:get() == "theme/lule")
 end)
 return M

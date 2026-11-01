@@ -1,10 +1,21 @@
--- One Taskwarrior connection for both left-panel pages.
+-- One Taskwarrior connection for the Tasks and Calendar pages.
 local morf = require("morf")
 local taskwarrior = require("lib.integrations.taskwarrior")
 local M = { client = taskwarrior.new() }
 M.selected_day = require("themes.session").keep("eva.planner.day", morf.time.format("%Y-%m-%d"))
 M.month_offset = require("themes.session").keep("eva.planner.month", 0)
 M.dates = taskwarrior
+
+-- It polls while either page is on show, in whichever panel holds it.
+local tasks_on, calendar_on = require("pages").active("tasks"), require("pages").active("calendar")
+local watching = false
+morf.effect("eva.planner.watch", function()
+  local on = tasks_on() or calendar_on()
+  if on == watching then return end
+  watching = on
+  -- Started outside the effect's lifetime.
+  morf.time.timer(1, function() M.client.watch(on) end, false)
+end)
 
 local revision, by_day = -1, {}
 function M.agenda(day)

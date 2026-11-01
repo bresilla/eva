@@ -12,7 +12,7 @@ local HOST = [[
   require("lib.services.secrets").env = { SECRET_STAND_IN = morf.env("SECRET_DIR") }
   local config, model = require("config"), require("assistant_model")
   local opened
-  package.loaded.pages = { settings = function(route) opened = route end, open = function(key) opened = key end,
+  package.loaded.pages = { settings = function(route) opened = route end, reach = function(key) opened = key end,
     all = {}, tabs = function() return {} end }
   package.loaded.services = { window = { title = function() return morf.env("WINDOW_TITLE") or "Desktop" end } }
   config.set("assistant.folder", morf.env("HISTORY_DIR"))

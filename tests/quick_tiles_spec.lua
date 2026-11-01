@@ -381,7 +381,7 @@ end)
 -- ------------------------------------------------------------------- sheet --
 
 for _,style in ipairs {"material","tsugumori"} do
-  test.it(style.." the phone sheet fits its content, and a detail takes the whole sheet",function()
+  test.it(style.." the phone sheet fits its content, and a detail its own",function()
     load({style=style,size={620,1380}})
     test.ipc("sidebar","open","settings") test.settle(2500)
     local sheet=test.get("drawer-sidebar")
@@ -392,7 +392,10 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(sheet.y+sheet.height-(card.y+card.height)<=40,"dead area under the tiles: "
       ..(sheet.y+sheet.height-card.y-card.height))
     test.click("utilities-more-focus") test.settle(2500)
-    test.near(test.get("drawer-sidebar").height,full,1,"a detail shrank with the overview")
+    local detail=test.get("drawer-sidebar")
+    test.truthy(detail.height<full,"the detail kept the dead area")
+    local last=test.get("settings-focus-ringer")
+    test.truthy(last.y+last.height<=detail.y+detail.height,"the sheet cuts the detail")
     test.click("settings-back") test.settle(2500)
     test.near(test.get("drawer-sidebar").height,sheet.height,1)
     test.eq(#test.logs("error"),0)

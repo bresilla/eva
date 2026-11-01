@@ -32,13 +32,14 @@ function M.search(query)
   return nil
 end
 
---- Pages for the system list (`!`), in the shape that list keeps.
+--- Pages for the system list (`!`) that stand as settings pages where no panel
+--- holds them, in the shape that list keeps.
 function M.system()
   local function page(id, name, material)
     return { id = id, name = name, material = material,
-      run = function() require("pages").open(id) return "close" end }
+      run = function() require("pages").reach(id) return "close" end }
   end
-  return { page("drop", "Drop", "forum"), page("notes", "Notes", "sticky_note_2"), page("phone", "Phone", "smartphone") }
+  return { page("notes", "Notes", "sticky_note_2"), page("phone", "Phone", "smartphone") }
 end
 
 return M

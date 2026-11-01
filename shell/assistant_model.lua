@@ -474,7 +474,7 @@ end
 
 --- Opens the page and asks `question`: the launcher's `ai`.
 function M.ask(question)
-  require("pages").open("assistant")
+  require("pages").reach("assistant")
   M.begin(function()
     if M.state() == "ready" and not M.streaming:get() then
       M.new_conversation()

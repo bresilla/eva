@@ -27,11 +27,26 @@ local M = {}
 M.TABS_H = 64
 M.PAD = 11
 local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
+-- How long a width that eases rests before its pages are laid out at it.
+local REST_MS = 420
 
 function M.new(spec)
   local phone=require("responsive").sheets()
   local page_wipe=theme.motion.page_wipe and not phone
-  local W, PAD, TABS_H = spec.width, spec.pad or M.PAD, M.TABS_H
+  local PAD, TABS_H = spec.pad or M.PAD, M.TABS_H
+  -- A `width` given as a function eases: the row and the strip follow the
+  -- panel as it goes, and a page, built for one width, is built again once
+  -- the panel rests at another.
+  local fluid = type(spec.width) == "function"
+  local root
+  local function W()
+    if not fluid then return spec.width end
+    local live = root and root.layout_width
+    return live and live > 0 and live or spec.width()
+  end
+  local function page_w() return W() - 2 * PAD end
+  local built = fluid and morf.signal("eva." .. spec.id .. ".built", spec.width() - 2 * PAD) or nil
+  local again = fluid and morf.signal("eva." .. spec.id .. ".again", false) or nil
   local tabs = spec.tabs
   local tab = spec.tab or require("themes.session").keep("eva." .. spec.id .. ".tab", 1)
   local display = morf.signal("eva." .. spec.id .. ".displayed", tab:get())
@@ -43,7 +58,6 @@ function M.new(spec)
       end
     end
   end)
-  local page_w = W - 2 * PAD
   local function page_h() return spec.height() - TABS_H - 2 * PAD end
   local panel = { tab = tab, tabs = tabs, displayed = display }
 
@@ -81,21 +95,23 @@ function M.new(spec)
     pages[i] = ui.Item {
       id = spec.id .. "-page-" .. t.key,
       width = page_w, height = page_h,
-      x=page_wipe and (i-1)*(page_w+2*PAD) or nil,
+      x=page_wipe and function() return (i-1)*(page_w()+2*PAD) end or nil,
       visible=function() return not page_wipe or display:get()==i end,
+      -- A page beside the one on show is out of Tab's way.
+      enabled=function() return tab:get()==i end,
       ui.Loader {
-        anchors = { fill = true }, keep = true,
-        preload = function() return tab:get() == i end,
-        active = function() return seen[i]:get() end,
-        source = function() return t.build(page_w, page_h) end,
+        anchors = { fill = true }, keep = not fluid,
+        preload = not fluid and function() return tab:get() == i end or nil,
+        active = function() return seen[i]:get() and not (again and again:get()) end,
+        source = function() return t.build(fluid and built:get() or page_w(), page_h) end,
       },
     }
   end
   local track = (page_wipe and ui.Item or ui.Row) {
     id=spec.id.."-page-track",
-    width=page_wipe and #tabs*(page_w+2*PAD) or nil,height=page_h,
+    width=page_wipe and function() return #tabs*(page_w()+2*PAD) end or nil,height=page_h,
     gap = not page_wipe and 2 * PAD or nil,
-    translate_x = phone and -(tab:get()-1)*(page_w+2*PAD) or function() return -(display:get() - 1) * (page_w + 2 * PAD) end,
+    translate_x = phone and -(tab:get()-1)*(page_w()+2*PAD) or function() return -(display:get() - 1) * (page_w() + 2 * PAD) end,
     behavior = (page_wipe or phone) and {} or { translate_x = SWITCH },
     table.unpack(pages),
   }
@@ -109,7 +125,21 @@ function M.new(spec)
     track,
   }
 
-  local wipe = page_wipe and theme.motion.page_wipe(strip, function() return page_w end, spec.id)
+  local wipe = page_wipe and theme.motion.page_wipe(strip, page_w, spec.id)
+  if fluid then
+    local resting
+    morf.effect("eva." .. spec.id .. ".width", function()
+      local wanted = spec.width() - 2 * PAD
+      if resting then resting:cancel() resting = nil end
+      if wanted == built:get() then return end
+      resting = morf.time.timer(REST_MS, function()
+        resting = nil
+        built:set(wanted)
+        again:set(true)
+        morf.time.timer(1, function() again:set(false) end, false)
+      end, false)
+    end)
+  end
   local function present(index)
     display:set(index)
     if spec.on_present then spec.on_present(index) end
@@ -158,13 +188,13 @@ function M.new(spec)
   end
 
   local pager=phone and require("pager_drag").new {
-    id=spec.id,track=track,tab=tab,count=#tabs,offset=function(i) return (i-1)*(page_w+2*PAD) end,
+    id=spec.id,track=track,tab=tab,count=#tabs,offset=function(i) return (i-1)*(page_w()+2*PAD) end,
     prepare=function()
       if running then for _,h in ipairs(running) do h:stop() end running=nil end
       for _,page in ipairs(pages) do page.opacity,page.scale=1,1 end
     end,
   }
-  panel.content = ui.Item {
+  root = ui.Item {
     anchors = { fill = true },
     on_panned = require("phone_gestures").pan {drawer=spec.id,dismiss=spec.dismiss,pager=pager},
     on_swiped = require("phone_gestures").panel {
@@ -173,11 +203,12 @@ function M.new(spec)
     -- Behind everything, so the whole panel takes the pointer.
     ui.MouseArea { anchors = { fill = true }, z = -1 },
     -- The tab row is the theme's (every kit has `tabs`, the kit contract).
-    ui.Item { width = W, height = TABS_H, y = below and function() return spec.height() - TABS_H end or 0,
+    ui.Item { width = fluid and W or spec.width, height = TABS_H, y = below and function() return spec.height() - TABS_H end or 0,
       kit.tabs {id=spec.id,accessible_name=spec.title or ({sidebar="Sidebar",leftbar="Planner",bottom="Tools"})[spec.id] or spec.id,
-        tabs=tabs,tab=tab,width=W,pad=PAD,height=TABS_H,icons_only=spec.icons_only} },
+        tabs=tabs,tab=tab,width=fluid and W or spec.width,pad=PAD,height=TABS_H,icons_only=spec.icons_only} },
     strip,
   }
+  panel.content = root
   panel.pages = pages
   return panel
 end

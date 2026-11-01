@@ -43,7 +43,8 @@ local HOST=[[
   package.loaded.launcher={drawer=drawer("launcher")}
   package.loaded.dashboard={drawer=drawer("dashboard")}
   local tab=morf.signal("bar.fixture.tab","notifications")
-  package.loaded.sidebar={drawer=drawer("sidebar"),select=function(key) tab:set(key) end}
+  local select_tab=function(key) tab:set(key) end
+  package.loaded.sidebar={drawer=drawer("sidebar"),select=select_tab,panel={select=select_tab}}
   local detail=morf.signal("bar.fixture.detail","network")
   package.loaded.utilities={detail=detail}
   local model

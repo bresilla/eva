@@ -92,12 +92,13 @@ function M.build(model, w, h)
   local function open_link(href) morf.process.detach { "xdg-open", href } end
 
   -- ------------------------------------------------------ what is missing --
-  local setup = ui.Item { width = w, height = h, visible = function() return not ready() end,
+  local setup = P.page { id = "assistant-setup-page", width = w, height = h,
     P.empty { id = "assistant-setup", width = w, icon = "auto_awesome",
       title = function() return (model.explain()) end,
       text = function() return (select(2, model.explain())) end,
       action = { id = "assistant-open-settings", label = "Open assistant settings", icon = "settings",
         tone = "primary", on_clicked = model.open_settings } } }
+  setup.visible = function() return not ready() end
 
   -- -------------------------------------------------------- conversations --
   local conversations = ui.Repeater { as = "column", gap = S.xs, width = function() return wide() and LIST_W or get(w) end,

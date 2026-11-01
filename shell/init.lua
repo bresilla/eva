@@ -26,6 +26,7 @@ local theme = require("theme")
 local drawer = require("drawer")
 local wallpaper = require("wallpaper")
 local rail = require("rail")
+local responsive = require("responsive")
 
 -- Qt mixes translucent colours in sRGB; so does the original.
 morf.surface.blend = "srgb"
@@ -145,32 +146,41 @@ local sidebar = require("sidebar")
 local leftbar = require("leftbar")
 local capture = require("capture")
 local bottom = require("bottom")
--- These two drawers occupy the same edge; only one can be open.
-for _, pair in ipairs { { capture.drawer, bottom.drawer }, { bottom.drawer, capture.drawer } } do
-  local own, other = pair[1], pair[2]
-  function own.set(on)
-    if on then other.open:set(false) end
-    own.open:set(on and true or false)
+local pages = require("pages")
+require("planner")
+-- These two drawers occupy the same edge; only one can be open. (Where the
+-- panels are sheets the bottom edge is the dashboard's, and capture's alone.)
+if drawer.bottom then
+  for _, pair in ipairs { { capture.drawer, bottom.drawer }, { bottom.drawer, capture.drawer } } do
+    local own, other = pair[1], pair[2]
+    local can_open = own == bottom.drawer and function() return #bottom.panel.tabs > 0 end or nil
+    function own.set(on)
+      if on and can_open and not can_open() then return end
+      if on then other.open:set(false) end
+      own.open:set(on and true or false)
+    end
+    function own.toggle() own.set(not own.open:get()) end
   end
-  function own.toggle() own.set(not own.open:get()) end
 end
 local keyboard = require("keyboard")
 local bar = require("bar")
 local window_menu = require("window_menu")
 require("calendar_reminders").start()
+require("panel_room").watch()
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
 morf.effect("eva.keyboard.focus", function()
   local exclusive = launcher.drawer.open:get() or session.drawer.open:get() or window_menu.opened:get()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get() or capture.editor.active:get()
-  -- Typed into on a click: the planner, the terminal, Lule's page.
-  local editor_open = leftbar.drawer.open:get()
+  -- Typed into on a click: the Tasks and Calendar pages, the terminal, Lule's
+  -- page, wherever their panels hold them.
+  local settings_open = pages.on_show("settings")
+  local shown = require("utilities").displayed:get()
+  local editor_open = pages.typing()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
-    or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/lule")
-    or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "hotspot")
-    or (sidebar.drawer.open:get() and require("utilities").tiles.editing:get())
-    or require("pages").typing()
+    or (settings_open and (shown == "theme/lule" or shown == "hotspot" or shown == "panels"
+      or pages.typed_route(shown) or require("utilities").tiles.editing:get()))
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
 
@@ -212,8 +222,9 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
       return not capture.drawer.open:get() and (phase == "ready" or phase == "error")
     end,
   },
-  -- Near the right edge, anywhere down it, the sidebar opens; near the
-  -- left edge (the rail's pills with it), the left panel.
+  -- Near the right edge, anywhere down it, the sidebar opens; near the left
+  -- edge above or below the rail, the left panel. The rail's own stretch is
+  -- for the workspaces.
   require("hover").edge {
     name = "sidebar", drawer = sidebar.drawer, edge = "right",
     from = function() return theme.BORDER + theme.ROUNDING end,
@@ -228,11 +239,27 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
     from = function() return theme.BORDER + theme.ROUNDING end,
     length = function()
       local _, _, _, h = bar.desk()
-      return h - 2 * (theme.BORDER + theme.ROUNDING)
+      local from = rail.span()
+      return (from or h - theme.BORDER - theme.ROUNDING) - theme.BORDER - theme.ROUNDING
+    end,
+    setting = "leftbar.hover",
+  },
+  require("hover").edge {
+    name = "leftbar-below", drawer = leftbar.drawer, edge = "left",
+    from = function()
+      local _, to = rail.span()
+      return to or 0
+    end,
+    length = function()
+      local _, _, _, h = bar.desk()
+      local _, to = rail.span()
+      return to and h - theme.BORDER - theme.ROUNDING - to or 0
     end,
     setting = "leftbar.hover",
   },
 }
+-- The rail's targets, over the panels.
+if rail.hits then triggers[#triggers+1]=rail.hits end
 local frame_view=require("themes").view("frame")
 local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
   rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape},
@@ -370,24 +397,61 @@ end
 -- saying where sudo has got to: face, finger, password, ok.
 ipc["auth-step"] = function(step, service) return authsteps.steps.mark(step, service) end
 
--- `sidebar [how [TAB]]`: TAB is settings or notifications. `utilities`
--- is the sidebar on its settings; `settings PAGE` opens one of their pages
--- (network, bluetooth, sound).
-ipc.sidebar = function(how, tab)
-  if tab and here() then
-    if not sidebar.select(tab) then error("`" .. tostring(tab) .. "`: no such tab") end
+-- A page by its key, in whichever panel holds it on this form: opening
+-- selects it there; a toggle over another page of that panel turns to it, and
+-- shuts it only when it is the one on show. False where no panel holds it.
+local function page_verb(key)
+  return function(how)
+    how = how or "open"
+    local panel = pages.holder(key)
+    if not panel then return false end
+    local showing = panel.panel.showing(key)
+    if how == "close" then
+      if showing then return verb(panel.drawer)("close") end
+      return false
+    end
+    if how == "state" then
+      local open = verb(panel.drawer)("state")
+      if open == nil then return nil end
+      return open and showing
+    end
+    if how == "toggle" and panel.drawer.is_open() and not showing then how = "open" end
+    if here() then panel.panel.select(key) end
+    return verb(panel.drawer)(how)
   end
-  return verb(sidebar.drawer)(how)
 end
-ipc.utilities = function(how)
-  if here() and how ~= "close" then sidebar.select("settings") end
-  return verb(sidebar.drawer)(how)
+-- A panel by the name it has on a desk. Where the panels are sheets, one with
+-- no page named lands on the first page of its own that the sheet holds.
+local function panel_verb(name, edge)
+  return function(how, tab)
+    if not tab and name ~= "sidebar" and responsive.sheets() then
+      for _, key in ipairs(config.get("panels." .. edge) or {}) do
+        if pages.panel_name(key) then tab = key break end
+      end
+    end
+    if tab then
+      if here() and not pages.all[tab] then error("`" .. tostring(tab) .. "`: no such page") end
+      return page_verb(tab)(how or "toggle")
+    end
+    return verb(require(name).drawer)(how)
+  end
+end
+
+-- `sidebar`, `leftbar` or `bottom [how [PAGE]]`: the panel, on PAGE, which
+-- lands wherever it is held. `utilities` is Settings; `settings PAGE` opens
+-- one of its pages (network, bluetooth, sound). `tasks`, `calendar`,
+-- `assistant`, `drop` and `notifications` are those pages.
+ipc.sidebar = panel_verb("sidebar", "right")
+ipc.leftbar = panel_verb("leftbar", "left")
+ipc.bottom = panel_verb("bottom", "bottom")
+ipc.utilities = function(how) return page_verb("settings")(how or "toggle") end
+for _, key in ipairs { "tasks", "calendar", "assistant", "drop", "notifications" } do
+  ipc[key] = page_verb(key)
 end
 ipc.settings = function(page)
   if not here() then return nil end
   if not require("utilities").request(page or "") then error("No such Settings page: " .. tostring(page)) end
-  sidebar.select("settings")
-  sidebar.drawer.set(true)
+  pages.open("settings")
   return page or ""
 end
 -- `quick edit` or `quick done`: the quick settings' tiles being arranged.
@@ -395,20 +459,9 @@ ipc.quick = function(how)
   if how ~= "edit" and how ~= "done" then error("`" .. tostring(how) .. "`: edit or done") end
   if not here() then return nil end
   require("utilities").request("")
-  sidebar.select("settings")
-  sidebar.drawer.set(true)
+  pages.open("settings")
   require("utilities").tiles.editing:set(how == "edit")
   return how == "edit"
-end
-ipc.leftbar = function(how, tab)
-  if tab and here() and not leftbar.panel.select(tab) then error("No such left panel tab: " .. tostring(tab)) end
-  return verb(leftbar.drawer)(how)
-end
-for _, tab in ipairs { "tasks", "calendar" } do
-  ipc[tab] = function(how)
-    if here() and how ~= "close" then leftbar.panel.select(tab) end
-    return verb(leftbar.drawer)(how or "open")
-  end
 end
 -- PrintScreen opens the original bottom capture panel. Screenshot/Record
 -- choose the action and target there; only screenshots enter the editor.
@@ -419,14 +472,6 @@ ipc.capture = function(how)
   if how=="close" or ((how=="open" or how=="toggle") and capture.editor.running()) then capture.cancel() end
   return capture_popup(how)
 end
-ipc.bottom = function(how, tab)
-  if tab and here() and not bottom.panel.select(tab) then error("No such bottom panel tab: " .. tostring(tab)) end
-  return verb(bottom.drawer)(how)
-end
-ipc.assistant = function(how)
-  if here() and how ~= "close" then bottom.panel.select("assistant") end
-  return verb(bottom.drawer)(how or "open")
-end
 -- `ask QUESTION`: the assistant opens and answers it, as the launcher's `ai`.
 ipc.ask = function(question)
   if here() then require("assistant_model").ask(question) end
@@ -436,20 +481,20 @@ end
 -- `assistant-settings` is that page's settings.
 ipc.page = function(key)
   if not here() then return end
-  if key == "assistant-settings" then return require("pages").settings("assistant") end
-  return require("pages").open(key)
+  if key == "assistant-settings" then return pages.settings("assistant") end
+  return pages.reach(key)
 end
 -- `drop-target ID`: Drop opens on somebody's machine (`bob:laptop`, `orin`).
 ipc["drop-target"] = function(id)
   if not here() then return end
-  require("pages").open("drop")
+  pages.reach("drop")
   require("drop_model").select(id)
   return true
 end
 -- `note NAME`: the note called NAME, opened or made.
 ipc.note = function(name)
   if not here() then return end
-  require("pages").open("notes")
+  pages.reach("notes")
   require("notes_model").create(name)
   return true
 end
@@ -499,11 +544,8 @@ end
 -- existing terminal/accent diagnostics used by colour-tool integrations.
 ipc.lule = function(how)
   if how then
-    if here() and how ~= "close" then
-      sidebar.select("settings")
-      require("utilities").detail:set("theme/lule")
-    end
-    return verb(sidebar.drawer)(how)
+    if here() and how ~= "close" then require("utilities").detail:set("theme/lule") end
+    return page_verb("settings")(how)
   end
   local tty = require("terminal_colors").tty
   return tty and tty.path or "", theme.lule.accent:hex(), theme.color.primary:hex()
@@ -529,6 +571,8 @@ end
 ipc.drawers = function(how, name)
   if how ~= nil and how ~= "list" then
     local d = drawer[name or ""]
+    -- A desk panel's name reaches the sheet where the panels are sheets.
+    if not d and (name == "leftbar" or name == "bottom") then d = sidebar.drawer end
     if not d then error("`" .. tostring(name) .. "`: no such drawer") end
     return verb(d)(how)
   end
@@ -570,3 +614,5 @@ end
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)
+-- Settings, back open after a change that moved it to another panel.
+require("utilities").panels.settle()

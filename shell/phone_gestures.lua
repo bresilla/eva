@@ -273,7 +273,11 @@ function M.attach(root)
   end
   local gestures=require("keyboard_gestures")
   local contacts=gestures.contacts("bottom",function() return M.global_allowed() and not blocked() end,
-    function(phase,dx,dy) single(phase,dx,dy,0,0) end)
+    function(phase,dx,dy,x)
+      -- A tap that went nowhere: the workspace under it, on the rail.
+      if phase=="end" and not mode and math.max(math.abs(dx),math.abs(dy))<8 then require("rail").tap(x) end
+      single(phase,dx,dy,0,0)
+    end)
   cancel_global[#cancel_global+1]=function()
     contacts.cancel() single("cancel") preview.cancel()
   end
@@ -335,10 +339,17 @@ function M.attach(root)
   local bottom={id="phone-gesture-bottom",height=reach.height,z=200,visible=regions_visible,
     anchors={left=true,right=true},y=function() return floor()-reach.height() end}
   if M.continuous then
-    bottom.on_touch_pressed=function() hold(true) end
-    bottom.on_touch_released=function() hold(false) end
+    -- A touch no pan took is a tap: the workspace under it, on the rail.
+    local tapped
+    bottom.on_touch_pressed=function(_,x) hold(true) tapped=x end
+    bottom.on_touch_released=function()
+      hold(false)
+      if tapped and M.global_allowed() and not blocked() then require("rail").tap(tapped) end
+      tapped=nil
+    end
     bottom.on_panned=function(phase,dx,dy,vx,vy)
       if phase=="begin" then
+        tapped=nil
         if not M.global_allowed() or blocked() then return false end
         single("begin") single("update",dx,dy,vx,vy)
         return mode=="workspace" or mode=="dashboard"

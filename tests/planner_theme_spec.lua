@@ -40,12 +40,13 @@ local HOST=[[
   dates.new=function() return client end
   local presentation=require("presentation")
   local shown=morf.signal("planner.fixture.page","")
+  local held=require("pages").panel_name("tasks")
   local function page(key)
     shown:set(key)
-    presentation.set("leftbar.tasks",key=="tasks") presentation.set("leftbar.calendar",key=="calendar")
+    presentation.set(held..".tasks",key=="tasks") presentation.set(held..".calendar",key=="calendar")
     return true
   end
-  package.loaded.leftbar={panel={select=page},drawer={set=function(on) if not on then page("") end end}}
+  package.loaded[held]={panel={select=page},drawer={set=function(on) if not on then page("") end end}}
   local model
   local ok,models=pcall(require,"tasks_model")
   if ok then local new=models.new models.new=function(...) model=new(...) return model end end

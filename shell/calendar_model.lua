@@ -24,7 +24,7 @@ end
 function M.new(ctx)
   local planner=ctx.planner or require("planner")
   local sources=ctx.sources or require("calendar_sources")
-  local model={key="calendar",active=ctx.active,days=morf.list_model({}),agenda=morf.list_model({}),
+  local model={key="calendar",active=ctx.active,can_plan=ctx.can_plan,days=morf.list_model({}),agenda=morf.list_model({}),
     month=morf.signal("eva.calendar.title",""),selected_day=planner.selected_day,error=planner.client.error,
     weekdays={"M","T","W","T","F","S","S"},sources=sources}
   morf.effect("eva.calendar.month",function()

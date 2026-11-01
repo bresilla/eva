@@ -17,10 +17,10 @@ Open:
   instead (`lib/integrations/llm.lua`), with the key on curl's stdin.
 - **Two Repeaters over one list model.** Rows added or removed reach both, but
   a changed row reaches only the first: `set` and a keyed `replace` patch one
-  Repeater, and the second keeps the row it had. A page stands in two panels at
-  once (a phone's sheet and the bottom panel), so each view keeps a list of its
-  own (`themes/layouts/mirror.lua`). Every Repeater of a model following every
-  change would make that unnecessary.
+  Repeater, and the second keeps the row it had. A page stands in a panel and as
+  a settings page at once, so each view keeps a list of its own
+  (`themes/layouts/mirror.lua`). Every Repeater of a model following every change
+  would make that unnecessary.
 - **Simulated drops.** `morf test` accepts drag and drop and goes nowhere with
   it (docs/TESTING.md, "What is not simulated"), and the sealed sway of
   `tools/see.sh` has no pointer, so `ui.DropArea` and `morf.drag.start` are

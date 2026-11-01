@@ -45,6 +45,7 @@ local function badge(spec)
       kit.icon(spec.icon, 16, spec.ink, { anchors = { center_in = true } }) } }
   return press
 end
+V.badge = badge
 
 --- The card of tiles, `w` wide. `ctx.viewport` is the scroll its titles read
 --- in against. Returns `{ node, height }`.

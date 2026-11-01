@@ -14,10 +14,11 @@ local builders={
   power=function(w,h) return require("power_page").page(w,h) end,
   bar=function(w,h) return require("bar_page").page(w,h) end,
   osd=function(w,h) return require("osd_page").page(w,h) end,
+  panels=function(w,h) return require("themes").view("panels_page").build(M,w,h) end,
   assistant=function(w,h) return require("themes").view("assistant_settings").page(require("assistant_model"),w,h) end,
   calendars=function(w,h) return require("themes").view("calendar_settings").page(require("calendar_sources"),w,h) end,
-  notes=function(w,h) return require("notes_page").build(require("pages").showing(nil,"notes"),w,h) end,
-  phone=function(w,h) return require("phone_page").build(require("pages").showing(nil,"phone"),w,h) end,
+  notes=function(w,h) return require("notes_page").build(require("pages").shown("notes"),w,h) end,
+  phone=function(w,h) return require("phone_page").build(require("pages").shown("phone"),w,h) end,
   wired=function(w,h) return require("net_pages").wired_page(w,h) end,
   mesh=function(w,h) return require("net_pages").vpn_page("mesh",w,h,M.displayed) end,
   tunnel=function(w,h) return require("net_pages").vpn_page("tunnel",w,h,M.displayed) end,
@@ -38,11 +39,15 @@ function M.page(w,h)
 end
 function M.height() return built:get() and visual.height and visual.height() or 0 end
 --- How tall the page wants to stand, head included, for a sheet that fits
---- its content: nil once a detail is on show, which takes the whole sheet.
+--- its content: the overview's cards or the detail on show, nil until they
+--- are measured.
 function M.fit()
-  if M.detail:get()~="" or not built:get() or not visual.laid_out() then return nil end
+  if not built:get() or not visual.laid_out() then return nil end
   local P=require("themes.layouts.page")
-  return P.header_height(visual.head)+P.GAP+visual.height()+P.GAP
+  local key=M.detail:get()
+  local body=visual.height()+P.GAP
+  if key~="" then body=visual.detail_height(key) end
+  return body and P.header_height(visual.head)+P.GAP+body or nil
 end
 function M.shown(open)
   M.opened:set(open)

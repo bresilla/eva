@@ -96,14 +96,14 @@ function M.list(model, gamemode)
     {
       id = "notes", icon = "sticky_note_2", name = "Notes", detail = "notes",
       on = function() return false end,
-      set = function() require("pages").open("notes") end,
+      set = function() require("pages").reach("notes") end,
       status = function() return "Plain files" end,
     },
     {
       id = "phone", icon = "smartphone", name = "Phone", detail = "phone",
       present = function() return require("phone_model").present() end,
       on = function() return false end,
-      set = function() require("pages").open("phone") end,
+      set = function() require("pages").reach("phone") end,
       status = function() return "KDE Connect" end,
     },
   }

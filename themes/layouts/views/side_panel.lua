@@ -10,13 +10,17 @@ function V.build(model)
   local responsive = require("responsive")
   local top = model.edge == "top"
   local tabbed_layout = require("themes.layouts.tabbed")
+  -- What it last stood at, open: shut, it keeps that, so a pull starts from it
+  -- whichever page the pull turns to.
+  local stood
   local function height()
     local _, h = model.desk_size()
     if not top then return h - 2 * theme.BORDER end
     local most = responsive.panel_height(h)
+    if not model.opened:get() then return math.min(most, stood or most) end
     local wanted = model.fit()
-    if not wanted then return most end
-    return math.min(most, math.ceil(wanted) + tabbed_layout.TABS_H + 2 * tabbed_layout.PAD)
+    stood = wanted and math.min(most, math.ceil(wanted) + tabbed_layout.TABS_H + 2 * tabbed_layout.PAD) or most
+    return stood
   end
   local function page_width()
     if not top then return theme.SIDE_W end

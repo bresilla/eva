@@ -23,6 +23,7 @@ function M.new(ctx)
     query=require("themes.session").keep("eva.tasks.query",""),filter=require("themes.session").keep("eva.tasks.filter","Open"),
     selected=require("themes.session").keep("eva.tasks.selected",""),editor_revision=require("themes.session").keep("eva.tasks.editor",0),
     draft=morf.state(require("themes.session").restore("tasks.draft",initial)),rows=morf.list_model({}),error=client.error,busy=client.busy,loaded=client.loaded,
+    missing=client.missing or morf.signal("eva.tasks.missing",false),
     count=morf.signal("eva.tasks.count",0)}
   local original,session=require("themes.session").restore("tasks.original",{}),0
   require("themes.session").register("tasks.original",function() return original end)
@@ -107,6 +108,11 @@ function M.new(ctx)
   function model.set_filter(value)
     if value=="Open" or value=="Today" or value=="Active" then model.filter:set(value) end
   end
+  -- A date as a row reads it: its time only where it has one.
+  local function when_text(value)
+    local midnight=planner.dates.date(value,"%H:%M")=="00:00"
+    return planner.dates.date(value,midnight and "%d %b" or "%d %b · %H:%M")
+  end
   morf.effect("eva.tasks.rows",function()
     if not model.active() then return end
     morf.time.minute_clock:get()
@@ -127,7 +133,7 @@ function M.new(ctx)
         if row.wait then details[#details+1]="Waiting" end
         local when=row.scheduled or row.due
         found[#found+1]={uuid=row.uuid,description=row.description,detail=table.concat(details," · "),
-          date=when and ((row.scheduled and "Scheduled " or "Due ")..planner.dates.date(when,"%d %b · %H:%M")) or "No date · click to plan",
+          date=when and ((row.scheduled and "Scheduled " or "Due ")..when_text(when)) or "",
           overdue=due~="" and due<today}
       end
     end

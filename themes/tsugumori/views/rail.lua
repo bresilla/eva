@@ -82,7 +82,10 @@ function V.build(model)
     local function id() return model.base(model.active()) + i - 1 end
     ui.reparent(marker({ id = "rail-pill-" .. i,
       color = function() return C.primary end,
-      opacity = function() return model.occupied(id()) and .65 or .28 end,
+      opacity = function()
+        if model.hovered and model.hovered(i) then return 1 end
+        return model.occupied(id()) and .65 or .28
+      end,
       behavior = { opacity = { duration = 180 } } }, function() return center(id()) end), root)
   end
 

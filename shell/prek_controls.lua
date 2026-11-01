@@ -29,12 +29,14 @@ local function close_others(keep)
 end
 local function drawer_for(action)
   if action=="dashboard" then return require("dashboard").drawer end
-  return require("sidebar").drawer
+  local holder=require("pages").holder(action=="notifications" and "notifications" or "settings")
+  return (holder or require("sidebar")).drawer
 end
 local function select_drawer(action)
   if action=="dashboard" then return end
-  local sidebar=require("sidebar")
-  sidebar.select(action=="notifications" and "notifications" or "settings")
+  local key=action=="notifications" and "notifications" or "settings"
+  local holder=require("pages").holder(key)
+  if holder then holder.panel.select(key) end
   if action=="quick_settings" then require("utilities").request("") end
 end
 local function horizontal(drawer) return drawer.edge=="left" or drawer.edge=="right" end

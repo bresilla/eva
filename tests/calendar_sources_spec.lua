@@ -13,7 +13,7 @@ local HOST = [[
     refresh = function() return true end, watch = function() end }
   require("lib.integrations.taskwarrior").new = function() return client end
   local opened
-  package.loaded.pages = { settings = function(route) opened = route end, all = {} }
+  require("pages").settings = function(route) opened = route end
   local notes = {}
   package.loaded.notifs = { push = function(entry) notes[#notes + 1] = entry return #notes end }
   package.loaded.services = { weather = function()
@@ -27,8 +27,9 @@ local HOST = [[
   local new = models.new
   models.new = function(...) model = new(...) return model end
   ui.Item { width = W, height = H, require("calendar_page").build(W, function() return H end) }
-  morf.ipc.show = function() presentation.set("leftbar.calendar", true) end
-  morf.ipc.hide = function() presentation.set("leftbar.calendar", false) end
+  local scope = require("pages").panel_name("calendar") .. ".calendar"
+  morf.ipc.show = function() presentation.set(scope, true) end
+  morf.ipc.hide = function() presentation.set(scope, false) end
   morf.ipc.set = function(key, json) config.set(key, morf.json.decode(json)) end
   morf.ipc.load = sources.load
   morf.ipc.watch = function(on) sources.watch(on == "yes") end

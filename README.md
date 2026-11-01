@@ -218,7 +218,7 @@ running, and starts it on a press.
 files and the phone's notifications. **Notes** are plain files in `notes.folder`
 (`~/Notes`), saved as you stop typing; `note <text>` in the launcher adds a line
 to the quick notes. Neither page is in a panel by default: their tiles open them
-as settings pages, and naming one in `panels.<edge>` moves it into that panel.
+as settings pages, and Settings, Eva, Panels moves one into a panel.
 
 **Calendar** adds to Taskwarrior what `calendar.files`, `calendar.folders` and
 `calendar.urls` name, and what vdirsyncer and khal keep, found by themselves:

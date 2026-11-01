@@ -7,7 +7,10 @@ local HOST = [[
   local desk = morf.signal("side.test.desk",H)
   package.loaded.bar = {desk=function() return 0,0,W,desk:get() end}
   local watch, actions = {}, {}
-  package.loaded.planner = {client={watch=function(on) watch[#watch+1]=on end}}
+  require("lib.integrations.taskwarrior").new = function()
+    return {watch=function(on) watch[#watch+1]=on end,busy=morf.signal("side.test.busy",false)}
+  end
+  require("planner")
   local covered = morf.signal("side.test.covered",false)
   package.loaded.notifs = {covered=covered}
   local function page(panel,key,title)
@@ -63,9 +66,9 @@ local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snap
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." side panels preserve geometry, navigation and service lifetimes",function()
     load(style)
-    test.eq(state().watch,{false})
+    test.eq(state().watch,{})
     test.ipc("open","left","yes") test.advance(2400)
-    test.eq(state().watch,{false,true})
+    test.eq(state().watch,{true})
     test.truthy(state().active["leftbar.tasks"])
     test.eq(test.get("drawer-leftbar").width,450)
     test.eq(test.get("drawer-leftbar").height,780)
@@ -75,10 +78,10 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(state().left.tab,2)
     test.truthy(state().active["leftbar.calendar"])
     test.falsy(state().active["leftbar.tasks"])
-    test.eq(state().watch,{false,true})
+    test.eq(state().watch,{true})
     shot(style.."-side-calendar")
     test.ipc("open","left","no") test.advance(1100)
-    test.eq(state().watch,{false,true,false})
+    test.eq(state().watch,{true,false})
     test.falsy(state().active["leftbar.calendar"])
     test.ipc("open","right","yes") test.advance(2400)
     test.falsy(state().covered)
@@ -96,7 +99,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(#test.runs(),0) test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
   end)
   test.it(style.." side panels keep the latest selection through close, resize and reopen",function()
-    load(style,500,720)
+    load(style,900,720)
     test.ipc("open","left","yes") test.advance(2400)
     test.ipc("select","left","calendar") test.advance(90)
     test.ipc("open","left","no") test.advance(70)

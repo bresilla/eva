@@ -1,20 +1,33 @@
 -- The bottom workspace: shared dimensions; the tabbed body comes from the kit.
+-- As wide as it chooses, among the side panels (shell/panel_room.lua), and as
+-- tall as the page on show stands, up to three fifths of the desk.
 local morf = require("morf")
 local theme = require("theme")
 local V = {}
+local TALLEST = 1252
 function V.build(model)
-  local sw, sh = model.screen_size()
-  local w = math.floor(math.min(2120, sw - theme.LEFT - theme.BORDER - 20) * .8)
-  local h = math.floor(math.min(1252, sh - 2 * theme.BORDER - 40) * .6)
+  local room = require("panel_room")
+  local tabbed_layout = require("themes.layouts.tabbed")
+  local function x() return (room.span(room.WANT, room.LEAST)) end
+  local function width() return select(2, room.span(room.WANT, room.LEAST)) end
+  local function height()
+    local _, h = model.desk_size()
+    local most = math.floor(math.min(TALLEST, h - 2 * theme.BORDER - 40) * .6)
+    local wanted = model.fit()
+    if not wanted then return most end
+    return math.min(most, math.ceil(wanted) + tabbed_layout.TABS_H + 2 * tabbed_layout.PAD)
+  end
   local tabs = {}
   for i, tab in ipairs(model.tabs) do
     tabs[i] = { key = tab.key, name = tab.name, icon = tab.icon,
-      build = function(width, height) return model.page(tab.key, width, height) end }
+      build = function(w, h) return model.page(tab.key, w, h) end }
   end
-  local panel = require("kit").tabbed { id = "bottom", width = w, height = function() return h end,
-    tabs = tabs, tab = model.tab, on_present = model.present, dismiss = "down",
+  local panel = require("kit").tabbed { id = "bottom", width = width, height = height,
+    tabs = tabs, tab = model.tab, publish = false, on_present = model.present, dismiss = "down",
     close = function() require("bottom").drawer.set(false) end }
   morf.effect("material.bottom.shown", function() panel.shown(model.opened:get()) end)
-  return { width = w, height = function() return h end, content = panel.content }
+  return { width = width, height = height, content = panel.content,
+    props = { anchors = { bottom = true }, x = x,
+      behavior = { x = theme.spring.drawer, width = theme.spring.drawer, height = theme.spring.drawer } } }
 end
 return V

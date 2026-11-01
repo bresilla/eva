@@ -56,6 +56,9 @@ function V.eva_page(model,w,h)
         trailing=P.chevron(),on_clicked=function() model.request("calendars") end},
     },
     P.section {id="settings-eva-panels",width=w,title="Panels",
+      P.row {id="settings-eva-arrange",width=inner,icon="dashboard_customize",title="Arrange panels",
+        subtitle="Which panel holds which page",
+        trailing=P.chevron(),on_clicked=function() model.request("panels") end},
       P.row {id="settings-eva-hover",width=inner,icon="near_me",title="Open on hover",on=hover,
         subtitle=function() return hover() and "Reaching an edge opens its panel" or "A press at an edge opens its panel" end,
         trailing=P.switch {id="utilities-toggle-edge-hover",name="Open panels on hover",on=hover,
@@ -204,12 +207,23 @@ local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasize
 function M.page(w, h)
   overview_viewport_node, overview_viewport, overview_viewport_t, overview_viewport_ctl = kit.scroll({id="settings-overview-scroll",width=w,height=h,clip=true,
     stack})
+  -- Out of Tab's way while a detail is on show.
   local main = ui.Item {
     id = "utilities", width = w, height = h, clip = true,
+    enabled = function() return M.detail:get() == "" end,
     overview_viewport_node,
   }
   local stack = {}
   local names = {}
+  -- How to read each detail's height, once it is built.
+  local measured = morf.signal("eva.settings.measured", 0)
+  local readers = {}
+  function M.detail_height(key)
+    measured:get()
+    local read = readers[key]
+    local whole = read and read() or 0
+    return whole > 0 and whole or nil
+  end
   for _, d in ipairs(M.DETAILS) do
     names[d.key] = d.name
     -- Each detail is built the first time it opens, and kept.
@@ -227,7 +241,12 @@ function M.page(w, h)
       ui.Loader {
         anchors = { fill = true }, keep = true,
         active = function() return wanted:get() end,
-        source = function() return model.page_content(d.key, w, h) end,
+        source = function()
+          local node, _, read = P.measure(function() return model.page_content(d.key, w, h) end)
+          readers[d.key] = read
+          measured:set(measured:get() + 1)
+          return node
+        end,
       },
     }
   end
@@ -266,9 +285,16 @@ function M.page(w, h)
   }
   -- The last detail shown stays drawn while it slides away. The pages are
   -- a Navigation stack: with focus inside, Alt+Left and the back button pop.
+  -- The panels board keeps Alt with the arrows for its tiles.
+  local shortcuts = model.navigation.shortcuts()
+  local pop = shortcuts["alt+Left"]
+  shortcuts["alt+Left"] = function()
+    if M.detail:get() == "panels" then return false end
+    return pop()
+  end
   return ui.Item {
     width = w, height = h, clip = true,
-    shortcuts = model.navigation.shortcuts(),
+    shortcuts = shortcuts,
     ui.Row {
       gap = 24,
       translate_x = function() return M.detail:get() ~= "" and -(w + 24) or 0 end,
@@ -286,6 +312,6 @@ morf.effect("material.settings.shown",function()
   for _, handle in ipairs(running) do handle:stop() end
   running=kit.bud(cards,model.opened:get())
 end,{owner=node})
-return {node=node,height=M.height,head=M.head,laid_out=M.laid_out}
+return {node=node,height=M.height,head=M.head,laid_out=M.laid_out,detail_height=M.detail_height}
 end
 return V

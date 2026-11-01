@@ -45,16 +45,16 @@ function M.model(active)
   -- Upright the page is a sheet over the screen's top: it steps aside for what
   -- it tries, and comes back unless something else was opened meanwhile.
   local function step_aside(ms)
-    local sidebar=require("sidebar")
-    if not (require("responsive").portrait() and sidebar.drawer.open:get()) then return end
-    sidebar.drawer.set(false)
+    local pages=require("pages")
+    local holder=pages.holder("settings")
+    if not (require("responsive").portrait() and holder and holder.drawer.open:get()) then return end
+    holder.drawer.set(false)
     morf.time.timer(ms+RETURN,function()
       for _,d in ipairs(require("drawer").all) do
         if d.is_open() and d.name~="notifications" then return end
       end
       require("utilities").request("osd")
-      sidebar.select("settings")
-      sidebar.drawer.set(true)
+      pages.open("settings")
     end,false)
   end
   --- Flashes the chosen display, whatever its switch says.

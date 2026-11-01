@@ -12,6 +12,7 @@ local EDGE = require("responsive").sheets() and "bottom" or (visual.edge or "top
 M.drawer = require("drawer").new {
   name="dashboard",edge=EDGE,width=visual.width,height=visual.height,
   content=visual.content,props=visual.props,close_policy="escape+outside",
+  corners=not require("responsive").sheets() and require("panel_room").corners(EDGE,visual.place) or nil,
 }
 morf.effect("eva.dashboard.shown",function() state.opened:set(M.drawer.open:get()) end)
 morf.effect("eva.dashboard.presentation",function()

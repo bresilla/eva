@@ -52,7 +52,7 @@ function M.can_run(name)
 end
 
 --- The quick settings' panel shut, as what a tile starts takes the screen.
-function M.close_panel() require("sidebar").drawer.set(false) end
+function M.close_panel() require("pages").close("settings") end
 
 --- A screenshot of a region, once the panel is out of the way.
 function M.shoot()
@@ -540,6 +540,7 @@ M.DETAILS = {
   {key="sound",name="Sound"}, {key="microphone",name="Microphone"},
   {key="power",name="Power"}, {key="eva",name="Eva"}, {key="bar",name="Bar",parent="eva"}, {key="wired",name="Wired"},
   {key="osd",name="On-screen displays",parent="eva"},
+  {key="panels",name="Panels",parent="eva"},
   {key="assistant",name="Assistant",parent="eva"}, {key="calendars",name="Calendars",parent="eva"},
   {key="notes",name="Notes"}, {key="phone",name="Phone"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
@@ -557,7 +558,7 @@ function M.request(key)
   return M.navigation.request(key)
 end
 function M.capture()
-  require("sidebar").drawer.set(false)
+  require("pages").close("settings")
   require("capture").drawer.set(true)
 end
 -- Retain the last displayed values while hidden, without refreshing sources.
@@ -580,6 +581,7 @@ for index, control in ipairs(M.TOGGLES) do
   M.TOGGLES[index]=toggle
 end
 M.tiles=require("tiles_model").new(M.TOGGLES,function() return require("responsive").form_factor() end)
+M.panels=require("panels_board").new(function() return M.opened:get() and M.detail:get()=="panels" end)
 M.focus={}
 local function focus_active() return M.opened:get() and M.displayed:get()=="focus" end
 for _,id in ipairs {"awake","ringer","dnd"} do

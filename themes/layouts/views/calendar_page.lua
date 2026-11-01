@@ -7,7 +7,6 @@ local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
-local widgets = require("planner_widgets")
 local C = theme.color
 local M = {}
 
@@ -36,7 +35,7 @@ function M.build(model, w, h)
   -- Today at its label's width, planning the rest of the row.
   local today = P.button { id = "planner-today", label = "Today", icon = "today", on_clicked = model.today }
   local plan = P.button { id = "planner-add", label = "Plan a task", icon = "add", tone = "primary",
-    width = function() return inner - (today.layout_width or 0) - 8 end, on_clicked = model.plan }
+    enabled = model.can_plan, width = function() return inner - (today.layout_width or 0) - 8 end, on_clicked = model.plan }
 
   local function join_button(id, link)
     return P.button { id = id, label = "Join", icon = "videocam", tone = "primary",
@@ -78,7 +77,8 @@ function M.build(model, w, h)
   }
   local function next_up() return model.next_up() end
 
-  local failure = widgets.message(function() return model.error:get() end, w, 64)
+  local failure = kit.subtitle { id = "planner-error", width = w, wrap = true, text = function() return model.error:get() end,
+    font_size = theme.size.small, color = function() return C.error end }
   failure.visible = function() return (model.error:get() or "") ~= "" end
 
   local page = P.page { id = "planner-scroll", width = w, height = h, active = model.active,

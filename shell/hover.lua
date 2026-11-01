@@ -2,7 +2,7 @@
 --
 -- A thin strip on the frame's border -- the bottom edge under the
 -- launcher, the right edge beside the sidebar, the left edge beside the
--- left panel (the sides' pills under them) -- opens its
+-- left panel, either side of the rail -- opens its
 -- drawer after a short dwell, including at the outermost pixel -- or, with
 -- its setting off, on a press there.
 -- A drawer opened this way shuts again

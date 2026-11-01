@@ -65,9 +65,8 @@ test.describe("assistant in the shell", function()
     test.settle(2000)
     local waits = test.find_all { id = "assistant-message-2-waiting" }
     local codes = test.find_all { id = "assistant-message-2-4-code" }
-    test.eq(#test.find_all { id = "assistant-input" }, 2, "the sheet and the bottom panel each hold a copy")
-    test.eq(#codes, #waits, "a copy of the page never got the reply")
-    test.eq(#codes, 2)
+    test.eq(#codes, #test.find_all { id = "assistant-input" }, "a copy of the page never got the reply")
+    test.truthy(#codes >= 1, "the reply never reached the page")
     for _, waiting in ipairs(waits) do test.falsy(waiting.visible, "a copy still says it is thinking") end
     test.ipc("shell_quit")
   end)

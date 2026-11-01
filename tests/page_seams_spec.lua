@@ -17,12 +17,8 @@ local HOST = [[
       keyboard = morf.surface.keyboard_focus, typing = pages.typing(), tile_notes = utilities.CONTROLS.notes ~= nil,
       tile_phone = utilities.CONTROLS.phone ~= nil, phone_present = utilities.CONTROLS.phone.present() }
   end
-  morf.ipc.seam_open = function(key) return require("pages").open(key) end
-  morf.ipc.seam_calendar_active = function()
-    local sidebar = require("sidebar")
-    return sidebar.panel.opened:get() and sidebar.panel.showing("calendar")
-      and require("calendar_sources").revision ~= nil and require("pages").showing(sidebar.panel, "calendar")()
-  end
+  morf.ipc.seam_open = function(key) return require("pages").reach(key) end
+  morf.ipc.seam_calendar_active = function() return require("pages").active("calendar")() end
   morf.ipc.seam_search = function(query)
     local rows = require("apps").search(query, 7) or {}
     local out = {}
