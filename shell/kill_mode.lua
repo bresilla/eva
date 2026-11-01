@@ -37,6 +37,13 @@ function M.start()
   require("drawer").close_all()
   M.target:set("")
   M.active:set(true)
+  -- Lights what is under the pointer at once, before it moves.
+  services.hyprland.cursor_position(function(x, y)
+    if not x or not M.active:get() then return end
+    local m = windows.monitor_of() or {}
+    local ratio = windows.ratio(m)
+    M.aim((x - (m.x or 0)) * ratio, (y - (m.y or 0)) * ratio)
+  end)
   return true
 end
 

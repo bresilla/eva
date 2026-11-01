@@ -133,6 +133,7 @@ function M.step(delta, hold)
   held = hold ~= false
   if M.opened:get() then move(delta) return true end
   local started = begin(candidates(), delta > 0 and 2 or math.huge)
+  if started and held and morf.time.now_ms() - released_at < RACE then return M.commit() end
   return started
 end
 
@@ -159,9 +160,16 @@ function M.cancel()
   held = false
 end
 
+-- When Alt last came up with nothing open: the key's call may reach the shell
+-- after the release's.
+local released_at, RACE = -1e9, 200
+
 --- Goes to what is chosen.
 function M.commit()
-  if not M.opened:get() then return false end
+  if not M.opened:get() then
+    released_at = morf.time.now_ms()
+    return false
+  end
   local c = M.chosen()
   M.cancel()
   if c then windows.focus(c.address) end

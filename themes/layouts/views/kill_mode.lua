@@ -1,6 +1,5 @@
 -- Kill mode (shell/kill_mode.lua): a sheet over the screen with a hole cut in
--- it, the hole a shape of the sheet's own field running from window to window,
--- so the window under the pointer is the only thing left lit.
+-- it, the hole a shape of the sheet's own field running from window to window.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")

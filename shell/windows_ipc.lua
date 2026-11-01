@@ -1,5 +1,4 @@
--- The window features' verbs. Each is kept in `ipc`, as the shell's others
--- are, so a key and `morf ipc` do the same.
+-- The window features' verbs, kept in `ipc` as the shell's others are.
 local morf = require("morf")
 local M = {}
 
@@ -97,6 +96,7 @@ function M.register(ipc)
     local dock = require("dock")
     local config = require("config")
     if how == "on" or how == "off" or how == "auto" then config.set("dock.enabled", how)
+    elseif how == "hide" then config.set("dock.autohide", id)
     elseif how == "pin" then return dock.toggle_pin(id)
     elseif how == "peek" then dock.entered() end
     return { mode = dock.mode(), shown = dock.shown(), rows = dock.rows:len(), overflow = dock.overflow:get() }

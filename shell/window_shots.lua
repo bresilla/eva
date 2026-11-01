@@ -1,13 +1,11 @@
 -- Pictures of windows: what the workspace gesture, the overview, the switcher
--- and the dock all draw. `take` works through a queue one window at a time,
--- because the compositor holds only a few captures at once. The cache keeps
--- each window's latest picture, so a window on a hidden workspace keeps the
--- one from when it was last seen.
+-- and the dock all draw. `take` works through a queue one window at a time.
+-- The cache keeps each window's latest picture.
 local morf = require("morf")
 local M = {}
 
 --- The compositor's identifier for `client`, by its class and title; nil
---- when two windows share them, so that the wrong picture is never shown.
+--- when two windows share them.
 function M.toplevel(client)
   if client.toplevel then return client.toplevel end
   local found
@@ -20,8 +18,7 @@ function M.toplevel(client)
   return found
 end
 
---- Whether pictures can stay on the GPU: a software renderer's dmabufs are
---- refused by the compositor, and the refusal ends the connection.
+--- Whether pictures stay on the GPU: not on a software renderer.
 local function on_gpu()
   local software = morf.env and morf.env("LIBGL_ALWAYS_SOFTWARE")
   return not (software and software ~= "" and software ~= "0")
@@ -106,7 +103,7 @@ function M.refresh(clients)
   if #queue == 0 then return true end
   running = true
   M.take(queue)
-  -- A capture the compositor never answers must not hold the queue for good.
+  -- A pass ends by itself after two seconds, answered or not.
   morf.time.timer(2000, function() running = false end, false)
   return true
 end

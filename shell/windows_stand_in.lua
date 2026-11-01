@@ -1,8 +1,7 @@
--- A Hyprland in Lua, for the machines that cannot run one: the shape of
--- lib.compositor.hyprland over a window list it keeps itself. Every consumer
--- of that library works unchanged, because it takes the same requests: `hl.*`
--- chunks are evaluated against a table with Hyprland's names and argument
--- checks, classic dispatchers by name, `j/` questions from the list.
+-- A Hyprland in Lua: the shape of lib.compositor.hyprland over a window list it
+-- keeps itself, for a machine that cannot run one. `hl.*` chunks are evaluated
+-- against a table with Hyprland's names and argument checks, classic
+-- dispatchers go by name, and `j/` questions are answered from the list.
 --
 -- EVA_FAKE_WINDOWS=1 is the built-in scene; a path names a JSON file with the
 -- same fields, and text starting with `{` is that JSON itself. Windows the

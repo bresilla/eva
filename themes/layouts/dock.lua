@@ -86,7 +86,12 @@ function M.build(model, style)
 
   -- ------------------------------------------------------------ the field --
   local radius = style.radius or size() / 2
-  local field = { id = "dock-field", anchors = { fill = true }, fill_color = function() return C.surfaceContainer end,
+  -- The field covers the plate and the room its bubbles swell into.
+  local function room() return size() * model.GAIN + 2 * S.l end
+  local field = { id = "dock-field", fill_color = function() return C.surfaceContainer end,
+    x = function() return plate_box().x - room() end, y = function() return plate_box().y - room() end,
+    width = function() return plate_box().width + 2 * room() end,
+    height = function() return plate_box().height + 2 * room() end,
     blend = style.seam, blend_profile = style.profile or "quadratic", shadow_color = "#00000050", shadow_blur = 8,
     ui.SdfShape { id = "dock-shape", shape = "box", radius = function() return taskbar() and 0 or radius end, track = plate } }
   local bubbles = {}

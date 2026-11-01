@@ -12,7 +12,7 @@ M.BINDS = {
   { keys = "ALT + SHIFT + Tab", verb = "switcher prev", label = "Switch to the previous window" },
   { keys = "ALT + grave", verb = "switcher same", label = "Walk this application's windows" },
   { keys = "ALT + ALT_L", verb = "switcher commit", label = "Go to the window chosen",
-    opts = { release = true, non_consuming = true }, quiet = true },
+    opts = { release = true, non_consuming = true, transparent = true }, quiet = true },
   { keys = "SUPER + W", verb = "window_menu toggle", label = "Open the window menu" },
   { keys = "SUPER + Z", verb = "snap picker", label = "Pick a snap layout" },
   { keys = "SUPER + CTRL + left", verb = "snap left", label = "Snap to the left half" },
