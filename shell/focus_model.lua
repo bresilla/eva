@@ -42,8 +42,26 @@ local function copy(value)
   return out
 end
 
+-- The modes, one table until they change: `config.get` copies, and a page reads
+-- them from every binding. Another screen's writes arrive through the file.
+local modes_now, modes_at = config.get("focus.modes") or {}, morf.signal("eva.focus.revision", 0)
+local function store(modes)
+  modes_now = modes
+  config.set("focus.modes", modes)
+  modes_at:set(modes_at:get() + 1)
+end
+morf.effect("eva.focus.modes", function()
+  local filed = config.get("focus.modes") or {}
+  if morf.json.encode(filed) == morf.json.encode(modes_now) then return end
+  modes_now = filed
+  modes_at:set(modes_at:get() + 1)
+end)
+
 --- Every mode, in order. A tracked read.
-function M.modes() return config.get("focus.modes") or {} end
+function M.modes()
+  modes_at:get()
+  return modes_now
+end
 
 --- The mode `id`, or nil.
 function M.mode(id)
@@ -168,7 +186,7 @@ function M.set(id, field, value)
       changed = true
     end
   end
-  if changed then config.set("focus.modes", modes) end
+  if changed then store(modes) end
   return changed
 end
 
@@ -205,7 +223,7 @@ function M.add(name)
   local id, n = stem, 1
   while M.mode(id) do n = n + 1 id = stem .. "-" .. n end
   modes[#modes + 1] = blank(id, name or "Custom")
-  config.set("focus.modes", modes)
+  store(modes)
   return id
 end
 
@@ -217,7 +235,7 @@ function M.remove(id)
   for _, mode in ipairs(M.modes()) do
     if mode.id ~= id then modes[#modes + 1] = mode end
   end
-  config.set("focus.modes", modes)
+  store(modes)
   return true
 end
 

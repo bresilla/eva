@@ -48,6 +48,9 @@ function V.eva_page(model,w,h)
       P.row {id="settings-eva-osd",width=inner,icon="picture_in_picture",title="On-screen displays",
         subtitle="Where each one appears, and for how long",
         trailing=P.chevron(),on_clicked=function() model.request("osd") end},
+      P.row {id="settings-eva-notifications",width=inner,icon="notifications",title="Notifications",
+        subtitle="Sounds, popups, history and each app's rules",
+        trailing=P.chevron(),on_clicked=function() model.request("notifications") end},
     },
     P.section {id="settings-eva-panels",width=w,title="Panels",
       P.row {id="settings-eva-hover",width=inner,icon="near_me",title="Open on hover",on=hover,
@@ -65,27 +68,6 @@ function V.eva_page(model,w,h)
   }
 end
 
-function V.focus_page(model,w,h)
-  local inner=P.inner(w)
-  local section={id="settings-focus",width=w,title="Interruptions"}
-  for _,control in ipairs(model.focus) do
-    local function on() return control.on()==true end
-    local trailing
-    if control.id=="ringer" then
-      trailing=P.button {id="utilities-toggle-ringer",label=control.status,on_clicked=function() control.set() end}
-    else
-      trailing=P.switch {id="utilities-toggle-"..control.id,name=control.name,on=on,on_toggled=control.set}
-    end
-    section[#section+1]=P.row {id="settings-focus-"..control.id,width=inner,icon=control.icon,on=on,
-      title=control.name,trailing=trailing,
-      subtitle=function()
-        if control.id=="awake" then return on() and control.status() or "Allow the screen to sleep" end
-        if control.id=="ringer" then return "Notification sounds and vibration" end
-        return on() and "Notifications stay in history" or "Show notification popups"
-      end}
-  end
-  return P.page {id="settings-focus-scroll",width=w,height=h,P.section(section)}
-end
 function V.build(model,w,h)
 local M={TOGGLES=model.TOGGLES,DETAILS=model.DETAILS,detail=model.detail,RADIUS=V.RADIUS}
 -- A side panel's cards are 408 wide; a sheet's (a phone's quick settings)

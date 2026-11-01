@@ -20,6 +20,8 @@ return {
     polkit = "themes.layouts.views.polkit",
     authsteps = "themes.layouts.views.authsteps",
     osd_page = "themes.layouts.views.osd_page",
+    notification_settings = "themes.layouts.views.notification_settings",
+    focus_page = "themes.layouts.views.focus_page",
     session = "themes.layouts.views.session",
     window_menu = "themes.layouts.views.window_menu",
     launcher = "themes.layouts.views.launcher",

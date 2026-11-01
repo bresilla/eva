@@ -19,6 +19,7 @@ M.KINDS = {
   { id = "profile", name = "Power profile", icon = "balance", family = "status", place = "bottom_center", hold = 1800 },
   { id = "dnd", name = "Do not disturb", icon = "notifications_off", family = "status", place = "bottom_center",
     hold = 1600 },
+  { id = "focus", name = "Focus mode", icon = "self_improvement", family = "status", place = "bottom_center", hold = 1800 },
   { id = "awake", name = "Keep awake", icon = "coffee", family = "status", place = "bottom_center", hold = 1600 },
   { id = "night", name = "Night light", icon = "nightlight", family = "status", place = "bottom_center", hold = 1600 },
   { id = "ring", name = "Ring mode", icon = "notifications_active", family = "status", place = "bottom_center",
