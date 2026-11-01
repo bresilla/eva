@@ -472,7 +472,16 @@ if M.detail:get()=="tor" then M.detail:set("tunnel") end
 M.CONTROLS={}
 do
   for _, t in ipairs(require("quick_tiles").list(M, local_state.gamemode)) do M.TOGGLES[#M.TOGGLES + 1] = t end
-  for _, t in ipairs(M.TOGGLES) do M.CONTROLS[t.id]=t end
+  for _, t in ipairs(M.TOGGLES) do
+    M.CONTROLS[t.id]=t
+    local set=t.set
+    if set then
+      t.set=function(...)
+        require("haptics").fire("toggle")
+        return set(...)
+      end
+    end
+  end
   -- Focus is one entry point; each setting remains independent inside it.
   M.TOGGLES[#M.TOGGLES + 1] = {id="focus",name="Focus",detail="focus",
     icon=function()
