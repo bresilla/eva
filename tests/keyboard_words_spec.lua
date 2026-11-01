@@ -107,8 +107,8 @@ test.it("every shipped list has a source line and no offensive entry", function(
   for _, name in ipairs(names) do
     local head = test.ipc("head", name)
     test.truthy(head:sub(1, 2) == "# ", name .. " does not name its source")
-    test.truthy(head:find("Apache License 2.0", 1, true) or head:find("CC BY-SA 4.0", 1, true),
-      name .. " does not name its licence")
+    test.truthy(head:find("Apache License 2.0", 1, true) or head:find("CC BY-SA 4.0", 1, true)
+      or head:find("MIT License", 1, true), name .. " does not name its licence")
   end
   for _, word in ipairs { "fuck", "shit", "cunt" } do
     test.falsy(test.ipc("has", "en.txt", word), word .. " shipped")

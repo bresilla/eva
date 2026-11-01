@@ -1,13 +1,15 @@
 -- Word lists for prediction, offline: shell/assets/words/<language>.txt, one
 -- word a line, the most common first, and `typed>word` lines for the slips a
 -- list corrects. A list of the person's own at
--- $XDG_DATA_HOME/eva/words/<language>.txt comes before it.
+-- $XDG_DATA_HOME/eva/words/<language>.txt comes before it. <language>.next.txt
+-- holds `word=what follows it` lines.
 --
 --   local words = require("lib.shell.words")
 --   words.load("en")                  -- read in pieces, off the frame
 --   words.complete("en", "th", 3)     -- { "the", "this", "that" }
 --   words.fix("en", "wierd", 2)       -- { "weird" }
 --   words.known("en", "weird")        -- true
+--   words.after("en", "thank", 3)     -- { "you" }
 --
 -- `words.revision` moves when a list has finished loading.
 
@@ -65,9 +67,17 @@ end
 --- Starts reading `language`'s list, once; it is ready a few turns later.
 function M.load(language)
   if books[language] then return end
-  local book = { list = {}, folded = {}, rank = {}, buckets = {}, fixes = {}, ready = false }
+  local book = { list = {}, folded = {}, rank = {}, buckets = {}, fixes = {}, following = {}, ready = false }
   books[language] = book
   morf.time.timer(1, function()
+    for line in read(morf.paths.shell("assets/words/" .. language .. ".next.txt")):gmatch("[^\n]+") do
+      local word, following = line:match("^([^#=]+)=(.+)$")
+      if word then
+        local list = {}
+        for next_word in following:gmatch("%S+") do list[#list + 1] = next_word end
+        book.following[word] = list
+      end
+    end
     local lines = (read(own(language)) .. "\n" .. read(shipped(language))):gmatch("[^\n]+")
     local function step()
       for _ = 1, PIECE do
@@ -144,6 +154,15 @@ function M.fix(language, typed, limit)
     if #out >= limit then break end
     if near(want, book.folded[n]) then out[#out + 1] = book.list[n] end
   end
+  return out
+end
+
+--- What tends to follow `word`, at most `limit`; "^" for the start of a sentence.
+function M.after(language, word, limit)
+  local book, out = ready(language), {}
+  if not book then return out end
+  local list = book.following[word] or book.following[unicase.lower(word)] or {}
+  for i = 1, math.min(limit, #list) do out[i] = list[i] end
   return out
 end
 

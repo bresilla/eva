@@ -128,6 +128,7 @@ function M.new(ctx)
   function T.strike(event)
     local mods = event.mods or {}
     local modded = mods.ctrl or mods.alt or mods.super
+    if model.tray:get() == "tools" then model.tray:set("words") end
     if model.searching:get() and not modded then return search(event) end
     if event.text and not modded then return type_text(event.text, event.mods) end
     if event.key == "backspace" and not modded then return backspace(event.mods) end

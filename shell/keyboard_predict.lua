@@ -1,6 +1,7 @@
 -- What the strip above the keys offers for the word at the cursor: the person's
--- shortcuts, a date for a keyword, a correction, completions, an emoji by name.
--- Each is `{ kind, text, label }`; `kind` is shortcut, keyword, fix, word or emoji.
+-- shortcuts, a date for a keyword, a correction, completions, an emoji by name;
+-- between words, what tends to come next. Each is `{ kind, text, label }`; `kind`
+-- is shortcut, keyword, fix, word, emoji or next.
 local morf = require("morf")
 local config = require("config")
 local model = require("keyboard_model")
@@ -53,11 +54,24 @@ function M.prepare()
   if list then words.load(list) end
 end
 
+-- What may follow the text before the cursor, between words.
+local function following(list)
+  local out = {}
+  if not list then return out end
+  local words_before = model.before():gsub("%s+$", "")
+  local key = "^"
+  if words_before ~= "" and not model.sentence_start() then key = model.tail(words_before) end
+  if key == "" then return out end
+  for i, word in ipairs(words.after(list, key, M.SLOTS)) do out[i] = { kind = "next", text = word, label = word } end
+  return out
+end
+
 --- What to offer now, for the board `mode`.
 function M.offers(mode)
   if not model.aids(mode) then return {} end
   local word = model.word()
-  if word == "" or utf8.len(word) > 32 then return {} end
+  if word == "" then return following(list_of(model.layout())) end
+  if utf8.len(word) > 32 then return {} end
   local out, seen = {}, {}
   local function offer(kind, text, label)
     if #out >= M.SLOTS or seen[text] then return end

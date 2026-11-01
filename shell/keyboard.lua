@@ -467,6 +467,12 @@ function M.control(verb, value)
       for _, cp in utf8.codes(value, true) do M.strike { text = utf8.char(cp), mods = {} } end
       return true
     end
+    if verb == "pick" then
+      local offer = model.candidates:get()[tonumber(value) or 1]
+      if offer then M.pick(offer) end
+      return offer ~= nil
+    end
+    if verb == "read" then return { before = model.before(), known = model.known(), shift = M.keys.shift:get() } end
   end
   return nil
 end

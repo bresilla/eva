@@ -51,8 +51,16 @@ function V.build(parts)
   local tray = state.tray
   local toolbox = model.tools()
 
-  local function offers() return state.candidates:get() end
-  local function fresh() return tray:get() == "words" and clips.fresh() or nil end
+  -- A copy made a moment ago goes before anything but the word being typed.
+  local function fresh()
+    if tray:get() ~= "words" then return nil end
+    local item = clips.fresh()
+    if item and state.word() == "" then return item end
+  end
+  local function offers()
+    if fresh() then return {} end
+    return state.candidates:get()
+  end
   local function busy() return #offers() > 0 or fresh() ~= nil end
   local function showing(name) return function() return tray:get() == name and not state.searching:get() end end
 
