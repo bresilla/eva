@@ -1,8 +1,6 @@
 # Windows under a finger: recents and what its cards offer, on the window
 # stand-in. `SCREEN=868x1932 TOUCH=1` is a phone.
 export EVA_FAKE_WINDOWS=${EVA_FAKE_WINDOWS:-$SEE_EVA/tests/fixtures/windows.json}
-export EVA_SETTINGS="$SEE_OUT/settings.json"
-echo '{ "dock": { "pins": ["files"] } }' > "$EVA_SETTINGS"
 start shell
 pause 2
 shot rest
@@ -15,5 +13,4 @@ ipc pip; pause 1.4; shot pip
 ipc pip_controls; pause 0.6; shot pip-controls
 ipc pip_controls; ipc pip; pause 1
 ipc workspace 2; pause 1.4; shot split
-ipc settings dock; pause 1.6; shot page-dock
 ipc settings windows; pause 1.6; shot page-windows

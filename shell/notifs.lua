@@ -46,7 +46,7 @@ M.records, M.asleep, M.recent, M.on_show = M.history.read, M.snoozed.read, M.dis
 M.undo = shared("eva.notifications.undo", false)
 -- The ids whose sender still hears actions, as `{ ["id"] = true }`.
 M.answers = shared("eva.notifications.answers", {})
--- What a bar or a dock reads: `count`, `unread`, `critical`, `missed`, `hidden`
+-- What a bar reads: `count`, `unread`, `critical`, `missed`, `hidden`
 -- (a Focus mode hides badges), `apps` (key -> count) and `icons` (one per app
 -- with anything but low urgency, newest first: `{ key, app, icon }`).
 M.badge = shared("eva.notifications.badge",

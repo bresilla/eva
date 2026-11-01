@@ -1,5 +1,5 @@
--- The Windows and Dock pages of Settings, in the page template. Each is a
--- section of choices that share its width and rows with a switch.
+-- The Windows pages of Settings, in the page template. Each is a section of
+-- choices that share its width and rows with a switch.
 local morf = require("morf")
 local ui = require("morf.ui")
 local kit = require("kit")
@@ -186,32 +186,6 @@ function M.build_layouts(model, w, h)
       .. "tiled ones to their workspace. A window that is closed is started again, but what was in it is not: tabs, "
       .. "documents and terminal sessions start fresh. An app with no desktop entry cannot be started, and one that "
       .. "keeps to a single window comes back as one.") }
-end
-
-function M.build_dock(model, w, h)
-  local sections = { id = "dock-scroll", width = w, height = h, active = model.active }
-  if not model.taskbar then
-    sections[#sections + 1] = choices(w, { group = "dock-show", title = "Show the dock",
-      items = model.shows, now = model.get("dock.enabled"), pick = model.set("dock.enabled") })
-    sections[#sections + 1] = choices(w, { group = "dock-edge", title = "Position",
-      items = model.edges, now = model.get("dock.edge"), pick = model.set("dock.edge") })
-    sections[#sections + 1] = choices(w, { group = "dock-hide", title = "Hide it",
-      items = model.hides, now = model.get("dock.autohide"), pick = model.set("dock.autohide") })
-    sections[#sections + 1] = choices(w, { group = "dock-size", title = "Size",
-      items = model.sizes, now = model.get("dock.size"), pick = model.set("dock.size") })
-  end
-  local rows = { id = "dock-options", caption_id = "dock-options-caption", width = w, title = "Behaviour" }
-  if model.taskbar then
-    rows[#rows + 1] = toggle(w, "dock-taskbar-hide", "visibility_off", "Slide the taskbar away",
-      model.get("dock.taskbar_hide"), model.set("dock.taskbar_hide"))
-  else
-    rows[#rows + 1] = toggle(w, "dock-magnify", "zoom_in", "Swell near the pointer", model.get("dock.magnify"),
-      model.set("dock.magnify"))
-  end
-  rows[#rows + 1] = toggle(w, "dock-isolate", "monitor", "Only this screen's windows", model.get("dock.isolate"),
-    model.set("dock.isolate"))
-  sections[#sections + 1] = P.section(rows)
-  return P.page(sections)
 end
 
 return M

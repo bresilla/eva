@@ -111,7 +111,7 @@ local HOST = [[
     local groups = { "osd.kinds", "lule", "quick", "input", "accessibility", "sound", "power", "storage", "proxy", "nightlight",
       "edgebar", "dashboard", "sidebar", "leftbar", "bottom", "capture.tools", "appearance", "rotation", "polkit", "osd",
       "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels", "assistant", "calendar",
-      "keyboard", "filters", "phone", "idle", "lock", "dock", "windows", "gestures" }
+      "keyboard", "filters", "phone", "idle", "lock", "windows", "gestures" }
     -- Each list by the first part of its keys: a key looks only at its own.
     local function by_head(list)
       local out = {}

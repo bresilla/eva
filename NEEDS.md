@@ -171,18 +171,11 @@ like the dashboard.
   verb found none until the next click. That cause is read from the trace, not
   proven. `windows.active()` falls back to the last focused window on the
   workspace; `hyprland.refresh()` could re-read `j/activewindow` instead.
-- D-Bus signals from any sender. `proxy:subscribe` needs a destination and a
-  path, and `com.canonical.Unity.LauncherEntry.Update` is a broadcast from an
-  application's own path, so dock badges cannot hear unread counts or progress
-  from applications. The dock counts the notification history instead.
 - Which modifiers are held. `on_key_released` is the only way to learn that Alt
   came up, and a surface that takes the keyboard after the key came up never
   hears it: the switcher relies on a compositor bind for that case. Something
   like `morf.keys.modifiers()`, from the `wl_keyboard.modifiers` event, would
   settle it. Hyprland has `hl.is_key_down` from 0.56, not in 0.55.
-- Drag and drop from a layer surface into a window, for a dock taking a dropped
-  file: `DropArea` takes one, and a launch with arguments does not exist
-  (`index:launch(id)` passes no URIs).
 
 ## Phase 3: the sidebar and the utilities
 
@@ -282,8 +275,8 @@ what Lua can reach today.
   way, and the reports named no culprit, only a pass that ran out. A line in `morf
   check` when an effect registers hundreds of others would have found it at once.
 - A memo. `signal:get()` copies, and no value can be derived once for all its
-  readers, so eva pairs an effect with a signal (`themes/layouts/dock.lua`, the
-  sheet's height in `side_panel.lua`, `shell/live_model.lua`). A `morf.computed`
+  readers, so eva pairs an effect with a signal (the sheet's height in
+  `side_panel.lua`, `shell/live_model.lua`). A `morf.computed`
   with the graph's own dependency tracking would replace them.
 - Field pipelines made ahead of the first draw, or kept in a `VkPipelineCache` on
   disk. A variant compiles the frame it is first drawn, in `encode`: 90 to 230 ms

@@ -11,7 +11,7 @@ M.KEYWORDS = {
   network = "wifi wi-fi wireless internet ssid connect", bluetooth = "bt pair headphones devices",
   mobile = "cellular sim modem lte 5g data apn", sound = "audio volume speakers output headphones",
   microphone = "mic input recording", power = "battery charge limit profile performance saver sleep",
-  eva = "shell panels hover motion animation", bar = "panel status taskbar edge tray clock",
+  eva = "shell panels hover motion animation", bar = "panel status edge tray clock",
   wired = "ethernet lan cable", osd = "on-screen display popup volume indicator overlay",
   mesh = "tailscale zerotier netbird vpn", tunnel = "vpn wireguard openvpn proton tor", focus = "do not disturb dnd awake caffeine ringer silent",
   hotspot = "tethering share internet", nightlight = "blue light warm sunset redshift temperature",

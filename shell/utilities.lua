@@ -25,7 +25,6 @@ local builders={
   linked_phone=function(w,h) return require("linked_phone_page").build(require("pages").shown("linked_phone"),w,h) end,
   lock=function(w,h) return require("lock_page").page(w,h) end,
   idle=function(w,h) return require("idle_page").page(w,h) end,
-  dock=function(w,h) return require("windows_page").dock_page(w,h) end,
   windows=function(w,h) return require("windows_page").page(w,h) end,
   ["windows/rules"]=function(w,h) return require("windows_page").rules_page(w,h) end,
   ["windows/rule"]=function(w,h) return require("windows_page").rule_page(w,h) end,

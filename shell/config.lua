@@ -198,10 +198,10 @@ local config = settings.open {
       -- The pages past the first on a phone's home: lists of what stands on
       -- each, widgets by id, `app:ID` and `folder:NAME`.
       pages = { desk = {}, phone = {} },
-      -- A phone's home: whether it has pages of apps, the row of pinned apps on
-      -- it, the names under the icons, how many icons stand across (0 chooses),
-      -- and whether a hold is kept from arranging.
-      home = { enabled = false, dock = false, labels = true, columns = 0, locked = false },
+      -- A phone's home: whether it has pages of apps, the names under the icons,
+      -- how many icons stand across (0 chooses), and whether a hold is kept from
+      -- arranging.
+      home = { enabled = false, labels = true, columns = 0, locked = false },
       -- What a widget stands on: "glass", "solid", "none", or "stencil", the
       -- clock's digits cut through a veil onto the picture.
       chrome = "glass",
@@ -646,27 +646,6 @@ local config = settings.open {
       correction_kind = "deuteranopia", dim = 0.4 },
     -- Background sounds: rain, ocean or noise, and how loud, 0 to 1.
     sounds = { kind = "rain", level = 0.4 },
-    dock = {
-      -- "auto" keeps it away; "on" puts it up; "off"
-      -- takes it away. A phone never has one.
-      enabled = "auto",
-      -- bottom, left or right.
-      edge = "bottom",
-      -- How big an icon is, in logical pixels.
-      size = 48,
-      -- Icons swell near the pointer.
-      magnify = true,
-      -- "off", "on", or "windows": it hides only while a window lies under it.
-      autohide = "windows",
-      -- The taskbar slides away until it is reached for.
-      taskbar_hide = false,
-      -- Only the windows on this screen.
-      isolate = false,
-      -- The launcher's and the overview's buttons at its ends.
-      buttons = true,
-      -- The pinned applications: desktop entry ids, in order.
-      pins = {},
-    },
     windows = {
       -- What a phone's bottom edge walks: "apps" or "workspaces".
       scrub = "apps",

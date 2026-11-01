@@ -851,7 +851,6 @@ commands, and `shell/window_shots.lua`, which keeps a picture of each window.
 | `workspace_name`, `workspace_layout`, `workspace_empty` | a name kept across sessions; dwindle, master, scrolling or monocle, one workspace at a time |
 | `scratchpad NAME\|list`, `scratchpad send NAME` | Hyprland's special workspaces, started from `windows.scratchpads` |
 | `pip`, `float`, `split`, `keep_above`, `opacity`, `show_desktop`, `kill_mode` | what happens to the focused window, or the one pressed |
-| `dock on\|off\|auto`, `dock pin ID` | the dock on a desk, a phone not at all |
 | `corner NAME ACTION GUARD` | a hot corner's action, and the key that must be held |
 
 Under a finger, a pull up from the bottom that stops and holds is recents, and a

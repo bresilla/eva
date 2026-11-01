@@ -127,13 +127,6 @@ function V.eva_page(model,w,h)
       P.row {id="settings-eva-keyboard",width=inner,icon="keyboard",title="On-screen keyboard",
         subtitle="Languages, prediction and how it stands",
         trailing=P.chevron(),on_clicked=function() model.request("keyboard") end},
-      P.row {id="settings-eva-dock",width=inner,icon="dock_to_bottom",title="Dock",
-        subtitle=function()
-          local dock=require("dock")
-          if dock.mode()=="taskbar" then return "A taskbar along the edge" end
-          return dock.on() and "On the "..dock.edge().." edge" or "Off"
-        end,
-        trailing=P.chevron(),on_clicked=function() model.request("dock") end},
       P.row {id="settings-eva-windows",width=inner,icon="select_window",title="Windows",
         subtitle="Hot corners, the switcher and snapping",
         trailing=P.chevron(),on_clicked=function() model.request("windows") end},

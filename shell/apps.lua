@@ -212,15 +212,11 @@ function M.actions_for(row)
     out[#out + 1] = { name = "Open containing folder", material = "folder_open",
       run = function() return require("providers").reveal(row.source .. "/" .. row.id) end }
   end
-  local home, dock = require("desktop_model"), require("dock_model")
+  local home = require("desktop_model")
   if home.home() then
     local there = home.has_app(row.id)
     out[#out + 1] = { name = there and "Take it off the home screen" or "Add it to the home screen",
       material = "add_to_home_screen", run = function() home.toggle_app(row.id) return "keep" end }
-  end
-  if dock.on() then
-    out[#out + 1] = { name = dock.pinned(row.id) and "Take it off the dock" or "Keep it on the dock", material = "push_pin",
-      run = function() dock.toggle_pin(row.id) return "keep" end }
   end
   out[#out + 1] = { name = "Put it in a folder…", material = "create_new_folder",
     run = function() return require("launcher_modes.shell").file(row.id) end }

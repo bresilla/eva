@@ -101,37 +101,6 @@ function M.register(ipc)
     if require("snap_model").CELLS[how or ""] then return snap.snap(how) end
     error("`" .. tostring(how) .. "`: a cell, layout KEY, picker, drag or drop")
   end
-  -- `dock [on|off|auto]`: asks for it on a desk. `dock pin ID` pins an
-  -- application or lets it go, `dock state` says what there is.
-  ipc.dock = function(how, id)
-    local dock = require("dock")
-    local config = require("config")
-    if how == "on" or how == "off" or how == "auto" then config.set("dock.enabled", how)
-    elseif how == "hide" then config.set("dock.autohide", id)
-    elseif how == "pin" then return dock.toggle_pin(id)
-    elseif how == "peek" then dock.entered() end
-    return { mode = dock.mode(), shown = dock.shown(), rows = dock.rows:len(), overflow = dock.overflow:get() }
-  end
-  ipc.dock_clear = function(buttons)
-    local config = require("config")
-    config.set("dock.pins", {})
-    config.set("dock.buttons", buttons == "buttons")
-  end
-  -- `dock_magnify [AT]`: the swell as if the pointer were AT along the row.
-  ipc.dock_magnify = function(at) require("dock").pointer:set(tonumber(at) or -1) end
-  ipc.dock_menu = function(index)
-    local dock = require("dock")
-    local row = dock.rows:get(tonumber(index) or 1)
-    if row then dock.open_menu(row.key) end
-  end
-  ipc.dock_launch = function(key) return require("dock").launch(key) end
-  ipc.dock_reserve = function() return require("dock").reserve() end
-  ipc.dock_order = function()
-    local out, dock = {}, require("dock")
-    for i = 1, dock.rows:len() do out[i] = dock.rows:get(i).key end
-    return out
-  end
-  ipc.dock_reorder = function(from, to) return require("dock").reorder(tonumber(from), tonumber(to)) end
   -- `rules [list]`, `rules add JSON`, `rules set JSON` (it has its id), `rules
   -- remove ID`, `rules on ID` and `rules off ID`, `rules from ADDRESS` (a draft
   -- from a running window), `rules dim on|off [STRENGTH]`.

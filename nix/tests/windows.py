@@ -718,7 +718,7 @@ def run(password, only=""):
 
     with subtest("a panel gives the keys back"):
         focus("three")
-        ipc("settings", "dock")
+        ipc("settings", "windows")
         machine.sleep(2)
         print("PANEL", panels(), json.loads(hyprctl("-j", "activewindow")).get("title"))
         ipc("close")
@@ -828,18 +828,6 @@ def run(password, only=""):
         machine.screenshot("workspace-osd")
         hyprctl("eval", 'hl.dispatch(hl.dsp.focus({ workspace = "1" }))')
         machine.sleep(2)
-
-    with subtest("dock"):
-        ipc("dock", "hide", "off")
-        print("DOCK", ipc("dock", "on"))
-        machine.sleep(10)
-        machine.screenshot("dock")
-        state = ask("dock", "state") or ask("dock", "state") or {}
-        print("DOCK STATE", state)
-        check("the dock takes the windows", state.get("rows", 0) >= 1, str(state))
-        check("a dock that stays out keeps windows clear of it", json.loads(hyprctl("-j", "monitors"))[0]["reserved"][3] > 10,
-              str(json.loads(hyprctl("-j", "monitors"))[0]["reserved"]))
-        print("FRAMES", machine.execute("journalctl -b --user-unit eva.service --machine=alice@.host --no-pager | grep -E 'took [0-9]{4,}' | tail -5")[1][-500:])
 
     with subtest("hot corner"):
         ipc("corner", "top_left", "overview", "")

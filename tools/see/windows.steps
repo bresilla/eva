@@ -3,8 +3,7 @@
 # single window, so cards here show icons; the VM test shows real pictures.
 export EVA_FAKE_WINDOWS=${EVA_FAKE_WINDOWS:-$SEE_EVA/tests/fixtures/windows.json}
 export EVA_SETTINGS="$SEE_OUT/settings.json"
-echo '{ "dock": { "enabled": "on", "autohide": "off", "pins": ["files"] },
-  "windows": { "scratchpads": [ { "name": "term", "command": "foot", "icon": "terminal" } ] } }' > "$EVA_SETTINGS"
+echo '{ "windows": { "scratchpads": [ { "name": "term", "command": "foot", "icon": "terminal" } ] } }' > "$EVA_SETTINGS"
 start shell
 window Editor see.editor "#26547c"
 window Browser see.browser "#7a3b69"
@@ -37,6 +36,5 @@ ipc pip_controls; ipc pip; pause 0.6
 ipc workspace 1; pause 1.2
 ipc window_menu open; pause 1.2; shot window-menu
 key Escape; pause 0.8
-ipc settings dock; pause 1.4; shot page-dock
 ipc settings windows; pause 1.4; shot page-windows
 ipc close; pause 1

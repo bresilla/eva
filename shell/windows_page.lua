@@ -1,5 +1,5 @@
--- The Windows and Dock pages of Settings: what they read and set. The view is
--- the theme's.
+-- The Windows pages of Settings: what they read and set. The view is the
+-- theme's.
 local config = require("config")
 local M = {}
 
@@ -20,19 +20,6 @@ function M.page(w, h)
   model.scrubs = { { "apps", "apps", "Apps" }, { "workspaces", "workspaces", "Workspaces" } }
   model.dim_min, model.dim_max = require("window_rules_model").DIM_MIN, require("window_rules_model").DIM_MAX
   return require("themes").view("windows_page").build_windows(model, w, h)
-end
-
-function M.dock_page(w, h)
-  local model = model_of("dock")
-  local dock = require("dock")
-  model.dock = dock
-  model.taskbar = dock.mode() == "taskbar"
-  model.shows = { { "auto", "smart_toy", "Auto" }, { "on", "visibility", "On" }, { "off", "visibility_off", "Off" } }
-  model.edges = { { "bottom", "vertical_align_bottom", "Bottom" }, { "left", "align_horizontal_left", "Left" },
-    { "right", "align_horizontal_right", "Right" } }
-  model.hides = { { "off", "visibility", "Never" }, { "windows", "select_window", "Under windows" }, { "on", "visibility_off", "Always" } }
-  model.sizes = { { 40, "photo_size_select_small", "Small" }, { 48, "crop_square", "Medium" }, { 64, "photo_size_select_large", "Large" } }
-  return require("themes").view("windows_page").build_dock(model, w, h)
 end
 
 --- The rules' list, and the running windows to start one from.

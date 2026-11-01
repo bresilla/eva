@@ -1,5 +1,4 @@
--- A short menu of actions on a thing: the dock's right press, an overview
--- card's. `spec`: `id`, `items()` (each `{ label, icon, run }`), `at()` (where
+-- A short menu of actions on a thing: an overview card's right press. `spec`: `id`, `items()` (each `{ label, icon, run }`), `at()` (where
 -- it stands: `x, y`, given the height it wants), `close()`, `opened()`.
 local ui = require("morf.ui")
 local theme = require("theme")

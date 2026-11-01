@@ -1,5 +1,5 @@
--- Pictures of windows: what the workspace gesture, the overview, the switcher
--- and the dock all draw. `take` works through a queue one window at a time.
+-- Pictures of windows: what the workspace gesture, the overview and the
+-- switcher all draw. `take` works through a queue one window at a time.
 -- The cache keeps each window's latest picture.
 local morf = require("morf")
 local M = {}

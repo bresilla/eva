@@ -187,8 +187,8 @@ function M.size(id, small)
   return widget.w, widget.h
 end
 
---- What the pages leave free at the screen's foot: the dock and the dots.
-function M.foot() return require("dock_model").depth() + M.DOTS + M.GAP end
+--- What the pages leave free at the screen's foot: the dots.
+function M.foot() return M.DOTS + M.GAP end
 
 local function place_key() return "desktop.place." .. form() end
 
@@ -421,9 +421,6 @@ function M.menu(id)
     for _, action in ipairs(row.desktop_actions or {}) do
       items[#items + 1] = { label = action.name, icon = "bolt", run = function() apps.run_action(row, action.id) end }
     end
-    local dock = require("dock_model")
-    items[#items + 1] = { label = dock.pinned(rest) and "Take off the dock" or "Keep on the dock", icon = "push_pin",
-      run = function() dock.toggle_pin(rest) end }
   elseif kind == "folder" then
     items[#items + 1] = { label = "Open", icon = "folder_open", run = function() M.open(id) end }
   end

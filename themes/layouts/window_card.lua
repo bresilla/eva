@@ -1,6 +1,5 @@
 -- What a window looks like in a list of windows: its latest picture, or its
--- icon and name until there is one. The overview, the switcher and the dock's
--- previews all draw this.
+-- icon and name until there is one. The overview and the switcher draw this.
 local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")

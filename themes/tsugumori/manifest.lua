@@ -83,7 +83,6 @@ return {
     window_switcher = "themes.layouts.views.window_switcher",
     snap = "themes.layouts.views.snap",
     kill_mode = "themes.layouts.views.kill_mode",
-    dock = "themes.tsugumori.views.dock",
     window_modes = "themes.layouts.views.window_modes",
     windows_page = "themes.layouts.views.windows_page",
     launcher = "themes.layouts.views.launcher",
