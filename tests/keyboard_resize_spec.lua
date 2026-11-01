@@ -45,7 +45,7 @@ end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." keyboard resizes open panels and lifts workspace pills without closing them",function()
     load(style,620,1380)
-    test.ipc("dashboard","open") test.ipc("sidebar","open") test.advance(1000)
+    test.ipc("dashboard","open") test.ipc("sidebar","open","settings") test.advance(1000)
     local before=state()
     local rail_y=test.get("rail-pill-1").y
     local dashboard_h=test.get("drawer-dashboard").height

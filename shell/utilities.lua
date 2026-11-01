@@ -35,11 +35,15 @@ function M.page(w,h)
 end
 function M.height() return built:get() and visual.height and visual.height() or 0 end
 --- How tall the page wants to stand, head included, for a sheet that fits
---- its content: nil once a detail is on show, which takes the whole sheet.
+--- its content: the overview's cards or the detail on show, nil until they
+--- are measured.
 function M.fit()
-  if M.detail:get()~="" or not built:get() or not visual.laid_out() then return nil end
+  if not built:get() or not visual.laid_out() then return nil end
   local P=require("themes.layouts.page")
-  return P.header_height(visual.head)+P.GAP+visual.height()+P.GAP
+  local key=M.detail:get()
+  local body=visual.height()+P.GAP
+  if key~="" then body=visual.detail_height(key) end
+  return body and P.header_height(visual.head)+P.GAP+body or nil
 end
 function M.shown(open)
   M.opened:set(open)

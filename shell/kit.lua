@@ -117,7 +117,11 @@ end
 --- which keeps the props' `id`; the keys scroll it and the theme draws its
 --- scroll bar.
 function kit.scroll(props)
-  return require("themes.kit.scroll").make("scroll_view", props)
+  local root, flick, t, ctl = require("themes.kit.scroll").make("scroll_view", props)
+  -- How tall it stands whole, for a panel that fits the page it is in.
+  local page = package.loaded["themes.layouts.page"]
+  if page and t then page.report(function() return t.content_height or 0 end) end
+  return root, flick, t, ctl
 end
 
 --- The tab row: `id`, `tabs` (`{ key, name, icon | icon_build }`), `tab`
