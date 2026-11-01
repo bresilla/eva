@@ -11,6 +11,14 @@ for _,tool in ipairs(require("lib.shell.capture.annotation").tools) do
   capture_tools[tool[1]]={color="#ef5350",width=tool[1]=="text" and 24 or 4,filled=false}
 end
 
+-- Each on-screen display: its place ("" for the default), whether it shows,
+-- its hold in ms (0 for the default) and whether it reads a percentage.
+local osd_kinds={}
+for _,kind in ipairs {"volume","brightness","mic","caps","num","layout","profile","dnd","awake","night",
+  "ring","bluetooth","headphones","media"} do
+  osd_kinds[kind]={position="",enabled=true,hold=0,percent=true}
+end
+
 local path = (morf.env and (morf.env("EVA_SETTINGS") or morf.env("CAELESTIA_SETTINGS")))
   or morf.paths.state("eva.json")
 
@@ -107,6 +115,9 @@ local config = settings.open {
       max_shown = 7,
       action_prefix = ">",
     },
+    -- The on-screen displays, and where the notification popups stand ("" for
+    -- the default).
+    osd = { kinds = osd_kinds, notifications = "" },
     rail = {
       -- The workspaces down the left edge.
       enabled = true,
