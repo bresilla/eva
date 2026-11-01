@@ -59,7 +59,8 @@ end
 
 function M.edge_entered()
   if leaving then leaving:cancel() leaving = nil end
-  if arriving or M.near:get() then return end
+  local snap = package.loaded.snap
+  if arriving or M.near:get() or (snap and snap.dragging:get()) then return end
   arriving = morf.time.timer(DWELL, function()
     arriving = nil
     M.near:set(true)

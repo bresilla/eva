@@ -64,8 +64,10 @@ function M.edge(opts)
   local by_hover = false
   local opening, closing
   local function enabled()
+    local snap = package.loaded.snap
     return (not opts.enabled or opts.enabled())
       and (not opts.setting or config.get(opts.setting))
+      and not (snap and snap.dragging:get())
   end
   -- The pointer over the strip, whatever is drawn above it.
   local function on_strip() return strip.hovered or strip.contains_pointer end

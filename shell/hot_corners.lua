@@ -103,7 +103,8 @@ function M.build()
       waiting = morf.time.timer(M.hold(), function()
         waiting = nil
         spent = true
-        if M.guarded(key, held) then M.fire(key) end
+        local snap = package.loaded.snap
+        if M.guarded(key, held) and not (snap and snap.dragging:get()) then M.fire(key) end
       end, false)
     end, { owner = area })
     children[#children + 1] = area
