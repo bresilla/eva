@@ -89,10 +89,7 @@ end
 
 local function frozen_screen(done)
   local function picture() return model.picture:get() end
-  local function scale()
-    local p, screen = picture(), (morf.screens or {})[1]
-    return p and screen and screen.width and screen.width > 0 and p.width / screen.width or 1
-  end
+  local scale = model.scale
   local function hover() return model.hover:get() end
   local zoom = model.ZOOM
   local lens = ui.ClipRect {
@@ -160,12 +157,7 @@ local function frozen_screen(done)
     },
     lens, label, hint,
   }
-  return morf.window.layer {
-    blend = "srgb", namespace = "eva-colorpick", layer = "overlay",
-    anchors = { top = true, bottom = true, left = true, right = true },
-    width = 0, height = 0, exclusive_zone = -1, keyboard_focus = "exclusive", visible = true,
-    root = root,
-  }
+  return require("common.frame").overlay { id = "colorpick", root = root }
 end
 
 --- The frozen screen for as long as there is a picture: a click takes a colour,

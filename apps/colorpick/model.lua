@@ -2,11 +2,11 @@
 -- pointer, the recent colours. No nodes.
 local morf = require("morf")
 local config = require("config")
-local capture = require("lib.shell.capture")
 local formats = require("formats")
+local frozen = require("common.freeze").new("colorpick")
 
 local M = {
-  picture = morf.signal("colorpick.picture", nil),
+  picture = frozen.picture,
   hover = morf.signal("colorpick.hover", nil),
   picked = morf.signal("colorpick.picked", ""),
   format = morf.signal("colorpick.format", "hex"),
@@ -17,7 +17,10 @@ local M = {
 M.RECENT = 12
 M.ZOOM = 8
 
-local session
+morf.effect("colorpick.frozen-message", function()
+  local words = frozen.message:get()
+  if words ~= "" then M.message:set(words) end
+end)
 
 local function dry()
   local value = morf.env("EVA_DRY_RUN")
@@ -42,37 +45,19 @@ local function remember(hex)
   morf.fs.write(recent_path(), morf.json.encode(list), { atomic = true, parents = true })
 end
 
-local function frozen(path)
-  local info, why = morf.image.info(path)
-  if not info then
-    M.message:set(tostring(why))
-    return
-  end
-  M.picture:set { path = path, width = info.width, height = info.height }
-end
-
---- Holds the screen still as a picture: `morf.screencopy`, else grim.
+--- Holds the screen still as a picture.
 function M.freeze()
-  if session then session.close() end
   M.hover:set(nil)
-  session = capture.session {}
-  local screen = (morf.screens or {})[1] or {}
-  session.snapshot(screen.name, function(ok, frame)
-    if ok then frozen(frame.source) return end
-    local path = session.path("frozen.png")
-    morf.process.run({ "grim", path }, {}, function(result)
-      if result and result.ok then frozen(path)
-      else M.message:set("Could not read the screen") end
-    end)
-  end)
+  frozen.take()
 end
 
 --- Lets go of the picture.
 function M.thaw()
-  M.picture:set(nil)
   M.hover:set(nil)
-  if session then session.close() session = nil end
+  frozen.release()
 end
+
+M.scale = frozen.scale
 
 --- The pointer at surface `x`, `y`; `scale` is pixels of the picture to a
 --- surface pixel.
@@ -81,7 +66,7 @@ function M.point(x, y, scale)
   if not picture then return end
   local px = math.max(0, math.min(picture.width - 1, math.floor(x * (scale or 1))))
   local py = math.max(0, math.min(picture.height - 1, math.floor(y * (scale or 1))))
-  local color = morf.image.pixel(picture.path, px, py)
+  local color = frozen.pixel(px, py)
   M.hover:set { x = x, y = y, px = px, py = py, hex = color and color:hex() or "#000000" }
 end
 
