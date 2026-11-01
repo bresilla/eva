@@ -595,13 +595,10 @@ local PRESENT={
   wired=function() return M.CONTROLS.wired.present() end,
   hotspot=function() return M.CONTROLS.hotspot.present() end,
   nightlight=function() return M.CONTROLS.nightlight.present() end,
-  -- A phone shows one window at a time: nothing floats or lands elsewhere.
   ["windows/rules"]=function() return not require("responsive").phone() end,
   ["windows/rule"]=function() return not require("responsive").phone() end,
   ["windows/layouts"]=function() return not require("responsive").phone() end,
-  -- A phone has no keyboard to remap.
   ["input/remap"]=function() return not require("responsive").phone() end,
-  -- The tray stands on a desk's bar alone.
   ["bar/tray"]=function() return require("responsive").form()=="desk" end,
 }
 --- Whether page `key` is one this machine can show.

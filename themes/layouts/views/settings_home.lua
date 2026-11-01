@@ -17,7 +17,7 @@ function M.build(model, w, h)
   local function results()
     local out = {}
     for _, entry in ipairs(registry.search(query:get())) do
-      if model.page_present(entry.key) then out[#out + 1] = entry end
+      if model.page_present(entry.present or entry.key) then out[#out + 1] = entry end
       if #out >= RESULTS then break end
     end
     return out

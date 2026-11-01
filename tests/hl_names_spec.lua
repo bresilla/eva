@@ -3,7 +3,7 @@
 local test = morf.test
 
 local FILES = { "shell/windows_model.lua", "shell/window_menu.lua", "shell/window_modes.lua", "shell/workspaces_model.lua",
-  "shell/windows_ipc.lua", "shell/keybinds.lua" }
+  "shell/windows_ipc.lua", "shell/keybinds.lua", "shell/keys_model.lua" }
 
 test.it("the dispatchers the shell sends exist", function()
   local known = {}

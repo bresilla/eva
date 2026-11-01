@@ -1,9 +1,6 @@
--- External screens over DDC/CI, through ddcutil: its output as rows and the
--- commands that ask and set. Pure; shell/ddc_model.lua runs them.
---
--- The hardware path has only ever run against lib/services/host_fake.lua and a
--- stand-in ddcutil in a VM: a VM has no monitor to answer on an I2C bus. The
--- forms below are ddcutil 2.2's, from its documentation.
+-- External screens over DDC/CI, through ddcutil 2.2: its output as rows and the
+-- commands that ask and set. Pure; shell/ddc_model.lua runs them, against
+-- lib/services/host_fake.lua in the specs and a stand-in ddcutil in the VM.
 local M = {}
 
 -- The VCP feature a monitor's brightness is.

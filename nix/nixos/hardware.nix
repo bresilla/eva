@@ -64,12 +64,12 @@ in
             environment.sessionVariables.EVA_DDC = "1";
             systemd.user.services.eva.environment.EVA_DDC = "1";
             # Named to sort before 73-seat-late, which reads the tag. A display's
-            # bus hangs under a DRM connector, or, on NVIDIA's own driver, carries
-            # its adapter's name.
+            # bus hangs under a DRM connector, or carries its driver's adapter name.
             services.udev.packages = [
               (pkgs.writeTextDir "lib/udev/rules.d/70-eva-ddc.rules" ''
                 SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", SUBSYSTEMS=="drm", TAG+="uaccess"
                 SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", ATTR{name}=="NVIDIA i2c adapter*", TAG+="uaccess"
+                SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", ATTR{name}=="i915 gmbus*", TAG+="uaccess"
               '')
             ];
             programs.eva.hyprland.extraConfig = ''

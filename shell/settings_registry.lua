@@ -22,7 +22,8 @@ M.CATEGORIES = {
 }
 
 -- `summary` is the home row's second line. `items` are the settings a page
--- holds, each `{ name, keywords }`, found by search on their own.
+-- holds, each `{ name, keywords }`, found by search on their own; `present` names
+-- the page whose presence an item goes by, where not its own.
 M.PAGES = {
   { key = "home", name = "All settings", icon = "settings", summary = "Every page, by category",
     keywords = "search find everything" },
@@ -155,7 +156,7 @@ M.PAGES = {
   { key = "windows", name = "Windows", icon = "select_window", parent = "eva", category = "shell",
     summary = "Hot corners, the switcher and snapping",
     keywords = "overview alt tab switcher snap hot corner split picture in picture pip recents workspace",
-    items = { { "Dim inactive windows", "focus darken unfocused strength" } } },
+    items = { { "Dim inactive windows", "focus darken unfocused strength", present = "windows/rules" } } },
   { key = "windows/more", name = "Scratchpads", icon = "stacks", parent = "windows", keywords = "scratchpad special workspace" },
   { key = "windows/rules", name = "Window rules", icon = "rule", parent = "windows",
     keywords = "rule per app float size workspace opacity transparent position always open",
@@ -235,7 +236,8 @@ function M.entries()
     if page.key ~= M.HOME then
       out[#out + 1] = row(page)
       for _, item in ipairs(page.items or {}) do
-        out[#out + 1] = { key = page.key, name = item[1], icon = page.icon, keywords = item[2] or "", page = page.name }
+        out[#out + 1] = { key = page.key, name = item[1], icon = page.icon, keywords = item[2] or "", page = page.name,
+          present = item.present }
       end
     end
   end

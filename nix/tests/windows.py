@@ -141,11 +141,13 @@ def tool(instance, *words):
 
 
 def tool_focus():
-    # The tool's window has the keys again, as pressing a row would give it.
+    # A press in the tool's window, which gives it the keys back as a row would.
     row = next((c for c in clients() if c["title"] == "Keys" or "keys" in c["class"].lower()), None)
-    print("TOOL WINDOW", row and (row["class"], row["title"]))
+    print("TOOL WINDOW", row and (row["class"], row["title"], row["at"]))
     if row:
-        hyprctl("eval", f'hl.dispatch(hl.dsp.focus({{ window = "address:{row["address"]}" }}))')
+        pointer(row["at"][0] + 200, row["at"][1] + 70)
+        machine.sleep(1)
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0xC0")
         machine.sleep(1)
 
 

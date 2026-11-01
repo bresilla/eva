@@ -61,6 +61,7 @@ if [ "$(field home_row)" = true ]; then
 fi
 
 mkdir -p "$(dirname "$output")"
+chmod 0755 "$(dirname "$output")"
 if [ -z "$source" ]; then
   rm -f "$output"
   exit 1
