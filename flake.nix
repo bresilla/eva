@@ -48,6 +48,14 @@
         packages = {
           default = eva;
           inherit eva;
+          # Not a check: a login needs a Hyprland that reads Lua, so see the
+          # head of the file for how to run it.
+          login-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/login.nix {
+              module = self.nixosModules.default;
+              wallpaper = ./tests/fixtures/wallpaper.png;
+            }
+          );
         };
         checks = {
           inherit eva;
