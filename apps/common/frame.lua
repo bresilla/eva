@@ -193,14 +193,17 @@ function M.overlay(spec)
   }
 end
 
+--- Ends an overlay from anywhere, its own event handlers among them: the
+--- surface goes at once and is taken apart on the next turn.
+function M.dismiss(layer)
+  layer:close()
+  morf.time.timer(1, function() layer:destroy() end, false)
+end
+
 --- The configuration's own surface out of the way, for a tool that draws
 --- nothing there; `follow` keeps the theme's colours for an overlay of its.
 function M.quiet(follow)
-  ui.Item { width = 1, height = 1 }
-  morf.surface.layer = "background"
-  morf.surface.width, morf.surface.height = 1, 1
-  morf.surface.exclusive_zone = 0
-  morf.surface.keyboard_focus = "none"
+  require("lib.util.job").quiet()
   if follow then M.follow_scheme() end
 end
 

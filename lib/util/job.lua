@@ -1,11 +1,11 @@
--- A tool's windowless job, what `apps/launch TOOL ARGS` runs: no surface anyone
--- sees, and an answer to whoever started it. EVA_JOB_OUT names the file the
--- answer goes to: the exit status on the first line, the words after it, which
--- is what `eva_tool_job` of apps/job.sh prints.
+-- A windowless job: no surface anyone sees, and an answer to whoever started it.
+-- EVA_JOB_OUT names the file the answer goes to, the exit status on the first
+-- line and the words after it, which is what `eva_relay` of apps/common/cli.sh
+-- prints.
 --
 --     local job = require("lib.util.job")
 --     job.quiet()
---     require("model").job(morf.operands, job.finish)
+--     require("model").job(morf.args, job.finish)
 local morf = require("morf")
 local ui = require("morf.ui")
 

@@ -1,7 +1,6 @@
 -- eva-clipboard: the window over the history, or with `--watch` the history
 -- kept with no window, for the session to run.
 local morf = require("morf")
-local ui = require("morf.ui")
 local model = require("model")
 
 model.load()
@@ -14,11 +13,8 @@ morf.ipc.text = function(text) model.text(text) return true end
 morf.ipc.pin = function(id) model.toggle_pin(id) return true end
 morf.ipc.clear = function() model.clear() return true end
 
-if morf.operands[1] == "--watch" then
-  ui.Item { width = 1, height = 1 }
-  morf.surface.layer = "background"
-  morf.surface.width, morf.surface.height = 1, 1
-  morf.surface.keyboard_focus = "none"
+if morf.options.watch then
+  require("lib.util.job").quiet()
   return
 end
 

@@ -9,7 +9,6 @@
 set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
-. "$apps/job.sh"
 
 case "${1:-}" in
   '') exec sh "$apps/launch" audio ;;

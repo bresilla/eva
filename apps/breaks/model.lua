@@ -5,7 +5,6 @@
 local morf = require("morf")
 local sys = require("common.sys")
 local alarm = require("lib.services.alarm")
-local unwrap = require("lib.util.reply")
 
 local M = {
   settings = morf.signal("breaks.settings", {}),
@@ -248,7 +247,7 @@ local function fire()
   if not chosen then arm() return end
   sys.shell({ "focus", "state" }, { read = true }, function(answer)
     if not E or M.current:get() then return end
-    if unwrap(answer) == true then
+    if answer == true then
       E.start[chosen] = E.start[chosen] + HELD_S
       E.held = chosen
       arm()

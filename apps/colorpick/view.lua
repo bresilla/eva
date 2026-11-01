@@ -147,8 +147,8 @@ local function frozen_screen(done)
         model.point(sx, sy, scale())
         finish(model.pick())
       end,
-      on_key_pressed = function(key)
-        if key == "Escape" then
+      on_key_pressed = function(_, _, _, _, name)
+        if name == "Escape" then
           model.thaw()
           finish(nil)
           return true
@@ -168,7 +168,7 @@ function M.overlay(done)
     local shown = model.picture:get() ~= nil
     if shown and not layer then layer = frozen_screen(done)
     elseif not shown and layer then
-      layer:destroy()
+      require("common.frame").dismiss(layer)
       layer = nil
     end
   end)

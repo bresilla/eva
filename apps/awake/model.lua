@@ -4,7 +4,6 @@
 local morf = require("morf")
 local sys = require("common.sys")
 local alarm = require("lib.services.alarm")
-local unwrap = require("lib.util.reply")
 
 local M = {
   on = morf.signal("awake.on", false),
@@ -52,8 +51,7 @@ end
 
 -- Sends a verb: `done(state, why)`.
 local function send(words, seconds, done)
-  sys.shell(words, nil, function(answer, why)
-    local state = unwrap(answer)
+  sys.shell(words, nil, function(state, why)
     if type(state) ~= "table" then
       if why ~= "dry run" then M.up:set(false) end
       if done then done(nil, why or GONE) end
@@ -67,8 +65,7 @@ end
 
 --- Asks the shell how things stand.
 function M.ask(done)
-  sys.shell({ "awake", "state" }, { read = true }, function(answer, why)
-    local state = unwrap(answer)
+  sys.shell({ "awake", "state" }, { read = true }, function(state, why)
     if type(state) == "table" then
       follow(state)
       if done then done(state) end

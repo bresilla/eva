@@ -1,12 +1,9 @@
 -- eva-displays: arrange the monitors. `--auto` applies the saved profile for
 -- what is connected, with no window, and ends.
 local morf = require("morf")
-local ui = require("morf.ui")
 
-if morf.operands[1] == "--auto" then
-  ui.Item { width = 1, height = 1 }
-  morf.surface.layer = "background"
-  morf.surface.width, morf.surface.height = 1, 1
+if morf.options.auto then
+  require("lib.util.job").quiet()
   require("lib.shell.displays").auto_apply(function(name, why)
     if why then morf.log("warn", "eva-displays: " .. tostring(why)) end
     if name then morf.log("info", "eva-displays: applied " .. name) end

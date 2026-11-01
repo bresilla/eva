@@ -18,7 +18,7 @@ morf.ipc.pick = function() return model.pick() end
 morf.ipc.format = function(name) model.format:set(name) return true end
 morf.ipc.lule = function(hex) model.send_to_lule(hex) return true end
 
-if morf.operands[1] == "--pick" then
+if morf.options.pick then
   frame.quiet(true)
   view.overlay(function() morf.quit() end)
   model.freeze()

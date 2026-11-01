@@ -15,7 +15,6 @@ shot bar-armed
 sh apps/clock/cli timer 2 s egg
 pause 4
 shot rung
-note echo "notifications: $(ipc notifications-state 2>&1 | cut -c1-120)"
 
 BOOT=4 start app clock
 appipc city Tokyo > /dev/null

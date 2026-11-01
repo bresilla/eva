@@ -86,17 +86,31 @@ function M.compositor()
   return "other"
 end
 
---- Calls `verb` of the running shell: `done(reply, why)`, `reply` nil where no
---- shell answers. `options.read` marks a verb that changes nothing.
+-- What a verb returned, out of `morf ipc call`'s reply: a list of one value, a
+-- table in it as a JSON string.
+local function answer_of(stdout)
+  local ok, reply = pcall(morf.json.decode, stdout or "")
+  if not ok or type(reply) ~= "table" then return nil, "The shell gave no answer" end
+  if reply.ok == false then return nil, tostring(reply.error or "The shell refused") end
+  local value = reply.result
+  if type(value) == "table" then value = value[1] end
+  if type(value) == "string" then
+    local parsed, decoded = pcall(morf.json.decode, value)
+    if parsed and decoded ~= nil then return decoded end
+  end
+  return value
+end
+
+--- Calls a verb of the running shell: `done(answer, why)`, the verb's own return
+--- value, with `why` where no shell answered. `options.read` marks a verb that
+--- changes nothing.
 function M.shell(words, options, done)
   local argv = { "env", "-u", "MORF_APP", morf.env("MORF") or "morf", "ipc", "call" }
   for _, word in ipairs(words) do argv[#argv + 1] = tostring(word) end
   M.run(argv, { read = options and options.read, timeout_ms = 3000 }, function(result)
     if not done then return end
     if not result.ok then done(nil, result.dry and "dry run" or "The shell is not running") return end
-    local ok, reply = pcall(morf.json.decode, result.stdout or "")
-    if ok and type(reply) == "table" and reply.result ~= nil then done(reply.result) return end
-    done(ok and reply or true)
+    done(answer_of(result.stdout))
   end)
 end
 

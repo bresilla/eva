@@ -214,7 +214,7 @@ function M.overlay()
     local shown = model.current:get() ~= nil
     if shown and not layer then layer = break_screen()
     elseif not shown and layer then
-      layer:destroy()
+      require("common.frame").dismiss(layer)
       layer = nil
     end
   end)
