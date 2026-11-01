@@ -9,7 +9,7 @@ return function(theme)
     notification_acquire=require("themes.tsugumori.notification_acquire")(theme) }
   -- Keep the cover/swap/reveal order, with a shorter, consistent cadence.
   local PAGE_COVER, REVEAL = 140, 220
-  local ENTER, COVER, WITHDRAW = 280, 230, 270
+  local COVER = 230
   local ENTRY_DELAY, ENTRY_MOVE, ENTRY_LEAVE, STAGGER = 180, 240, 120, 50
   function M.page_wipe(host, width, id)
     local cover = ui.Rect { id = id .. "-page-curtain", z = 90,
@@ -134,30 +134,43 @@ return function(theme)
     ui.reparent(corner_a,panel)
     ui.reparent(corner_b,panel)
     ui.reparent(pip,panel)
-    local axis = ctx.floating and "translate_x" or ctx.axis
     local function tucked()
-      return ctx.floating and (panel.width + 2) or ctx.tucked()
+      if ctx.floating then return (panel.width_target or panel.width) + 2 end
+      return ctx.tucked()
     end
+    if ctx.floating then d.shape.opacity = d.open:get() and 1 or 0 end
+    -- The panel's travel, on this theme's own spring. Whether it belongs out
+    -- is the choreography's to say: closing covers before it withdraws.
+    local out = morf.signal(id .. ".out", d.open:get())
+    local arrive
+    local axis = require("themes.drawer_axis").new {
+      node = panel, property = ctx.floating and "translate_x" or ctx.axis, name = id,
+      spring = theme.spring.drawer, away = tucked,
+      out = function() return out:get() end,
+      landed = function()
+        local go = arrive
+        arrive = nil
+        if go then go() end
+      end,
+    }
     local running, lock_motion, generation = nil, nil, 0
     local function move(opening)
       generation = generation + 1
       local own = generation
       local hidden = not panel.visible
+      arrive = nil
       if running then running:stop() end
       if lock_motion then lock_motion:stop() lock_motion=nil end
       corner_a.visible,corner_b.visible,pip.visible=false,false,false
       corner_a.opacity,corner_b.opacity,pip.opacity=0,0,0
       if hidden then
-        panel[axis] = tucked()
         curtain.width, curtain.x = math.max(panel.width, panel.width_target or 0), 0
       end
       panel.visible, curtain.visible, content.opacity, d.shape.opacity = true, true, 1, 1
       flash.x,flash.visible,flash.opacity=curtain.x,true,0
       glow.x,glow.visible,glow.opacity=curtain.x-12,true,0
-      local travel = math.min(1, math.abs((opening and 0 or tucked()) - panel[axis]) / math.max(1, math.abs(tucked())))
       local width = panel.width_target or panel.width
       local cover = math.min(1, curtain.width / math.max(1, width))
-      local enter_ms = math.max(1, ENTER * travel)
       local easing = { x1 = 0.76, y1 = 0, x2 = 0.24, y2 = 1 }
       local function finish()
         if generation ~= own then return end
@@ -205,49 +218,36 @@ return function(theme)
           if reason=="completed" and generation==own then next_phase() end
         end}
       end
-      if opening then
-        running=morf.animation.play {{node=panel,property=axis,to=0,duration=enter_ms,
-          easing="out_expo"},on_finished=function(reason)
-          if reason=="completed" and generation==own then sweep(true,finish) end
-        end}
-      else
-        sweep(false,function()
-          running=morf.animation.play {{node=panel,property=axis,to=tucked(),
-            duration=math.max(1,WITHDRAW*travel),easing=easing},on_finished=function(reason)
-            if reason=="completed" then finish() end
-          end}
-        end)
+      local function travel(there,next_phase)
+        out:set(there)
+        if axis.arrived() then next_phase() return end
+        arrive=function() if generation==own then next_phase() end end
       end
+      if opening then travel(true,function() sweep(true,finish) end)
+      else sweep(false,function() travel(false,finish) end) end
     end
-    if ctx.floating then d.shape.opacity = d.open:get() and 1 or 0
-    else panel[axis] = d.open:get() and 0 or tucked() end
-    local settling
     return {
       move = move,
       stop = function()
         generation = generation + 1
-        if settling then settling:stop() settling=nil end
+        arrive = nil
+        axis.stop()
         if running then running:stop() running=nil end
         if lock_motion then lock_motion:stop() lock_motion=nil end
         for _, node in ipairs {curtain,glow,flash,corner_a,corner_b,pip} do node.visible=false end
       end,
       grab = function(from)
-        panel.visible, panel.opacity, content.opacity, d.shape.opacity = true, 1, 1, 1
-        panel[axis] = from
-        return from
+        panel.visible, content.opacity, d.shape.opacity = true, 1, 1
+        out:set(true)
+        return axis.grab(from)
       end,
-      drag = function(position) panel[axis] = position end,
+      drag = axis.drag,
       release = function(velocity, done)
-        local away = tucked()
-        settling = morf.animation.play {
-          require("gesture_motion").step(panel, axis, d.open:get() and 0 or away, velocity, math.abs(away)),
-          on_finished = function(reason)
-            if reason ~= "completed" then return end
-            settling = nil
-            panel.visible = d.open:get()
-            done()
-          end,
-        }
+        out:set(d.open:get())
+        axis.release(velocity, function()
+          panel.visible = d.open:get()
+          done()
+        end)
       end,
     }
   end

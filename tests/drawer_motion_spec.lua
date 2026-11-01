@@ -86,6 +86,64 @@ test.describe("drawer travel", function()
     end)
   end
 
+  test.it("tsugumori keeps its momentum on its own stiffer spring", function()
+    load("tsugumori")
+    local spring = test.ipc("spring")
+    test.truthy(spring.stiffness > 400, "tsugumori's drawer spring is not its own")
+    local home = test.ipc("at")
+    test.ipc("open", true)
+    local path = sample(4)
+    local turn = #path
+    test.truthy(test.get("drawer-sample-curtain").visible, "the curtain did not cover the travel")
+    test.ipc("open", false)
+    -- It covers again before it withdraws, so the panel holds its course
+    -- until the curtain has closed, and the pose carries on from where it was.
+    test.near(test.ipc("at"), path[turn], 0.01, "a reversal moved the panel at once")
+    test.truthy(test.get("drawer-sample-curtain").visible)
+    test.advance(1200)
+    test.near(test.ipc("at"), home, 0.01)
+    test.falsy(test.ipc("state").visible)
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it("tsugumori reverses its withdrawal without stopping dead", function()
+    load("tsugumori")
+    local spring = test.ipc("spring")
+    test.ipc("open", true) test.advance(1200)
+    test.ipc("open", false)
+    local path = { test.ipc("at") }
+    while math.abs(path[#path]) < 40 and #path < 60 do sample(1, path) end
+    sample(2, path)
+    local turn = #path
+    test.truthy(turn < 60, "the panel never withdrew")
+    test.ipc("open", true)
+    sample(6, path)
+    local seconds = FRAME / 1000
+    local speed = (3 * path[turn] - 4 * path[turn - 1] + path[turn - 2]) / (2 * seconds)
+    test.truthy(math.abs(speed) > 200, "the panel was not moving when it reversed")
+    local kept = spring_path(spring, path[turn], speed, 0, 6)
+    for i = 1, 6 do test.near(path[turn + i], kept[i], 3) end
+    test.advance(1000)
+    test.near(test.ipc("at"), 0, 0.01)
+    test.falsy(test.get("drawer-sample-curtain").visible)
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it("tsugumori hands a release to its spring and keeps its curtain out of a drag", function()
+    load("tsugumori")
+    test.ipc("open", true) test.advance(1200)
+    test.truthy(test.ipc("grab"))
+    test.ipc("drag", -100) test.advance(FRAME)
+    test.near(test.ipc("at"), -100, 0.01)
+    test.falsy(test.get("drawer-sample-curtain").visible, "a drag raised the curtain")
+    test.ipc("release", -900, false)
+    local path = sample(3)
+    test.near((path[1] + 100) / (FRAME / 1000), -900, 40, "the release lost its speed")
+    test.advance(1000)
+    local state = test.ipc("state")
+    test.falsy(state.open) test.falsy(state.visible) test.falsy(state.manual)
+  end)
+
   test.it("material keeps the release velocity in the first frames after a drag", function()
     load("material")
     test.ipc("open", true) test.advance(900)
