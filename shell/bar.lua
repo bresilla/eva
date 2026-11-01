@@ -17,9 +17,11 @@ local function screen()
   return (s and s.width) or 1920, (s and s.height) or 1080
 end
 
---- Whether the bar is up.
+--- Whether the bar is up on this screen: its own say, else the setting's.
 function M.on()
-  local wanted = config.get("edgebar.enabled")
+  local store = require("bar_store")
+  local own = store.on(store.output())
+  local wanted = own ~= "" and own or config.get("edgebar.enabled")
   if wanted == "on" or wanted == true then return true end
   if wanted == "off" or wanted == false then return false end
   local w, h = screen()

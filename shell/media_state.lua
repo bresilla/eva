@@ -59,10 +59,30 @@ end
 
 M.bars, M.beats, M.pulse = bars, beats, pulse
 M.lyrics = lyrics
-M.active = services.player
-M.something = services.playing_something
+function M.active() return services.player and services.player() or {} end
+function M.something() return services.playing_something ~= nil and services.playing_something() end
 M.duration = services.duration
 function M.playing() return M.active().playing == true end
+
+--- A small spectrum of `count` bars, for as long as `shown()` and something
+--- plays: a channel of its own, written by a monitor of its own.
+function M.small_spectrum(id, count, shown)
+  local channel = morf.channel { name = "eva.media.small." .. id, size = count, mode = "frame" }
+  local monitor
+  morf.effect("eva.media.small." .. id, function()
+    local on = shown() and M.playing()
+    if on and not monitor then
+      local ok, m = pcall(morf.audio.monitor, { rate_hz = 30, bands = 24, delay = "device", channel = channel,
+        spectrum = spectrum.options { bars = count } })
+      monitor = ok and m or false
+    elseif not on and monitor then
+      pcall(function() monitor:stop() end)
+      monitor = nil
+      channel:set({})
+    end
+  end)
+  return channel
+end
 function M.control(action, ...)
   local media = services.media
   if media and media[action] then pcall(media[action], ...) end

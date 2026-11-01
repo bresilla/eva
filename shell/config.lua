@@ -55,10 +55,47 @@ local config = settings.open {
       draw = false,
     },
     bar = {
+      -- How many workspace buttons stand on the bar, past the ones in use.
       workspaces = { shown = 5 },
-      clock = { twelve_hour = true },
+      clock = {
+        twelve_hour = true,
+        seconds = false,
+        -- none, short, day, long or iso; `format` overrides it all with a
+        -- strftime pattern of its own.
+        date = "short",
+        format = "",
+        -- A second clock's IANA zone and how it is named.
+        zone = "", zone_label = "",
+      },
       -- What the Bluetooth popout's "Open settings" starts.
       bluetooth_settings = { "blueman-manager" },
+      -- The modules along the bar on each kind of machine, zone by zone, in
+      -- order; which are drawn as an icon alone. A module the machine lacks
+      -- is skipped.
+      modules = {
+        desk = { start = { "logo", "workspaces", "windows" }, centre = { "live", "clock" },
+          ["end"] = { "tray", "privacy", "notifications", "status" } },
+        tablet = { start = { "logo", "clock", "workspaces", "windows" }, centre = { "live" },
+          ["end"] = { "privacy", "status" } },
+        phone = { start = { "clock", "notifications" }, centre = { "live" }, ["end"] = { "privacy", "status" } },
+      },
+      small = { desk = {}, tablet = {}, phone = { "notifications" } },
+      -- A screen's own choices, by its output's name: `{ name, on, modules,
+      -- small }`, `on` being "on", "off" or "" for the bar's own setting and
+      -- `modules` this screen's zones, absent to follow the form's.
+      outputs = {},
+      -- Modules from a command: `{ id, name, icon, command, interval, stream,
+      -- tooltip, press, right }`.
+      custom = {},
+      -- Fixed words for the Text module.
+      text = "",
+      -- The mount the Disk module reads.
+      disk = { mount = "/" },
+      -- A date the Countdown module counts to, as YYYY-MM-DD, and its name.
+      countdown = { date = "", label = "" },
+      -- Where the Updates module finds a flake.lock ("" looks in the usual
+      -- places), and what a press on it runs.
+      updates = { flake = "", command = {} },
     },
     dashboard = {
       -- Opens when the pointer reaches the top edge over it.

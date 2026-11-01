@@ -4,6 +4,8 @@ return {
     keyboard = "themes.layouts.views.keyboard",
     lule_page = "themes.layouts.views.lule_page",
     bar = "themes.layouts.views.bar",
+    bar_modules = "themes.layouts.views.bar_modules",
+    bar_pill = "themes.layouts.views.bar_pill",
     side_panel = "themes.layouts.views.side_panel",
     tasks_page = "themes.layouts.views.tasks_page",
     calendar_page = "themes.layouts.views.calendar_page",

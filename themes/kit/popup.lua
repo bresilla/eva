@@ -360,7 +360,8 @@ function M.toast(spec)
 end
 
 --- A tooltip on `target`: `text` (or a spec with `text`/`content`) after the
---- pointer rests on it for `delay` ms (600), gone when it leaves.
+--- pointer rests on it for `delay` ms (600), gone when it leaves. `spec.when()`,
+--- asked as it is about to open, may hold it back.
 function M.tooltip(target, text, delay)
   local spec = type(text) == "table" and text or { text = text }
   spec.padding = spec.padding or 8
@@ -371,7 +372,10 @@ function M.tooltip(target, text, delay)
     local over = (has_hover and hovered) or target.contains_pointer
     if waiting then waiting:cancel() waiting = nil end
     if over then
-      waiting = morf.time.timer(delay or 600, function() waiting = nil tip.open(target) end, false)
+      waiting = morf.time.timer(delay or 600, function()
+        waiting = nil
+        if spec.when == nil or spec.when() then tip.open(target) end
+      end, false)
     else
       tip.close("left")
     end

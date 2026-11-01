@@ -7,6 +7,8 @@ return {
   views = {
     keyboard = "themes.layouts.views.keyboard",
     bar = "themes.layouts.views.bar",
+    bar_modules = "themes.layouts.views.bar_modules",
+    bar_pill = "themes.layouts.views.bar_pill",
     side_panel = "themes.layouts.views.side_panel",
     connectivity = "themes.layouts.views.connectivity",
     utilities = "themes.layouts.views.utilities",
