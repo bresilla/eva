@@ -206,7 +206,7 @@ end
 
 function M.set_boot(index)
   M.boot:set(index)
-  M.follow:set(index == 1 and M.follow:get())
+  M.follow:set(index == 1)
   M.load()
 end
 

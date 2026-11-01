@@ -56,8 +56,8 @@ function M.live() return not M.paused:get() and not M.away:get() and not M.minim
 --- Whether the page of `name` is showing and live.
 function M.showing(name) return M.live() and M.TABS[M.tab:get()] == name end
 
-M.perf = nil
-
+-- The text of each of `paths`, false where it cannot be read: `done(texts)`, off
+-- the loop on a real machine.
 local function read_files(paths, done)
   if M.root ~= "" then
     local out = {}
@@ -89,7 +89,6 @@ local known = {}
 local users
 local learning = false
 local learned = morf.signal("monitor.learned", 0)
-local rank = {}
 
 local function user_name(uid)
   if not users then
@@ -160,12 +159,6 @@ function M.arrange(list, query, sort)
   if sort == "name" then table.sort(out, by_name)
   elseif sort == "pid" then table.sort(out, function(a, b) return a.pid < b.pid end) end
   return out
-end
-
---- The list as sampled, for `sort`.
-function M.sampled(sort)
-  local all = sysinfo.processes()
-  return sort == "memory" and all.by_memory or all.by_cpu
 end
 
 --- The row of `pid` among those shown.
@@ -382,8 +375,7 @@ function M.sensor(key)
   return nil
 end
 
--- Rows hold only names: the readings are bindings on the sample, so a row is
--- rebuilt only when a sensor comes or goes.
+-- Rows hold names alone; the readings are bindings on the sample.
 local function follow_sensors()
   morf.effect("monitor.sensors", function()
     if not M.showing("sensors") then return end

@@ -27,3 +27,8 @@ BOOT=10 start app logs
 pause 3
 shot real
 note echo "real: $(appipc state | cut -c1-260)"
+
+export EVA_JOURNALCTL=$SEE_EVA/tests/fixtures/bin-see/journalctl
+BOOT=10 start app logs sshd.service
+pause 2
+note echo "unit: $(appipc state | cut -c1-200)"
