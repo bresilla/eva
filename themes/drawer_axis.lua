@@ -11,7 +11,8 @@ local COAST = { seconds = 0.2, easing = "linear" }
 local CARRY = 2400
 
 --- `node`, `property`, `name`, `spring`; `out` (fn: whether it belongs out,
---- at 0), `away` (fn: where it tucks), `landed` (called on arriving at either).
+--- at 0), `away` (fn: where it tucks), `landed` (called on arriving at either),
+--- `instant` (fn: whether it jumps where it tucks, with no spring).
 --- Returns `away` (a 0..1 presence, 1 while tucked or tucking) and
 --- `grab`, `drag`, `release`, `stop`, `arrived`.
 function M.new(spec)
@@ -20,14 +21,18 @@ function M.new(spec)
   local flight = morf.signal(spec.name .. ".flight", 0)
   local held = morf.signal(spec.name .. ".held", false)
   local thrown = morf.signal(spec.name .. ".thrown", false)
-  local claims = ui.claims(node, {
+  local set = {
     motion = spec.spring,
     hand = { class = "state", when = held, motion = { duration = 0 }, set = { [property] = hand } },
     throw = { class = "state", when = thrown, set = { [property] = flight },
       motion = { duration = COAST.seconds * 1000, easing = COAST.easing } },
     out = { class = "posture", when = spec.out, set = { [property] = 0 } },
     away = { set = { [property] = spec.away } },
-  })
+  }
+  if spec.instant then
+    set.jump = { class = "reflex", when = spec.instant, motion = { duration = 0 }, set = { [property] = spec.away } }
+  end
+  local claims = ui.claims(node, set)
   local after
   local A = { away = claims.away.presence }
 

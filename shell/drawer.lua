@@ -52,7 +52,9 @@ local LANDMARKS = {
 function M.new(spec)
   groups = groups + 1
   local d = { name = spec.name, edge = spec.edge }
-  local authentication = spec.transient or spec.name == "polkit" or spec.name == "keyring" or spec.name == "authsteps"
+  -- The way a pull drags it shut, where it hangs from an edge.
+  d.pulled = ({ top = "up", bottom = "down", left = "left", right = "right" })[spec.edge]
+  local authentication =spec.transient or spec.name == "polkit" or spec.name == "keyring" or spec.name == "authsteps"
   local keep = authentication and morf.signal or require("themes.session").keep
   d.open = keep("eva.drawer." .. spec.name, false)
   local sign = (spec.edge == "top" or spec.edge == "left") and -1 or 1

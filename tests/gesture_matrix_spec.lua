@@ -62,9 +62,11 @@ local function two_up(x, y, y2, lag)
 end
 
 -- The middle of what drawer `name` shows; on the sidebar, below its sliders,
--- since a sideways drag on a slider is the slider's.
+-- since a sideways drag on a slider is the slider's; on the left panel its
+-- tab row, since a page lying that way takes a sideways drag first.
 local function middle(name)
   local r = test.get("drawer-" .. name)
+  if name == "leftbar" then return r.x + r.width / 2, r.y + 32 end
   return r.x + r.width / 2, r.y + r.height * (name == "sidebar" and 0.8 or 0.5)
 end
 

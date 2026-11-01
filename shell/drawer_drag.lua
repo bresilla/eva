@@ -2,7 +2,10 @@
 -- to the moving drawer. The theme's motion owns the panel: this only says
 -- where the finger is and what the release decided.
 local motion = require("gesture_motion")
+local rubber = require("rubber_band")
 local M = {}
+-- The most a pull moves a panel past where it stands open.
+local PAST_OPEN = 32
 
 function M.attach(d, ctx, theme_motion)
   local panel, axis = d.panel, ctx.axis
@@ -29,7 +32,10 @@ function M.attach(d, ctx, theme_motion)
     local tucked = ctx.tucked()
     -- A pull from tucked is measured from where tucked is now.
     local origin = drag.from_tucked and tucked or drag.origin
-    drag.at = math.max(math.min(0,tucked), math.min(math.max(0,tucked), origin + delta))
+    local at = origin + delta
+    -- Past open it runs on elastically; past tucked there is nothing to see.
+    if at * tucked < 0 then at = rubber.band(at, PAST_OPEN) end
+    drag.at = tucked > 0 and math.min(tucked, at) or math.max(tucked, at)
     theme_motion.drag(drag.at)
   end
   function d.end_drag(velocity, canceled)
@@ -37,7 +43,7 @@ function M.attach(d, ctx, theme_motion)
     if drag.from_tucked then d.drag_by(drag.delta) end
     local tucked = ctx.tucked()
     local size = math.max(1, math.abs(tucked))
-    local progress = 1 - math.abs(drag.at) / size
+    local progress = 1 - math.max(0, drag.at * (tucked > 0 and 1 or -1)) / size
     local opening_velocity = velocity * (tucked > 0 and -1 or 1)
     local opening = progress >= 0.5
     if canceled then opening = drag.was_open
