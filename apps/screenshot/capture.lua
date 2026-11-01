@@ -119,7 +119,7 @@ local function busy()
 end
 local function claim()
   if morf.broadcast then morf.broadcast("capture-claim",screen.name) end
-  -- A thumbnail still up would be in the next picture.
+  -- A thumbnail goes before the next picture.
   local thumb = package.loaded.thumb
   if thumb then thumb.dismiss() end
 end
@@ -219,7 +219,7 @@ end
 function M.stop()
   if process or (dry_run() and M.recording:get()) then return stop_recorder() end
 end
--- gpu-screen-recorder pauses on USR2; the same signal would end most programs.
+-- Whether the command `name` runs gpu-screen-recorder, which pauses on USR2.
 local function takes_pause(name)
   local words = config.get("capture.commands." .. name)
   for _, word in ipairs(type(words) == "table" and words or {}) do
@@ -359,6 +359,34 @@ function M.replay_save()
   M.message:set("Saving the replay…")
   await_replay(before)
   return true
+end
+--- A long picture of `what` as it scrolls: the selection for a region, the
+--- focused window by its place, or this screen.
+function M.scroll(what)
+  if busy() then return "busy" end
+  what = checked(what)
+  M.message:set("")
+  claim()
+  after_shutting(function()
+    local function ready(values)
+      local area
+      if values and values.OUTPUT then
+        area = { x = screen.x or 0, y = screen.y or 0, w = screen.width, h = screen.height }
+      elseif values and values.REGION then
+        local w, h, x, y = values.REGION:match("^(%d+)x(%d+)%+(-?%d+)%+(-?%d+)$")
+        area = { x = tonumber(x), y = tonumber(y), w = tonumber(w), h = tonumber(h) }
+      end
+      if not area then fail("The compositor does not say where the window is.") return end
+      M.phase:set("scrolling")
+      local ok, why = require("scroll").start(M, area)
+      if not ok then fail(why) end
+    end
+    aim(what, ready, function(ok, message)
+      if ok then M.phase:set("ready") M.message:set("")
+      else fail(message or "Selection cancelled.") end
+    end)
+  end)
+  return what
 end
 -- A recording's trim, over the desk while it is open.
 M.trim_open = morf.signal("eva.capture.trim", false)

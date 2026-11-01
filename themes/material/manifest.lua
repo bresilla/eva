@@ -67,6 +67,7 @@ return {
     capture_history = "themes.layouts.views.capture_history",
     capture_pin = "themes.layouts.views.capture_pin",
     capture_trim = "themes.layouts.views.capture_trim",
+    capture_scroll = "themes.layouts.views.capture_scroll",
     displays_identify = "themes.layouts.views.displays_identify",
     graphs = "themes.layouts.views.graphs",
     dashboard_media = "themes.layouts.views.dashboard_media",

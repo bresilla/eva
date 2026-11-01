@@ -21,7 +21,7 @@ local made = 0
 
 local function screen() return (morf.screens or {})[1] or { width = 1920, height = 1080 } end
 
--- What a reload brings back: a theme change must not take a reference away.
+-- The pins as a reload brings them back.
 local function remember()
   local out = {}
   for i, one in ipairs(M.list) do out[i] = { path = one.path, own = one.own == true, x = one.x, y = one.y } end
@@ -94,7 +94,7 @@ function M.add(module, path, own, at)
   end
   local room = screen()
   local width, height = M.fit(info.width, info.height, room)
-  -- Each one a step along from the last, so none hides another.
+  -- Each one a step along from the last.
   local step = #M.list * (S.xl + S.s)
   made = made + 1
   local one = { path = path, own = own, width = width, height = height, index = made,

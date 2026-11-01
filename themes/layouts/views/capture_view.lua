@@ -223,7 +223,13 @@ function M.build(capture, w, h)
         end },
     },
   }
-  -- At the title's right: the replay buffer, and what has been captured.
+  -- At the title's right: a long capture, the replay buffer, and what has been
+  -- captured.
+  local long = kit.action { id = "capture-scroll", x = w - 16 - 36 - 76, y = 2, width = 36, height = 30, cursor = "pointer",
+    accessible_name = "Scrolling capture", visible = function() return not history() end,
+    on_clicked = function() capture.scroll() end,
+    kit.icon("swap_vert", 19, function() return C.onSurfaceVariant end, { anchors = { center_in = true } }),
+  }
   local replay = kit.action { id = "capture-replay", x = w - 16 - 36 - 38, y = 2, width = 36, height = 30, cursor = "pointer",
     accessible_name = "Replay buffer", visible = function() return not history() end,
     on_clicked = function() capture.replay_toggle() end,
@@ -237,7 +243,7 @@ function M.build(capture, w, h)
   return ui.Item {id="capture-page",width=w,height=h,controls,
     ui.Loader { anchors = { fill = true }, active = history,
       source = function() return require("themes").view("capture_history").build(capture, require("recent").open(capture), w, h) end },
-    kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32},replay,recent}
+    kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32},long,replay,recent}
 
 end
 return M

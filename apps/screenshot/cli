@@ -5,7 +5,8 @@
 #   eva-screenshot                                   the panel
 #   eva-screenshot region|window|screen [--edit|--copy|--save|--pin] [--delay N] [--last]
 #   eva-screenshot ocr|qr [region|window|screen]     copies what it reads
-#   eva-screenshot --edit-file FILE                  the editor on a picture
+#   eva-screenshot scroll [region|window|screen]     a long picture as a window scrolls
+#   eva-screenshot --edit-file FILE                  the editor on a picture or recording
 #   eva-screenshot --pin-file FILE                   keeps a picture over the windows
 #   eva-screenshot --text FILE                       prints the text in a picture
 #   eva-screenshot --ask VERB [ARGS]                 a verb of the tool, kept ready
@@ -24,6 +25,7 @@ delay=""
 last=""
 reader=""
 tool=""
+long=""
 
 # A verb of the tool: the one running hears it, or a new one starts with it.
 order() {
@@ -55,6 +57,7 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     region | window | screen) target=$1 ;;
     ocr | qr) reader=$1 ;;
+    scroll) long=1 ;;
     --edit) how=edit ;;
     --copy) how=copy ;;
     --save) how=save ;;
@@ -131,6 +134,12 @@ case "$delay" in
     fi
     ;;
 esac
+
+if [ -n "$long" ]; then
+  order capture-scroll "${target:-window}"
+  if [ -n "$tool" ]; then wait "$tool" || true; fi
+  exit 0
+fi
 
 if [ -z "$target" ] && [ -z "$reader" ]; then
   order capture open

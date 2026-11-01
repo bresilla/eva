@@ -241,6 +241,26 @@ ipc["capture-stop"] = function() return capture.stop() end
 ipc["capture-pause"] = function(how) return capture.pause(how == "on") end
 ipc["capture-replay-save"] = function() return capture.replay_save() end
 
+-- `capture-scroll region|window|screen`, `capture-scroll auto|done|cancel|state`.
+ipc["capture-scroll"] = function(how)
+  how = how or capture.target:get()
+  local scroll = package.loaded.scroll
+  if how == "state" then
+    if not scroll then return { state = "", rows = 0, frames = 0, strips = 0, auto = false, message = capture.message:get() } end
+    return { state = scroll.state:get(), rows = scroll.rows:get(), frames = scroll.frames:get(), strips = scroll.strips:get(),
+      auto = scroll.auto:get(), message = capture.message:get(), verdict = scroll.verdict:get() }
+  end
+  if how == "auto" or how == "done" or how == "cancel" then
+    if not scroll or scroll.state:get() ~= "following" then return false end
+    if how == "auto" then return scroll.follow_keys() end
+    if how == "done" then scroll.done() else scroll.cancel() end
+    return true
+  end
+  if not here() then return end
+  wake(function() capture.scroll(how) end)
+  return how
+end
+
 -- `capture-trim from|to SECONDS`, `capture-trim save|gif|cancel`, `capture-trim state`.
 ipc["capture-trim"] = function(how, value)
   local trim = package.loaded.trim
@@ -403,7 +423,7 @@ end
 
 ui.Item { anchors = { fill = true }, host.build(capture, pill_wanted) }
 
--- Pins outlive a reload, and only then is their module loaded here.
+-- The pins of before a reload, their module loaded only then.
 if capture.pins_kept:get() ~= "" then
   local words = capture.pins_kept:get()
   morf.time.timer(1, function() require("pin").restore(capture, words) end, false)

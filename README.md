@@ -125,8 +125,8 @@ Launching one a second time raises the window it has open; an overlay shuts.
 |---------|--------------|
 | `eva VERB`, `eva open settings/power`, `eva commands --json` | the shell from a command line, the front door for keybindings |
 | `eva-displays` | a canvas to arrange monitors with edge snapping; mode, scale, rotation, VRR and mirroring; a countdown that reverts; profiles matched on make, model and serial that apply on hotplug |
-| `eva-screenshot`, `eva-screenshot region\|window\|screen [--edit\|--copy\|--save] [--delay N] [--last]` | the capture panel, or straight to the frozen selection, with or without the shell; `ocr` and `qr` copy what they read; `--edit-file FILE` opens the editor on a picture |
-| `eva-record region\|window\|monitor [--audio KIND] [--fps N]`, `eva-record stop`, `eva-record status` | the capture tool's recorder: the panel's Record from a command line, a region chosen on the frozen selection; with no shell a pill shows it running and stops it |
+| `eva-screenshot`, `eva-screenshot region\|window\|screen [--edit\|--copy\|--save\|--pin] [--delay N] [--last]` | the capture panel, or straight to the frozen selection, with or without the shell; `ocr` and `qr` copy what they read; `scroll [region\|window\|screen]` takes a long picture as a window scrolls; `--edit-file FILE` opens the editor on a picture or a recording's trim; `--pin-file FILE` keeps a picture over the windows; `--text FILE` prints the text in a picture |
+| `eva-record region\|window\|monitor [--audio KIND] [--fps N]`, `eva-record stop`, `eva-record pause\|resume`, `eva-record replay [--seconds N]`, `eva-record save`, `eva-record status` | the capture tool's recorder: the panel's Record from a command line, a region chosen on the frozen selection, a pause, and a replay buffer saved on demand; with no shell a pill shows it running and stops it |
 | `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
 | `eva-keys` | a searchable sheet of the live bindings and the shell's own |
 | `eva-nightlight on\|off\|toggle\|status\|temperature\|follow\|times\|auto\|daemon` | the quick settings' night light from a command line, one implementation with one state; `follow on` has the shell turn it on and off by the sun at `services.weather_location` |
@@ -411,7 +411,7 @@ monitor image and publish pixels directly, without a PNG round trip for each
 edit. Lua owns tool selection, undo history and themed controls; Rust builds
 and rasterizes the annotation geometry. Save/Copy still encode an export.
 Temporary captures/previews are cleaned when editing ends, with bounded
-undo and preview caches. There is no screenshot history or gallery.
+undo and preview caches.
 `morf ipc call capture-editor cancel` closes editing across outputs;
 `morf ipc call screenshot screen quick` goes straight through the selection
 and saves, the editor left out. Set `capture.editor = false` to do that by
@@ -423,6 +423,51 @@ Recording runs `capture.commands.record_region`, `record_window`,
 stay in the foreground (use `exec` in a wrapper) so Morf can track and stop
 them. Reopen the popup to stop the recorder it started or cancel a pending
 countdown.
+
+After a shot is saved or copied a small thumbnail floats in the corner: press
+it to edit, press its pin to keep it, or leave it to fade after
+`capture.thumbnail_seconds`. `capture.thumbnail` turns it off, in Settings and in
+the editor's preferences.
+
+The clock at the panel's title opens the history: what the capture folder holds,
+newest first, searched by name and by date (`today`, `2026-11-01`, `november`).
+Choose a row to edit, copy, read, pin or delete it; a second press on a row opens
+it, and a delete asks twice. It reads the folder each time and keeps no store of
+its own. Its small pictures are scratch, gone when it shuts.
+
+A pin keeps a picture over the windows on a surface of its own, from the editor's
+More, the thumbnail, the history or `eva-screenshot --pin-file FILE`. Drag it to
+move it; a press closes it. Pins come back after a reload.
+
+Text is read with `tesseract`, on this machine, from the history's Text or
+`eva-screenshot --text FILE`. Search narrows the lines and Copy text takes what
+is shown. What was read is kept beside no picture, in
+`$XDG_STATE_HOME/eva/capture/text`, and goes when the shot is deleted, so a search
+of the history finds it; Read N more reads the rest. Where `tesseract` is missing
+each of these says so.
+
+While a recording runs, the panel's Pause holds it and Resume takes it up, by the
+recorder's own `SIGUSR2`. Only `gpu-screen-recorder` is offered a pause: the
+signal would end most other programs. The arrow at the panel's title keeps the
+last `capture.replay_seconds` of the screen by `capture.commands.record_replay`:
+Save replay writes them to the capture folder and the buffer runs on, Stop ends it
+with nothing saved. `eva-record pause|resume|replay|save` do the same.
+
+A recording opened from the history or by `--edit-file` shows its timeline: drag
+the two edges, then Save trim or Save GIF. Each writes a new file and leaves the
+original. They run `capture.commands.trim` and `capture.commands.gif` (`ffmpeg` by
+default, with `capture.gif_fps` and `capture.gif_width`), and say so when `ffmpeg`
+is missing.
+
+The arrows at the panel's title take a long picture of the chosen target as it
+scrolls. Frames are taken while you scroll, or while Auto presses Page Down until
+the page ends; on a phone you scroll by hand. Done joins them into a picture in
+the capture folder. Rows that stand still count as a header and a footer, and
+appear once. A frame that cannot be lined up ends the capture with what is sound,
+and says so; nothing is guessed. Expect it to stop on pages that move as they
+scroll: video, or animation over most of the window, and on outputs scaled by a
+fraction, where a row does not come back pixel for pixel. A floating button low in
+the window lands in the picture at each strip.
 
 Run `morf shell`, `morf lock`, or `morf greet`. Preview without authenticating
 with `morf lock -- window preview` or `morf greet -- preview`.
