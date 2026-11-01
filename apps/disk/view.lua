@@ -28,6 +28,7 @@ local function box_node(index)
   local spring = theme.spring.spatial
   return kit.card {
     id = "disk-box-" .. index, radius = kit.round(S.m), clip = true,
+    visible = function() return item() ~= nil end,
     x = function() local box = item() return box and box.x or 0 end,
     y = function() local box = item() return box and box.y or 0 end,
     width = function() local box = item() return box and box.w or 0 end,
@@ -64,10 +65,11 @@ local function folder_page(w, h)
   local top = CRUMB_H + L.lh(theme.size.small) + S.s
   local function body_h() return math.max(1, get(h) - top) end
   morf.effect("disk.area", function() model.set_area(math.floor(get(w)), math.floor(body_h())) end)
-  local function crumbs() return model.crumbs(model.path:get()) end
+  local function crumbs_w() return math.max(1, get(w) - S.TARGET * 3 - S.s * 3) end
+  local function crumbs() return model.tail(model.crumbs(model.path:get()), crumbs_w()) end
   local crumb_bar = kit.widgets.breadcrumbs {
     id = "disk-crumbs", accessible_name = "Path", items = crumbs, item_height = CRUMB_H, gap = S.xxs, height = CRUMB_H,
-    width = function() return math.max(1, get(w) - S.TARGET * 3 - S.s * 3) end,
+    width = crumbs_w,
     current = function() return #crumbs() end,
     item_id = function(index) return "disk-crumb-" .. index end,
     on_current_changed = function(index)
@@ -85,8 +87,8 @@ local function folder_page(w, h)
   return ui.Item {
     id = "disk-folder", width = w, height = h,
     ui.Item {
-      width = w, height = CRUMB_H, clip = true,
-      crumb_bar,
+      width = w, height = CRUMB_H,
+      ui.Item { width = crumbs_w, height = CRUMB_H, clip = true, crumb_bar },
       ui.Row {
         anchors = { right = true, vertical_center = true }, gap = S.s,
         L.icon_button {

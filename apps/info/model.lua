@@ -72,7 +72,7 @@ local function usb()
         out[#out + 1] = {
           name = text_at(base .. "/product") or (vendor .. ":" .. tostring(product)),
           maker = text_at(base .. "/manufacturer"), id = vendor .. ":" .. tostring(product),
-          speed = tonumber(text_at(base .. "/speed")),
+          speed = tonumber(text_at(base .. "/speed")), power = text_at(base .. "/bMaxPower"),
         }
       end
     end
@@ -334,7 +334,7 @@ function M.sections(facts)
 
   rows = {}
   for _, device in ipairs(facts.usb or {}) do
-    line(rows, device.name, joined { device.maker, device.id, device.speed and (math.floor(device.speed) .. " Mb/s") })
+    line(rows, device.name, joined { device.maker, device.id, device.speed and (math.floor(device.speed) .. " Mb/s"), device.power })
   end
   section("usb", "USB", rows)
 

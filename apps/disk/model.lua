@@ -31,6 +31,10 @@ M.REMEMBERED = 32
 M.FLUSH = 200
 M.SETTLE = 600
 M.GAP = 4
+-- What a crumb takes: per character, beside its text, and the crumb of what is cut.
+M.CRUMB_CHAR = 10
+M.CRUMB_EDGE = 44
+M.CRUMB_CUT = 56
 
 M.root = morf.env("EVA_DISK_ROOT") or ""
 
@@ -60,6 +64,22 @@ function M.crumbs(path)
     at = at .. "/" .. part
     out[#out + 1] = { label = part, path = at }
   end
+  return out
+end
+
+--- As many of `crumbs`, from the end, as fit `width`; what is cut goes behind a
+--- first crumb that leads to the folder above the ones shown.
+function M.tail(crumbs, width)
+  local room, first = width - M.CRUMB_CUT, #crumbs + 1
+  for index = #crumbs, 1, -1 do
+    room = room - #crumbs[index].label * M.CRUMB_CHAR - M.CRUMB_EDGE
+    if room < 0 then break end
+    first = index
+  end
+  first = math.min(first, #crumbs)
+  if first <= 1 then return crumbs end
+  local out = { { label = "…", path = crumbs[first - 1].path } }
+  for index = first, #crumbs do out[#out + 1] = crumbs[index] end
   return out
 end
 

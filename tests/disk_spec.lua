@@ -67,6 +67,10 @@ test.it("makes areas of its sizes, all inside the box", function()
     morf.ipc.parent = function(path) return require("model").parent(path) or "" end
     morf.ipc.parse = function(line) return require("model").parse(line) end
     morf.ipc.crumbs = function(path) return require("model").crumbs(path) end
+    morf.ipc.tail = function(path, width)
+      local model = require("model")
+      return model.tail(model.crumbs(path), tonumber(width))
+    end
   ]] })
   local sizes = { 60, 30, 20, 10, 5, 1 }
   local rects = test.ipc("layout", 400, 300, 60, 30, 20, 10, 5, 1)
@@ -86,6 +90,11 @@ test.it("makes areas of its sizes, all inside the box", function()
   test.eq(entry.path, "/home/ada/a folder")
   test.eq(entry.size, 1048576)
   test.eq(#test.ipc("crumbs", "/home/ada"), 3)
+  test.eq(#test.ipc("tail", "/home/ada", 900), 3)
+  local cut = test.ipc("tail", "/home/ada/a-long-folder/deep/down", 260)
+  test.eq(cut[1].label, "…")
+  test.eq(cut[#cut].label, "down")
+  test.eq(cut[1].path, "/home/ada/a-long-folder")
 end)
 
 test.it("says what a folder holds, the largest first", function()
@@ -100,6 +109,7 @@ test.it("says what a folder holds, the largest first", function()
   test.falsy(state.entries[2].dir)
   test.truthy(state.total >= 1500 * 1024)
   test.eq(test.get({ id = "disk-name-1" }).text, "videos")
+  test.falsy(test.find({ id = "disk-box-5" }).visible, "a box nobody needs stays hidden")
   test.eq(#test.logs("error"), 0)
 end)
 
