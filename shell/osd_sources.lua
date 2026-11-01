@@ -1,9 +1,7 @@
 -- Where each on-screen display's status comes from: for every kind whether
 -- its service is there, what counts as its value, and how it reads. The
--- watch fires a kind only when a value it already knew really moved.
---
--- Caps and num lock are read from the kernel's LEDs on a short timer: neither
--- the compositor nor the kernel announces them.
+-- watch fires a kind only when a value it already knew really moved. Caps
+-- and num lock are read from the kernel's LEDs on a short timer.
 local morf = require("morf")
 local services = require("services")
 local remote = require("lib.util.remote")
@@ -28,7 +26,7 @@ if fake and fake ~= "" and fake ~= "0" then
     ringer = { state = { mode = "vibrate" } },
     hyprland = { available = function() return true end, state = { keyboard_layout = "English (US)" } },
     media = { state = { available = true, active = { title = "Blue in Green", artist = { "Miles Davis" },
-      album = "Kind of Blue", art_url = "", playing = true } } },
+      album = "Kind of Blue", art_url = morf.env("EVA_FAKE_ART") or "", playing = true } } },
     night = { on = function() return true end },
     fake_input = { id = 1, muted = true },
   }, { __index = services })
@@ -184,6 +182,7 @@ M.sources = {
         local rows = bluetooth_rows()
         name = rows and rows[1] and (rows[1].alias or rows[1].name) or ""
       end
+      if name == "" then return { icon = "bluetooth", title = "Bluetooth", detail = "Nothing connected", on = false } end
       return { icon = "bluetooth_connected", title = "Connected", detail = name, on = true }
     end },
   dnd = flag("Do not disturb", "notifications_off", "notifications", dnd),
@@ -197,8 +196,9 @@ M.sources.headphones = {
   read = function()
     local device = package.loaded.headphones and package.loaded.headphones.device
     local earbuds = device and device.kind == "earbuds"
+    local name = device and device.name or ""
     return { icon = earbuds and "earbuds" or "headphones", title = earbuds and "Earbuds connected" or "Headphones connected",
-      detail = device and device.name or "", on = true }
+      detail = name ~= "" and name or "Connection preview", on = true }
   end }
 
 -- -------------------------------------------------------------- now playing --
@@ -226,7 +226,8 @@ M.sources.media = {
   present = function() return player() ~= nil end,
   read = function()
     local a = player() or {}
-    return { icon = "music_note", title = a.title or "", detail = artists(a), note = a.album or "", on = true }
+    if (a.title or "") == "" then return { icon = "music_note", title = "Nothing playing", detail = "", note = "", on = false } end
+    return { icon = "music_note", title = a.title, detail = artists(a), note = a.album or "", on = true }
   end }
 
 -- ------------------------------------------------------------------- watch --
