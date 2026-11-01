@@ -235,7 +235,7 @@ test.it("changes one key and leaves the rest of the file", function()
   test.eq(test.ipc("parse", text).Name, "A")
   test.eq(test.ipc("parse", "[Desktop Entry]\nName=a\\nb\\\\c\n").Name, "a\nb\\c")
   test.eq(test.ipc("exec", "chromium", "--app=https://a.test/x?y=1&z=50%"), 'chromium "--app=https://a.test/x?y=1&z=50%%"')
-  test.eq(test.ipc("exec", "say", 'a "b" $c'), 'say "a \\\\"b\\\\" \\\\$c"')
+  test.eq(test.ipc("exec", "say", 'a "b" $c'), 'say "a \\"b\\" \\$c"')
 end)
 
 -- --------------------------------------------------------------------- jobs --

@@ -47,6 +47,9 @@ local function extension(bytes, url)
   return (url:match("%.(%w+)$") or "bin"):lower()
 end
 
+--- The extension for what the first bytes of a file say it is.
+remote.kind = extension
+
 local function folder() return morf.paths.cache("remote") end
 
 local function fetch(url)

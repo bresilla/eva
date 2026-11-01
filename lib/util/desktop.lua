@@ -25,11 +25,11 @@ function M.exec_word(word)
   return '"' .. plain:gsub('[\\"`$]', "\\%0") .. '"'
 end
 
---- `words` as the value of an `Exec` key.
+--- `words` as an `Exec` line, for `M.set`.
 function M.exec(words)
   local out = {}
   for index, word in ipairs(words) do out[index] = M.exec_word(word) end
-  return M.escape(table.concat(out, " "))
+  return table.concat(out, " ")
 end
 
 --- The keys of the file's `[Desktop Entry]` group, unescaped. Translated keys
