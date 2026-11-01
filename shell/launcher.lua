@@ -231,12 +231,23 @@ local function keyboard_attached()
   local ok, attached = pcall(function() return require("models.keyboards").attached() end)
   return not ok or attached ~= false
 end
+local opening, was_open = "", false
+--- Opens with `text` in the field, as if typed.
+function M.open_on(text)
+  opening = text
+  M.drawer.set(true)
+end
 morf.effect("eva.launcher.open", function()
   local open = M.drawer.open:get()
   M.opened:set(open)
+  local arrived = open and not was_open
+  was_open = open
   if open then
     apps.refresh()
-    M.set_query("")
+    if arrived then
+      M.set_query(opening)
+      opening = ""
+    end
     view.focus(true)
     local keyboard = package.loaded.keyboard
     if keyboard and not keyboard_attached() and not keyboard.drawer.open:get() then

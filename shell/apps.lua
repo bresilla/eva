@@ -44,6 +44,7 @@ function M.refresh()
         description = comment,
         icon = entry.icon or "",
         keywords = table.concat(entry.keywords or {}, " "),
+        categories = table.concat(entry.categories or {}, " "),
       }
     end
   end
@@ -304,6 +305,20 @@ function M.strict(query, hits)
     if ok then out[#out + 1] = hit end
   end
   return out
+end
+
+--- The application among `ids`, in their order, or else the first that says
+--- `word` in its keywords or categories: its row, or nil.
+function M.find(ids, word)
+  for _, id in ipairs(ids) do
+    for _, row in ipairs(rows) do
+      if row.id == id or row.id == id .. ".desktop" then return row end
+    end
+  end
+  if not word then return nil end
+  for _, row in ipairs(rows) do
+    if (row.keywords .. " " .. row.categories):lower():find(word, 1, true) then return row end
+  end
 end
 
 --- Runs a row: launches an app (and remembers it), or an action. Returns

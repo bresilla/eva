@@ -22,6 +22,9 @@ local builders={
   eva=function(w,h) return view.eva_page(M,w,h) end,
   hotspot=function(w,h) return require("themes").view("quick_pages").hotspot_page(M,w,h) end,
   nightlight=function(w,h) return require("themes").view("quick_pages").nightlight_page(M,w,h) end,
+  flashlight=function(w,h) return require("themes").view("quick_pages").flashlight_page(M,w,h) end,
+  filters=function(w,h) return require("themes").view("quick_pages").filters_page(M,w,h) end,
+  sounds=function(w,h) return require("themes").view("quick_pages").sounds_page(M,w,h) end,
   ["theme/lule"]=function(w,h) return require("lule_page").build(w,h) end,
 }
 function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end

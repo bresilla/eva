@@ -130,6 +130,7 @@ end)
 -- the battery's charge limit.
 require("auto_rotate").start()
 require("quick_hardware").nightlight()
+require("quick_hardware").start()
 require("charge_limit_model").start()
 
 -- ---------------------------------------------------------------- drawers --
