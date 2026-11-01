@@ -292,24 +292,26 @@ test.it("after too many wrong passwords the field waits and asks nothing",functi
   test.eq(test.ipc("audit").submits,2,"the third is held back")
 end)
 
-test.it("power buttons are off until chosen, need a yes from logind and a hold",function()
-  load()
-  test.falsy(shown("lock-power"))
-  write(SETTINGS,{lock={power_buttons=true}})
-  load{logind={can={suspend="yes",reboot="challenge",power_off="na"}}}
-  test.truthy(shown("lock-power-suspend"))
-  test.falsy(shown("lock-power-reboot"),"a challenge has nobody to answer it")
-  test.falsy(shown("lock-power-poweroff"))
-  local x,y=centre("lock-power-suspend")
-  test.click(x,y) test.settle(300)
-  test.eq(#test.logs("info")>0 and (function()
-    for _,line in ipairs(test.logs("info")) do if line.message:find("Suspend",1,true) then return true end end
-    return false end)(),false,"a click is not a hold")
-  test.press(x,y) test.advance(900) test.release(x,y) test.settle(200)
-  local said=false
-  for _,line in ipairs(test.logs("info")) do if line.message:find("Suspend",1,true) then said=true end end
-  test.truthy(said,"a hold is")
-end)
+for _,style in ipairs {"material","tsugumori"} do
+  test.it(style.." power buttons are off until chosen, need a yes from logind and a hold",function()
+    load{style=style}
+    test.falsy(shown("lock-power"))
+    write(SETTINGS,{lock={power_buttons=true}})
+    load{style=style,logind={can={suspend="yes",reboot="challenge",power_off="na"}}}
+    test.truthy(shown("lock-power-suspend"))
+    test.falsy(shown("lock-power-reboot"),"a challenge has nobody to answer it")
+    test.falsy(shown("lock-power-poweroff"))
+    local function asked()
+      for _,line in ipairs(test.logs("info")) do if line.message:find("Suspend",1,true) then return true end end
+      return false
+    end
+    local x,y=centre("lock-power-suspend")
+    test.click(x,y) test.settle(300)
+    test.falsy(asked(),"a click is not a hold")
+    test.press(x,y) test.advance(900) test.release(x,y) test.settle(200)
+    test.truthy(asked(),"a hold is")
+  end)
+end
 
 test.it("the policy keeps power buttons off",function()
   write(SETTINGS,{lock={power_buttons=true}}) write(POLICY,{power_buttons=false})

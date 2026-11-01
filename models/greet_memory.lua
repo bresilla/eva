@@ -1,7 +1,6 @@
 -- What the greeter keeps between logins: who came last, the session each person
 -- chose, and the accessibility choices. A small file in the greeter's own state,
--- written only after a right password, and read with suspicion: a name no longer
--- on the machine is ignored. No password or anything of the session goes here.
+-- written after a right password. A name no longer on the machine is ignored.
 --
 -- EVA_GREETER_MEMORY names another file; EVA_GREETER_REMEMBER=0 turns it off.
 local morf = require("morf")

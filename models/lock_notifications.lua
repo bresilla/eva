@@ -6,9 +6,8 @@
 --   none      nothing, not even that there are any
 --
 -- `project` is the whole of the filter. The shell runs it before anything
--- leaves its process and the lock runs it again on what it reads, so a stale
--- file cannot show more than the lock's own level allows. A per-app rule can
--- only make an app quieter than the level.
+-- leaves its process, and the reader drops what was written under a looser
+-- level than its own. A per-app rule can only make an app quieter than the level.
 --
 -- Text is plain and short. No icon a sender names is loaded on the lock.
 local morf = require("morf")

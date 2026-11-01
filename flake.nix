@@ -62,6 +62,21 @@
           module = machine { };
           module-plymouth = machine { programs.eva.seamless.plymouth = true; };
           module-plain = machine { programs.eva.seamless.enable = false; };
+          module-phone = machine {
+            programs.eva.phone = {
+              enable = true;
+              alwaysOn = true;
+            };
+          };
+          module-fixed = machine {
+            programs.eva.idle = {
+              lockTimeout = 300;
+              screenOffTimeout = 330;
+              suspendTimeout = 900;
+            };
+            programs.eva.lock.settings.grace_seconds = 0;
+            programs.eva.greeter.keyboardLayouts = "us,de";
+          };
         };
         devShells.default = pkgs.mkShell {
           packages = [

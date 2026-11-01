@@ -1,6 +1,5 @@
 -- The idle warning's layer: an overlay on this output while the warning runs,
--- and nothing at all the rest of the time. A whole screen of distance field is
--- not kept standing for the moments it is needed.
+-- and nothing at all the rest of the time.
 local morf = require("morf")
 local ui = require("morf.ui")
 local idle = require("idle_model")

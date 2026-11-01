@@ -1,6 +1,6 @@
 -- The power actions a login screen offers, asked of logind: an action shows
--- only if logind answers a plain yes, since nobody is here to answer a polkit
--- prompt. A dry run logs and touches nothing.
+-- only if logind answers a plain yes, and runs without a polkit prompt. A dry
+-- run logs and touches nothing.
 local morf = require("morf")
 local auth = require("lib.shell.auth")
 local M = {}

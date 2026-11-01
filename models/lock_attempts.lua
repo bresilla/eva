@@ -1,6 +1,5 @@
 -- Wrong passwords: how many, and how long the field waits after too many. The
--- wait doubles each time the limit is reached, and is counted on the boot-time
--- clock, so a sleep or a changed date does not shorten it.
+-- wait doubles each time the limit is reached, on the boot-time clock.
 --
 --   local tries = require("models.lock_attempts").new { limit = 5, wait = 30 }
 --   tries.failed()          -- after each wrong password

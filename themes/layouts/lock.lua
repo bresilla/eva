@@ -281,8 +281,7 @@ return function(W, H, NAME)
     visible = function() return main() and parts.notifications.count() > 0 end,
   })
 
-  -- Widgets get the drawing tools and nothing else, and a failing one is left
-  -- out: it may not take the lock down with it.
+  -- Widgets get the drawing tools and nothing else, and a failing one is left out.
   local UPRIGHT = H > W
   local widgets = { id = "lock-widgets", gap = s(16),
     visible = function() return main() and not SHORT and stage:get() == "rest" and not parts.card_open:get() end }

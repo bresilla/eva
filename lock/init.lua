@@ -106,8 +106,7 @@ local function say(words, wrong)
 end
 local clear = password.clear
 
--- What the lock keeps while it stands. No window after an idle lock on a phone:
--- a pocket presses keys.
+-- What the lock keeps while it stands. A phone has no window after an idle lock.
 local phone_screen = require("themes.phone_wake")
 local keyboard = require("models.keyboard_state").new("lock")
 local tries = require("models.lock_attempts").new(prefs.attempts)

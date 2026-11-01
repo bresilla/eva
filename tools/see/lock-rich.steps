@@ -38,3 +38,11 @@ settings none
 write_view '{"level":"none","count":0,"items":[]}'
 start lock
 pause 1; shot none
+stop
+# The ambient face: a phone's panel said to stay lit.
+printf '{"command":"/bin/true","doubleTap":true,"alwaysOn":true}' > "$XDG_STATE_HOME/phone.json"
+export EVA_PHONE_SCREEN_CONFIG=$XDG_STATE_HOME/phone.json EVA_FAKE_AMBIENT=1
+printf '{"lock":{"always_on":{"enabled":true},"notifications":{"level":"senders"}}}' > "$SETTINGS"
+write_view "{\"level\":\"senders\",\"count\":3,\"items\":[{\"app\":\"Signal\",\"count\":2,\"time\":$now},{\"app\":\"Mail\",\"count\":1,\"time\":$((now-300))}]}"
+start lock
+pause 1; shot ambient

@@ -1,7 +1,6 @@
 -- The lock's corner shortcuts. Each is either safe -- it does its one thing
--- from the lock -- or asks for the password first, and then only the shell
--- opens it. The lock never starts a window while it holds the session: a
--- window could not be seen, and what it started would run behind the lock.
+-- from the lock -- or asks for the password first, and then the shell opens it.
+-- The lock starts no window while it holds the session.
 --
 --   flashlight   safe: lights the torch
 --   media        safe: play or pause

@@ -1,6 +1,6 @@
 -- The buttons of the login screens: round icon buttons, and chips with a word.
--- A button given `hold` counts only once held that long, filling as it goes,
--- so a pocket or a sleeve cannot press it. Skins restyle `*-surface` nodes.
+-- A button given `hold` counts only once held that long, filling as it goes.
+-- Skins restyle `*-surface` nodes.
 local morf = require("morf")
 local M = {}
 
