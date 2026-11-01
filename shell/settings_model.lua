@@ -489,6 +489,7 @@ M.DETAILS = {
   {key="mobile",name="Mobile networks"},
   {key="sound",name="Sound"}, {key="microphone",name="Microphone"},
   {key="power",name="Power"}, {key="eva",name="Eva"}, {key="bar",name="Bar",parent="eva"}, {key="wired",name="Wired"},
+  {key="osd",name="On-screen displays",parent="eva"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},
   {key="sound/equalizer",name="Equalizer",parent="sound"},

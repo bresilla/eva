@@ -1,0 +1,13 @@
+# The popups moved along their edge, then flipped to the other one, which
+# builds the shell again in place; settings written to their file as another
+# screen's runtime or an editor would.
+export EVA_FAKE_OSD=1
+export EVA_SETTINGS=$HOME/.local/state/see-settings.json
+start shell
+swaymsg -t get_seats > "$SEE_OUT/seats.json"
+ipc notify "A message" "Standing at the top right" critical Eva; pause 1.2; shot top-right
+echo '{"osd":{"notifications":"top_left"}}' > "$EVA_SETTINGS"; pause 1.5; shot top-left
+echo '{"osd":{"notifications":"bottom_center"}}' > "$EVA_SETTINGS"; pause 3; shot bottom-center
+ipc notify "Another" "Newest nearest the edge" critical Eva; pause 1.4; shot bottom-center-two
+ipc osd mic; pause 0.9; shot still-works
+stop

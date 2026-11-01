@@ -13,6 +13,7 @@ local builders={
   microphone=function(w,h) return require("sound_page").input_page(w,h) end,
   power=function(w,h) return require("power_page").page(w,h) end,
   bar=function(w,h) return require("bar_page").page(w,h) end,
+  osd=function(w,h) return require("osd_page").page(w,h) end,
   wired=function(w,h) return require("net_pages").wired_page(w,h) end,
   mesh=function(w,h) return require("net_pages").vpn_page("mesh",w,h,M.displayed) end,
   tunnel=function(w,h) return require("net_pages").vpn_page("tunnel",w,h,M.displayed) end,

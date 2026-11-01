@@ -76,6 +76,8 @@ local HOST=[[
     devices[#devices+1]={path="/bt/"..alias,alias=alias,icon=icon or "",connected=true}
     service_state.revision=service_state.revision+1
   end
+  morf.ipc.here=function(on) here:set(on=="yes") end
+  morf.ipc.sidebar=function(on) sidebar.drawer.set(on=="yes") end
   morf.ipc.dnd=function(on) dnd:set(on=="yes") end
   morf.ipc.awake=function(on) awake:set(on=="yes") end
   morf.ipc.state=function() return {shown=levels.shown:get(),active=levels.active:get(),volume=osd.volume(),muted=select(2,osd.volume())} end
@@ -338,6 +340,27 @@ end)
 
 test.it("leaves the settings to show what they change themselves",function()
   armed("material")
-  test.ipc("field","layout","Deutsch")
-  test.advance(100) test.eq(shown(),"layout")
+  test.ipc("sidebar","yes") test.advance(900)
+  test.ipc("field","profile","performance") test.ipc("dnd","yes") test.advance(100)
+  test.eq(shown(),"","the settings' own controls show these")
+  test.ipc("field","layout","Deutsch") test.advance(100)
+  test.eq(shown(),"layout","the settings do not show a keyboard's layout")
+end)
+
+test.it("shows only on the screen in focus",function()
+  armed("material")
+  test.ipc("here","no")
+  test.ipc("field","layout","Deutsch") test.advance(200)
+  test.eq(shown(),"")
+end)
+
+test.it("rides out with the sidebar only on the right",function()
+  load("material")
+  test.ipc("set","osd.kinds.volume.hold","9000")
+  test.ipc("set","osd.kinds.mic.hold","9000")
+  test.ipc("flash","volume") test.ipc("flash","mic") test.advance(900)
+  local right,bottom=test.get("levels-swell").x,test.get("levels-swell-2").x
+  test.ipc("sidebar","yes") test.advance(1100)
+  test.truthy(test.get("levels-swell").x<right-200,"the right edge's display stayed under the sidebar")
+  test.near(test.get("levels-swell-2").x,bottom,1,"the bottom edge's display rode with it")
 end)

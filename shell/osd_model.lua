@@ -65,9 +65,12 @@ end
 function M.enabled(kind) return setting(kind, "enabled") ~= false end
 function M.set_enabled(kind, on) config.set("osd.kinds." .. kind .. ".enabled", on == true) end
 
+--- What the setting of `kind`'s hold says, 0 for its own.
+function M.chosen_hold(kind) return tonumber(setting(kind, "hold")) or 0 end
+
 --- How long `kind` stays once it has stopped changing, in ms.
 function M.hold(kind)
-  local chosen = tonumber(setting(kind, "hold")) or 0
+  local chosen = M.chosen_hold(kind)
   if chosen > 0 then return chosen end
   return (M.BY_ID[kind] or M.BY_ID.volume).hold
 end
