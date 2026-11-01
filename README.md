@@ -109,6 +109,7 @@ Quick controls stay in the shell; heavier work has a tool of its own, in
 `apps/`. A tool is a real window that draws with the shell's theme, kit and
 palette, follows lule's colours and the chosen appearance live, and works when
 the shell is not running. On NixOS they are on `PATH`, each with a desktop entry.
+Launching one a second time raises the window it has open; an overlay shuts.
 
 | Command | What it does |
 |---------|--------------|
@@ -118,11 +119,28 @@ the shell is not running. On NixOS they are on `PATH`, each with a desktop entry
 | `eva-record region\|window\|monitor [--audio KIND]`, `eva-record stop` | `gpu-screen-recorder` with a stop indicator |
 | `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
 | `eva-keys` | a searchable sheet of the live bindings and the shell's own |
-| `eva-nightlight on\|off\|toggle\|auto\|daemon\|times` | warmer light over `hyprsunset`, by the sun at `services.weather_location` |
+| `eva-nightlight on\|off\|toggle\|status\|temperature\|follow\|times\|auto\|daemon` | the quick settings' night light from a command line, one implementation with one state; `follow on` has the shell turn it on and off by the sun at `services.weather_location` |
 | `eva-clipboard [--watch]` | a history of text and pictures with pins, skipping what a password manager marks; on NixOS `--watch` runs as a user service |
-| `eva-battery status`, `eva-battery limit on\|off` | the charge limit, through UPower's `EnableChargeThreshold` |
+| `eva-battery status`, `eva-battery limit on\|off` | the charge limit, the same code as the Power page's switch |
+| `eva-clock`, `eva-clock timer 12 min pasta`, `eva-clock at 6pm`, `eva-clock every weekday 7:30 gym`, `eva-clock list\|cancel\|snooze\|sync` | alarms, timers, a stopwatch and world clocks, said in plain words; each alarm is a systemd user timer, so it rings with no shell running, through the notifications server with sound, Stop and Snooze |
 
 `make app displays` runs one from a checkout.
+
+Alarms and timers live in `$XDG_STATE_HOME/eva/clock/alarms.json`, written by
+`lib/services/alarm.lua`, which is also `services.alarm` in the shell: `armed()`
+lights the bar's alarm indicator and `ongoing`, a signal, is the running timers
+for its status pill. On NixOS `eva-clock-sync` puts them back on systemd after a
+login, ringing what came due within the hour and reporting the rest as missed.
+Without a user systemd the shell keeps the time instead. A timer does not wake a
+suspended machine: a user timer cannot.
+
+The clipboard's store is an interface other code may read,
+`$XDG_STATE_HOME/eva/clipboard/history.json`: a JSON array, pinned entries first
+and then newest first, mode 600, replaced atomically. An entry has `id`, `kind`
+(`text` or `image`), `text`, or `path` and `mime` for a picture, `time` in unix
+milliseconds, and `pinned`. Fields are only ever added. The head of
+`apps/clipboard/model.lua` has the whole contract and `tests/clipboard_spec.lua`
+holds it.
 
 `eva-displays` writes what you keep to `$XDG_STATE_HOME/eva/displays/`. eva's
 Hyprland session loads `monitors.lua` from there; on sway, add
@@ -132,6 +150,17 @@ A tool's folder holds `app.lua` and three links: `lua -> ../../shell`, which is
 how it reaches `theme`, `kit`, `palette` and `config`, `common -> ../common`, and
 `fonts -> ../../shell/fonts`. `apps/launch` finds the shell's appearance and
 settings files, which the shell names in `$XDG_STATE_HOME/eva/settings-path`.
+
+`apps/common/frame.lua` draws a window as the shell draws its frame, one distance
+field in the theme's `app_frame` view: a band round an opening, the title and the
+close button tabs of that band on the theme's seams and springs. It also gives a
+tool `frame.overlay` for the whole screen and `frame.quiet` for no window at all.
+`common/controls.lua` is what a window is built from, `common/sys.lua` the one
+door to the machine, honouring `EVA_DRY_RUN`, and `common/freeze.lua` the screen
+held still for a tool that reads its pixels. `common/job` runs the shell's own
+code for a command line with no shell running, so a tool and the shell share one
+module (`lib/services/nightlight.lua`, `charge_limit.lua`, `alarm.lua`) rather
+than having two.
 
 ## Helpers
 
