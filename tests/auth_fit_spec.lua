@@ -48,9 +48,7 @@ local source=[[
   morf.ipc.clock_test=function(value) clock:set(value) end
   morf.ipc.auth_test=function(action)
     if action=="bad" then ctx.bad:set(true) ctx.message:set("Password not accepted. Try again.") end
-    if action=="password" then ctx.method:set("password") end
-    if action=="pattern" then ctx.method:set("pattern") end
-    return {typed=ctx.typed:get(),busy=ctx.busy:get(),method=ctx.method:get(),bad=ctx.bad:get()}
+    return {typed=ctx.typed:get(),busy=ctx.busy:get(),bad=ctx.bad:get()}
   end
 ]]
 local function load(part,w,h,touch,style)
@@ -74,10 +72,10 @@ for _,part in ipairs {"lock","greet"} do
         if morf.env("EVA_THEME_SNAPSHOTS")=="1" and style=="tsugumori" and size[1]<=800 then
           test.snapshot(part.."-"..size[1].."x"..size[2].."-rest.png")
         end
-        for _,method in ipairs {"password","pattern"} do
-          test.ipc("stage","sheet") test.ipc("auth_test",method) test.advance(1200)
+        do
+          test.ipc("stage","sheet") test.advance(1200)
           local sheet=test.get(part.."-sheet")
-          test.truthy(sheet.y>=0,"sheet above output: "..style.." "..size[1].."x"..size[2].." "..method)
+          test.truthy(sheet.y>=0,"sheet above output: "..style.." "..size[1].."x"..size[2])
           test.truthy(sheet.x>=0 and sheet.x+sheet.width<=size[1]+1,"sheet too wide")
           test.truthy(sheet.y+sheet.height<=size[2]+1,"sheet below output")
           if part=="greet" and size[2]<375 then
@@ -86,25 +84,20 @@ for _,part in ipairs {"lock","greet"} do
           local viewport=test.get(part.."-sheet-scroll")
           local keys=0
           for _,node in ipairs(test.nodes()) do
-            if node.visible and node.id and (node.id:find("key.full.letters",1,true) or node.id:match("%.pattern$")) then
+            if node.visible and node.id and node.id:find("key.full.letters",1,true) then
               keys=keys+1
               test.truthy(node.x>=0 and node.x+node.width<=size[1]+1,node.id.." outside width")
               test.truthy(node.height>=30,node.id.." shrunk below a usable target")
-              if node.id:match("%.pattern$") then
-                test.truthy(node.y>=viewport.y and node.y+node.height<=viewport.y+viewport.height+1,"pattern clipped")
-              end
             end
           end
           test.truthy(keys>0)
           test.truthy(viewport.y>=0 and viewport.y+viewport.height<=size[2]+1)
           local submit=test.get(part.."-submit")
-          if method=="password" then
-            test.truthy(submit.y>=viewport.y and submit.y+submit.height<=viewport.y+viewport.height+1,"submit clipped")
-          end
-          if morf.env("EVA_THEME_SNAPSHOTS")=="1" and style=="tsugumori" and method=="password" then
+          test.truthy(submit.y>=viewport.y and submit.y+submit.height<=viewport.y+viewport.height+1,"submit clipped")
+          if morf.env("EVA_THEME_SNAPSHOTS")=="1" and style=="tsugumori" then
             test.snapshot(part.."-"..size[1].."x"..size[2]..".png")
           end
-          if method=="password" and size[2]<375 then
+          if size[2]<375 then
             test.wheel(0,1000,{x=sheet.x+sheet.width/2,y=sheet.y+sheet.height/2}) test.advance(300)
             local enter
             for _,node in ipairs(test.nodes()) do

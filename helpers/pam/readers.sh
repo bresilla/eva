@@ -1,6 +1,6 @@
 #!/bin/sh
 # sudo helpers/pam/readers.sh -- the stacks the lock listens to for a finger
-# and a face, beside the password (and pattern) stack:
+# and a face, beside the password stack:
 #
 #   /etc/pam.d/eva-lock-finger   pam_fprintd -- listened to at rest too
 #   /etc/pam.d/eva-lock-face     pam_gaze    -- while the sheet is up

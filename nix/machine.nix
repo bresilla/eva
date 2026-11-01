@@ -5,7 +5,6 @@
     enable = true;
     user = "eva";
     lulePackage = pkgs.hello;
-    pattern.enable = true;
     phone.enable = true;
   };
   users.users.eva.isNormalUser = true;

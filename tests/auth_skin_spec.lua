@@ -27,9 +27,7 @@ local source=[[
   morf.ipc.clock_test=function(value) clock:set(value) end
   morf.ipc.auth_test=function(action)
     if action=="bad" then ctx.bad:set(true) ctx.message:set("Password not accepted. Try again.") end
-    if action=="password" then ctx.method:set("password") end
-    if action=="pattern" then ctx.method:set("pattern") end
-    return {typed=ctx.typed:get(),busy=ctx.busy:get(),method=ctx.method:get(),bad=ctx.bad:get()}
+    return {typed=ctx.typed:get(),busy=ctx.busy:get(),bad=ctx.bad:get()}
   end
 ]]
 local function load(part,w,h,touch,style)
@@ -74,8 +72,6 @@ for _,part in ipairs {"lock","greet"} do
     test.eq(test.ipc("auth_test").busy,false)
     test.truthy(test.get(part.."-message").text:find("not accepted",1,true))
     shot(part.."-error")
-    test.ipc("auth_test","pattern") test.advance(800)
-    shot(part.."-pattern")
     clean()
   end)
   test.it(part.." clock rolls only changed digits and settles",function()
@@ -95,7 +91,7 @@ for _,part in ipairs {"lock","greet"} do
       for _,style in ipairs {"material","tsugumori"} do
         load(part,size[1],size[2],size[3],style)
         test.ipc("stage","sheet") test.ipc("auth_test","password") test.advance(1800)
-        for _,suffix in ipairs {"sheet","field","submit","method"} do
+        for _,suffix in ipairs {"sheet","field","submit"} do
           local node=test.get(part.."-"..suffix)
           if style=="material" then baseline[suffix]=node else
             for _,axis in ipairs {"x","y","width","height"} do

@@ -9,7 +9,6 @@ local SOURCE=[[
   keyboards.new=function(ctx) context=ctx board=make(ctx) return board end
   require("init")
   morf.ipc.board=function(action)
-    if action=="password" then context.method:set("password") end
     if action=="numbers" then board.keys.numbers:set(true) end
     return {shown=board.active(),reserved=board.reserved(),height=board.content_height(),stage=context.stage:get()}
   end

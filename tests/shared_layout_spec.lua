@@ -108,7 +108,7 @@ for _,part in ipairs {"lock","greet"} do
       test.load("../"..part.."/init.lua",{size={1280,900},args=part=="lock" and {"window","preview"} or {"preview"},
         env={EVA_STYLE=style,EVA_DRY_RUN="1",GREETD_SOCK=false,LULE_A="/nonexistent/lule"}})
       test.ipc("stage","sheet") test.advance(2800)
-      for _,suffix in ipairs {"sheet","field","submit","method"} do
+      for _,suffix in ipairs {"sheet","field","submit"} do
         local node=test.get(part.."-"..suffix)
         local dimensions={x=node.x,y=node.y,width=node.width,height=node.height}
         if style=="material" then baseline[suffix]=dimensions

@@ -26,15 +26,10 @@
         pkgs = nixpkgs.legacyPackages.${system};
         engine = morf.packages.${system}.morf;
         eva = pkgs.callPackage ./nix/package.nix {
-          inherit version keyring pattern;
+          inherit version;
           src = self;
           morf = engine;
         };
-        keyring = pkgs.callPackage ./nix/keyring.nix {
-          inherit version;
-          src = ./helpers/keyring;
-        };
-        pattern = pkgs.callPackage ./nix/pattern.nix { src = ./helpers/pattern; };
         # A system with eva enabled, evaluated and never built: the module's
         # options and wiring hold together.
         machine = nixpkgs.lib.nixosSystem {
@@ -46,13 +41,9 @@
         packages = {
           default = eva;
           inherit eva;
-          eva-keyring = keyring;
-          eva-pattern = pattern;
         };
         checks = {
           inherit eva;
-          eva-keyring = keyring;
-          eva-pattern = pattern;
           module = pkgs.writeText "eva-module-eval"
             (builtins.unsafeDiscardStringContext machine.config.system.build.toplevel.drvPath);
         };
@@ -61,7 +52,7 @@
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.
           MORF_FONT_PATH = pkgs.lib.makeSearchPath "share/fonts" eva.fontPackages;
-          EVA_KEYRING_HELPER = "${keyring}/bin/eva-keyring";
+          EVA_KEYRING_HELPER = "${eva}/bin/eva-keyring";
         };
       }
     )

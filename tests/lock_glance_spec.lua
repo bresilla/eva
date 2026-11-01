@@ -14,7 +14,6 @@ local SOURCE=[[
   package.loaded[theme]=function(context) ctx=context return build(context) end
   require("init")
   morf.ipc.audit=function(action)
-    if action=="password" then ctx.method:set("password") end
     if action=="no-weather" then weather:set({}) end
     if action=="hide-keyboard" then board.hide() end
     return {stage=ctx.stage:get(),typed=ctx.typed:get()}

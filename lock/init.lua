@@ -88,9 +88,6 @@ local busy = morf.signal("lock.busy", false)
 local message = morf.signal("lock.message", "")
 local bad = morf.signal("lock.bad", false)
 local shake = morf.signal("lock.shake", 0)
--- "pattern" or "password": what the sheet takes (a pattern where one is set).
-local method = morf.signal("lock.method", "password")
-local has_pattern -- below, with the pattern pad
 -- "closed" (coming in), "rest", "sheet" (the way in is open), "opening"
 -- (unlocked: all of it going away).
 local stage = morf.signal("lock.stage", "closed")
@@ -159,7 +156,6 @@ local function open_sheet()
   if stage:get() ~= "rest" then return end
   stage:set("sheet")
   pull:set(0)
-  method:set(has_pattern() and "pattern" or "password")
   poke()
 end
 
@@ -178,7 +174,6 @@ end
 local MAX_DOTS = 18
 local function type_text(t)
   if #password >= 256 then return end
-  if method:get() == "pattern" then method:set("password") clear() end
   password = password .. t
   typed:set(math.min(#password, MAX_DOTS))
   if bad:get() then say("") end
@@ -212,33 +207,6 @@ morf.time.timer(1000, function()
   day:set(now("%A, %-d %B"))
 end, true)
 
--- The pattern, and the sources every screen's tree shares.
--- The pattern (helpers/pattern): offered where the stack takes one and one
--- is set for this account. Anywhere else a drawn pattern would only be a
--- wrong password, and a failed login counted.
-local PATTERN_STACK = (function()
-  local ok, t = pcall(morf.fs.read, "/etc/pam.d/eva-lock")
-  return ok and type(t) == "string" and t:find("eva-pattern-check", 1, true) ~= nil
-end)()
-function has_pattern()
-  if PREVIEW then return true end
-  local name = me.name
-  return PATTERN_STACK and name ~= nil and name ~= "" and morf.fs.exists("/etc/eva/pattern/" .. name)
-end
-local function look()
-  return {
-    panel = function() return C.surfaceContainer end,
-    key = function() return C.surfaceContainerHighest end,
-    key_dim = function() return C.surfaceContainerHigh end,
-    accent = function() return C.primary end,
-    on_accent = function() return C.onPrimary end,
-    text = function() return C.onSurface end,
-    dim = function() return C.onSurfaceVariant end,
-    press = function() return C.secondaryContainer end,
-    font = FONT, icons = ICONS,
-  }
-end
-
 -- The screen the lock is used on; the others show the frame, the desk and
 -- the time, and nothing to press. Use the monitor focused when locking,
 -- just like desktop authentication prompts; the first output is a fallback.
@@ -256,13 +224,6 @@ end)
 -- One tree per screen, at that screen's size: a held lock covers every
 -- output, and a laptop's panel and a 4K monitor each get their own layout.
 -- What they share -- the password, the stage, the door -- is above.
-local function pattern(dots)
-  if busy:get() then return end
-  local valid, reason = require("lib.shell.auth.pattern").validate(dots)
-  if not valid then say(reason, false) return end
-  password = table.concat(dots)
-  submit()
-end
 local function keyboard_attached()
   local ok, value = pcall(function() return require("models.keyboards").attached() end)
   return not ok or value
@@ -307,8 +268,6 @@ local context = {
   busy = busy,
   say = say,
   submit = submit,
-  method = method,
-  has_pattern = has_pattern,
   type_text = type_text,
   backspace = backspace,
   escape = escape,
@@ -323,8 +282,6 @@ local context = {
   FINGER = FINGER,
   FONT = FONT,
   ICONS = ICONS,
-  look = look,
-  pattern = pattern,
   key = key,
 }
 

@@ -54,9 +54,7 @@ local source=[[
   morf.ipc.clock_test=function(value) clock:set(value) end
   morf.ipc.auth_test=function(action)
     if action=="bad" then ctx.bad:set(true) ctx.message:set("Password not accepted. Try again.") end
-    if action=="password" then ctx.method:set("password") end
-    if action=="pattern" then ctx.method:set("pattern") end
-    return {typed=ctx.typed:get(),busy=ctx.busy:get(),method=ctx.method:get(),bad=ctx.bad:get()}
+    return {typed=ctx.typed:get(),busy=ctx.busy:get(),bad=ctx.bad:get()}
   end
 ]]
 local function auth(part,style)

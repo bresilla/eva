@@ -10,7 +10,6 @@ local SOURCE=[[
   keyboard.new=function(options) ctx=options board=make(options) return board end
   require("init")
   morf.ipc.form=function(action)
-    if action=="password" then ctx.method:set("password") end
     if action=="hide" then board.hide() end
     if action=="show" then board.show("full") end
     if action=="dev" then board.keys.mode:set("dev") end

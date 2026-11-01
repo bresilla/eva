@@ -28,7 +28,7 @@ local sessions = require("lib.services.sessions")
 local auth = require("lib.shell.auth")
 require("themes.ui_scale").apply()
 
--- `-- preview`: as if a pattern were set, for pictures and tests.
+-- `-- preview`: never talks to greetd, for pictures and tests.
 local PREVIEW = morf.operands[1] == "preview"
 
 local screen = morf.screens[1]
@@ -74,9 +74,6 @@ local busy = morf.signal("greet.busy", false)
 local message = morf.signal("greet.message", "")
 local bad = morf.signal("greet.bad", false)
 local shake = morf.signal("greet.shake", 0)
--- "pattern" or "password": what the sheet takes (a pattern where one is set).
-local method = morf.signal("greet.method", "password")
-local has_pattern -- below, with the pattern pad
 -- "closed" (coming in), "rest" (choosing), "sheet" (the way in is open),
 -- "leaving" (the session is starting).
 local stage = morf.signal("greet.stage", "closed")
@@ -118,7 +115,6 @@ local function choose(index)
   if busy:get() then return end
   if index == who:get() or not people[index] then return end
   who:set(index)
-  method:set(has_pattern() and "pattern" or "password")
   clear()
   say("")
   door:switch(person().name)
@@ -149,7 +145,6 @@ local function open_sheet()
   if stage:get() ~= "rest" then return end
   stage:set("sheet")
   pull:set(0)
-  method:set(has_pattern() and "pattern" or "password")
   if not door.available then say(NOT_GREETD, false) end
   poke()
 end
@@ -177,7 +172,6 @@ end
 local MAX_DOTS = 20
 local function type_text(t)
   if #password >= 256 then return end
-  if method:get() == "pattern" then method:set("password") clear() end
   password = password .. t
   typed:set(math.min(#password, MAX_DOTS))
   if bad:get() then say("") end
@@ -208,22 +202,6 @@ morf.time.timer(1000, function()
   day:set(now("%A, %-d %B"))
 end, true)
 
-local PATTERN_STACK = (function()
-  local ok, t = pcall(morf.fs.read, "/etc/pam.d/greetd")
-  return ok and type(t) == "string" and t:find("eva-pattern-check", 1, true) ~= nil
-end)()
-function has_pattern()
-  if PREVIEW then return true end
-  local name = person().name
-  return PATTERN_STACK and name ~= nil and name ~= "" and morf.fs.exists("/etc/eva/pattern/" .. name)
-end
-local function pattern(dots)
-  if busy:get() then return end
-  local valid, reason = require("lib.shell.auth.pattern").validate(dots)
-  if not valid then say(reason, false) return end
-  password = table.concat(dots)
-  submit()
-end
 local function key(keysym, typed_text)
       local RETURN, KP_ENTER, BACKSPACE, ESCAPE = 0xff0d, 0xff8d, 0xff08, 0xff1b
       local LEFT, RIGHT, F2 = 0xff51, 0xff53, 0xffbf
@@ -281,8 +259,6 @@ local context = {
   busy = busy,
   say = say,
   submit = submit,
-  method = method,
-  has_pattern = has_pattern,
   type_text = type_text,
   backspace = backspace,
   escape = escape,
@@ -304,7 +280,6 @@ local context = {
   step_session = step_session,
   choose = choose,
   clear = clear,
-  pattern = pattern,
   key = key,
 }
 local ui=require("morf.ui")

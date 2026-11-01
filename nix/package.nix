@@ -1,6 +1,10 @@
 {
   lib,
-  runCommand,
+  runCommandCC,
+  pkg-config,
+  gcr_4,
+  glib,
+  json-glib,
   roboto,
   material-symbols,
   ibm-plex,
@@ -8,8 +12,6 @@
   src,
   version,
   morf,
-  keyring,
-  pattern,
 }:
 let
   # Found by name: where a font package puts its files moves between
@@ -26,11 +28,14 @@ in
 #   share/eva     the shell, lock screen and greeter, with the Lua library of
 #                 the morf it is built against and the faces it draws with
 #   share/fonts   the whole families of those faces, for the system's fonts
-#   bin, libexec  the keyring bridge and the pattern unlock helpers
+#   bin           eva-keyring, the bridge for GNOME Keyring prompts
 #   nixos         the NixOS module, importable without eva's flake
-runCommand "eva-${version}"
+runCommandCC "eva-${version}"
   {
     inherit version;
+    nativeBuildInputs = [ pkg-config ];
+    buildInputs = [ gcr_4 glib json-glib ];
+    strictDeps = true;
     passthru.fontPackages = map (font: font.package) fonts;
     meta = {
       description = "A desktop shell, lock screen and greeter for morf";
@@ -70,9 +75,9 @@ runCommand "eva-${version}"
       mkdir -p "$out/share/fonts/${font.package.pname or font.package.name}"
       cp -rs ${font.package}/share/fonts/. "$out/share/fonts/${font.package.pname or font.package.name}/"
     '') fonts}
-    mkdir -p "$out/bin" "$out/libexec"
-    ln -s ${keyring}/bin/eva-keyring "$out/bin/"
-    ln -s ${pattern}/bin/eva-pattern "$out/bin/"
-    ln -s ${pattern}/libexec/eva-pattern-check "$out/libexec/"
+    mkdir -p "$out/bin"
+    $CC -std=gnu11 -O2 -Wall -Wextra -Werror ${src}/helpers/keyring/eva-keyring.c \
+      $(pkg-config --cflags --libs gcr-4 gio-unix-2.0 json-glib-1.0) \
+      -o "$out/bin/eva-keyring"
     cp -RL ${src}/nix/nixos "$out/nixos"
   ''

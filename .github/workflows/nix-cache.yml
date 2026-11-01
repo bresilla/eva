@@ -88,6 +88,5 @@ jobs:
           eva=$(nix build --accept-flake-config --no-update-lock-file \
             --max-jobs 0 --builders '' --no-link --print-out-paths .#eva)
           test -x "$eva/bin/eva-keyring"
-          test -x "$eva/libexec/eva-pattern-check"
           test -f "$eva/share/eva/shell/init.lua"
           nix eval --impure --raw --expr "import ./nix/detached.nix { eva = \"$eva\"; }"

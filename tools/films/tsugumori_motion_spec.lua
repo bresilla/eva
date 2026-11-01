@@ -19,7 +19,6 @@ test.it("Tsugumori lock registers its field and assembles the access panel",func
   film("lock-register",16,100)
   test.near(test.get("lock-folio").opacity,1,0.001)
   test.truthy(test.get("lock-phase-field").visible)
-  test.click("lock-method")
   test.type("example")
   film("lock-glyph",8,100)
   test.ipc("stage","rest")

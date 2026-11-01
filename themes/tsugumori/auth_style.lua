@@ -32,7 +32,7 @@ return function(context)
       elseif id=="greet-session-surface" then
         props.color=function() return C.primary:alpha(.08) end
         props.border_width=1 props.border_color=function() return stroke(C,"idle") end
-      elseif id:match("%-method%-surface$") or id=="greet-suspend-surface"
+      elseif id=="greet-suspend-surface"
         or id=="greet-reboot-surface" or id=="greet-poweroff-surface" then
         props.color=function() return C.primary:alpha(.07) end
         props.border_width=1 props.border_color=function() return stroke(C,"quiet") end

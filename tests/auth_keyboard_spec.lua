@@ -54,7 +54,6 @@ local HOST=[=[
     mode=board.keys.mode:get(),numbers=board.keys.numbers:get(),typed=auth.typed:get()} end
   morf.ipc.key_id=function(key) return options.prefix..".osk."..options.output..".key."..board.keys.mode:get()..".letters."..key end
   morf.ipc.draft=function() auth.type_text("x") end
-  morf.ipc.password=function() auth.method:set("password") end
 ]=]
 local function load(role,style,size)
   test.load("../"..role.."/init.lua",{source=HOST,size=size or {620,1380},
@@ -75,7 +74,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.it(style.." "..role.." shares the large keyboard and its two-finger gestures",function()
       load(role,style)
       test.swipe({310,1375},{310,1130},{duration=300}) test.advance(900)
-      test.eq(state().stage,"sheet") test.ipc("password") test.advance(300) test.truthy(state().open)
+      test.eq(state().stage,"sheet") test.advance(300) test.truthy(state().open)
       local q=test.get(test.ipc("key_id","q"))
       test.truthy(q.height>=56,"Authentication shrank the shared keyboard")
       test.falsy(state().numbers)

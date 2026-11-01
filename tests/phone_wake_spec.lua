@@ -129,7 +129,7 @@ for _,role in ipairs {"lock","greet"} do
       package.loaded[theme]=function(context) ctx=context return build(context) end
       require("init")
       morf.ipc.power=function(value) status=value changed() end
-      morf.ipc.draft=function() ctx.open_sheet() ctx.method:set("password") ctx.type_text("draft") end
+      morf.ipc.draft=function() ctx.open_sheet() ctx.type_text("draft") end
       morf.ipc.audit=function() return {stage=ctx.stage:get(),typed=ctx.typed:get(),wakes=wakes} end
     ]]
     test.load("../"..role.."/init.lua",{source=source,size={400,900},args={"window","preview"},env={

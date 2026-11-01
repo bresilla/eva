@@ -11,12 +11,11 @@ function M.new(ctx)
   local shown=morf.signal(ctx.prefix..".keyboard.shown",true)
   local kb
   local function ready() return enabled and ctx.main() and not ctx.busy:get() end
-  local function active() return enabled and ctx.main() and shown:get() and ctx.stage:get()=="sheet" and ctx.method:get()=="password" end
+  local function active() return enabled and ctx.main() and shown:get() and ctx.stage:get()=="sheet" end
   local function show(mode)
     if not ready() then return end
     ctx.claim()
     ctx.open_sheet()
-    if ctx.method:get()~="password" then ctx.clear() ctx.method:set("password") end
     if mode then kb.keys.mode:set(mode) end
     kb.keys.reset()
     shown:set(true)

@@ -57,7 +57,7 @@ or real-shell restart was performed.
   notifications/OSD, session/auth dialogs, capture, planner, bottom workspace,
   Lule and on-screen keyboard.
 - [ ] Separate lock and greeter controllers from their theme views, including
-  multi-monitor lock, password/pattern, account/session selection and OSK.
+  multi-monitor lock, password, account/session selection and OSK.
 - [ ] Implement a coherent Tsugumori-inspired visual theme: framed geometry,
   typography, control design, layout and animation, including lock and greeter.
 - [ ] Both themes use wallpaper palettes, verified with contrasting accents.

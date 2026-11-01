@@ -2,7 +2,6 @@
 -- password or greetd connection is stored here.
 local morf = require("morf")
 local ui = require("morf.ui")
-local osk = require("lib.shell.osk")
 local shapes = require("lib.theme.shapes")
 return function(ctx)
 local ui = ctx.ui or ui
@@ -21,8 +20,6 @@ local pull = ctx.pull
 local busy = ctx.busy
 local say = ctx.say
 local submit = ctx.submit
-local method = ctx.method
-local has_pattern = ctx.has_pattern
 local type_text = ctx.type_text
 local backspace = ctx.backspace
 local escape = ctx.escape
@@ -43,7 +40,6 @@ local step_person = ctx.step_person
 local step_session = ctx.step_session
 local choose = ctx.choose
 local clear = ctx.clear
-local pattern = ctx.pattern
 local key = ctx.key
 local main = ctx.main or function() return true end
 local OUTPUT=ctx.output_name or ""
@@ -61,35 +57,9 @@ local SW = geometry.sheet_width
 local AV = s(52)
 local FIELD_W, FIELD_H = SW-s(48), geometry.field_height
 
--- The pattern (helpers/pattern): offered where the stack takes one and one
--- is set for this account. Anywhere else a drawn pattern would only be a
--- wrong password, and a failed login counted.
-local function look()
-  return {
-    panel = function() return C.surfaceContainer end,
-    key = function() return C.surfaceContainerHighest end,
-    key_dim = function() return C.surfaceContainerHigh end,
-    accent = function() return C.primary end,
-    on_accent = function() return C.onPrimary end,
-    text = function() return C.onSurface end,
-    dim = function() return C.onSurfaceVariant end,
-    press = function() return C.secondaryContainer end,
-    font = FONT, icons = ICONS, radius = skin.key_radius,
-  }
-end
-local PAD_W = math.min(s(300), SW - s(48),math.max(s(96),H-2*BORDER-s(120)))
-local pad = osk.new {
-  prefix = "greet.pattern."..OUTPUT, width = PAD_W, mode = "pattern", look = skin.keyboard_look and skin.keyboard_look(look()) or look(),
-  active = function() return main() and stage:get() == "sheet" and method:get() == "pattern" and not busy:get() end,
-  on_pattern = function(dots)
-    pattern(dots)
-  end,
-}
-local function entry_h() return method:get() == "pattern" and pad.height() or FIELD_H end
-local function chip_h() return has_pattern() and s(44) or 0 end
 local kb=require("themes.auth_keyboard").new {
   prefix="greet",output=OUTPUT,width=W,height=H,border=BORDER,embedded_width=FIELD_W,
-  main=main,keyboard_attached=ctx.keyboard_attached,busy=busy,stage=stage,method=method,pull=pull,
+  main=main,keyboard_attached=ctx.keyboard_attached,busy=busy,stage=stage,pull=pull,
   claim=function() if ctx.claim then ctx.claim() end end,open_sheet=open_sheet,clear=clear,escape=escape,action=skin.action,
   look=(skin.keyboard_look or function(v) return v end) {
     panel=function() return C.surfaceContainer end,
@@ -418,12 +388,8 @@ form=require("themes.auth_form").sheet {
   text=text,heading=ctx.heading,avatar=sheet_avatar,name=function() local p=person() return p.label ~= "" and p.label or p.name end,
   active=function() return main() and stage:get()=="sheet" end,
   visible=function() return main() and (stage:get()=="sheet" or stage:get()=="leaving") end,
-  entry_height=entry_h,
-  entry=ui.Item {width=FIELD_W,height=entry_h,
-    ui.Item {anchors={horizontal_center=true},width=FIELD_W,height=FIELD_H,
-      visible=function() return method:get()=="password" end,field},
-    ui.Item {anchors={horizontal_center=true},width=PAD_W,height=pad.height,
-      visible=function() return method:get()=="pattern" end,pad.node}},
+  entry_height=FIELD_H,
+  entry=field,
   message=text {id="greet-message",width=FIELD_W,height=s(24),elide="right",font_size=s(14),
     text=function()
       local value=message:get()
@@ -431,33 +397,6 @@ form=require("themes.auth_form").sheet {
     end,
     color=function() return bad:get() and C.error or C.onSurfaceVariant end},
   session=session_chip,
-  method_height=chip_h,
-  method=ui.Item {
-    width = FIELD_W, height = chip_h, visible = has_pattern,
-    (function()
-      local area
-      area = ui.MouseArea {
-        id = "greet-method", anchors = { horizontal_center = true, bottom = true },
-        width = s(180), height = s(36), cursor = "pointer",
-        on_clicked = function()
-          method:set(method:get() == "pattern" and "password" or "pattern")
-          clear()
-          say("")
-        end,
-        ui.Rect {
-          id = "greet-method-surface", anchors = { fill = true }, radius = s(18),
-          color = function() return (area and area.hovered) and C.surfaceContainerHighest or C.surfaceContainerHigh end,
-        },
-        ui.Row {
-          anchors = { center_in = true }, gap = s(6), align = "center",
-          icon(function() return method:get() == "pattern" and "password" or "pattern" end, s(18), C.onSurfaceVariant),
-          text { font_size = s(14), color = C.onSurfaceVariant,
-            text = function() return method:get() == "pattern" and "Use password" or "Use pattern" end },
-        },
-      }
-      return area
-    end)(),
-  },
 }
 local sheet=form.node
 

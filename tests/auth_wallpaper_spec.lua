@@ -21,7 +21,6 @@ for _,role in ipairs {"greet","lock"} do
         require("init")
         ui.Image=make
         morf.ipc.wallpaper_test=function() return picture.source end
-        morf.ipc.password_test=function() context.method:set("password") end
       ]],
         args=role=="lock" and {"window","preview"} or {"preview"},
         env={EVA_DRY_RUN="1",EVA_STYLE=style,EVA_SCALE_MODE="compositor",
@@ -30,7 +29,7 @@ for _,role in ipairs {"greet","lock"} do
       local background=test.get(role.."-wallpaper")
       test.eq(test.ipc("wallpaper_test"),image)
       test.truthy(background.visible)
-      test.ipc("stage","sheet") test.ipc("password_test") test.advance(700)
+      test.ipc("stage","sheet") test.advance(700)
       test.truthy(test.get(role.."-wallpaper").height<903,"backdrop no longer follows resized content")
       test.eq(#test.logs("error"),0)
     end)

@@ -4,8 +4,8 @@ The keyring dialog in eva uses GCR's `GcrSystemPrompter` and `GcrPrompt`
 interfaces. GCR implements the encrypted secret exchange with GNOME Keyring.
 This is independent of polkit and does not modify PAM or stored keyrings.
 
-The flake builds this bridge as `.#eva-keyring`, and the NixOS module hands it
-to the shell through `EVA_KEYRING_HELPER` (`programs.eva.keyringPackage`).
+`.#eva` builds this bridge into its `bin`, and the NixOS module hands it to the
+shell through `EVA_KEYRING_HELPER`.
 `programs.eva.enable` keeps GNOME Keyring as secret storage, unlocks it through
 greetd/lock PAM, and adds sudo progress markers. eva supplies the keyring and
 Polkit dialogs; do not start a second Polkit agent in that session.

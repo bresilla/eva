@@ -29,7 +29,7 @@ test.it("one lock conversation follows the pointer between differently sized out
     morf.surface.session_lock=false
     morf.surface.width=1300 morf.surface.height=720
     morf.ipc.fixture=function(action)
-      if action=="sheet" then ctx.stage:set("sheet") ctx.method:set("password") end
+      if action=="sheet" then ctx.stage:set("sheet") end
       return {output=ctx.main_output:get(),typed=ctx.typed:get(),submits=submits}
     end
   ]]})

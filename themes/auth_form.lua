@@ -50,9 +50,9 @@ function M.sheet(ctx)
       text=ctx.name,font_size=s(20),font_weight=600,active=ctx.active},
   }
   local entry_top=PAD+AV+s(20)
-  local function entry_bottom() return entry_top+ctx.entry_height()+s(8)+s(24) end
+  local function entry_bottom() return entry_top+ctx.entry_height+s(8)+s(24) end
   local function content_height()
-    return entry_bottom()+(ctx.session and s(52) or 0)+ctx.method_height()+PAD+ctx.keyboard.inline_height()
+    return entry_bottom()+(ctx.session and s(52) or 0)+PAD+ctx.keyboard.inline_height()
   end
   local bottom=ctx.border+s(12)+(ctx.footer or 0)
   local function height()
@@ -62,7 +62,6 @@ function M.sheet(ctx)
     header,spacer(s(20)),ctx.entry,spacer(s(8)),ctx.message,
   }
   if ctx.session then nodes[#nodes+1]=spacer(s(12)) nodes[#nodes+1]=ctx.session end
-  nodes[#nodes+1]=ctx.method
   nodes[#nodes+1]=spacer(PAD)
   if ctx.keyboard.embedded then
     nodes[#nodes+1]=ui.Item {width=inner,height=ctx.keyboard.inline_height,

@@ -13,7 +13,6 @@ let
   given = packages system;
   morf = config.programs.eva.package;
   shell = config.programs.eva.shellPackage;
-  keyring = config.programs.eva.keyringPackage;
   user = config.programs.eva.user;
   userHome = config.users.users.${user}.home;
   # Keep advanced CLI invocations unchanged; protect the default entry points.
@@ -22,7 +21,7 @@ let
     export MORF_RUNTIME_PATH="${
       lib.concatMapStringsSep ":" toString config.programs.eva.runtimePaths
     }''${MORF_RUNTIME_PATH:+:$MORF_RUNTIME_PATH}"
-    export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${keyring}/bin/eva-keyring}"
+    export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${shell}/bin/eva-keyring}"
     export EVA_SCALE_MODE=compositor
     export EVA_SCALE_FILE="''${EVA_SCALE_FILE:-${config.programs.eva.uiScaleFile}}"
     export EVA_SCALE_DEFAULT="''${EVA_SCALE_DEFAULT:-${toString config.programs.eva.uiScale}}"
@@ -164,7 +163,6 @@ in
     ./compositor.nix
     ./idle.nix
     ./phone.nix
-    ./pattern.nix
   ];
 
   options.programs.eva = {
@@ -192,11 +190,6 @@ in
       type = lib.types.bool;
       default = false;
       description = "Use the shell, lockscreen and greeter shipped with eva instead of the ones in ~/.config/eva. Appearance preferences remain user-controlled.";
-    };
-    keyringPackage = lib.mkOption {
-      type = lib.types.package;
-      default = config.programs.eva.shellPackage;
-      description = "The bridge that shows GNOME Keyring prompts in eva's dialog.";
     };
     lulePackage = lib.mkOption {
       type = lib.types.package;
@@ -267,8 +260,6 @@ in
           }
           move /var/lib/morf/ui-scale /var/lib/eva/ui-scale
           move /var/lib/morf/wallpaper /var/lib/eva/wallpaper
-          move /var/lib/morf/pattern /var/lib/eva/pattern
-          move /etc/morf/pattern /etc/eva/pattern
           move /etc/morf/eva-accent /etc/eva/accent
           # The shared wallpaper's files carry the old group, which is gone.
           case "$moved" in

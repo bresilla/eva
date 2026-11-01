@@ -33,9 +33,9 @@ its source, with two visual themes: Material and Tsugumori.
 The module runs the shell as the `eva` user service, the greeter under
 greetd and the lock screen from Hyprland's idle daemon. It also handles the UI
 scale shared with the greeter, the wallpaper bridge, PAM, and, optionally,
-phone gestures and pattern unlock. Its options live under `programs.eva`:
-`uiScale`, `idle.*`, `phone.*`, `pattern.enable`, `hyprland.extraConfig`,
-`greeter.*`, `wallpaperLogo`, `usePackagedShell` and `keyringPackage`.
+phone gestures. Its options live under `programs.eva`: `uiScale`, `idle.*`,
+`phone.*`, `hyprland.extraConfig`, `greeter.*`, `wallpaperLogo` and
+`usePackagedShell`.
 
 On a phone, `phone.enable` adds continuous touch gestures, a hidden pointer and
 deliberate double-tap or power-button wake. `phone.idleTimeout = 0` disables
@@ -65,8 +65,7 @@ Each push to `main` publishes `.#eva` to `cache.bresilla.com/bresilla` under
 the pins `eva-x86_64-linux` and `eva-aarch64-linux`, beside morf's
 `morf-<system>` pins. That one output holds everything eva installs: the shell,
 lock screen and greeter in `share/eva`, their fonts in `share/fonts`,
-`eva-keyring` and `eva-pattern` in `bin` and `libexec`, and the NixOS module in
-`nixos`. A configuration that takes both as cached store paths, without eva's
+`eva-keyring` in `bin`, and the NixOS module in `nixos`. A configuration that takes both as cached store paths, without eva's
 flake, imports the module from the output and hands it the two packages:
 
 ```nix
@@ -80,16 +79,14 @@ output; the cache workflow runs it after each publish.
 
 ## Helpers
 
-The native pieces the shell talks to live in `helpers/`. The flake builds them
-on their own and into `.#eva`:
+The native pieces the shell talks to live in `helpers/`, and `.#eva` builds
+them in:
 
-- `helpers/keyring`: the GNOME Keyring prompt bridge, `.#eva-keyring`
+- `helpers/keyring`: the GNOME Keyring prompt bridge, `eva-keyring`
   ([build and tests](helpers/keyring/README.md)).
 - `helpers/pam`: `eva-auth-step`, the PAM markers that tell the shell which
   step sudo is on (face, finger, password, done), and installers for the
   markers and the lock's finger and face stacks on non-NixOS systems.
-- `helpers/pattern`: unlock patterns, `.#eva-pattern`
-  ([how they work](helpers/pattern/README.md)).
 
 ## Which morf
 
@@ -354,13 +351,13 @@ when opening the picker, then cached until the next shell reload. IPC accepts
 `morf ipc call appearance 'font:Goku'`; `font:` resets the font choice.
 
 Lock controls follow the pointer's output. Each output uses its own logical
-dimensions, including space for pattern input and the on-screen keyboard;
+dimensions, including space for the on-screen keyboard;
 other outputs show the clock and background. The lock has one private password
 draft across all outputs. The greeter stays on Cage's main display with one
 private draft and one authentication conversation.
 Both views rebuild their presentation after a resize or rotation while retaining
-controller state. Small outputs keep readable controls and scroll the sheet;
-pattern input fits the visible area. Replacing a keyboard cancels held keys and
+controller state. Small outputs keep readable controls and scroll the sheet.
+Replacing a keyboard cancels held keys and
 pending repeats. Short greeter outputs reserve a footer for power controls.
 The lock's live monitor list drops disconnected displays, so its controls move
 to a remaining output and recover when a display reconnects.
