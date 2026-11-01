@@ -186,6 +186,7 @@ in
     ./lock.nix
     ./phone.nix
     ./seamless.nix
+    ./touch.nix
   ];
 
   options.programs.eva = {

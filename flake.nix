@@ -56,6 +56,13 @@
               wallpaper = ./tests/fixtures/wallpaper.png;
             }
           );
+          # The same: the head of the file says how to run it.
+          touch-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/touch.nix {
+              module = self.nixosModules.default;
+              wallpaper = ./tests/fixtures/wallpaper.png;
+            }
+          );
           clock-test = pkgs.testers.runNixOSTest (
             import ./nix/tests/clock.nix {
               inherit eva;
