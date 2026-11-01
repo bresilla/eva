@@ -175,8 +175,8 @@ function M.hyprland()
   end
   function double.options(_, callback)
     callback({ ["input:repeat_rate"] = { int = 25 }, ["input:repeat_delay"] = { int = 600 },
-      ["input:sensitivity"] = { float = 0 }, ["input:touchpad:tap-to-click"] = { int = 1 },
-      ["input:touchpad:natural_scroll"] = { int = 1 } })
+      ["input:sensitivity"] = { float = 0 }, ["input:touchpad:tap-to-click"] = { bool = true },
+      ["input:touchpad:natural_scroll"] = { bool = true } })
   end
   function double.devices(callback)
     callback { mice = { { name = "logitech-mx-master-3" }, { name = "pixa3854-touchpad" } },

@@ -65,6 +65,26 @@ local HOST = [[
       ["input:sensitivity"] = { float = 0.25 } }
     eq(got.repeat_rate, 30) eq(got.tap_to_click, true) eq(got.sensitivity, 0.25)
   end
+  -- What `hyprctl -j getoption` printed on Hyprland 0.55.4.
+  function tests.readings_of_real_replies()
+    local lib = require("lib.services.input_config")
+    local got = lib.readings { ["input:touchpad:tap-to-click"] = { option = "input:touchpad:tap-to-click", bool = true, set = false },
+      ["input:numlock_by_default"] = { option = "input:numlock_by_default", bool = false, set = false },
+      ["input:touchpad:drag_lock"] = { option = "input:touchpad:drag_lock", int = 2, set = true },
+      ["input:accel_profile"] = { option = "input:accel_profile", str = ("["):rep(2) .. "EMPTY" .. ("]"):rep(2), set = false } }
+    eq(got.tap_to_click, true, "a toggle that is on")
+    eq(got.numlock, false, "a toggle that is off")
+    eq(got.drag_lock, true, "an option Hyprland keeps as a number")
+    eq(got.accel_profile, "", "a string nobody set")
+  end
+  function tests.a_device_with_a_slash()
+    local lib = require("lib.services.input_config")
+    local lua = lib.device_plan("tpps/2-ibm-trackpoint", { sensitivity = 0.5 }, "lua")
+    eq(lua[1].eval, 'hl.device({ name = "tpps/2-ibm-trackpoint", sensitivity = 0.5 })')
+    local plan = lib.plan({ chosen = { repeat_rate = 30 }, devices = { ["tpps/2-ibm-trackpoint"] = { enabled = false } } }, "lua")
+    truthy(plan, "the whole plan, past a device with a slash")
+    eq(#plan, 2, "the options and the device")
+  end
 
   function tests.sticky_keymap()
     local access = require("lib.services.access")
