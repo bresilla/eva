@@ -1,0 +1,40 @@
+# eva-find on the sealed sway: a real overlay over the wallpaper, the spotlight
+# landed and moved, the crosshairs, the rings of a press, and a second launch
+# shutting it. Sway's seat cursor is not readable, so the fake pointer stands in
+# for the start.
+unset EVA_DRY_RUN
+export EVA_FAKE_POINTER=420,300
+state() { appipc state | tr -d ' \n' | cut -c1-200; }
+
+BOOT=1.5 start app find
+pause 0.5
+shot spotlight
+note echo "spotlight: $(state)"
+appipc point 700 420 > /dev/null
+pause 0.5
+shot spotlight-moved
+pause 3
+note echo "after the moment, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+
+EVA_FIND_MODE=crosshairs BOOT=2 start app find
+pause 0.5
+shot crosshairs
+appipc point 900 200 > /dev/null
+pause 0.4
+shot crosshairs-moved
+note echo "crosshairs: $(state)"
+
+EVA_FIND_MODE=ripple BOOT=2 start app find
+appipc ripple 300 300 > /dev/null
+appipc ripple 500 420 > /dev/null
+shot ripple
+note echo "ripple: $(state)"
+pause 1.2
+note echo "rings after: $(state)"
+shot ripple-gone
+
+# A second launch asks the first to shut.
+EVA_FIND_MODE=crosshairs BOOT=2 start app find
+sh apps/find/cli --crosshairs
+pause 1
+note echo "second launch, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
