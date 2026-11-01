@@ -231,6 +231,27 @@ test.it("makes a timer unit of each entry with systemd", function()
   test.eq(#test.ipc("state").rang, 0)
 end)
 
+test.it("a unit carries what it needs of the session", function()
+  host("carried", { EVA_ALARM_ENGINE = "systemd", EVA_DRY_RUN = "0", PATH = "/some/bin:/other/bin",
+    WAYLAND_DISPLAY = "wayland-7", EVA_ALARM_SOUND = "/a/sound.oga" })
+  test.stub_run("systemctl", { code = 0 })
+  test.stub_run("systemd-run", { code = 0 })
+  test.ipc("add", "timer 5 min")
+  test.settle(200)
+  local argv
+  for _, run in ipairs(test.runs()) do
+    if run[1] == "systemd-run" then argv = run end
+  end
+  local before = {}
+  for _, word in ipairs(argv) do
+    if word == "--" then break end
+    before[word] = true
+  end
+  test.truthy(before["--setenv=PATH=/some/bin:/other/bin"])
+  test.truthy(before["--setenv=WAYLAND_DISPLAY=wayland-7"])
+  test.truthy(before["--setenv=EVA_ALARM_SOUND=/a/sound.oga"])
+end)
+
 test.it("takes the unit away with the entry", function()
   host("disarm", { EVA_ALARM_ENGINE = "systemd", EVA_DRY_RUN = "0" })
   test.stub_run("systemctl", { code = 0 })
