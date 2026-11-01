@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Clipboard
+Comment=History of what was copied
+Exec=eva-clipboard
+Icon=edit-paste
+Terminal=false
+Categories=Utility;
+StartupWMClass=eva.clipboard

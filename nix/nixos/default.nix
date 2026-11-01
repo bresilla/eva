@@ -323,6 +323,17 @@ in
           RestartSec = 2;
         };
       };
+      systemd.user.services.eva-clipboard = {
+        description = "eva clipboard history";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        serviceConfig = {
+          ExecStart = "${tools}/bin/eva-clipboard --watch";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
       # The faces the packaged shell draws with, for the greeter too.
       fonts.packages = [ "${shell}/share/fonts" ];
 
