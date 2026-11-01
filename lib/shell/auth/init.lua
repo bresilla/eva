@@ -102,6 +102,7 @@ function auth.lock(options)
     on = handlers(options),
     working = false,
     done = false,
+    tries = options.tries or 0, misses = {},
   }, Lock)
   if options.listen ~= false then door:listen() end
   return door
@@ -162,6 +163,15 @@ function Lock:hear(name)
         self:finish()
       elseif not self.done and self.wanted[name] then
         local quick = (morf.time.now_ms() - started) < 1000
+        -- A reader that answered no, however often it is allowed to.
+        if not quick and self.tries > 0 then
+          self.misses[name] = (self.misses[name] or 0) + 1
+          if self.misses[name] >= self.tries then
+            self.wanted[name] = false
+            self.on.info("Too many tries. Use your password.", false)
+            return
+          end
+        end
         morf.time.timer(quick and 10000 or 1500, function()
           if self.wanted[name] then self:hear(name) end
         end, false)
@@ -297,7 +307,9 @@ end
 --- Asks logind to "Suspend", "Reboot" or "PowerOff". Not interactive: a
 --- login screen has nobody to answer a polkit prompt. True, or nil and why.
 function auth.power(method)
-  local ok, manager = pcall(io.dbus.proxy, "system", "org.freedesktop.login1",
+  local dbus = morf.dbus
+  if not dbus then return nil, "cannot reach logind" end
+  local ok, manager = pcall(dbus.proxy, "system", "org.freedesktop.login1",
     "/org/freedesktop/login1", "org.freedesktop.login1.Manager")
   if not (ok and manager) then return nil, "cannot reach logind" end
   local called, err = pcall(manager.call_with, manager, method, false)

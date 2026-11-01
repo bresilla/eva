@@ -11,6 +11,8 @@ if ok and type(raw)=="string" then
 end
 runtime,instance=morf.env("XDG_RUNTIME_DIR"),morf.env("HYPRLAND_INSTANCE_SIGNATURE")
 local dry=morf.env("EVA_DRY_RUN")
+--- Whether this machine runs the phone profile, dry or not.
+function M.present() return cfg~=nil end
 if not cfg or not runtime or not instance or (dry and dry~="" and dry~="0") then
   function M.attach() end
   function M.asleep() return false end

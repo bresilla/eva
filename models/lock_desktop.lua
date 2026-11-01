@@ -29,7 +29,16 @@ function M.new(options)
     end
     return last_weather
   end
-  return {for_output=function(output)
+  return {media_available=media_available,
+    --- Play or pause, from a shortcut: its own press, on no particular output.
+    play_pause=function()
+      if not options.active() then return false end
+      local dry=morf.env("EVA_DRY_RUN")
+      if dry and dry~="" and dry~="0" then morf.log("info","eva: media play_pause (dry run)") return false end
+      if not media_available() then return false end
+      return pcall(media.play_pause)
+    end,
+    for_output=function(output)
     local function visible() return options.active() and options.primary(output) end
     local function player()
       if visible() and media_available() then last_player = media.state.active or {} end

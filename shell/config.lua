@@ -187,6 +187,8 @@ local config = settings.open {
         reboot = { "systemctl", "reboot" },
       },
     },
+    -- The lock screen: models/lock_defaults.lua.
+    lock = require("models.lock_defaults"),
     -- The quick settings' tiles shown on each kind of machine, in order,
     -- and which of them are drawn small. A tile the machine lacks is skipped.
     quick = {

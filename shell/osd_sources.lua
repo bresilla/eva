@@ -49,31 +49,17 @@ end
 
 -- ---------------------------------------------------------------- lock keys --
 
-local LEDS = morf.env and morf.env("EVA_LEDS") or "/sys/class/leds"
+local lights = require("lib.services.key_lights")
 local leds = morf.state { caps = false, num = false, has_caps = false, has_num = false }
 local paths = { caps = {}, num = {} }
 
 local function scan()
-  local caps, num = {}, {}
-  local ok, entries = pcall(morf.fs.list, LEDS, { follow = true })
-  for _, entry in ipairs(ok and entries or {}) do
-    local list = entry.name:match("::capslock$") and caps or entry.name:match("::numlock$") and num
-    if list then list[#list + 1] = LEDS .. "/" .. entry.name .. "/brightness" end
-  end
-  paths.caps, paths.num = caps, num
-  leds.has_caps, leds.has_num = #caps > 0, #num > 0
-end
-
-local function lit(list)
-  for _, path in ipairs(list) do
-    local ok, text = pcall(morf.fs.read, path)
-    if ok and type(text) == "string" and (tonumber(text:match("%d+")) or 0) > 0 then return true end
-  end
-  return false
+  paths = lights.scan()
+  leds.has_caps, leds.has_num = #paths.caps > 0, #paths.num > 0
 end
 
 local function look()
-  leds.caps, leds.num = lit(paths.caps), lit(paths.num)
+  leds.caps, leds.num = lights.lit(paths.caps), lights.lit(paths.num)
 end
 
 -- ------------------------------------------------------------------ sources --

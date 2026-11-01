@@ -32,9 +32,15 @@ return function(context)
       elseif id=="greet-session-surface" then
         props.color=function() return C.primary:alpha(.08) end
         props.border_width=1 props.border_color=function() return stroke(C,"idle") end
-      elseif id=="greet-suspend-surface"
-        or id=="greet-reboot-surface" or id=="greet-poweroff-surface" then
-        props.color=function() return C.primary:alpha(.07) end
+      elseif id:find("%-chip%-surface$") then
+        props.color=function() return C.primary:alpha(.08) end
+        props.border_width=1 props.border_color=function() return stroke(C,"idle") end
+      elseif id:find("%-surface$") and (id:find("^greet%-") or id:find("^lock%-")) then
+        local lit=props.color
+        props.color=function()
+          local chosen=lit()
+          return chosen==C.primary and chosen or C.primary:alpha(.07)
+        end
         props.border_width=1 props.border_color=function() return stroke(C,"quiet") end
       end
       -- Preserve semantic error colours on other controls.

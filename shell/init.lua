@@ -237,6 +237,7 @@ local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.si
   overlays=overlays,triggers=triggers}
 require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)
+require("lock_bridge").start()
 -- The shell's window, to a screen reader.
 frame_root.accessible_name = "Eva"
 ui.reparent(capture.editor.node,frame_root)
@@ -305,7 +306,10 @@ ipc.dashboard = verb(dashboard.drawer)
 -- Builds the shell again from its files, in place.
 ipc.reload = function() morf.reload() return true end
 -- The frame, the rail and the bar come in again: a lock lifting.
-ipc.reveal = function() return require("themes.reveal").replay() end
+ipc.reveal = function()
+  require("lock_bridge").seen()
+  return require("themes.reveal").replay()
+end
 -- The scale, as the slider sets it: `scale -0.25` (smaller), `scale 0`
 -- (the compositor's), `scale 0.5` (bigger), or nothing to ask.
 ipc.scale = function(value)
