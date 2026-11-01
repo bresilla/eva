@@ -108,6 +108,8 @@ function M.build(capture, shown)
     panels,
     indicator.build(capture, shown),
     capture.editor.node,
+    ui.Loader { anchors = { fill = true }, active = function() return capture.trim_open:get() end,
+      source = function() return require("themes").view("capture_trim").build(require("trim")) end },
   }
 end
 

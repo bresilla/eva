@@ -256,6 +256,10 @@ end
 function M.edit()
   local entry = M.entry()
   if not entry then return false end
+  if entry.kind == "recording" then
+    local trim = require("trim")
+    if not trim.available() then M.note:set(trim.MISSING) return false end
+  end
   capture.drawer.set(false)
   capture.present(function()
     if entry.kind == "recording" then require("trim").open(capture, entry.path)

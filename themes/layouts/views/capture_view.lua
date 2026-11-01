@@ -79,11 +79,16 @@ function M.build(capture, w, h)
     local phase = capture.phase:get()
     if phase == "stopping" then return "Finishing…" end
     if phase == "saving" then return "Saving…" end
+    local words = capture.message:get()
+    if capture.replay:get() > 0 then
+      if words:match("^Saving") or words:match("^Replay saved") then return words end
+      return ("Keeping the last %d s"):format(capture.replay:get())
+    end
     if active() then
       local n = capture.elapsed:get()
-      return ("Recording %02d:%02d"):format(n // 60, n % 60)
+      return ((capture.paused:get() and "Paused %02d:%02d") or "Recording %02d:%02d"):format(n // 60, n % 60)
     end
-    return capture.message:get()
+    return words
   end
 
   -- Each action is one distance field: a rounded body and a circular end
@@ -203,16 +208,36 @@ function M.build(capture, w, h)
       kit.pill { id = "capture-cancel", label = function() return "Cancel · " .. capture.countdown:get() .. "s" end,
         width = 148, height = 28, on_clicked = capture.cancel },
     },
+    -- While a recorder runs: its pause, or a replay buffer's save.
+    ui.Item { x = w - 132, y = 196, width = 116, height = 28,
+      visible = function()
+        return capture.phase:get() == "recording" and (capture.replay:get() > 0 or capture.can_pause())
+      end,
+      kit.pill { id = "capture-pause", width = 116, height = 28,
+        label = function()
+          if capture.replay:get() > 0 then return "Save replay" end
+          return capture.paused:get() and "Resume" or "Pause"
+        end,
+        on_clicked = function()
+          if capture.replay:get() > 0 then capture.replay_save() else capture.pause() end
+        end },
+    },
   }
-  -- The way to what has been captured, at the title's right.
+  -- At the title's right: the replay buffer, and what has been captured.
+  local replay = kit.action { id = "capture-replay", x = w - 16 - 36 - 38, y = 2, width = 36, height = 30, cursor = "pointer",
+    accessible_name = "Replay buffer", visible = function() return not history() end,
+    on_clicked = function() capture.replay_toggle() end,
+    kit.icon("replay", 19, function() return capture.replay:get() > 0 and C.error or C.onSurfaceVariant end, { anchors = { center_in = true } }),
+  }
   local recent = kit.action { id = "capture-history-open", x = w - 16 - 36, y = 2, width = 36, height = 30, cursor = "pointer",
+    accessible_name = "History",
     on_clicked = function() capture.history_open:set(not history()) end,
     kit.icon("history", 19, function() return history() and C.primary or C.onSurfaceVariant end, { anchors = { center_in = true } }),
   }
   return ui.Item {id="capture-page",width=w,height=h,controls,
     ui.Loader { anchors = { fill = true }, active = history,
       source = function() return require("themes").view("capture_history").build(capture, require("recent").open(capture), w, h) end },
-    kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32},recent}
+    kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32},replay,recent}
 
 end
 return M

@@ -280,6 +280,8 @@ local config = settings.open {
       cursor = false, save_dialog = false, copy_on_save = true, copy_to_disk = false,
       -- The small picture after a shot, and how long it stays in seconds.
       thumbnail = true, thumbnail_seconds = 5,
+      -- The seconds a replay buffer keeps, and a GIF's frames and width.
+      replay_seconds = 30, gif_fps = 12, gif_width = 960,
       upload_endpoint = "https://litterbox.catbox.moe/resources/internals/api.php",
       hotkey = "Print", keybind_file = "",
       -- What each recording runs: `$FILE` is the file to write (in the
@@ -287,11 +289,19 @@ local config = settings.open {
       -- selection or the window as WxH+X+Y, `$OUTPUT` the screen, `$FPS` the
       -- frame rate; `~/` and `$HOME` expanded. An empty list runs nothing.
       -- `record_portal` is for a window whose place the compositor keeps.
+      -- `record_replay` keeps `$SECONDS` and writes to `$FOLDER` on USR1; `trim`
+      -- and `gif` take `$SOURCE`, `$START` and `$END`, `gif` also `$RATE` and
+      -- `$WIDTH`.
       commands = {
         record_region = { "gpu-screen-recorder", "-w", "region", "-region", "$REGION", "-f", "$FPS", "-o", "$FILE.mp4" },
         record_window = { "gpu-screen-recorder", "-w", "region", "-region", "$REGION", "-f", "$FPS", "-o", "$FILE.mp4" },
         record_portal = { "gpu-screen-recorder", "-w", "portal", "-f", "$FPS", "-o", "$FILE.mp4" },
         record_screen = { "gpu-screen-recorder", "-w", "$OUTPUT", "-f", "$FPS", "-o", "$FILE.mp4" },
+        record_replay = { "gpu-screen-recorder", "-w", "$OUTPUT", "-f", "$FPS", "-r", "$SECONDS", "-c", "mp4", "-o", "$FOLDER" },
+        trim = { "ffmpeg", "-y", "-loglevel", "error", "-ss", "$START", "-to", "$END", "-i", "$SOURCE",
+          "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-c:a", "aac", "-movflags", "+faststart", "$FILE.mp4" },
+        gif = { "ffmpeg", "-y", "-loglevel", "error", "-ss", "$START", "-to", "$END", "-i", "$SOURCE",
+          "-vf", "fps=$RATE,scale=$WIDTH:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse", "$FILE.gif" },
         open = { "xdg-open" },
       },
     },

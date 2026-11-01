@@ -49,7 +49,8 @@ morf.effect("eva.capture.rotation", function()
 end)
 
 morf.effect("eva.capture.keyboard", function()
-  morf.surface.keyboard_focus = (editor.active:get() or capture.history_open:get()) and "exclusive" or "none"
+  local typing = editor.active:get() or capture.history_open:get() or capture.trim_open:get()
+  morf.surface.keyboard_focus = typing and "exclusive" or "none"
 end)
 
 -- ------------------------------------------------------------- notifications --
@@ -108,10 +109,12 @@ local silent = dry()
 local written
 morf.effect("eva.capture.publish", function()
   local recording, phase = capture.recording:get(), capture.phase:get()
+  local paused = capture.paused:get()
   local line = morf.json.encode {
     pid = morf.process_id, panel = capture.drawer.open:get(), editing = editor.running(),
     phase = recording and phase ~= "stopping" and "recording" or phase, recording = recording,
     started = capture.started:get(), target = capture.target:get(), output = me,
+    paused = paused, elapsed = paused and capture.elapsed:get() or nil, replay = capture.replay:get(),
   }
   if silent or not mine() or line == written then return end
   written = line
@@ -235,6 +238,19 @@ ipc["capture-claim"] = function(name)
 end
 
 ipc["capture-stop"] = function() return capture.stop() end
+ipc["capture-pause"] = function(how) return capture.pause(how == "on") end
+ipc["capture-replay-save"] = function() return capture.replay_save() end
+
+-- `capture-trim from|to SECONDS`, `capture-trim save|gif|cancel`, `capture-trim state`.
+ipc["capture-trim"] = function(how, value)
+  local trim = package.loaded.trim
+  if not trim or not capture.trim_open:get() then return false end
+  if how == "from" or how == "to" then return trim.move(how, tonumber(value) or 0) end
+  if how == "save" then return trim.save("trim") end
+  if how == "gif" then return trim.save("gif") end
+  if how == "cancel" then trim.close() return true end
+  return { from = trim.from:get(), to = trim.to:get(), duration = trim.duration:get(), busy = trim.busy:get(), note = trim.note:get() }
+end
 
 -- `capture-pin add FILE`, `capture-pin clear`, `capture-pin count`.
 ipc["capture-pin"] = function(how, path)
@@ -295,6 +311,13 @@ ipc["capture-editor"] = function(action, ...)
   if action == "last" then return editor.restore_last() end
   if action == "file" then
     local path, order = (...), options(select(2, ...))
+    if capture.is_recording(path) then
+      wake(function()
+        local ok, why = require("trim").open(capture, path)
+        if not ok then capture.message:set(why) capture.drawer.set(true) end
+      end)
+      return true
+    end
     wake(function() capture.open_file(path, order.result) end)
     return true
   end
@@ -312,12 +335,28 @@ ipc.screenshot = function(what, ...)
   return what
 end
 
--- `record [WHAT] [audio=KIND] [fps=N] [start=1]`, `record stop`, `record state`.
+-- `record [WHAT] [audio=KIND] [fps=N] [start=1]`, `record stop`, `record state`,
+-- `record pause`, `record resume`, `record replay [seconds=N]`, `record save`.
 -- The screen that holds the recorder answers a stop, wherever the focus is.
 ipc.record = function(what, ...)
   if what == "state" then
     if here() then return capture.recording:get() and capture.file:get() or "idle" end
     return
+  end
+  if what == "pause" or what == "resume" then
+    if not here() then return end
+    return capture.pause(what == "pause")
+  end
+  if what == "save" then
+    if not here() then return end
+    return capture.replay_save()
+  end
+  if what == "replay" then
+    if not here() then return end
+    if capture.recording:get() then return "already recording" end
+    local order = options(...)
+    wake(function() capture.replay_start { seconds = order.seconds, audio = order.audio, fps = tonumber(order.fps) } end)
+    return what
   end
   if what == "stop" then
     if not capture.recording:get() then

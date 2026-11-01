@@ -5,11 +5,15 @@
 #   eva-record                                       the panel
 #   eva-record region|window|monitor [--audio KIND] [--fps N]
 #   eva-record stop                                  ends it and saves the file
+#   eva-record pause|resume                          holds it, and takes it up again
+#   eva-record replay [--seconds N] [--audio KIND]   keeps the last N seconds
+#   eva-record save                                  saves what a replay buffer holds
 #   eva-record status                                recording or idle
 #
 # KIND is none, desktop, mic or both. A region comes from the selection. A
 # window is recorded from its geometry, through the desktop portal where the
-# geometry cannot be read.
+# geometry cannot be read. A replay buffer takes the screen, and `stop` ends it
+# with nothing saved.
 set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
@@ -26,10 +30,24 @@ running() {
 target=""
 audio=none
 fps=60
+seconds=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     region | window) target=$1 ;;
     monitor | screen) target=screen ;;
+    replay) target=replay ;;
+    --seconds)
+      shift
+      seconds=${1:?--seconds takes a number}
+      ;;
+    pause | resume | save)
+      if ! running; then
+        eva_say "nothing is recording"
+        exit 1
+      fi
+      eva_capture_call record "$1" > /dev/null
+      exit 0
+      ;;
     stop)
       if ! running; then
         eva_say "nothing is recording"
@@ -71,6 +89,7 @@ done
 if [ -z "$target" ]; then exec sh "$apps/screenshot/cli"; fi
 
 set -- record "$target" start=1 "fps=$fps"
+if [ "$target" = replay ] && [ -n "$seconds" ]; then set -- "$@" "seconds=$seconds"; fi
 case "$audio" in
   none) ;;
   desktop) set -- "$@" audio=default_output ;;

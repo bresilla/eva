@@ -1,6 +1,14 @@
 #!/bin/sh
 # Stands in for gpu-screen-recorder on the sealed session: writes its arguments
-# down and runs until SIGINT.
+# down and runs until SIGINT. It takes the real one's signals as its man page
+# gives them: USR2 pauses and resumes, USR1 saves a replay into the -o folder.
 printf '%s\n' "$*" >> "${RECORD_ARGS:-/dev/null}"
+out=""
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = -o ]; then out=$2; fi
+  shift
+done
 trap 'exit 0' INT
+trap 'printf "pause\n" >> "${RECORD_ARGS:-/dev/null}"' USR2
+trap 'printf "replay saved\n" >> "${RECORD_ARGS:-/dev/null}"; printf stand-in > "$out/Replay_stand_in.mp4"' USR1
 while :; do sleep 0.1; done

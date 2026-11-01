@@ -1,0 +1,81 @@
+# The recorder's new verbs against the stand-in, which takes the real one's
+# signals, and a recording's trim and GIF by the real ffmpeg on a real video.
+unset EVA_DRY_RUN
+export BOOT=0
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export RECORD_ARGS="$SEE_OUT/record-args.txt"
+FOLDER="$HOME/Pictures/Captures"
+RECORD="sh apps/bin/eva-record"
+CLI="sh apps/screenshot/cli"
+state() { toolipc state | tr -d '\\ \n' | sed 's/.*result":\["//' | cut -c1-120; }
+
+mkdir -p "$FOLDER"
+ffmpeg -y -loglevel error -f lavfi -i testsrc=duration=6:size=640x360:rate=30 -pix_fmt yuv420p "$FOLDER/film.mp4"
+
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
+
+ipc capture open > /dev/null
+pause 2
+shot panel
+ipc capture close > /dev/null
+pause 1.5
+toolipc record screen start=1 > /dev/null
+pause 2
+ipc capture open > /dev/null
+pause 2
+shot recording
+ipc capture close > /dev/null
+pause 1
+$RECORD pause
+pause 2
+ipc capture open > /dev/null
+pause 2
+shot paused
+note echo "shell sees: $(ipc capture state | tr -d ' \n')"
+ipc capture close > /dev/null
+pause 1
+$RECORD resume
+pause 1
+$RECORD stop
+pause 1.5
+note cat "$RECORD_ARGS"
+
+$RECORD replay --seconds 20
+pause 2
+ipc capture open > /dev/null
+pause 2
+shot replay
+ipc capture close > /dev/null
+pause 1
+$RECORD save
+pause 3
+note ls "$FOLDER"
+$RECORD stop
+pause 1.5
+
+toolipc capture-editor file "$FOLDER/film.mp4" > /dev/null
+pause 3
+shot trim
+toolipc capture-trim from 1.5 > /dev/null
+pause 1
+toolipc capture-trim to 4 > /dev/null
+pause 2
+shot trim-range
+toolipc capture-trim save > /dev/null
+pause 3
+TRIMMED=$(ls -t "$FOLDER"/capture_*.mp4 | head -n 1)
+note echo "trimmed: $(ffprobe -v error -show_entries format=duration -of csv=p=0 "$TRIMMED") s"
+toolipc capture-editor file "$FOLDER/film.mp4" > /dev/null
+pause 3
+toolipc capture-trim from 1 > /dev/null
+pause 1
+toolipc capture-trim to 3 > /dev/null
+pause 1
+toolipc capture-trim gif > /dev/null
+pause 4
+GIF=$(ls -t "$FOLDER"/capture_*.gif | head -n 1)
+note echo "gif: $(ffprobe -v error -select_streams v -show_entries stream=codec_name,width,height,nb_frames -of csv=p=0 "$GIF")"
+note ls -la "$FOLDER"

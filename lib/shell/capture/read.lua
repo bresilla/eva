@@ -13,15 +13,18 @@ local function command(kind, path)
   return { "zbarimg", "--quiet", "--raw", path }
 end
 
+--- Whether `program` is on PATH.
+function M.on_path(program)
+  for folder in (morf.env("PATH") or ""):gmatch("[^:]+") do
+    if morf.fs.exists(folder .. "/" .. program) then return true end
+  end
+  return false
+end
+
 --- `{ ocr = bool, qr = bool }`: which readers are on PATH.
 function M.available()
   local found = {}
-  for kind, program in pairs(M.TOOLS) do
-    found[kind] = false
-    for folder in (morf.env("PATH") or ""):gmatch("[^:]+") do
-      if morf.fs.exists(folder .. "/" .. program) then found[kind] = true break end
-    end
-  end
+  for kind, program in pairs(M.TOOLS) do found[kind] = M.on_path(program) end
   return found
 end
 
