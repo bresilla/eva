@@ -1,0 +1,57 @@
+# eva-draw on the sealed sway: strokes over a real window, in several pens and
+# widths, words, the board, undo, and keys going to the overlay. Pointer gestures
+# are tests/draw_spec.lua's: here the strokes come through the tool's own verb.
+unset EVA_DRY_RUN
+state() { appipc state | tr -d ' \n' | cut -c1-200; }
+until_tool() { for _ in $(seq 60); do appipc state > /dev/null 2>&1 && return 0; sleep 0.25; done; }
+
+sh apps/launch keys > "$SEE_OUT/keys.log" 2>&1 &
+pause 3
+BOOT=0.5 start app draw
+until_tool
+pause 0.8
+shot empty
+
+W=$(swaymsg -t get_outputs | jq -r '.[0].rect.width')
+H=$(swaymsg -t get_outputs | jq -r '.[0].rect.height')
+# A wave of parabolas across the screen, at height $1, $2 tall.
+wave() {
+  words=""
+  for i in $(seq 0 8 $((W - 80))); do
+    t=$((i % 240))
+    if [ "$t" -lt 120 ]; then v=$((t * (120 - t) * $2 / 3600)); else v=$((0 - (t - 120) * (240 - t) * $2 / 3600)); fi
+    words="$words $((i + 40)) $(($1 + v))"
+  done
+  appipc stroke "$words" > /dev/null
+}
+appipc pen r > /dev/null
+appipc width 2 > /dev/null
+wave $((H / 5)) 40
+appipc pen g > /dev/null
+appipc width 3 > /dev/null
+wave $((H / 3)) 60
+appipc pen b > /dev/null
+appipc width 4 > /dev/null
+wave $((H / 2)) 30
+appipc pen y > /dev/null
+appipc width 3 > /dev/null
+appipc write 60 $((2 * H / 3)) "Look here" > /dev/null
+pause 0.6
+shot marks
+note echo "marks: $(state)"
+
+key c
+pause 0.5
+note echo "after the key c: $(state)"
+appipc undo > /dev/null
+pause 0.5
+note echo "undone: $(state)"
+appipc board > /dev/null
+pause 0.8
+shot board
+appipc board > /dev/null
+
+key Escape
+pause 1
+note echo "after Escape, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+ROLE=""
