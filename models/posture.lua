@@ -1,5 +1,5 @@
 -- Whether a convertible is folded into a tablet: the kernel's SW_TABLET_MODE,
--- through `evtest` (morf has no evdev API). Its events come as a stream of
+-- through `evtest`. Its events come as a stream of
 -- lines; the state is asked outright (`--query`) at the start, after a resume,
 -- after each event, and every RECHECK while folded. A hint (`eva tablet on`,
 -- what Hyprland's switch binds send) starts the same question; with no answer

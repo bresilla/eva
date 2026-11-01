@@ -1,6 +1,6 @@
 -- A line of text, a medical card and a way to call for help, all as the person
--- set them. Only the listed numbers can be dialled, through `dialer()`: the phone
--- stream's `lib.services.emergency_call`, with `present()` and `dial(number)`.
+-- set them. Only the listed numbers can be dialled, through `dialer()`:
+-- `lib.services.emergency_call`, with `present()` and `dial(number)`.
 -- EVA_FAKE_DIAL=1 stands in under a dry run.
 local morf = require("morf")
 local M = {}

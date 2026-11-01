@@ -1,6 +1,5 @@
--- The widgets a surface can show. This list is the appearance stream's to
--- fill, through `themes.widgets_catalogue`; until it lands it holds what eva
--- can draw on its own.
+-- The widgets a surface can show: those of `themes.widgets_catalogue`, then
+-- what eva can draw on its own.
 --
 -- A widget: `{ id, name, lock_safe, build = function(view) return node end }`.
 -- Only a widget marked `lock_safe` is drawn on a lock. It is given `view`: the
@@ -36,7 +35,7 @@ M.BUILT_IN = {
   { id = "calendar", name = "Calendar", lock_safe = true, build = calendar },
 }
 
---- Every widget there is: the appearance stream's, then the built-in ones.
+--- Every widget there is: the catalogue's, then the built-in ones.
 function M.list()
   local out = {}
   local ok, stream = pcall(require, "themes.widgets_catalogue")
