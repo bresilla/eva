@@ -202,7 +202,7 @@ function M.toggle_controls() M.controls:set(not M.controls:get()) end
 --- Plays or pauses what is playing.
 function M.play_pause()
   local media = services.media
-  if media and media.state.available and media.toggle then media.toggle() return true end
+  if media and media.state.available then media.play_pause() return true end
   return false
 end
 

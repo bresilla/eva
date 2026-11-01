@@ -381,6 +381,7 @@ function V.build(model)
   end)
 
   local strip_shown = ui.Item { id = "overview-strip-holder", anchors = { fill = true },
+    opacity = function() return pull:get() end, behavior = { opacity = fade },
     visible = function() return not cards() end, strip }
   local root = ui.Item { id = "overview", anchors = { fill = true },
     accessible_role = "dialog", accessible_name = "Overview",

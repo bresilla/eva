@@ -57,6 +57,10 @@ function M.register(ipc)
     if how == "open" then return overview.open() end
     return overview.toggle()
   end
+  ipc.overview_menu = function(index)
+    local row = overview.cards:get(tonumber(index) or 1)
+    if row then overview.menu_for:set(row.address) end
+  end
   local switcher = require("window_switcher")
   -- `switcher next|prev|same [free]`: a press of the key, Alt held unless
   -- `free` says it is not. `commit`, `cancel`, `state`.
