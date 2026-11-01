@@ -22,9 +22,14 @@ frame.open {
   build = function(w, h) return view.build(w, h) end,
 }
 
+morf.effect("phone.seen", function()
+  if model.tab:get() == 2 then model.seen() end
+end)
+
 morf.ipc.state = function()
   return { number = model.number:get(), message = model.message:get(), recents = #model.recents(),
-    people = #model.people(), matches = #model.matches(), tab = model.tab:get(), can_call = model.can_call() }
+    people = #model.people(), matches = #model.matches(), tab = model.tab:get(), can_call = model.can_call(),
+    unseen = model.unseen() }
 end
 morf.ipc.tab = function(index) model.tab:set(tonumber(index)) return true end
 morf.ipc.press = function(keys)

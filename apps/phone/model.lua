@@ -95,11 +95,20 @@ function M.toggle_block(number)
   blocked_now:set(blocked_now:get() + 1)
 end
 
---- Missed calls seen: the badge goes.
+--- Marks every missed call seen.
 function M.seen()
   for _, row in ipairs(M.log.rows:get()) do
     if row.seen == false then M.log.update(row.id, { seen = true }) end
   end
+end
+
+--- Missed calls not yet seen.
+function M.unseen()
+  local count = 0
+  for _, row in ipairs(M.log.rows:get()) do
+    if row.seen == false then count = count + 1 end
+  end
+  return count
 end
 
 function M.people() return M.book.search(M.query:get()) end

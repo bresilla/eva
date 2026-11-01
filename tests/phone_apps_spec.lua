@@ -49,6 +49,14 @@ test.it("recent calls come from the shell's history, by name, newest first",func
   test.eq(test.get("phone-recent-3-title").text,"+4915112345678")
 end)
 
+test.it("a missed call counts until the recents are looked at",function()
+  load("phone",nil,"calls")
+  test.eq(test.ipc("state").unseen,1)
+  test.ipc("tab",2)
+  test.advance(40)
+  test.eq(test.ipc("state").unseen,0)
+end)
+
 test.it("contacts are searched and starred",function()
   load("phone")
   test.ipc("tab",3)

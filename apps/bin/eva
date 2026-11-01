@@ -31,6 +31,7 @@ assistant|toggle, open or close|The assistant
 lule|toggle, open or close|The colour tool's panel
 osd|volume, brightness, mic or another kind|Show the on-screen display
 notify|SUMMARY [BODY URGENCY APP]|Post a notification
+phone|answer, decline, hangup, mute, speaker, hold, dial N or state|The call in progress
 workspace|N|Go to workspace N
 window_menu|toggle, open or close|The window menu
 appearance|material, tsugumori, font:NAME or state|Change or read the theme
