@@ -80,7 +80,8 @@ return function(W, H, NAME)
   }
   local content_height=kb.content_height
   local form
-  local function sheet_h() return form and form.height() or 1 end
+  local formed=morf.signal("lock.formed."..NAME,0)
+  local function sheet_h() formed:get() return form and form.height() or 1 end
 
   -- The swell's height as it stands: a bud at rest, the sheet up, a swipe
   -- in between.
@@ -351,6 +352,7 @@ return function(W, H, NAME)
       color=function() return bad:get() and C.error or C.onSurfaceVariant end},
   }
   local sheet=form.node
+  formed:set(formed:get()+1)
 
   -- ------------------------------------------------------------ the screen --
 

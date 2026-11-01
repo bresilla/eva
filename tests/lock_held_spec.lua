@@ -34,9 +34,9 @@ local SOURCE=[[
     return {state=morf.lock.state:get(),stage=ctx.stage:get(),submits=submits}
   end
 ]]
-local function load(screens)
+local function load(screens,style)
   test.load("../lock/init.lua",{source=SOURCE,size={1920,1080},screens=screens,
-    env={EVA_STYLE="material",EVA_SCALE_MODE="compositor",EVA_DRY_RUN="1"}})
+    env={EVA_STYLE=style or "material",EVA_SCALE_MODE="compositor",EVA_DRY_RUN="1"}})
   test.settle(1500)
 end
 local function locks()
@@ -84,4 +84,18 @@ test.it("the right password lifts the lock and takes its surfaces away",function
   test.eq(test.ipc("audit").state,"unlocked")
   test.eq(#locks(),0)
   test.eq(#test.logs("error"),0)
+end)
+
+test.it("Tsugumori's phase art stays out of a held lock and in a window",function()
+  load(1,"tsugumori")
+  test.eq(#locks(),1)
+  test.eq(test.find {id="lock-phase-1"},nil)
+  test.eq(test.find {id="lock-phase-2"},nil)
+  local held=test.get("lock-swell").y
+  test.load("../lock/init.lua",{size={1920,1080},args={"window","preview"},
+    env={EVA_STYLE="tsugumori",EVA_SCALE_MODE="compositor",EVA_DRY_RUN="1"}})
+  test.settle(1500)
+  test.truthy(test.find {id="lock-phase-1"})
+  test.truthy(test.find {id="lock-phase-2"})
+  test.eq(held,test.get("lock-swell").y,"the bud stands where it does in a window")
 end)

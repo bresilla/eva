@@ -77,7 +77,8 @@ local kb=require("themes.auth_keyboard").new {
 }
 local content_height=kb.content_height
 local form
-local function sheet_h() return form and form.height() or 1 end
+local formed=morf.signal("greet.formed."..OUTPUT,0)
+local function sheet_h() formed:get() return form and form.height() or 1 end
 
 local BUD_W, BUD_H = s(132), s(16)
 local function up()
@@ -399,6 +400,7 @@ form=require("themes.auth_form").sheet {
   session=session_chip,
 }
 local sheet=form.node
+formed:set(formed:get()+1)
 
 local root = ui.Item {
   anchors = { fill = true },
