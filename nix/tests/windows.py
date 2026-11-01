@@ -47,7 +47,13 @@ def panels():
 
 
 def clients():
-    return json.loads(hyprctl("-j", "clients"))
+    # A compositor stalled on a software GPU can answer nothing at all.
+    for _ in range(5):
+        out = hyprctl("-j", "clients")
+        if out:
+            break
+        machine.sleep(2)
+    return json.loads(out)
 
 
 def client(title):
@@ -364,6 +370,21 @@ def layouts_section():
         check("restore answers", ipc("layouts", "restore", "work") in (True, "true"))
         check("a tiled window returns to its workspace", eventually(lambda: box("base")[0] == 5), str(box("base")))
         check("a floating window returns to its exact box", eventually(lambda: box("side") == saved_box), f"{box('side')} {saved_box}")
+
+        # The shell coming up in a session is what a login is, to the layout.
+        ipc("layouts", "login", "work")
+        machine.sleep(1)
+        move("base", 'move({ workspace = "2", follow = false, window = "title:base" })')
+        ask("reload")
+        machine.sleep(15)
+        check("the chosen layout returns as the shell comes up", eventually(lambda: box("base")[0] == 5), str(box("base")))
+        move("base", 'move({ workspace = "2", follow = false, window = "title:base" })')
+        ask("reload")
+        machine.sleep(15)
+        check("and only once a session", box("base")[0] == 2, str(box("base")))
+        ipc("layouts", "restore", "work")
+        ipc("layouts", "login", "")
+        machine.sleep(3)
 
         # A closed window with a desktop entry starts again: foot has one. Its
         # title is the terminal's own, so it comes back as a foot, not as `side`.
