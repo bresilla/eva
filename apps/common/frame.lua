@@ -86,7 +86,10 @@ function M.open(spec)
   require("themes.ui_scale").apply()
   M.follow_scheme()
   follow_appearance()
-  -- A window that lives through a reload gets no configure: its size is kept.
+  morf.ipc["eva-app"] = function()
+    return { theme = themes.current.id, primary = C.primary:hex(), settings = config.path }
+  end
+  -- The window's size, kept across a reload.
   local kept = morf.reloadable("eva.app.size", {})
   local size = kept:get()
   return app.application {

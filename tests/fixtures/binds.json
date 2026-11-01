@@ -1,0 +1,7 @@
+[
+  { "modmask": 64, "key": "Return", "dispatcher": "exec", "arg": "kitty", "description": "" },
+  { "modmask": 65, "key": "Q", "dispatcher": "killactive", "arg": "", "description": "Close the window" },
+  { "modmask": 64, "key": "1", "dispatcher": "workspace", "arg": "1", "description": "" },
+  { "modmask": 72, "key": "F", "dispatcher": "fullscreen", "arg": "0", "description": "Fullscreen" },
+  { "modmask": 0, "key": "Print", "dispatcher": "exec", "arg": "eva capture toggle", "description": "" }
+]

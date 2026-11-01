@@ -1,7 +1,7 @@
 #!/bin/sh
-# A stand-in for morf in the command-line specs: logs each call to $STUB_LOG and
-# answers `ipc verbs` while $STUB_UP is set.
-printf '%s\n' "$*" >> "$STUB_LOG"
+# A stand-in for morf in the command-line specs: logs each call and the files it
+# was handed to $STUB_LOG, and answers `ipc verbs` while $STUB_UP is set.
+printf '%s EVA_SETTINGS=%s EVA_APPEARANCE=%s\n' "$*" "${EVA_SETTINGS:-}" "${EVA_APPEARANCE:-}" >> "$STUB_LOG"
 if [ "$1 $2" = "ipc verbs" ]; then
   [ -n "${STUB_UP:-}" ] || exit 1
   printf 'launcher\ndashboard\nsettings\nnotify\n'

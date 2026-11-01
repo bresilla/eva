@@ -7,6 +7,16 @@
 -- keeps its editing chords (Ctrl+A, C, V, ...) whatever is listed here.
 local M = {}
 
+--- What each key does, for eva-keys.
+M.LABELS = {
+  { "ctrl+space", "Open the launcher" }, { "ctrl+d", "Open the dashboard" },
+  { "ctrl+,", "Open the quick settings" }, { "ctrl+n", "Open the notifications" },
+  { "ctrl+t", "Open the tasks" }, { "ctrl+shift+c", "Open the calendar" },
+  { "ctrl+l", "Open the colour tool" }, { "ctrl+q", "Open the session menu" },
+  { "ctrl+shift+s", "Open the capture panel" }, { "ctrl+w", "Shut what is open" },
+  { "alt+Left", "Back one page" },
+}
+
 --- The table for a node's `shortcuts`, from the shell's IPC verbs.
 function M.table(ipc)
   local function call(name, ...)
