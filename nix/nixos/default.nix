@@ -217,6 +217,12 @@ in
     default = "${scaleDirectory}/scale.json";
     description = "Shared, user-writable UI scale preference readable by the greeter.";
   };
+  options.programs.eva.rotation.enable = lib.mkOption {
+    type = lib.types.bool;
+    default = config.programs.eva.phone.enable;
+    defaultText = lib.literalExpression "config.programs.eva.phone.enable";
+    description = "Read the accelerometer, for auto-rotate and the rotation lock tile.";
+  };
   options.programs.eva.runtimePaths = lib.mkOption {
     type = lib.types.listOf lib.types.path;
     default = [ "${config.programs.eva.package}/share/morf/library" ];
@@ -242,7 +248,12 @@ in
       environment.systemPackages = [
         (lib.hiPrio morfDefault)
         bridge
+        pkgs.hyprsunset
       ];
+      hardware.sensor.iio.enable = lib.mkIf config.programs.eva.rotation.enable true;
+      services.power-profiles-daemon.enable = lib.mkIf (
+        !config.services.tlp.enable && !config.services.auto-cpufreq.enable
+      ) (lib.mkDefault true);
       system.build.evaLauncher = morfDefault;
       system.build.evaGreeter = greeter;
       system.build.evaGreeterAccess = greeterAccess;
