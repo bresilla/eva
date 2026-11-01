@@ -202,6 +202,9 @@ local function hidden_section(model, w)
     },
     P.row { id = "network-proxy-open", width = inner, icon = "shield", title = "Proxy", subtitle = "For this session's programs",
       trailing = P.chevron(), on_clicked = function() model.request("network/proxy") end },
+    P.row { id = "network-help-open", width = inner, icon = "troubleshoot", title = "Connection help",
+      subtitle = "Troubleshoot, speed test, sign-in pages",
+      trailing = P.chevron(), on_clicked = function() model.request("network/help") end },
   }
 end
 

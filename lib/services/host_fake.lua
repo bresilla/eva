@@ -17,7 +17,12 @@ function M.managed() return false end
 
 local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
   scanimage = not NIXOS, lpstat = not NIXOS, ["firewall-cmd"] = not NIXOS, gsettings = true, lspci = true, ["xdg-open"] = true,
-  gio = true, ["eva-battery"] = true }
+  gio = true, ["eva-battery"] = true, ping = true, getent = true }
+
+-- What the network does: `ok`, or how it breaks (`portal`, `no-address`,
+-- `self-assigned`, `no-gateway`, `no-dns`, `no-internet`, `quiet-router`).
+M.net = morf.env("EVA_FAKE_NET") or ""
+if M.net == "" then M.net = "ok" end
 
 function M.installed(program) return PROGRAMS[program] == true end
 function M.tool(name)
@@ -91,6 +96,19 @@ local function answer(argv, options)
     return { ok = true, stdout = "eva-clipboard.service loaded active running eva clipboard history\nsyncthing.service loaded active running Syncthing\nredshift.service loaded inactive dead Redshift\n" }
   end
   if argv[1] == "pw-dump" then return { ok = true, stdout = DEVICES } end
+  if argv[1] == "nmcli" and argv[2] == "-t" and argv[5] == "device" then
+    if M.net == "no-address" then return { ok = true, stdout = "IP4.GATEWAY:--\n" } end
+    if M.net == "self-assigned" then return { ok = true, stdout = "IP4.ADDRESS[1]:169.254.12.3/16\nIP4.GATEWAY:--\n" } end
+    return { ok = true, stdout = "IP4.ADDRESS[1]:192.168.1.23/24\nIP4.GATEWAY:192.168.1.1\nIP4.DNS[1]:192.168.1.1\nIP4.DNS[2]:9.9.9.9\n" }
+  end
+  if argv[1] == "ping" then
+    local quiet = M.net == "no-gateway" or M.net == "quiet-router"
+    return { ok = not quiet, code = quiet and 1 or 0, stdout = quiet and "" or "2 packets transmitted, 2 received\n" }
+  end
+  if argv[1] == "getent" then
+    local broken = M.net == "no-dns" or M.net == "no-gateway"
+    return { ok = not broken, code = broken and 2 or 0, stdout = broken and "" or "203.0.113.7 STREAM stand-in\n" }
+  end
   if argv[1] == "nmcli" and argv[2] == "-t" then
     return { ok = true, stdout = table.concat({ "connection.id:Home", "connection.uuid:u-home", "connection.type:802-11-wireless",
       "connection.metered:unknown", "connection.autoconnect:yes", "connection.dns-over-tls:-1", "ipv4.method:auto", "ipv4.addresses:",
@@ -114,6 +132,36 @@ function M.run(argv, options)
     return { ok = true, stdout = "" }
   end
   return answer(argv, options) or { ok = true, stdout = "" }
+end
+
+--- A server's answer, by what the network is doing. Each request is kept in
+--- `M.asked`; no request leaves the process.
+M.asked = {}
+function M.http(spec)
+  M.asked[#M.asked + 1] = spec.url
+  if M.net == "no-internet" or M.net == "no-dns" or M.net == "no-gateway" then
+    return { ok = false, status = 0, url = spec.url, error = "no route to host" }
+  end
+  if M.net == "portal" then
+    return { ok = true, status = 200, url = "http://login.cafe.test/welcome", body = "<html>Sign in to Cafe</html>" }
+  end
+  if spec.url:find("generate_204", 1, true) then return { ok = true, status = 204, url = spec.url, body = "" } end
+  if spec.url:find("success.txt", 1, true) then return { ok = true, status = 200, url = spec.url, body = "success\n" } end
+  if spec.url:find("check_network_status", 1, true) then
+    return { ok = true, status = 200, url = spec.url, body = "NetworkManager is online\n" }
+  end
+  local size = tonumber(spec.url:match("bytes=(%d+)")) or #(spec.body or "")
+  return { ok = true, status = 200, url = spec.url, body = string.rep("0", math.min(size, 1024)), bytes = size,
+    took_ms = size == 0 and 18 or size // 12500 }
+end
+
+--- The network turning, as NetworkManager announces it.
+function M.set_net(scene)
+  M.net = scene
+  local path, name = "/org/freedesktop/NetworkManager", "org.freedesktop.NetworkManager"
+  local connectivity = scene == "portal" and 2 or 4
+  bus.props("system", name, path, name).Connectivity = connectivity
+  bus.emit("system", name, path, "org.freedesktop.DBus.Properties", "PropertiesChanged", { name, { Connectivity = connectivity }, {} })
 end
 
 -- ------------------------------------------------------------------- files --
@@ -317,7 +365,7 @@ end
 
 local NM, NM_ROOT = "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager"
 local AP = NM_ROOT .. "/AccessPoint/1"
-bus.object(S, NM, NM_ROOT, NM, { Version = "1.50", State = 70, Connectivity = 4, NetworkingEnabled = true, WirelessEnabled = true,
+bus.object(S, NM, NM_ROOT, NM, { Version = "1.50", State = 70, Connectivity = M.net == "portal" and 2 or 4, NetworkingEnabled = true, WirelessEnabled = true,
   WirelessHardwareEnabled = true, ActiveConnections = { NM_ROOT .. "/ActiveConnection/1" }, PrimaryConnection = NM_ROOT .. "/ActiveConnection/1",
   PrimaryConnectionType = "802-11-wireless", AllDevices = { NM_ROOT .. "/Devices/1", NM_ROOT .. "/Devices/2" } }, {})
 bus.object(S, NM, NM_ROOT .. "/ActiveConnection/1", NM .. ".Connection.Active", { Id = "Home", Uuid = "u-home", Type = "802-11-wireless",

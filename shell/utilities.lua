@@ -84,6 +84,9 @@ end
 builders["network/proxy"]=function(w,h)
   return themed("settings_net").proxy_page(with_request(require("connection_model").proxy()),w,h)
 end
+builders["network/help"]=function(w,h)
+  return themed("net_help").page(with_request(require("net_help_model").new()),w,h)
+end
 function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end
 --- Whether page `key` has a builder.
 function M.has_page(key) return builders[key]~=nil end

@@ -1230,6 +1230,32 @@ only what was changed in Settings is sent.
 it runs unchanged, against `lib.testing.dbus`. `tools/see/settings.steps` walks
 every page: `EVA_FAKE_SYSTEM=1 tools/see.sh settings`.
 
+## Connection help
+
+Network and Wired each lead to **Connection help**.
+
+**Troubleshoot** walks link, address, router, names (DNS) and internet in order
+and says in plain words which one failed. A router that ignores ping is only
+called the fault if names fail too. It runs when pressed, and asks your router
+(`ping`), your DNS servers (`getent`) and the sign-in check's server.
+
+**Sign-in pages**: when NetworkManager reports a captive portal, eva says so
+with a notice and a row on this page, and pressing either opens the login page
+in the browser. It never opens one by itself. NetworkManager only knows if its
+own connectivity check is set up, so `network.portal_probe` (off by default) has
+eva ask one server, once, each time a connection comes up: `nmcheck.gnome.org`
+(GNOME), `detectportal.firefox.com` (Mozilla) or
+`connectivitycheck.gstatic.com` (Google), by `network.portal_server`. Off, eva
+sends nothing.
+
+**Speed test** runs only when pressed, against `speed.cloudflare.com`, and uses
+about 35 MB. The page says so before it starts, and warns on mobile data.
+Everything outside goes through `lib/services/net_check.lua`, which names each
+address, and `host.http`, which a headless run and `EVA_FAKE_SYSTEM` keep off
+the network. `EVA_FAKE_NET` picks how the stand-in network breaks: `portal`,
+`no-address`, `self-assigned`, `no-gateway`, `no-dns`, `no-internet`,
+`quiet-router`.
+
 ## Sound and nested settings
 
 Sound opens **Equalizer**, which opens a deeper **Audiogram** editor. Back
