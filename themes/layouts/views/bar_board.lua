@@ -27,7 +27,7 @@ function V.build(model, w)
         x = function() return tile.small() and (tile.half - 20) / 2 or S.m end,
         behavior = { x = theme.spring.spatial } }),
       kit.subtitle { x = S.xl + S.m, anchors = { vertical_center = true }, width = tile.slot - S.xxl - S.xl - S.m,
-        elide = "right", font_size = theme.size.small, color = function() return C.onSurface end,
+        wrap = true, max_lines = 2, font_size = theme.size.small, color = function() return C.onSurface end,
         opacity = function() return tile.small() and 0 or 1 end, behavior = { opacity = theme.spring.effects },
         text = name },
     }
