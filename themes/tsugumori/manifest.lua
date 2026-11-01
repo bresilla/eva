@@ -38,6 +38,7 @@ return {
     session = "themes.layouts.views.session",
     window_menu = "themes.layouts.views.window_menu",
     overview = "themes.layouts.views.overview",
+    window_switcher = "themes.layouts.views.window_switcher",
     launcher = "themes.layouts.views.launcher",
     capture_view = "themes.layouts.views.capture_view",
     capture_editor = "themes.layouts.views.capture_editor",

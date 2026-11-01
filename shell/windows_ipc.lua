@@ -42,6 +42,28 @@ function M.register(ipc)
     if how == "open" then return overview.open() end
     return overview.toggle()
   end
+  local switcher = require("window_switcher")
+  -- `switcher next|prev|same [free]`: a press of the key, Alt held unless
+  -- `free` says it is not. `commit`, `cancel`, `state`.
+  ipc.switcher = function(how, free)
+    how = how or "next"
+    if not here() then switcher.cancel() return end
+    local hold = free ~= "free"
+    if how == "next" then return switcher.step(1, hold) end
+    if how == "prev" then return switcher.step(-1, hold) end
+    if how == "same" then return switcher.same(hold) end
+    if how == "commit" then return switcher.commit() end
+    if how == "cancel" then switcher.cancel() return false end
+    if how == "state" then
+      local c = switcher.chosen()
+      return { open = switcher.opened:get(), shown = switcher.shown:get(), title = c and c.title or "" }
+    end
+    error("`" .. tostring(how) .. "`: next, prev, same, commit, cancel or state")
+  end
+  ipc.switcher_scope = function(scope)
+    if scope then require("config").set("windows.switcher.scope", scope) end
+    return switcher.scope()
+  end
 end
 
 return M

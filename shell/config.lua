@@ -200,6 +200,14 @@ local config = settings.open {
       },
       small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "nightlight", "powersaver" } },
     },
+    windows = {
+      switcher = {
+        -- What Alt+Tab walks: "all", "workspace" or "output".
+        scope = "all",
+        -- One card per application, with its windows stacked.
+        group = true,
+      },
+    },
     -- The night light (hyprsunset): whether it is on, and how warm, in kelvin.
     nightlight = { on = false, temperature = 4500 },
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk

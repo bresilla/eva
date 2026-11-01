@@ -161,12 +161,13 @@ local keyboard = require("keyboard")
 local bar = require("bar")
 local window_menu = require("window_menu")
 local overview = require("overview")
+local window_switcher = require("window_switcher")
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
 morf.effect("eva.keyboard.focus", function()
   local exclusive = launcher.drawer.open:get() or session.drawer.open:get() or window_menu.opened:get()
-    or overview.opened:get()
+    or overview.opened:get() or window_switcher.opened:get()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get() or capture.editor.active:get()
   -- Typed into on a click: the planner, the terminal, Lule's page.
   local editor_open = leftbar.drawer.open:get()
@@ -248,6 +249,7 @@ ui.reparent(capture.editor.node,frame_root)
 -- The focused window's menu, over it: in the screen's own coordinates.
 ui.reparent(window_menu.node,frame_root)
 ui.reparent(overview.node,frame_root)
+ui.reparent(window_switcher.node,frame_root)
 capture.editor.on_export=function(action,result)
   notifs.push {summary=action=="copy" and "Capture copied" or action=="save" and "Capture saved" or "Capture uploaded",
     body=action=="upload" and tostring(result or "Link copied to clipboard") or action=="save" and tostring(result or "") or "",app="Morf"}
