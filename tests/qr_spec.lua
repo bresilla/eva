@@ -1,0 +1,284 @@
+-- eva-qr: the `WIFI:` string, qrencode's output read into one outline, where a
+-- password may and may not go, the window, and the command line. A code read back
+-- off the screen by a real decoder is tools/see/qr.steps'.
+--
+--     morf test --no-dbus tests/qr_spec.lua
+
+local test = morf.test
+
+local ROOT = morf.fs.join(morf.env("PWD"), "")
+local BIN = ROOT .. "tests/fixtures/bin"
+-- A two by two code, as `qrencode -t ASCII -m 0` writes one.
+local TINY = "####  \n  ##  \n      \n"
+local SECRET = "s3cret;pa:ss"
+
+local PIECES = [[
+  local morf = require("morf")
+  require("morf.ui").Item { width = 1, height = 1 }
+  local codes = require("codes")
+  local model = require("model")
+  morf.ipc.wifi = function(ssid, security, password, hidden)
+    return codes.wifi({ ssid = ssid, security = security, hidden = hidden == "yes" }, password)
+  end
+  morf.ipc.parse = function(ascii) return codes.parse(ascii) end
+  morf.ipc.outline = function(ascii) return codes.outline(codes.parse(ascii)) end
+  morf.ipc.saved = function(lines) return model.parse_saved(lines) end
+]]
+
+local function fresh(name)
+  local state = morf.env("XDG_STATE_HOME") .. "/qr-" .. name .. "-" .. tostring(morf.time.now_ms())
+  morf.fs.mkdir(state)
+  return state
+end
+
+local function environment(state, style, extra)
+  local appearance = state .. "/appearance.json"
+  morf.fs.write(appearance, morf.json.encode { theme = style or "material", font = "" })
+  local env = { XDG_STATE_HOME = state, EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule",
+    EVA_APPEARANCE = appearance, EVA_DRY_RUN = "1" }
+  for key, value in pairs(extra or {}) do env[key] = value end
+  return env
+end
+
+local function pieces()
+  test.load("../apps/qr/app.lua", { source = PIECES, env = environment(fresh("pieces")) })
+end
+
+local function window(style, args, extra)
+  test.clear_stubs()
+  test.stub_run("qrencode", { code = 0, stdout = TINY })
+  test.load("../apps/qr/app.lua", { args = args, env = environment(fresh("window"), style, extra) })
+  test.settle(300)
+end
+
+-- Every argv since load, joined.
+local function argv_text()
+  local all = {}
+  for _, run in ipairs(test.runs()) do all[#all + 1] = table.concat(run, " ") end
+  return table.concat(all, "\n")
+end
+
+-- A host wrapping morf.process.run, to see what is written to a program's stdin.
+local function stdin_host(words)
+  test.clear_stubs()
+  test.load("../apps/qr/app.lua", { env = environment(fresh("stdin"), nil, { EVA_DRY_RUN = "0" }), source = [[
+    local morf = require("morf")
+    local real = morf.process.run
+    local fed = {}
+    morf.process.run = function(argv, options, done)
+      fed[#fed + 1] = { argv = argv, stdin = options and options.stdin }
+      done { ok = true, stdout = "####\n####\n" }
+    end
+    local frame = require("common.frame")
+    local model = require("model")
+    local view = require("view")
+    frame.open { id = "qr", title = "QR code", width = 520, height = 760, build = function(w, h) return view.build(w, h) end }
+    morf.ipc.state = function() return model.state() end
+    morf.ipc.fed = function() return fed end
+    morf.ipc.ssid = function(name) model.mode:set(2) model.ssid:set(name) return true end
+    morf.ipc.password = function(value) model.set_password(value) return true end
+    morf.ipc.save = function(path) model.save(path) return true end
+  ]] })
+  test.settle(100)
+end
+
+-- ------------------------------------------------------------------ strings --
+
+test.it("writes the WIFI string, escaping what the format reserves", function()
+  pieces()
+  test.eq(test.ipc("wifi", "home", "WPA", "secret", "no"), "WIFI:T:WPA;S:home;P:secret;;")
+  test.eq(test.ipc("wifi", "home", "WEP", "secret", "yes"), "WIFI:T:WEP;S:home;P:secret;H:true;;")
+  test.eq(test.ipc("wifi", "cafe", "nopass", "ignored", "no"), "WIFI:T:nopass;S:cafe;;")
+  test.eq(test.ipc("wifi", 'a;b,c:d\\e"f', "WPA", 'p;q,r:s\\t"u', "no"),
+    'WIFI:T:WPA;S:a\\;b\\,c\\:d\\\\e\\"f;P:p\\;q\\,r\\:s\\\\t\\"u;;')
+end)
+
+test.it("reads qrencode's modules, and refuses what is not a square of them", function()
+  pieces()
+  local code = test.ipc("parse", TINY)
+  test.eq(code.size, 3)
+  test.eq(code.rows[1], { true, true, false })
+  test.eq(code.rows[2], { false, true, false })
+  test.eq(test.ipc("parse", "### \n"), nil)
+  test.eq(test.ipc("parse", "##\n####\n"), nil)
+  test.eq(test.ipc("parse", ""), nil)
+end)
+
+test.it("draws a run of a row as one box", function()
+  pieces()
+  test.eq(test.ipc("outline", TINY), "M0 0h2v1h-2zM1 1h1v1h-1z")
+end)
+
+test.it("reads the saved Wi-Fi networks and leaves the wired ones", function()
+  pieces()
+  test.eq(test.ipc("saved", "Cafe\\: guest:802-11-wireless\nhome:802-11-wireless\nWired:802-3-ethernet\n"),
+    { "Cafe: guest", "home" })
+end)
+
+-- ------------------------------------------------------------------ secrets --
+
+test.it("hands the password to qrencode on stdin and nowhere else", function()
+  stdin_host()
+  test.ipc("ssid", "home")
+  test.ipc("password", SECRET)
+  test.advance(300)
+  local fed = test.ipc("fed")
+  local last = fed[#fed]
+  test.eq(last.argv[1], "qrencode")
+  test.contains(last.stdin, "P:s3cret\\;pa\\:ss;")
+  for _, call in ipairs(fed) do
+    test.falsy(table.concat(call.argv, " "):find("s3cret", 1, true), "never on a command line")
+  end
+end)
+
+test.it("keeps the password out of its state and off its signals", function()
+  stdin_host()
+  test.ipc("ssid", "home")
+  test.ipc("password", SECRET)
+  test.advance(300)
+  local state = test.ipc("state")
+  test.truthy(state.has_password)
+  test.falsy(morf.json.encode(state):find("s3cret", 1, true))
+end)
+
+test.it("saves a network's PNG with the password on stdin", function()
+  stdin_host()
+  test.ipc("ssid", "home")
+  test.ipc("password", SECRET)
+  test.advance(300)
+  test.ipc("save", "/nonexistent/out.png")
+  test.advance(100)
+  local fed = test.ipc("fed")
+  local last = fed[#fed]
+  test.contains(table.concat(last.argv, " "), "-t PNG")
+  test.contains(table.concat(last.argv, " "), "-o /nonexistent/out.png")
+  test.contains(last.stdin, "s3cret")
+  test.falsy(table.concat(last.argv, " "):find("s3cret", 1, true))
+end)
+
+test.it("takes a password piped in and lets its file go", function()
+  local state = fresh("piped")
+  local secret = state .. "/secret"
+  morf.fs.write(secret, SECRET .. "\n", { mode = 384 })
+  window(nil, { "wifi", "home", "--security", "WEP", "--hidden" }, { EVA_JOB_IN = secret })
+  local seen = test.ipc("state")
+  test.eq(seen.ssid, "home")
+  test.eq(seen.security, "WEP")
+  test.truthy(seen.hidden)
+  test.truthy(seen.has_password)
+  test.falsy(morf.fs.exists(secret), "the file is gone once read")
+  test.falsy(argv_text():find("s3cret", 1, true))
+end)
+
+test.it("fills a saved network's secret into the input, never a signal", function()
+  test.clear_stubs()
+  test.stub_run("qrencode", { code = 0, stdout = TINY })
+  test.stub_run("nmcli", { code = 0, stdout = "wpa-psk\n" .. SECRET .. "\nyes\n" })
+  test.load("../apps/qr/app.lua", { env = environment(fresh("nm")) })
+  test.settle(200)
+  test.ipc("pick", "home")
+  test.advance(300)
+  local seen = test.ipc("state")
+  test.eq(seen.ssid, "home")
+  test.eq(seen.security, "WPA")
+  test.truthy(seen.hidden)
+  test.truthy(seen.has_password)
+  test.falsy(morf.json.encode(seen):find("s3cret", 1, true))
+end)
+
+-- ---------------------------------------------------------------- the window --
+
+for _, style in ipairs { "material", "tsugumori" } do
+  test.it("makes a code as text is typed, in " .. style, function()
+    window(style)
+    test.falsy(test.get({ id = "qr-plate" }).visible)
+    test.click("qr-text")
+    test.type("hello")
+    test.advance(300)
+    test.settle(100)
+    test.eq(test.ipc("state").size, 3)
+    test.truthy(test.get({ id = "qr-plate" }).visible)
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it("shows the code alone over the screen and lets it go, in " .. style, function()
+    window(style, { "hello" })
+    test.ipc("show", "on")
+    test.settle(200)
+    test.truthy(test.ipc("state").full)
+    test.truthy(test.find { id = "qr-full-plate" })
+    test.ipc("show", "off")
+    test.settle(200)
+    test.falsy(test.ipc("state").full)
+    test.eq(#test.logs("error"), 0)
+  end)
+end
+
+test.it("keeps a whole number of pixels to a module", function()
+  window(nil, { "hello" })
+  local plate = test.get({ id = "qr-plate-modules" })
+  test.eq(plate.width % 3, 0)
+  test.truthy(plate.width >= 3)
+end)
+
+test.it("says what is wrong when no code can be made", function()
+  test.clear_stubs()
+  test.stub_run("qrencode", { code = 1, stderr = "Failed to encode the input data: Input data too large" })
+  test.load("../apps/qr/app.lua", { args = { "x" }, env = environment(fresh("large")) })
+  test.settle(200)
+  test.contains(test.ipc("state").message, "too long")
+  test.eq(test.ipc("state").size, 0)
+end)
+
+test.it("hides what needs no shown network tool", function()
+  window()
+  test.ipc("wifi", "home")
+  test.ipc("security", "3")
+  test.settle(300)
+  test.eq(test.ipc("state").security, "nopass")
+end)
+
+-- ---------------------------------------------------------- the command line --
+
+local function cli(args, env)
+  local state = morf.env("XDG_STATE_HOME")
+  local log = state .. "/qr-cli-" .. tostring(morf.time.now_ms()) .. ".log"
+  morf.fs.write(log, "")
+  local argv = { "env", "PATH=" .. BIN .. ":" .. morf.env("PATH"), "MORF=" .. BIN .. "/morf", "STUB_LOG=" .. log,
+    "HOME=" .. state, "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR") }
+  for _, word in ipairs(env or {}) do argv[#argv + 1] = word end
+  argv[#argv + 1] = "sh"
+  argv[#argv + 1] = ROOT .. "apps/qr/cli"
+  for _, word in ipairs(args) do argv[#argv + 1] = word end
+  test.clear_stubs()
+  test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/cli_host.lua") })
+  test.ipc("run", table.unpack(argv))
+  test.wait(function() return test.ipc("result") end, 8000, "the tool answered")
+  return morf.fs.read(log) or ""
+end
+
+test.it("opens the window on text", function()
+  test.contains(cli { "hello", "world" }, "qr/app.lua -- hello world")
+end)
+
+test.it("keeps a network's password off the tool's command line", function()
+  local calls = cli { "wifi", "home", "--hidden" }
+  test.contains(calls, "qr/app.lua -- wifi home --hidden")
+end)
+
+test.it("writes a PNG as a job, and wants a file and a text", function()
+  test.contains(cli { "--png", "/tmp/x.png", "hello" }, "qr/app.lua -- --png /tmp/x.png hello")
+  test.eq(cli { "--png", "/tmp/x.png" }, "")
+end)
+
+test.it("really encodes and writes a PNG through qrencode", function()
+  test.clear_stubs()
+  local state = fresh("real")
+  local out = state .. "/code.png"
+  local answer = state .. "/answer"
+  test.load("../apps/qr/app.lua", { args = { "--png", out, "hello", "world" },
+    env = environment(state, nil, { EVA_DRY_RUN = "0", EVA_JOB_OUT = answer }) })
+  test.wait(function() return morf.fs.exists(answer) end, 5000, "the job answered")
+  test.contains(morf.fs.read(answer), "0\n" .. out)
+  test.eq((morf.fs.read(out) or ""):sub(2, 4), "PNG")
+end)

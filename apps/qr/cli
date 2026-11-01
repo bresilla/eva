@@ -1,0 +1,69 @@
+#!/bin/sh
+# eva-qr: a QR code from text or a Wi-Fi network, on screen or in a file.
+#
+#   eva-qr                        the window
+#   eva-qr TEXT                   the window, showing TEXT
+#   eva-qr -                      the same, the text read from stdin
+#   eva-qr wifi SSID              a network; its password is read from stdin,
+#                                 or asked for on a terminal
+#          [--security WPA|WEP|nopass] [--hidden]
+#   eva-qr --png FILE TEXT        writes a PNG and ends
+#   eva-qr --png FILE wifi SSID   the same for a network
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+. "$apps/tool-job.sh"
+
+# The secret or the text from stdin, in a private file only the tool reads.
+keep_input() {
+  EVA_JOB_IN=$(eva_private_file in)
+  export EVA_JOB_IN
+  if [ "$1" = secret ] && [ -t 0 ]; then
+    printf 'Password: ' >&2
+    stty -echo 2>/dev/null || true
+    IFS= read -r line || true
+    stty echo 2>/dev/null || true
+    printf '\n' >&2
+    printf '%s' "$line" > "$EVA_JOB_IN"
+  else
+    cat > "$EVA_JOB_IN"
+  fi
+}
+
+# Whether these words name a network.
+is_wifi() {
+  if [ "${1:-}" = --png ]; then shift 2 || return 1; fi
+  [ "${1:-}" = wifi ]
+}
+
+# Whether these words read text from stdin.
+is_piped() {
+  if [ "${1:-}" = --png ]; then shift 2 || return 1; fi
+  [ "${1:-}" = - ]
+}
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" qr ;;
+  -h | --help | help)
+    sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
+    exit 0
+    ;;
+esac
+
+if [ "$1" = --png ] && [ "$#" -lt 3 ]; then
+  eva_say "usage: eva-qr --png FILE TEXT"
+  exit 2
+fi
+
+if is_wifi "$@"; then keep_input secret
+elif is_piped "$@"; then keep_input text
+fi
+
+status=0
+if [ "$1" = --png ]; then
+  eva_tool_job qr "$@" || status=$?
+else
+  sh "$apps/launch" qr "$@" || status=$?
+fi
+rm -f "${EVA_JOB_IN:-}"
+exit "$status"
