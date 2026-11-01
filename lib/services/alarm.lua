@@ -437,16 +437,24 @@ function M.new(options)
     return soonest
   end
 
-  --- Adds what `words` ask for: the entry, or nil and why.
+  --- Adds what `words` ask for, or an entry already worked out (`{ id, kind,
+  --- label, at, seconds }`, as the launcher hands one over): the entry, or nil
+  --- and why.
   function a.add(words)
-    local item, why = M.parse(words)
+    local item, why = words, nil
+    if type(words) ~= "table" then item, why = M.parse(words) end
     if not item then
       a.message:set(why)
       return nil, why
     end
-    item.id = fresh_id()
+    item.id = item.id or fresh_id()
     item.on = true
+    item.label = item.label or ""
     item.at = item.at or (M.now() + item.seconds)
+    if item.kind == "alarm" and not item.hour then
+      local date = morf.time.date(item.at)
+      item.hour, item.minute = date.hour, date.minute
+    end
     change(function(list) list[#list + 1] = item end)
     arm(item)
     a.message:set("")
@@ -462,6 +470,10 @@ function M.new(options)
     end)
     if item then disarm(item) end
   end
+  a.cancel = a.remove
+
+  --- What is set, for a surface that lists it.
+  function a.list() return a.items:get() end
 
   --- Turns an alarm on or off.
   function a.set(id, on)

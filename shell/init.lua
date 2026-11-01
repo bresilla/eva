@@ -133,6 +133,9 @@ do
   local alarm = require("services").alarm
   alarm.load()
   morf.time.timer(3000, alarm.sync, false)
+  -- What the launcher sets rings the one way anything rings.
+  local ok, timers = pcall(require, "timers_model")
+  if ok then timers.use(alarm) end
 end
 
 -- ---------------------------------------------------------------- drawers --

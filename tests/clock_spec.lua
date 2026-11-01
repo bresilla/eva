@@ -125,6 +125,26 @@ test.it("writes a span and a running clock", function()
   test.eq(test.ipc("words", "3725").running, "1:02:05")
 end)
 
+test.it("takes an entry worked out elsewhere, as the launcher hands one over", function()
+  host("seam")
+  test.load("../shell/init.lua", { env = { XDG_STATE_HOME = fresh("seam-entries"), EVA_DRY_RUN = "1",
+    EVA_NOW = tostring(MONDAY), EVA_ALARM_ENGINE = "local" }, source = HOST .. [[
+    morf.ipc.entries = function(id)
+      a.add { id = id, kind = "timer", label = "tea", seconds = 60, at = 1793613660 }
+      a.add { kind = "alarm", label = "gym", at = 1793620800 }
+      return a.list()
+    end
+    morf.ipc.drop = function(id) a.cancel(id) return #a.list() end
+  ]] })
+  local list = test.ipc("entries", "from-launcher")
+  test.eq(#list, 2)
+  test.eq(list[1].id, "from-launcher")
+  test.truthy(list[1].on)
+  test.truthy(list[2].hour ~= nil)
+  test.truthy(test.ipc("state").armed)
+  test.eq(test.ipc("drop", "from-launcher"), 1)
+end)
+
 -- ---------------------------------------------------------------- the store --
 
 test.it("keeps what is set, across a start", function()
