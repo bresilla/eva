@@ -103,14 +103,31 @@ local function note(event, key, action)
     phase = event.phase, progress = event.progress or 0, committed = event.committed == true }
 end
 
--- Whether this screen's output is off, asked as a sequence starts: a dark screen
--- in a pocket or against an ear is no place for a gesture.
+-- Holds the reader for a lock, and goes on holding while the compositor has one.
+local function hold_for_lock()
+  locking:set(true)
+  if release then release:cancel() end
+  release = morf.time.timer(M.LOCK_GRACE, function()
+    release = nil
+    local hyprland = require("lib.compositor.hyprland")
+    if not hyprland.available() then return locking:set(false) end
+    hyprland.json("j/locked", function(reply)
+      if type(reply) == "table" and reply.locked == true then hold_for_lock() else locking:set(false) end
+    end)
+  end, false)
+end
+
+-- What the compositor says as a sequence starts: a lock logind was not told of,
+-- and whether this output is dark, in a pocket or against an ear.
 local dark = false
-local function look_at_output()
+local function look_at_session()
   local hyprland = require("lib.compositor.hyprland")
   local name = ((morf.screens or {})[1] or {}).name
   dark = false
   if not hyprland.available() then return end
+  hyprland.json("j/locked", function(reply)
+    if type(reply) == "table" and reply.locked == true then hold_for_lock() end
+  end)
   hyprland.json("j/monitors", function(rows)
     for _, row in ipairs(type(rows) == "table" and rows or {}) do
       if row.name == name and row.dpmsStatus == false then dark = true end
@@ -146,10 +163,10 @@ local function hear(event)
     if gesture.handle then gesture.handle.update(event) end
   elseif event.phase == "end" then
     current = nil
+    if event.committed then require("haptics").fire("commit") end
     if gesture.handle then
       gesture.handle.finish(event)
     elseif event.committed then
-      require("haptics").fire("commit")
       gesture.action.run(event, gesture.key)
     end
   elseif event.phase == "cancel" then
@@ -192,8 +209,10 @@ local function build()
   local sink = {
     down = function(id, x, y, ms)
       stamp(ms)
-      if recogniser.count() == 0 then look_at_output() end
+      if recogniser.count() == 0 then look_at_session() end
       recogniser.down(id, x, y, ms or event_at)
+      -- Two fingers together are no strip's: its pull goes before it shows.
+      if recogniser.gathered() == 2 and not M.trying:get() then require("phone_gestures").yield() end
       start_ticking()
     end,
     move = function(id, x, y) recogniser.move(id, x, y) end,
@@ -222,14 +241,23 @@ local function watch_lock()
   if watched_lock then return end
   watched_lock = true
   local bus = login()
-  if not (bus and bus.on_lock) then return end
-  bus.on_lock(function()
-    locking:set(true)
-    if release then release:cancel() end
-    release = morf.time.timer(M.LOCK_GRACE, function()
-      release = nil
-      locking:set(false)
-    end, false)
+  if bus and bus.on_lock then bus.on_lock(hold_for_lock) end
+end
+
+-- Gives the compositor's touches to the panel too: with more than one output,
+-- Hyprland sends them to whichever has the focus until told otherwise.
+local bound
+local function bind_output()
+  local screens = morf.screens or {}
+  local panel = #screens > 1 and own_panel() and M.panel() or nil
+  if not panel or panel.name == bound or dry() then return end
+  local hyprland = require("lib.compositor.hyprland")
+  if not hyprland.available() then return end
+  bound = panel.name
+  hyprland.eval(("hl.config({input={touchdevice={output=%q}}})"):format(bound), function(reply)
+    if not (type(reply) == "string" and reply:match("^%s*ok%s*$")) then
+      hyprland.keyword("input:touchdevice:output", bound)
+    end
   end)
 end
 
@@ -242,6 +270,7 @@ function M.start()
   watch_lock()
   morf.effect("eva.touch.driver", function()
     if morf.window and morf.window.screens_revision then morf.window.screens_revision() end
+    bind_output()
     if M.allowed() then reader.start() else reader.stop() end
   end)
   require("responsive").on_input(function() reader.refresh() end)
@@ -251,11 +280,17 @@ end
 function M.reading() return reader ~= nil and reader.reading() end
 
 --- `touch [state]`: what it is doing. `touch try on|off`: gestures named, not run.
---- `touch set KEY ACTION`: what a gesture does here. `touch feed LINE`: under
---- EVA_FAKE_TOUCH, a line as `libinput debug-events` prints it.
+--- `touch set KEY ACTION`: what a gesture does here. `touch output NAME`: the
+--- screen it sits on. `touch feed LINE`: under EVA_FAKE_TOUCH, a line as
+--- `libinput debug-events` prints it.
 function M.register(ipc)
   ipc.touch = function(how, a, b)
-    if how == "try" then M.trying:set(a == "on") return M.trying:get() end
+    if how == "output" then config.set("gestures.output", a or "") return a end
+    if how == "try" then
+      M.trying:set(a == "on")
+      M.watching:set(a == "on")
+      return M.trying:get()
+    end
     if how == "set" then bindings.set(a, nil, b) return bindings.action(a) end
     if how == "feed" and morf.env("EVA_FAKE_TOUCH") == "1" then return reader.feed(a) end
     if how ~= nil and how ~= "state" then error("`" .. tostring(how) .. "`: state, try, set or feed") end

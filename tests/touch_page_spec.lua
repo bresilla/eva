@@ -114,7 +114,8 @@ for _,style in ipairs {"material","tsugumori"} do
     for id=1,3 do test.ipc("touch","feed",line("TOUCH_UP",id)) end
     test.ipc("touch","feed",line("TOUCH_FRAME"))
     test.advance(300)
-    test.eq(test.get("touch-try-row-title").text,"Three fingers down: Show desktop")
+    test.eq(test.get("touch-try-row-title").text,"Three fingers down")
+    test.eq(test.get("touch-try-row-subtitle").text,"Show desktop")
     test.falsy(test.get("touch-finger-1").visible)
     test.click("touch-try-button") test.advance(100)
     test.falsy(test.ipc("touch","state").trying)

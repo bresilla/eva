@@ -72,12 +72,11 @@ function M.build(model, w, h)
   local sections = { id = "touch-scroll", width = w, height = h, active = model.active,
     P.section { id = "touch-driver", width = w, title = "Anywhere on the screen",
       F.switch { id = "touch-enabled", width = inner, icon = "swipe", title = "Touch gestures",
-        subtitle = "Two fingers from an edge, three or more anywhere", on = model.on, set = model.set_on },
+        subtitle = "Two from an edge, three anywhere", on = model.on, set = model.set_on },
       P.row { id = "touch-status", width = inner, icon = "info", title = status(1), subtitle = status(2) },
     },
     P.section { id = "touch-try", width = w, title = "Try one", visible = model.can_try,
-      P.row { id = "touch-try-row", width = inner, icon = "gesture", title = model.heard,
-        subtitle = function() return model.trying() and "Gestures are named here, and nothing runs" or "Shows your fingers" end,
+      P.row { id = "touch-try-row", width = inner, icon = "gesture", title = model.heard, subtitle = model.would,
         trailing = P.button { id = "touch-try-button", label = "Try", icon = "play_arrow", tone = "primary",
           on_clicked = function() model.set_trying(not model.trying()) end,
           selected = model.trying } },
@@ -91,7 +90,7 @@ function M.build(model, w, h)
     local section = { id = "touch-group-" .. group.id, width = w, title = group.name }
     for _, gesture in ipairs(model.gestures(group.id)) do
       section[#section + 1] = P.row { id = "touch-gesture-" .. gesture.key, width = inner, icon = gesture.icon,
-        title = gesture.name, subtitle = function() return model.does(gesture.key) end,
+        title = gesture.short, subtitle = function() return model.does(gesture.key) end,
         trailing = P.chevron(), on_clicked = function() model.open(gesture.key) end }
     end
     sections[#sections + 1] = P.section(section)
@@ -108,16 +107,18 @@ function M.gesture(model, w, h)
   local inner = P.inner(w)
   local list = { id = "touch-actions", width = w, title = "Does" }
   for _, action in ipairs(model.ACTIONS) do
-    list[#list + 1] = P.row { id = "touch-action-" .. action.key, width = inner, icon = action.icon, title = action.name,
-      subtitle = function() return model.action() == action.key and "This one" or "" end,
-      on = function() return model.action() == action.key end,
-      on_clicked = function() model.pick(action.key) end }
+    local function picked() return model.action() == action.key end
+    local tick = kit.icon("check", 22, kit.ink("accent"))
+    tick.visible = picked
+    list[#list + 1] = P.row { id = "touch-action-" .. action.key, width = inner, height = 52, icon = action.icon,
+      title = action.name, on = picked, trailing = tick, on_clicked = function() model.pick(action.key) end }
   end
   return P.page { id = "touch-gesture-scroll", width = w, height = h, active = model.active,
     P.section { id = "touch-gesture-head", width = w,
       P.row { id = "touch-gesture-name", width = inner, icon = "swipe", title = model.name,
-        subtitle = function() return model.is_default() and "As it came" or "Changed" end,
-        trailing = P.button { id = "touch-gesture-reset", label = "Reset", on_clicked = model.reset } } },
+        subtitle = function() return model.is_default() and "As it came" or "Changed" end },
+      P.buttons { id = "touch-gesture-buttons", width = inner,
+        { id = "touch-gesture-reset", label = "Reset", on_clicked = model.reset } } },
     P.section(list),
     P.section { id = "touch-command", width = w, title = "Command", visible = model.is_command,
       F.text { id = "touch-command-field", width = inner, title = "Command, as words",

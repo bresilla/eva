@@ -43,14 +43,15 @@ in
         lulePackage = lule;
         idle.lockTimeout = 0;
         idle.suspendTimeout = 0;
+        idle.screenOffTimeout = 0;
         greeter.environment = software;
       };
       users.users.alice = {
         isNormalUser = true;
         inherit password;
       };
-      # wev logs each wl_touch event a window receives.
-      environment.systemPackages = [ pkgs.foot pkgs.wev pkgs.jq pkgs.evtest ];
+      # wev logs each wl_touch event a window receives; zenity is a real toolkit.
+      environment.systemPackages = [ pkgs.wev pkgs.zenity pkgs.acl ];
       # No sound, modem or Bluetooth service, even in the guest.
       services.pipewire.enable = lib.mkForce false;
       services.pipewire.wireplumber.enable = lib.mkForce false;

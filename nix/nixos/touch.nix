@@ -11,8 +11,8 @@
 let
   cfg = config.programs.eva.touch;
   libinput = lib.getBin pkgs.libinput;
-  # 73-seat-late.rules acts on the tag, so it is named to come before it:
-  # services.udev.extraRules lands in 99-local.rules, too late for uaccess.
+  # Numbered before 73-seat-late.rules, which acts on the tag; extraRules would
+  # land in 99-local.rules, after it.
   rule = pkgs.writeTextDir "lib/udev/rules.d/70-eva-touch.rules" ''
     SUBSYSTEM=="input", ENV{ID_INPUT_TOUCHSCREEN}=="1", TAG+="uaccess"
   '';

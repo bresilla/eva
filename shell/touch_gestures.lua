@@ -173,7 +173,7 @@ function M.new(spec)
     say(event)
   end
 
-  local function decide(t)
+  local function decide()
     if run.lifted or #fingers == 0 then return end
     local n = #fingers
     local dx, dy = displacement()
@@ -331,6 +331,9 @@ function M.new(spec)
     table.sort(out, function(a, b) return tostring(a.id) < tostring(b.id) end)
     return out
   end
+
+  --- How many fingers landed together in what is under way.
+  function r.gathered() return #fingers end
 
   --- How many fingers are down.
   function r.count()

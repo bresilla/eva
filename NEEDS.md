@@ -328,3 +328,21 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   `super`, not Caps Lock, so the login screens read the LED under
   `/sys/class/leds` a moment after each key. A keyboard without the LED gets no
   warning. xkb's locked modifiers are what the compositor already sends.
+
+## Global touch: open
+
+- Reading a touchscreen. `shell/touch_driver.lua` hears every contact through a
+  `libinput debug-events` child and parses its lines, for want of an evdev API:
+  `morf.touch.open(node, handlers)` in the engine would save the process and the
+  parsing, and stop for good with the handle.
+- Output power as a signal. Nothing says an output went dark, so the driver asks
+  Hyprland's `j/monitors` as each contact sequence starts, to keep gestures from
+  firing on a dark screen. A tracked read beside `morf.output_power.set` would do.
+- `pcall` of a nil value raises rather than returning false, unlike Lua, and
+  `debug` is absent, so an effect's error names no line: `could not call a nil
+  value` from `pcall(child.pid, child)` took a spec to find.
+- Taking a contact back. Hyprland 0.55 has `sendTouchCancel` and never calls it,
+  and a libinput TOUCH_CANCEL does nothing there, so a global gesture cannot take
+  its fingers away from the app under them. Hyprland also keeps one touch focus:
+  with a finger on eva and a finger on an app, both lifts go to the app, so the
+  strip under the first finger never hears it lift.

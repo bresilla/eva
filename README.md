@@ -87,6 +87,45 @@ faster releases coast farther, touching stops the coast, and slow frames do not
 change the travel distance. `phone.gestureDriver = "lisgd"` selects the
 completed-swipe fallback; the default is `"native"`.
 
+### Touch gestures
+
+On any machine with a touchscreen, whatever form it takes, gestures work
+anywhere on the screen: two fingers up from the bottom edge bring the keyboard,
+three fingers change workspace, open the overview or show the desktop, four open
+the app grid or switch apps, and a five-finger pinch opens the launcher. Settings,
+Touch gestures, lists them, chooses what each does per form, and has a small
+screen to try them on. One finger from an edge still pulls the panels, and two
+fingers in the middle of the screen stay a scroll in the app.
+
+Wayland sends a touch to the surface under it, so a shell cannot hear the rest of
+the screen. eva reads the touchscreen beside the compositor instead, by running
+`libinput debug-events` on it, and apps keep every touch: nothing is grabbed, so
+an app under a global gesture sees those fingers too. The reader stops, process
+and all, while the session is locked and while a password prompt or the capture
+editor is on screen. With no touchscreen, or no libinput, nothing runs.
+
+On NixOS `programs.eva.touch.enable` is on by default and adds libinput and a
+udev rule that gives the logged-in user the touchscreens and nothing else.
+Elsewhere, install libinput (`libinput-tools` on Debian and Ubuntu) and add the
+rule as `/etc/udev/rules.d/70-eva-touch.rules`:
+
+```
+SUBSYSTEM=="input", ENV{ID_INPUT_TOUCHSCREEN}=="1", TAG+="uaccess"
+```
+
+The number matters: the tag must be set before `73-seat-late.rules` acts on it.
+Then run `sudo udevadm control --reload && sudo udevadm trigger -s input` and log
+in again. Do not join the `input` group instead: it can read every keystroke.
+`getfacl /dev/input/eventN` on the touchscreen should list your user, and
+Settings says what it found.
+
+Where Hyprland must rotate touches along with the screen, set
+`input:touchdevice:transform` to the monitor's transform, as auto-rotate does;
+and on a machine with an external monitor set `input:touchdevice:output` to the
+built-in panel, or Hyprland sends touches to the focused monitor. The gestures
+themselves find the built-in panel, or the one named by the `gestures.output`
+setting, and follow its rotation either way.
+
 eva pins the morf release it is written against in `flake.nix`, and the engine
 comes prebuilt from the binary cache. The engine and its Lua library always
 come from that same release. The packaged shell is installed as

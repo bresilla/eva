@@ -41,13 +41,28 @@ function M.status()
   return stopped()
 end
 
+local COUNTS = { "One finger", "Two fingers", "Three fingers", "Four fingers", "Five fingers" }
+
 local chosen = morf.signal("eva.touch.settings.gesture", "two_up_bottom")
 local editing = morf.signal("eva.touch.settings.form", "")
+
+-- Leaving the page ends a try: gestures go back to doing what they do.
+local function watch_leaving(active)
+  if M.watched then return end
+  M.watched = true
+  morf.effect("eva.touch.settings.left", function()
+    if active() or not driver.trying:get() then return end
+    driver.trying:set(false)
+    driver.watching:set(false)
+    driver.fingers:set({})
+  end)
+end
 
 function M.model()
   local presentation = require("presentation")
   local model = { active = presentation.active("settings.touch"), GROUPS = bindings.GROUPS, FORMS = bindings.FORMS,
     ACTIONS = actions.ACTIONS, status = M.status, BY_ACTION = actions.BY_KEY }
+  watch_leaving(model.active)
   local function form()
     local picked = editing:get()
     return picked ~= "" and picked or require("responsive").form()
@@ -82,12 +97,21 @@ function M.model()
   function model.can_try() return driver.owns() end
   function model.finger(index) return driver.fingers:get()[index] end
   function model.screen() return require("responsive").size() end
-  --- What the last gesture was and would do.
+  --- What the last gesture was.
   function model.heard()
     local heard = driver.heard:get()
-    if not model.trying() or not heard.key then return "Put fingers on the screen" end
+    if not model.trying() then return "See your fingers" end
+    if not heard.key then return "Put fingers on the screen" end
+    if bindings.BY_KEY[heard.key] then return heard.name end
+    return COUNTS[heard.fingers] or "Fingers"
+  end
+  --- What it would do.
+  function model.would()
+    local heard = driver.heard:get()
+    if not model.trying() then return "Named here, and nothing runs" end
+    if not heard.key then return "Then swipe, pinch or tap" end
     if not bindings.BY_KEY[heard.key] then return "Apps and the edges keep this one" end
-    return heard.name .. ": " .. actions.name(heard.action)
+    return actions.name(heard.action)
   end
   --- The screens to choose from, past one.
   function model.outputs()

@@ -39,6 +39,14 @@ local SOURCE=[[
   morf.ipc.reset_bindings=function(form) require("touch_bindings").reset(form) end
   morf.ipc.command=function(key,words) require("touch_bindings").set_command(key,{words}) end
   morf.ipc.osd_level=function(kind) return (require("osd")[kind]()) end
+  morf.ipc.compositor=function(locked,off)
+    local hyprland=require("lib.compositor.hyprland")
+    hyprland.available=function() return true end
+    hyprland.json=function(command,done)
+      if command=="j/locked" then done({locked=locked=="locked"})
+      else done({{name=morf.screens[1].name,dpmsStatus=off~="dark"}}) end
+    end
+  end
 ]]
 local loads=0
 local function load(extra)
@@ -266,6 +274,18 @@ test.describe("what stops the reader",function()
     test.ipc("lock_signal") test.advance(50)
     test.falsy(spy().overview)
   end)
+  test.it("a lock logind was never told of, at the first finger, while it stands",function()
+    load()
+    test.ipc("compositor","locked","lit")
+    land(THREE)
+    test.advance(50)
+    test.eq(touch().reading,false)
+    test.advance(11000)
+    test.eq(touch().reading,false)
+    test.ipc("compositor","open","lit")
+    test.advance(6000)
+    test.eq(touch().reading,true)
+  end)
   test.it("a password prompt",function()
     load()
     test.ipc("polkit","demo") test.advance(100)
@@ -297,6 +317,18 @@ test.describe("what stops the reader",function()
   test.it("lisgd, which has the gestures on a phone that chose it",function()
     load({EVA_GESTURE_DRIVER="lisgd"})
     test.eq(touch().reading,false)
+  end)
+end)
+
+test.describe("a dark screen",function()
+  test.it("fires nothing, and the next lit sequence does",function()
+    load()
+    test.ipc("compositor","open","dark")
+    stroke(THREE,0,200,20)
+    test.eq(#spy().fired,0)
+    test.ipc("compositor","open","lit")
+    stroke(THREE,0,200,20)
+    test.eq(spy().fired,{"show_desktop"})
   end)
 end)
 
