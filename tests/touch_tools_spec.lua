@@ -19,10 +19,13 @@ local SOURCE = [[
         { key = "one", name = "One", icon = "alarm", build = function() return ui.Item {} end },
         { key = "two", name = "Two", icon = "timer", build = function() return ui.Item {} end },
       } }
-      morf.ipc.tool_state = function() return { tab = tab:get(), closed = closed, backed = backed } end
+      morf.ipc.tool_state = function() return { tab = tab:get(), closed = closed, backed = backed, overlays = overlays } end
       morf.ipc.allow_back = function() back_allowed = true end
       return node
     end }
+  frame.overlay { id = "probe-over", keyboard = "none", close = function() overlays = overlays + 1 end,
+    root = ui.Item { id = "probe-over-root", anchors = { fill = true },
+      ui.MouseArea { id = "probe-over-area", anchors = { fill = true } } } }
 ]]
 
 local function load(style)
@@ -68,6 +71,15 @@ for _, style in ipairs { "material", "tsugumori" } do
     drag(6, 300, 300, 0)
     test.eq(test.ipc("tool_state").backed, 1)
     test.eq(test.ipc("tool_state").closed, 0)
+    test.eq(test.logs("error"), {})
+  end)
+  test.it(style .. " a swipe in from an overlay's edge is a finger's way out", function()
+    load(style)
+    local on = { surface = "layer:eva-probe-over" }
+    test.touch("down", 0, 300, 4, on) test.advance(16)
+    for i = 1, 12 do test.touch("move", 0, 300, 4 + 14 * i, on) test.advance(16) end
+    test.touch("up", 0, 300, 172, on) test.advance(700)
+    test.eq(test.ipc("tool_state").overlays, 1)
     test.eq(test.logs("error"), {})
   end)
 end

@@ -55,5 +55,18 @@ function M.attach(d, ctx, theme_motion)
     d.open:set(opening)
     theme_motion.release(canceled and 0 or velocity, function() d.manual = false end)
   end
+  --- For a panel with nothing else to do with a drag: toward its edge it
+  --- pulls it shut under the finger.
+  function d.on_panned(phase, dx, dy, vx, vy)
+    local across = d.edge == "left" or d.edge == "right"
+    local along = across and dx or dy
+    if phase == "begin" then
+      local toward = (d.edge == "top" or d.edge == "left") and -along or along
+      if toward <= 0 or across ~= (math.abs(dx) > math.abs(dy)) then return false end
+      return d.begin_drag()
+    end
+    if phase == "update" then d.drag_by(along)
+    else d.end_drag((across and vx or vy) or 0, phase == "cancel") end
+  end
 end
 return M
