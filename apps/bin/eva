@@ -47,8 +47,9 @@ quoted() {
   printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
 }
 
+# The verbs the shell answers, one to a line, from its JSON reply.
 live_verbs() {
-  eva_morf ipc verbs 2>/dev/null | tr -s ' \t,' '\n' || true
+  eva_morf ipc verbs 2>/dev/null | sed -e 's/.*"result":\[//' -e 's/\].*//' | tr ',' '\n' | tr -d '"' || true
 }
 
 commands_text() {
