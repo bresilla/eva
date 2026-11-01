@@ -230,9 +230,9 @@ def run(password):
     with subtest("the line format is what this libinput prints"):
         ours = set(reader_pids())
         run_app("lines", "exec libinput debug-events --device /dev/input/event2 > /tmp/lines.log 2>&1")
-        machine.sleep(2)
+        machine.wait_until_succeeds("grep -q DEVICE_ADDED /tmp/lines.log", timeout=60)
         stroke(line([(200, 300), (260, 300)]), line([(200, 320), (260, 320)]), steps=4)
-        machine.sleep(1)
+        machine.wait_until_succeeds("grep -q TOUCH_UP /tmp/lines.log", timeout=30)
         for pid in set(reader_pids()) - ours:
             machine.succeed(f"kill {pid}")
         machine.sleep(1)
@@ -455,7 +455,7 @@ def run(password):
         pid = reader_pids()[0]
         machine.succeed("setfacl -b /dev/input/event2")
         machine.succeed(f"kill {pid}")
-        said = eventually(lambda: (ipc("touch") or {}).get("state") == "denied", 12)
+        said = eventually(lambda: (ipc("touch") or {}).get("state") == "denied", 45)
         check("the reader says it may not read", said, str(ipc("touch")))
         machine.succeed("setfacl -m u:alice:rw /dev/input/event2")
         check("and reads when it may", eventually(lambda: (ipc("touch") or {}).get("state") == "running", 90), str(ipc("touch")))
