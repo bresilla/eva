@@ -63,11 +63,16 @@ function M.edge(opts)
 
   local by_hover = false
   local opening, closing
-  local function enabled()
+  -- A window was dragged here: the strip stays off until the pointer leaves it.
+  local dragged_here = false
+  local function dragging()
     local snap = package.loaded.snap
+    return snap ~= nil and snap.dragging:get()
+  end
+  local function enabled()
     return (not opts.enabled or opts.enabled())
       and (not opts.setting or config.get(opts.setting))
-      and not (snap and snap.dragging:get())
+      and not dragging() and not dragged_here
   end
   -- The pointer over the strip, whatever is drawn above it.
   local function on_strip() return strip.hovered or strip.contains_pointer end
@@ -95,6 +100,8 @@ function M.edge(opts)
   morf.effect("eva.hover." .. opts.name, function()
     local is_open = d.open:get()
     if not is_open then by_hover = false end
+    if dragging() then dragged_here = true
+    elseif dragged_here and not on_strip() then dragged_here = false end
     if not enabled() then cancel_open() cancel_close() return end
     -- Only the strip opens it; the panels keep it open. (Shut some other
     -- way with the pointer still on a panel, it stays shut.)
