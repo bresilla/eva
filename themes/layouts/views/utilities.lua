@@ -127,7 +127,7 @@ function V.eva_page(model,w,h)
         subtitle="Sounds, popups, history and each app's rules",
         trailing=P.chevron(),on_clicked=function() model.request("notifications") end},
       P.row {id="settings-eva-keyboard",width=inner,icon="keyboard",title="On-screen keyboard",
-        subtitle="Languages, prediction and how it stands",
+        subtitle="When it comes up",
         trailing=P.chevron(),on_clicked=function() model.request("keyboard") end},
       P.row {id="settings-eva-windows",width=inner,icon="select_window",title="Windows",
         subtitle="Hot corners, the switcher and snapping",
