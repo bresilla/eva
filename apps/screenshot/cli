@@ -152,7 +152,8 @@ order "$@" "result=$result"
 eva_dry && exit 0
 status=1
 if outcome "$result"; then status=0; fi
-if [ -n "$tool" ]; then wait "$tool" || true; fi
+# The tool may stay a while for its thumbnail; only a failure is waited on.
+if [ "$status" -ne 0 ] && [ -n "$tool" ]; then wait "$tool" || true; fi
 if [ "$status" -ne 0 ]; then
   eva_say "${answer:-the capture did not finish}"
   exit 1

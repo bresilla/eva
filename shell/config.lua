@@ -278,6 +278,8 @@ local config = settings.open {
       tools = capture_tools,
       blur = 24, pixelate = 14, zoom = 2,
       cursor = false, save_dialog = false, copy_on_save = true, copy_to_disk = false,
+      -- The small picture after a shot, and how long it stays in seconds.
+      thumbnail = true, thumbnail_seconds = 5,
       upload_endpoint = "https://litterbox.catbox.moe/resources/internals/api.php",
       hotkey = "Print", keybind_file = "",
       -- What each recording runs: `$FILE` is the file to write (in the

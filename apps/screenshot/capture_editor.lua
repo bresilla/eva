@@ -484,6 +484,7 @@ function M.export(action,direct)
   local function complete(ok,message)
     if current~=generation then return end
     M.busy:set(false)
+    if ok and rendered and M.on_shot then M.on_shot(action,rendered,message) end
     if rendered then owned.remove(rendered) rendered=nil end
     if ok then
       if M.on_export then M.on_export(action,message) end

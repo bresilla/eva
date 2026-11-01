@@ -20,6 +20,8 @@ M.file = morf.shared("eva.capture.file", "")
 M.phase = morf.signal("eva.capture.phase", "ready")
 M.message = morf.signal("eva.capture.message", "")
 M.countdown = morf.signal("eva.capture.countdown", 0)
+-- What keeps a tool with nothing else to do alive: thumbnails and pins.
+M.held = morf.signal("eva.capture.held", 0)
 local pending, ticker, process, d
 local sequence, generation = 0, 0
 local function dry_run()
@@ -110,6 +112,9 @@ local function busy()
 end
 local function claim()
   if morf.broadcast then morf.broadcast("capture-claim",screen.name) end
+  -- A thumbnail still up would be in the next picture.
+  local thumb = package.loaded.thumb
+  if thumb then thumb.dismiss() end
 end
 -- What the tool's own command line waits on: "ok" or "no", then a line.
 local function report(path, ok, value)
@@ -144,14 +149,15 @@ function M.shoot(what,how)
   end, order.delay)
   return what
 end
---- The editor on the picture at `path`.
-function M.open_file(path, result)
+--- The editor on the picture at `path`. `closed`, if any, runs when it ends.
+function M.open_file(path, result, closed)
   if busy() then return false end
   claim()
   M.phase:set("editing")
   local ok, why = M.editor.open_file(path, function(good, message, value)
     report(result, good, value or message or "cancelled")
     M.phase:set("ready")
+    if closed then closed() end
   end)
   if not ok then M.phase:set("ready") end
   return ok, why

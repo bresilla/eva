@@ -79,6 +79,13 @@ editor.on_export = function(action, result)
   end
 end
 
+-- A shot that was saved or copied floats for a moment; loaded the first time.
+editor.on_shot = function(action, rendered, result)
+  if (action ~= "save" and action ~= "copy") or not config.get("capture.thumbnail") or dry() then return end
+  local saved = (action == "save" or config.get("capture.copy_to_disk")) and result or nil
+  require("thumb").show(capture, saved, rendered)
+end
+
 -- ----------------------------------------------------------------- the owner --
 
 -- The screen that last acted; it publishes, and it ends the tool.
@@ -120,6 +127,8 @@ local function rest()
     host.posture(pill_wanted() and "strip" or "hidden")
   elseif stays then
     host.posture("hidden")
+  elseif capture.held:get() > 0 then
+    host.posture("hidden")
   elseif #first > 0 or orphaned then
     config.flush()
     morf.fs.remove(state_path())
@@ -140,7 +149,7 @@ end
 
 morf.effect("eva.capture.rest", function()
   capture.phase:get() capture.recording:get() capture.drawer.open:get()
-  editor.active:get() editor.pending:get()
+  editor.active:get() editor.pending:get() capture.held:get()
   if owner:get() == me then watch_rest() end
 end)
 
@@ -164,6 +173,7 @@ local function wake(fn)
   host.posture("full")
   if strip then morf.time.timer(40, fn, false) else fn() end
 end
+capture.present = wake
 
 -- ---------------------------------------------------------------------- verbs --
 
@@ -217,6 +227,16 @@ ipc["capture-claim"] = function(name)
 end
 
 ipc["capture-stop"] = function() return capture.stop() end
+
+-- `capture-thumb edit|pin|dismiss`: what a press on the thumbnail does.
+ipc["capture-thumb"] = function(what)
+  local thumb = package.loaded.thumb
+  if not thumb or thumb.showing:get() == "" then return false end
+  if what == "edit" then return thumb.edit() end
+  if what == "pin" then return thumb.pin() end
+  thumb.dismiss()
+  return true
+end
 
 ipc["capture-editor"] = function(action, ...)
   if action == "cancel" then capture.cancel() return true end

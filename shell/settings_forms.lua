@@ -84,6 +84,10 @@ M.PAGES = {
       { key = "capture.save_dialog", kind = "bool", title = "Ask where to save", icon = "save_as" },
       { key = "capture.copy_on_save", kind = "bool", title = "Copy when saved", icon = "content_copy" },
       { key = "capture.copy_to_disk", kind = "bool", title = "Also save when copied", icon = "save" },
+      { key = "capture.thumbnail", kind = "bool", title = "Show a thumbnail", icon = "picture_in_picture",
+        note = "A small picture after a shot: press it to edit, or leave it to fade" },
+      { key = "capture.thumbnail_seconds", kind = "number", title = "Thumbnail stays for", icon = "timer",
+        from = 2, to = 30, step = 1, unit = " s" },
     } },
     { title = "Editor", fields = {
       { key = "capture.blur", kind = "number", title = "Blur strength", icon = "blur_on", from = 2, to = 100, step = 2 },
