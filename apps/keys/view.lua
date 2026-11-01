@@ -46,9 +46,9 @@ function M.build(w, h)
     end
     return found_list
   end
-  local field = kit.text_field("search", {
+  local field = kit.text_field("entry", {
     id = "keys-search", width = w, height = S.TARGET, placeholder = "Search the bindings",
-    color = kit.ink("hi"), placeholder_color = kit.ink("lo"), focus = true, inset = S.m,
+    color = kit.ink("hi"), placeholder_color = kit.ink("lo"), focus = true,
     text = function() return model.query:get() end,
     on_text_changed = function(value) model.query:set(value) end,
   })
