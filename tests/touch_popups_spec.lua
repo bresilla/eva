@@ -84,6 +84,19 @@ for _, form in ipairs(touch.FORMS) do
       test.eq(test.logs("error"), {})
     end)
 
+    test.it(tag .. ": a latch left alone shuts by itself", function()
+      touch.load(form, style, SOURCE)
+      local x, y, node = card()
+      local start = node.x
+      touch.drag(x, y, -100, 0, { slow = true })
+      test.truthy(test.get("notification-1").x < start - 50, "it stands latched")
+      test.advance(5400)
+      test.near(test.get("notification-1").x, start, 2)
+      test.falsy(test.find { id = "notification-reveal-1", visible = true })
+      test.eq(#test.ipc("q_state").ids, 1, "it is still there")
+      test.eq(test.logs("error"), {})
+    end)
+
     test.it(tag .. ": a long press opens a popup's tools, two fingers spread it", function()
       touch.load(form, style, SOURCE)
       local x, y = card()

@@ -34,6 +34,7 @@ function V.build(M)
   local TEXT_X, EMBLEM = 66, 40
   -- How far a partial swipe latches a card open: two finger-sized buttons.
   local REVEAL = 2 * theme.space.TOUCH + 3 * theme.space.xs
+  local LATCHED_MS = 5000
   local plain, progress_of, kind_of = text_of.plain, text_of.progress, text_of.kind
   local function shown() return M.shown(math.min(MAX, M.max_popups())) end
   local is_open = M.expanded
@@ -270,7 +271,7 @@ function V.build(M)
     -- finger, flies off past its distance or speed and springs back short of
     -- them; pulled partly left it latches open on what lies under it. A stack
     -- that scrolls keeps the vertical drag for itself.
-    local swiped, sent, swipe = false, false, nil
+    local swiped, sent, swipe, latch = false, false, nil, nil
     local function ways()
       return { left = true, right = true, [AWAY] = total() <= room() or nil }
     end
@@ -325,6 +326,15 @@ function V.build(M)
       reveal = { left = REVEAL }, distance = function(way) return way == "left" and REVEAL + 72 or 72 end,
       extent = function() return CARD_W end,
       on_dismiss = function(way) swiped, sent = true, true M.dismiss_at(i, way) end,
+      -- A latch left alone shuts, and the card's clock runs again.
+      on_revealed = function(way)
+        if latch then latch:cancel() latch = nil end
+        if not way then return end
+        latch = morf.time.timer(LATCHED_MS, function()
+          latch = nil
+          if swipe.opened() then swipe.shut() end
+        end, false)
+      end,
     }
     card.on_panned = swipe.on_panned
     -- Two fingers spreading open a card, closing shut it.

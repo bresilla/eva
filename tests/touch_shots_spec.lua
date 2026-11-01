@@ -12,6 +12,16 @@ local SOURCE = [[
     sidebar.drawer.set(true)
   end
   morf.ipc.q_detail = function(key) require("utilities").request(key) end
+  morf.ipc.q_tasks = function()
+    local panel = require("pages").panel_name("tasks") == "leftbar" and require("leftbar") or sidebar
+    local select = panel.select or panel.panel.select
+    select("tasks")
+    panel.drawer.set(true)
+  end
+  morf.ipc.q_dismiss = function()
+    local notifs = require("notifs")
+    for _, entry in ipairs(notifs.list:get()) do notifs.dismiss(entry.id) end
+  end
   morf.ipc.q_push = function(summary, body)
     return require("notifs").push { summary = summary, body = body, urgency = 1, timeout_ms = 60000, app = summary }
   end
@@ -59,8 +69,10 @@ for _, form in ipairs(touch.FORMS) do
       local card = test.get("notification-1")
       touch.drag(card.x + card.width * .7, card.y + card.height / 2, -100, 0, { slow = true })
       shot(tag .. "-snooze-latched")
+      test.advance(5400)
+      test.ipc("q_dismiss")
 
-      test.ipc("q_page", "tasks") test.advance(1100)
+      test.ipc("q_tasks") test.advance(1100)
       local list = test.get("tasks-list")
       touch.drag(list.x + list.width / 2, list.y + list.height * .5, 0, 300, { hold = true })
       shot(tag .. "-pull-to-refresh")
