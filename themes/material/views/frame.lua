@@ -8,11 +8,13 @@ function V.insets(bar)
     right=theme.BORDER+bar.right,bottom=theme.BORDER+bar.bottom}
 end
 function V.build(model)
-  local opening=ui.SdfShape {id="frame-opening",shape="box",operation="subtract",radius=theme.ROUNDING,
+  local reveal=require("themes.reveal")
+  local hidden,rest=reveal.opening(model.desk,theme.LEFT,theme.BORDER)
+  local opening=reveal.part(ui.SdfShape,{id="frame-opening",shape="box",operation="subtract",radius=theme.ROUNDING,
       x=function() local x=model.desk() return x+theme.LEFT end,
       y=function() local _,y=model.desk() return y+theme.BORDER end,
       width=function() local _,_,w=model.desk() return w-theme.LEFT-theme.BORDER end,
-      height=function() local _,_,_,h=model.desk() return h-2*theme.BORDER end}
+      height=function() local _,_,_,h=model.desk() return h-2*theme.BORDER end},0,hidden,rest)
   local transition=require("themes.session").transition
   require("themes.switcher").morph(opening,"radius",theme.ROUNDING,transition and transition.frame_rounding)
   local field={id="frame",anchors={fill=true},fill_color=function() return theme.color.surface end,

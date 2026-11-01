@@ -193,7 +193,7 @@ local triggers=require("responsive").portrait() and {
   },
 }
 local frame_view=require("themes").view("frame")
-local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),drawers=drawer.all,
+local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
   rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape},
   overlays=overlays,triggers=triggers}
 require("phone_gestures").attach(frame_root)
@@ -265,6 +265,8 @@ end
 ipc.dashboard = verb(dashboard.drawer)
 -- Builds the shell again from its files, in place.
 ipc.reload = function() morf.reload() return true end
+-- The frame, the rail and the bar come in again: a lock lifting.
+ipc.reveal = function() return require("themes.reveal").replay() end
 -- The scale, as the slider sets it: `scale -0.25` (smaller), `scale 0`
 -- (the compositor's), `scale 0.5` (bigger), or nothing to ask.
 ipc.scale = function(value)
