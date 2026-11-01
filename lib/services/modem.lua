@@ -10,10 +10,20 @@
 --   mobile.state.operator       -- "Vodafone NL"
 --   mobile.state.registered, .connected, .enabled, .locked
 --   mobile.state.data           -- mobile data on (NetworkManager's WwanEnabled)
+--   mobile.state.unlock         -- "sim-pin", "sim-puk" or ""
+--   mobile.state.tries_pin, .tries_puk   -- what is left, -1 where unknown
+--   mobile.state.number         -- the SIM's own number, where it knows it
 --   mobile.set_data(true)
+--   mobile.voice                -- calls (lib/services/modem_voice.lua)
+--   mobile.messaging            -- SMS (lib/services/modem_messaging.lua)
+--   mobile.cell                 -- cell broadcast (lib/services/modem_cell.lua)
+--   mobile.levels()             -- dBm and dB by radio, while `watch_levels` runs
 --
 -- A machine without ModemManager, or without a modem, reads as not
 -- available and costs one look at the bus: a laptop is not asked twice.
+--
+-- `options.dbus` is the bus seam: lib/services/modem_standin.lua is ModemManager
+-- on one. EVA_DRY_RUN stops every action before the real modem, not a stand-in.
 
 local morf = require("morf")
 local dbus_client = require("lib.services.dbus")
@@ -24,6 +34,10 @@ local MM = "org.freedesktop.ModemManager1"
 local ROOT = "/org/freedesktop/ModemManager1"
 local MODEM = "org.freedesktop.ModemManager1.Modem"
 local GPP = "org.freedesktop.ModemManager1.Modem.Modem3gpp"
+local VOICE = "org.freedesktop.ModemManager1.Modem.Voice"
+local MESSAGING = "org.freedesktop.ModemManager1.Modem.Messaging"
+local CELL = "org.freedesktop.ModemManager1.Modem.CellBroadcast"
+local SIGNAL = "org.freedesktop.ModemManager1.Modem.Signal"
 local SIM = "org.freedesktop.ModemManager1.Sim"
 local OBJECT_MANAGER = "org.freedesktop.DBus.ObjectManager"
 local NM = "org.freedesktop.NetworkManager"
@@ -48,10 +62,17 @@ end
 
 -- MMModemState.
 local LOCKED, DISABLED, ENABLED, REGISTERED, CONNECTED = 2, 3, 6, 8, 11
+-- MMModemLock.
+local LOCK_PIN, LOCK_PUK = 2, 4
+local UNLOCK = { [LOCK_PIN] = "sim-pin", [LOCK_PUK] = "sim-puk" }
 
 local function first(value)
   if type(value) == "table" then return value[1] end
   return value
+end
+
+local function tries(retries, lock)
+  return tonumber(type(retries) == "table" and retries[lock]) or -1
 end
 
 function modem.connect(options)
@@ -61,22 +82,37 @@ function modem.connect(options)
     available = false, signal = 0, technology = "", operator = "",
     registered = false, connected = false, enabled = false, locked = false,
     data = false, path = "", sim_present = false, roaming = false,
+    unlock = "", tries_pin = -1, tries_puk = -1, number = "",
   }
   local mobile = { state = state }
   local objects = {}
   local watching = {}
   local legacy_dictionary = false
+  local function dry()
+    if options.dbus then return false end
+    local v = morf.env and morf.env("EVA_DRY_RUN")
+    return v ~= nil and v ~= "" and v ~= "0"
+  end
+  mobile.voice = require("lib.services.modem_voice").attach(client, { dry = dry })
+  mobile.messaging = require("lib.services.modem_messaging").attach(client, { dry = dry })
+  mobile.cell = require("lib.services.modem_cell").attach(client, { dry = dry })
 
   local function publish()
     local chosen
     for path, interfaces in pairs(objects) do
       if interfaces[MODEM] and (not chosen or path < chosen) then chosen = path end
     end
+    local held = chosen and objects[chosen] or {}
+    mobile.voice.bind(held[VOICE] and chosen or nil, held[VOICE])
+    mobile.messaging.bind(held[MESSAGING] and chosen or nil)
+    mobile.cell.bind(held[CELL] and chosen or nil)
     if not chosen then
       state.available = false
       state.path = ""
       state.sim_present = false
       state.roaming = false
+      state.unlock = ""
+      state.number = ""
       return
     end
     local m = objects[chosen][MODEM] or {}
@@ -93,6 +129,10 @@ function modem.connect(options)
     state.connected = s == CONNECTED
     state.sim_present = type(m.Sim) == "string" and m.Sim ~= "/" and m.Sim ~= ""
     state.roaming = tonumber(gpp.RegistrationState) == 5
+    state.unlock = UNLOCK[tonumber(m.UnlockRequired)] or ""
+    state.tries_pin = tries(m.UnlockRetries, LOCK_PIN)
+    state.tries_puk = tries(m.UnlockRetries, LOCK_PUK)
+    state.number = tostring(first(m.OwnNumbers) or "")
   end
 
   local function watch(path)
@@ -152,6 +192,50 @@ function modem.connect(options)
   --- command line: SendPin, ChangePin or EnablePin. `done(ok, why)`.
   function mobile.sim_call(path, method, arguments, done)
     return client.call_async(MM, path, SIM, method, arguments, 30000, function(_, err) done(err == nil, err) end)
+  end
+
+  --- The SIM in use, as its object path, or nil.
+  function mobile.sim_path()
+    local held = objects[state.path]
+    local sim = held and held[MODEM] and held[MODEM].Sim
+    if type(sim) == "string" and sim ~= "/" and sim ~= "" then return sim end
+  end
+
+  --- The numbers the SIM says reach the emergency services, or an empty list.
+  function mobile.emergency_numbers()
+    local sim = mobile.sim_path()
+    local numbers = sim and client.get(MM, sim, SIM, "EmergencyNumbers")
+    return type(numbers) == "table" and numbers or {}
+  end
+
+  --- Whether the modem reports extended signal levels at all.
+  function mobile.has_levels()
+    local held = objects[state.path]
+    return held ~= nil and held[SIGNAL] ~= nil
+  end
+
+  --- Asks the modem for extended levels every `seconds`; 0 stops it.
+  function mobile.watch_levels(seconds, done)
+    done = done or function() end
+    if not mobile.has_levels() then done(false, "no signal interface") return false end
+    if dry() then done(false, "dry run") return false end
+    return client.call_async(MM, state.path, SIGNAL, "Setup", { dbus_client.u(seconds) }, 10000,
+      function(reply, err) done(reply ~= nil, err) end) == true
+  end
+
+  --- The strongest radio's levels: `{ radio, rssi, rsrp, rsrq, snr, rscp,
+  --- ecio }` in dBm and dB, with only what it measures; nil without any.
+  function mobile.levels()
+    local held = objects[state.path]
+    local levels = held and held[SIGNAL]
+    if not levels then return nil end
+    for _, entry in ipairs { { "Nr5g", "5G" }, { "Lte", "LTE" }, { "Umts", "3G" }, { "Gsm", "2G" } } do
+      local radio = levels[entry[1]]
+      if type(radio) == "table" and next(radio) ~= nil then
+        return { radio = entry[2], rssi = radio.rssi, rsrp = radio.rsrp, rsrq = radio.rsrq,
+          snr = radio.snr, rscp = radio.rscp, ecio = radio.ecio }
+      end
+    end
   end
 
   --- Mobile data on or off: NetworkManager's WWAN switch.

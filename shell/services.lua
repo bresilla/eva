@@ -134,13 +134,12 @@ do
   local ok, modem = pcall(require, "lib.services.modem")
   local mobile = ok and select(2, pcall(modem.connect)) or nil
   if type(mobile) == "table" and mobile.state then M.modem = mobile end
-  -- EVA_FAKE_MODEM=1: a stand-in, to see a phone's parts on a laptop.
+  -- EVA_FAKE_MODEM=1: the real service against ModemManager on a made-up bus,
+  -- to see a phone's parts on a laptop.
   local fake = morf.env and morf.env("EVA_FAKE_MODEM")
   if fake and fake ~= "" and fake ~= "0" and not (M.modem and M.modem.state.available) then
-    local state = morf.state { available = true, signal = 72, technology = "5G", operator = "Vodafone NL",
-      registered = true, connected = true, enabled = true, locked = false, data = true,
-      sim_present = true, roaming = false, path = "/fake" }
-    M.modem = { state = state, set_data = function(on) state.data = on == true end }
+    M.modem_standin = require("lib.services.modem_standin").start()
+    M.modem = modem.connect { dbus = M.modem_standin.dbus }
   end
 end
 do
