@@ -221,20 +221,31 @@ test.it("a rotation lock is a setting: the tile reads it, on a desk locked by de
   test.eq(#test.logs("error"),0)
 end)
 
-test.it("Screenshot and Screen record work from their tiles",function()
+test.it("Screenshot and Screen record ask the capture tool from their tiles",function()
   load()
   test.clear_logs()
   test.ipc("q_set","screenshot") test.settle(1500)
   test.falsy(test.ipc("q_sidebar"),"the panel stayed over the capture")
-  test.truthy(said("capture screenshot_region (dry run)"))
+  test.truthy(said("capture screenshot region (dry run)"))
   test.ipc("settings") test.settle(2500)
   test.ipc("q_set","record") test.settle(1500)
-  test.truthy(said("capture record_"),"it did not start recording")
-  test.ipc("settings") test.settle(2500)
-  test.truthy(test.ipc("q_light","record"),"recording is not lit")
-  test.ipc("q_set","record") test.settle(1500)
-  test.ipc("settings") test.settle(2500)
+  test.truthy(said("capture record region (dry run)"),"it did not ask for a recording")
+  test.eq(#test.logs("error"),0)
+end)
+
+test.it("lights the record tile from what the capture tool publishes",function()
+  load()
+  local path=morf.env("XDG_RUNTIME_DIR").."/eva/capture-"..(morf.env("WAYLAND_DISPLAY") or "wayland-0"):match("[^/]+$")..".json"
+  local function publish(recording)
+    morf.fs.write(path,morf.json.encode {pid=morf.process_id,recording=recording,phase=recording and "recording" or "ready",
+      started=morf.time.now_ms()-65000},{atomic=true,parents=true})
+  end
   test.falsy(test.ipc("q_light","record"))
+  publish(true)
+  test.wait(function() return test.ipc("q_light","record") end,2000,"the tile did not light")
+  publish(false)
+  test.wait(function() return not test.ipc("q_light","record") end,2000,"the tile stayed lit")
+  morf.fs.remove(path)
   test.eq(#test.logs("error"),0)
 end)
 

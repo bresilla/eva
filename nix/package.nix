@@ -35,9 +35,9 @@ in
 #                 library of the morf it is built against and the faces it
 #                 draws with
 #   share/fonts   the whole families of those faces, for the system's fonts
-#   share/applications  a desktop entry for each tool with a window
+#   share/applications  a desktop entry for each tool a person opens
 #   bin           eva-keyring, the bridge for GNOME Keyring prompts; eva, the
-#                 command line; eva-<tool>, each tool of apps/
+#                 command line; eva-<tool>, each tool of apps/ and apps/bin
 #   nixos         the NixOS module, importable without eva's flake
 runCommandCC "eva-${version}"
   {

@@ -1,0 +1,28 @@
+# The panel, the selection and the editor at fixed moments, through the shell's
+# own verbs, to hold against a tree from before the tool was split from the shell.
+unset EVA_DRY_RUN
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export BOOT=0
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
+shot 00-desk
+ipc capture open > /dev/null
+pause 2
+shot 01-panel
+ipc capture close > /dev/null
+pause 1.5
+shot 02-closed
+ipc screenshot region > /dev/null
+pause 2
+shot 03-selection
+key s
+pause 1.5
+shot 04-editor
+ipc capture-editor tool rect > /dev/null
+pause 1
+shot 05-editor-tool
+ipc capture-editor cancel > /dev/null
+pause 1.5
+shot 06-after

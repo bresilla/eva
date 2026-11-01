@@ -51,7 +51,6 @@ test.it("dashboard, settings and workspaces keep the same sections and geometry 
     {"bottom","open","drop",{"drop-page"}},
     {"tasks","open",nil,{"tasks-page","tasks-list","tasks-add"}},
     {"calendar","open",nil,{"planner-calendar","planner-scroll"}},
-    {"capture","open",nil,{"capture-page","capture-target-region","capture-target-screen"}},
   }
   local baseline={}
   for _,style in ipairs {"material","tsugumori"} do

@@ -17,7 +17,7 @@ local function eva(args, up)
   local log = morf.env("XDG_STATE_HOME") .. "/eva-cli-" .. tostring(morf.time.now_ms()) .. ".log"
   morf.fs.write(log, "")
   local argv = { "env", "MORF=" .. STUB, "STUB_LOG=" .. log, "STUB_UP=" .. (up and "1" or ""),
-    "sh", ROOT .. "apps/bin/eva" }
+    "HOME=" .. morf.env("XDG_STATE_HOME"), "sh", ROOT .. "apps/bin/eva" }
   for _, word in ipairs(args) do argv[#argv + 1] = word end
   test.ipc("run", table.unpack(argv))
   local done = test.wait(function() return test.ipc("result") end, 5000, "eva answered")
@@ -52,6 +52,26 @@ test.it("says so when the shell is not running", function()
   test.falsy(result.ok)
   test.contains(result.stderr, "the shell is not running")
   test.falsy(calls:find("ipc call", 1, true))
+end)
+
+test.it("reaches the capture tool with or without the shell", function()
+  host()
+  local _, calls = eva({ "screenshot", "region" }, true)
+  test.contains(calls, "ipc call screenshot region")
+  local result, alone = eva({ "screenshot", "region" }, false)
+  test.truthy(result.ok)
+  test.contains(alone, "app.lua -- screenshot region")
+  _, alone = eva({ "open", "capture" }, false)
+  test.contains(alone, "-- capture open")
+  _, alone = eva({ "open", "record" }, false)
+  test.contains(alone, "-- capture open")
+end)
+
+test.it("lists the capture tool by both its names", function()
+  host()
+  local result = eva({ "tools" }, true)
+  test.contains(result.stdout, "screenshot\n")
+  test.contains(result.stdout, "record\n")
 end)
 
 test.it("refuses a target it does not know", function()

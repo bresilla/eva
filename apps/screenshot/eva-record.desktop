@@ -6,4 +6,3 @@ Exec=eva-record
 Icon=media-record
 Terminal=false
 Categories=Utility;AudioVideo;Recorder;
-StartupWMClass=eva.record

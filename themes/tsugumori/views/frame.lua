@@ -64,6 +64,16 @@ local function decorations(model)
   }
 end
 
+--- The frame's paint on `props`, for any field that joins it.
+function V.paint(props)
+  local glass = require("themes.glass")
+  props.fill_color, props.blend = function() return glass.fill(C.surface, 1.1) end, 0
+  props.backdrop_blur = function() return glass.compositor() end
+  props.stroke_color = function() return glass.on() and C.primary:alpha(.3) or "transparent" end
+  props.stroke_width = function() return glass.on() and 1 or 0 end
+  return props
+end
+
 function V.build(model)
   local reveal = require("themes.reveal")
   local hidden, rest = reveal.opening(model.desk, theme.LEFT, theme.BORDER, 2 * theme.ROUNDING)
@@ -74,11 +84,7 @@ function V.build(model)
     height = function() local _, _, _, h = model.desk() return h - 2 * theme.BORDER end }, 0, hidden, rest)
   local transition = require("themes.session").transition
   require("themes.switcher").morph(opening, "radius", 0, transition and transition.frame_rounding)
-  local glass = require("themes.glass")
-  local field = { id = "frame", anchors = { fill = true }, fill_color = function() return glass.fill(C.surface, 1.1) end, blend = 0,
-    backdrop_blur = function() return glass.compositor() end,
-    stroke_color = function() return glass.on() and C.primary:alpha(.3) or "transparent" end,
-    stroke_width = function() return glass.on() and 1 or 0 end,
+  local field = V.paint { id = "frame", anchors = { fill = true },
     ui.SdfShape { shape = "box", anchors = { fill = true } },
     opening,
   }

@@ -11,6 +11,9 @@
 #   shot NAME                      a screenshot, $SEE_OUT/NAME.png
 #   ipc VERB ARGS                  `morf ipc call` on the role
 #   appipc VERB ARGS               the same, on the running tool's own socket
+#   toolipc VERB ARGS              the same, on the capture tool's socket
+#   drawn                          waits for the role to answer and arrive
+#   toolup                         waits for the capture tool to answer
 #   key NAME                       a key press, by its keysym name
 #   text WORDS                     typed, character by character
 #   click X Y, point X Y           sway's cursor, at output pixels; the sealed
@@ -100,6 +103,15 @@ click() {
   swaymsg seat seat0 cursor release button1 > /dev/null
 }
 appipc() { timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-app-$ROLE" ipc call "$@"; }
+toolipc() { timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-screenshot" ipc call "$@"; }
+drawn() {
+  for _ in $(seq 300); do morf ipc verbs > /dev/null 2>&1 && break; sleep 0.1; done
+  sleep "${ARRIVAL:-6}"
+}
+toolup() {
+  for _ in $(seq 300); do toolipc state 2> /dev/null | grep -q '"ok":true' && break; sleep 0.1; done
+  sleep "${SETTLE:-1}"
+}
 note() { "$@" >> "$SEE_OUT/notes.txt" 2>&1; }
 
 . "$SEE_STEPS"

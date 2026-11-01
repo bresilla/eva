@@ -18,6 +18,7 @@ local SOURCE=[[
   backend.save=function(_,_,cb) saves=saves+1 cb(true) end
   backend.rebind=function(next,_,_,cb) binding=next cb(true) end
   backend.upload=function(_,_,cb) uploads=uploads+1 cb(true) end
+  require("config").set("capture.folder",morf.env("XDG_CACHE_HOME").."/captures")
   local editor=require("capture_editor")
   morf.effect("fixture.hover",function() editor.hovered:get() hover_updates=hover_updates+1 end)
   morf.ipc.render_delay=function(ms) render_ms=tonumber(ms) end
@@ -38,7 +39,7 @@ local SOURCE=[[
     marks=d and d.items or {},draft=d and d.draft or false} end
 ]]
 local function load(style,w,h,select)
-  test.load("../shell/init.lua",{source=SOURCE,size={w or 1200,h or 800},env={EVA_STYLE=style,EVA_DRY_RUN="1"}})
+  test.load("../apps/screenshot/app.lua",{source=SOURCE,size={w or 1200,h or 800},env={EVA_STYLE=style,EVA_DRY_RUN="1"}})
   test.ipc("start") test.advance(300)
   if select~=false then test.ipc("key",115,"s","") test.advance(250) end
 end
@@ -260,7 +261,7 @@ for _,style in ipairs {"material","tsugumori"} do
 
   test.it(style.." keeps export errors visible while hovering controls",function()
     local source=SOURCE:gsub('copies=copies%+1 cb%(true%)','copies=copies+1 cb(false,"Clipboard unavailable")',1)
-    test.load("../shell/init.lua",{source=source,size={1200,800},env={EVA_STYLE=style,EVA_DRY_RUN="1"}})
+    test.load("../apps/screenshot/app.lua",{source=source,size={1200,800},env={EVA_STYLE=style,EVA_DRY_RUN="1"}})
     test.ipc("start") test.advance(300) test.key("s") test.advance(250)
     test.click("capture-editor-copy") test.advance(100)
     local b=test.get("capture-editor-save") test.move(b.x+b.width/2,b.y+b.height/2)
@@ -280,7 +281,7 @@ test.it("selection keeps native coordinates on an offset, scaled desktop",functi
   source=source:gsub('return %{%s*snapshot=function',[[return {desktop=function(_,cb)
     cb(true,{source=fixture,width=2400,height=900,desktop={x=-600,y=-100,width=1200,height=450}})
     end,snapshot=function]],1)
-  test.load("../shell/init.lua",{source=source,size={600,350},env={EVA_STYLE="tsugumori",EVA_DRY_RUN="1"}})
+  test.load("../apps/screenshot/app.lua",{source=source,size={600,350},env={EVA_STYLE="tsugumori",EVA_DRY_RUN="1"}})
   test.ipc("start") test.advance(300)
   local canvas=test.get("capture-editor-canvas") local image=test.get("capture-editor-image")
   test.eq(canvas.x,-600) test.eq(canvas.y,-100) test.eq(canvas.width,1200)
@@ -299,7 +300,7 @@ test.it("preparing a slow monitor preview times out and late completion stays ca
   local source=SOURCE:gsub('render_ms,inflight,maxflight,last_ops,hover_updates=20,','render_ms,inflight,maxflight,last_ops,hover_updates=11000,',1)
     :gsub('{source=fixture,width=1200,height=700}',
       '{source=fixture,width=1200,height=700,desktop={x=-1200,y=0,width=2400,height=1400}}',1)
-  test.load("../shell/init.lua",{source=source,size={1200,800},env={EVA_STYLE="material",EVA_DRY_RUN="1"}})
+  test.load("../apps/screenshot/app.lua",{source=source,size={1200,800},env={EVA_STYLE="material",EVA_DRY_RUN="1"}})
   test.ipc("start") test.advance(10050)
   test.falsy(test.ipc("state").active) test.eq(test.ipc("state").closed,1)
   test.advance(2000)
@@ -307,7 +308,7 @@ test.it("preparing a slow monitor preview times out and late completion stays ca
 end)
 
 test.it("native monitor previews retain their base image and export the same colours",function()
-  test.load("../shell/init.lua",{size={800,650},env={EVA_STYLE="material",EVA_DRY_RUN="1"},source=[[
+  test.load("../apps/screenshot/app.lua",{size={800,650},env={EVA_STYLE="material",EVA_DRY_RUN="1"},source=[[
     local ui=require("morf.ui") local backend=require("lib.shell.capture")
     morf.screens={{name="active",x=0,y=0,width=800,height=650},{name="left",x=-800,y=0,width=800,height=650}}
     backend.kind=function() return "generic" end backend.windows=function(cb) cb({}) end
@@ -361,7 +362,7 @@ end)
 
 test.it("updated configuration keeps rendering with an older installed annotation library",function()
   local source=SOURCE:gsub('local editor=require%("capture_editor"%)','require("lib.shell.capture.annotation").viewport_ops=nil local editor=require("capture_editor")',1)
-  test.load("../shell/init.lua",{source=source,size={1200,800},env={EVA_STYLE="material",EVA_DRY_RUN="1"}})
+  test.load("../apps/screenshot/app.lua",{source=source,size={1200,800},env={EVA_STYLE="material",EVA_DRY_RUN="1"}})
   test.ipc("start") test.advance(300) test.key("s") tool("arrow")
   test.press(100,100) test.move(400,200) test.release(400,200) test.advance(150)
   local state=test.ipc("state") test.eq(state.items,1) test.eq(state.last_ops[#state.last_ops][1],"crop")

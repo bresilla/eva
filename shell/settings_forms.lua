@@ -95,12 +95,10 @@ M.PAGES = {
         note = "Where More, Upload sends a capture" },
     } },
     { title = "Capture commands", note = "$FILE is the file to write", fields = commands("capture.commands.", {
-      { "screenshot_region", "Screenshot a region", "screenshot_region" },
-      { "screenshot_window", "Screenshot a window", "select_window" },
-      { "screenshot_screen", "Screenshot the screen", "monitor" },
       { "record_region", "Record a region", "screen_record" },
       { "record_window", "Record a window", "select_window" },
       { "record_screen", "Record the screen", "monitor" },
+      { "record_portal", "Record through the portal", "cast" },
       { "open", "Open a capture", "open_in_new" },
     }) },
   } },

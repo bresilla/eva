@@ -45,9 +45,9 @@ function M.follow_scheme()
   end)
 end
 
--- A theme, a font, a motion or a density chosen elsewhere builds the window
--- again in place.
-local function follow_appearance()
+--- A theme, a font, a motion or a density chosen elsewhere builds the window
+--- again in place, when `ready` (a fn, if any) says it may.
+function M.follow_appearance(ready)
   local function look()
     local read = themes.preferences.get
     return table.concat({ read("theme"), read("font"), read("motion"), tostring(read("reduce_motion")),
@@ -55,7 +55,7 @@ local function follow_appearance()
   end
   local built = look()
   morf.effect("eva.app.appearance", function()
-    if look() ~= built then morf.reload() end
+    if look() ~= built and (not ready or ready()) then morf.reload() end
   end)
 end
 
@@ -123,7 +123,7 @@ function M.open(spec)
   morf.surface.namespace = "eva-" .. spec.id
   require("themes.ui_scale").apply()
   M.follow_scheme()
-  follow_appearance()
+  M.follow_appearance()
   morf.ipc["eva-app"] = function()
     return { theme = themes.current.id, primary = C.primary:hex(), settings = config.path }
   end

@@ -1,21 +1,54 @@
 # eva-record on this private sway, gpu-screen-recorder a stand-in that writes
-# its arguments down and finishes on SIGINT.
+# its arguments down and finishes on SIGINT: the panel's own recorder, from a
+# command line, with no shell and then with one.
 unset EVA_DRY_RUN
 export RECORD_ARGS="$SEE_OUT/recorder-args.txt"
-CLI="sh apps/record/cli"
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export BOOT=0
+CLI="sh apps/bin/eva-record"
+state() { toolipc state | tr -d '\\ \n' | sed 's/.*result":\["//' | cut -c1-120; }
+gone() { for _ in $(seq 100); do morf -i "$(basename "$WAYLAND_DISPLAY")-screenshot" ipc verbs > /dev/null 2>&1 || break; sleep 0.1; done; }
+grim "$EVA_FAKE_SCREEN"
 
-start app record
-shot window
-stop
-
-# Recording a window takes its place on screen, not -w focused.
-start app displays
-note echo "window: $($CLI window --audio both 2>&1)"
-pause 3
-shot indicator
+# Alone: the screen, with its pill and nothing else on the desk.
+note echo "start: $($CLI monitor --audio both --fps 30 2>&1)"
+toolup
+pause 1
 note echo "status: $($CLI status)"
-note cat "$RECORD_ARGS"
+note echo "tool: $(state)"
+shot indicator
+note echo "second: $($CLI monitor 2>&1)"
 note echo "stop: $($CLI stop 2>&1)"
-pause 1.2
+gone
 note echo "status: $($CLI status)"
 shot stopped
+note cat "$RECORD_ARGS"
+: > "$RECORD_ARGS"
+
+# A region: the frozen selection, then the recorder on what was chosen.
+$CLI region > /dev/null 2>&1
+toolup
+pause 1
+shot region-selection
+key s
+pause 2.5
+note echo "region status: $($CLI status)"
+note echo "region stop: $($CLI stop 2>&1)"
+gone
+note cat "$RECORD_ARGS"
+: > "$RECORD_ARGS"
+
+# With the shell: its verb reaches the same recorder, and it lights the tile.
+start shell
+drawn
+toolup
+ipc record screen > /dev/null
+pause 2.5
+note echo "through the shell: $($CLI status)"
+ipc utilities open > /dev/null
+pause 1.5
+shot tile
+ipc record > /dev/null
+pause 2
+note echo "stopped from the shell: $($CLI status)"
+note cat "$RECORD_ARGS"

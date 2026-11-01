@@ -282,16 +282,16 @@ local config = settings.open {
       cursor = false, save_dialog = false, copy_on_save = true, copy_to_disk = false,
       upload_endpoint = "https://litterbox.catbox.moe/resources/internals/api.php",
       hotkey = "Print", keybind_file = "",
-      -- What each capture runs: `$FILE` is the file to write (in the
-      -- folder, named for the time, with its extension), `~/` and `$HOME`
-      -- expanded. An empty list runs nothing.
+      -- What each recording runs: `$FILE` is the file to write (in the
+      -- folder, named for the time, with its extension), `$REGION` the
+      -- selection or the window as WxH+X+Y, `$OUTPUT` the screen, `$FPS` the
+      -- frame rate; `~/` and `$HOME` expanded. An empty list runs nothing.
+      -- `record_portal` is for a window whose place the compositor keeps.
       commands = {
-        screenshot_region = { "sh", "-c", "grim -g \"$(slurp)\" \"$0\" && wl-copy < \"$0\"", "$FILE.png" },
-        screenshot_window = { "sh", "-c", "grim -g \"$(hyprctl -j activewindow | jq -r '\"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"')\" \"$0\" && wl-copy < \"$0\"", "$FILE.png" },
-        screenshot_screen = { "sh", "-c", "grim -o \"$(hyprctl -j monitors | jq -r '.[] | select(.focused) | .name')\" \"$0\" && wl-copy < \"$0\"", "$FILE.png" },
-        record_region = { "sh", "-c", "region=$(slurp -f '%wx%h+%x+%y') || exit; exec gpu-screen-recorder -w region -region \"$region\" -f 60 -o \"$0\"", "$FILE.mp4" },
-        record_window = { "sh", "-c", "region=$(hyprctl -j activewindow | jq -er '\"\\(.size[0])x\\(.size[1])+\\(.at[0])+\\(.at[1])\"') && exec gpu-screen-recorder -w region -region \"$region\" -f 60 -o \"$0\"; exec gpu-screen-recorder -w portal -f 60 -o \"$0\"", "$FILE.mp4" },
-        record_screen = { "gpu-screen-recorder", "-w", "screen", "-f", "60", "-o", "$FILE.mp4" },
+        record_region = { "gpu-screen-recorder", "-w", "region", "-region", "$REGION", "-f", "$FPS", "-o", "$FILE.mp4" },
+        record_window = { "gpu-screen-recorder", "-w", "region", "-region", "$REGION", "-f", "$FPS", "-o", "$FILE.mp4" },
+        record_portal = { "gpu-screen-recorder", "-w", "portal", "-f", "$FPS", "-o", "$FILE.mp4" },
+        record_screen = { "gpu-screen-recorder", "-w", "$OUTPUT", "-f", "$FPS", "-o", "$FILE.mp4" },
         open = { "xdg-open" },
       },
     },

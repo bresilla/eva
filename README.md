@@ -115,8 +115,8 @@ Launching one a second time raises the window it has open; an overlay shuts.
 |---------|--------------|
 | `eva VERB`, `eva open settings/power`, `eva commands --json` | the shell from a command line, the front door for keybindings |
 | `eva-displays` | a canvas to arrange monitors with edge snapping; mode, scale, rotation, VRR and mirroring; a countdown that reverts; profiles matched on make, model and serial that apply on hotplug |
-| `eva-screenshot region\|window\|screen [--edit\|--copy\|--save] [--delay N] [--last]` | through the shell's editor, alone when it is down; `ocr` and `qr` copy what they read |
-| `eva-record region\|window\|monitor [--audio KIND]`, `eva-record stop` | `gpu-screen-recorder` with a stop indicator |
+| `eva-screenshot`, `eva-screenshot region\|window\|screen [--edit\|--copy\|--save] [--delay N] [--last]` | the capture panel, or straight to the frozen selection, with or without the shell; `ocr` and `qr` copy what they read; `--edit-file FILE` opens the editor on a picture |
+| `eva-record region\|window\|monitor [--audio KIND] [--fps N]`, `eva-record stop`, `eva-record status` | the capture tool's recorder: the panel's Record from a command line, a region chosen on the frozen selection; with no shell a pill shows it running and stops it |
 | `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
 | `eva-keys` | a searchable sheet of the live bindings and the shell's own |
 | `eva-nightlight on\|off\|toggle\|status\|temperature\|follow\|times\|auto\|daemon` | the quick settings' night light from a command line, one implementation with one state; `follow on` has the shell turn it on and off by the sun at `services.weather_location` |
@@ -340,13 +340,25 @@ Start/Stop control, bootstrap progress and SOCKS proxy address alongside VPNs;
 its overview status includes Tor when running. The old `settings tor` IPC
 shortcut opens Tunnel.
 
+The capture tool is `eva-screenshot`, a process of its own in `apps/screenshot`,
+in the way `eva-keyring` is one: the shell keeps it ready and asks it to run, and
+it works the same with no shell. Its panel, frozen selection, editor and recorder
+are the only ones there are. It stands on every screen as the shell does, so what
+opens opens on the focused monitor, on a socket of its own
+(`morf -i DISPLAY-screenshot ipc call`). The shell's `capture`, `screenshot`,
+`record`, `capture-editor` and `capture-claim` verbs pass through to it, and it
+publishes its state in `$XDG_RUNTIME_DIR/eva/capture-DISPLAY.json`, which is how the record
+tile stays lit. Kept ready it costs a second morf process and its GPU context,
+which is what opens the panel at once instead of after a second or two.
+
 PrintScreen, the **Screenshot / Record** button in quick settings, or
-`morf ipc call capture open` opens the compact bottom capture panel. Choose
-region, window or screen, an optional delay, then Screenshot or Record.
-The panel closes before capture. Recording uses its existing commands.
+`morf ipc call capture open` opens the compact bottom capture panel. Over the
+shell the panel joins the screen's frame; with no shell it flares into the edge
+of the screen. Choose region, window or screen, an optional delay, then
+Screenshot or Record. The panel closes before capture.
 Screenshots freeze the desktop at its normal size: drag a region, click a
 window, or press `S` (or Enter) for the current monitor. The screen target
-already selects that monitor.
+already selects that monitor. A region for a recording is chosen the same way.
 
 After selection, a compact floating editing menu appears beside the capture,
 with Copy, Save, undo/redo, Draw and More. Draw expands the tool palette;
@@ -369,7 +381,8 @@ pointer inclusion and key rebinding. Preferences live in `eva.json`;
 defaults belong to `shell/config.lua`. Hyprland shortcut changes apply
 immediately and are restored after reload. Set `capture.keybind_file` to a
 dedicated include file if you want to write the generated binding there too.
-The default compositor binding remains:
+The default compositor binding remains, and bind `eva-screenshot` itself for a
+session with no shell:
 
 ```lua
 bind_exec("Print", "/usr/bin/morf ipc call capture open")
@@ -390,14 +403,16 @@ and rasterizes the annotation geometry. Save/Copy still encode an export.
 Temporary captures/previews are cleaned when editing ends, with bounded
 undo and preview caches. There is no screenshot history or gallery.
 `morf ipc call capture-editor cancel` closes editing across outputs;
-`morf ipc call screenshot screen quick` retains the old command-based
-capture. Set `capture.editor = false` to use that path by default.
+`morf ipc call screenshot screen quick` goes straight through the selection
+and saves, the editor left out. Set `capture.editor = false` to do that by
+default.
 
-Recording still uses the configured commands; custom recorders must stay in
-the foreground (use `exec` in a wrapper) so Morf can track and stop them.
-Quick capture/recording commands may use `grim`, `slurp`, `hyprctl`, `jq`
-and `gpu-screen-recorder`. Reopen the popup to stop the recorder it started
-or cancel a pending countdown.
+Recording runs `capture.commands.record_region`, `record_window`,
+`record_portal` and `record_screen`, which default to `gpu-screen-recorder`;
+`$REGION`, `$OUTPUT`, `$FPS` and `$FILE` are filled in. Custom recorders must
+stay in the foreground (use `exec` in a wrapper) so Morf can track and stop
+them. Reopen the popup to stop the recorder it started or cancel a pending
+countdown.
 
 Run `morf shell`, `morf lock`, or `morf greet`. Preview without authenticating
 with `morf lock -- window preview` or `morf greet -- preview`.

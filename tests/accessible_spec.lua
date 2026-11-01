@@ -34,7 +34,6 @@ end
 local OPEN = {
   { "launcher", ipc("launcher", "open") },
   { "session", ipc("session", "open") },
-  { "capture", ipc("capture", "open") },
   { "tasks", ipc("tasks", "open") },
   { "calendar", ipc("calendar", "open") },
   { "assistant", ipc("bottom", "open", "assistant") },
@@ -62,6 +61,16 @@ local function unnamed()
 end
 
 for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. " names every control of the capture tool's panel", function()
+    test.load("../apps/screenshot/app.lua", { size = { 1920, 1080 }, env = { EVA_STYLE = style, EVA_DRY_RUN = "1",
+      LULE_A = "/nonexistent/lule" } })
+    test.settle(800)
+    test.ipc("capture", "open") test.settle(1200)
+    local problems = unnamed()
+    test.eq(#problems, 0, table.concat(problems, "\n"))
+    test.eq(test.accessible({ id = "drawer-capture" })[1].role, "dialog")
+  end)
+
   test.it(style .. " names every control a screen reader reaches, drawer by drawer", function()
     load(style)
     local problems = {}

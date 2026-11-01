@@ -272,12 +272,18 @@ test.describe("a press",function()
     load_shell {}
     add("recording")
     test.falsy(up("bar-module-recording"))
-    test.ipc("q_run",[[local c=require('capture') c.recording:set(true) c.phase:set('recording') c.elapsed:set(75) return true]])
+    test.ipc("q_run",[[
+      local morf=require('morf')
+      morf.fs.write(require('capture_state').path(),morf.json.encode {pid=1,recording=true,phase='recording',
+        started=morf.time.now_ms()-75000},{parents=true})
+      require('capture').record=function() rawset(_G,'asked_to_stop',true) end
+      return true]])
     test.settle(900)
     test.truthy(up("bar-module-recording"))
-    test.eq(module("recording").text,"1:15")
-    test.click("bar-module-recording") test.settle(900)
-    test.falsy(test.ipc("q_run",[[return require('capture').recording:get()]]))
+    test.truthy(module("recording").text:match("^1:1%d$"),"the tool's clock does not reach the bar")
+    test.click("bar-module-recording") test.settle(300)
+    test.truthy(test.ipc("q_run",[[return rawget(_G,'asked_to_stop')]]))
+    test.ipc("q_run",[[require('morf').fs.remove(require('capture_state').path()) return true]])
   end)
 end)
 
