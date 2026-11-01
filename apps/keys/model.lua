@@ -45,9 +45,20 @@ end
 
 --- The rows for `binds` (hyprctl's list) and the shell's own shortcuts.
 function M.merge(binds)
-  local rows = {}
+  local rows, live = {}, {}
   for _, bind in ipairs(binds or {}) do
-    rows[#rows + 1] = { group = "Compositor", keys = M.chord(bind), what = M.action(bind) }
+    local keys = M.chord(bind)
+    live[keys] = true
+    rows[#rows + 1] = { group = "Compositor", keys = keys, what = M.action(bind) }
+  end
+  -- eva's window keys the compositor does not have bound: a session with its
+  -- own configuration binds them to `morf ipc call VERB` itself.
+  local bound = next(live) ~= nil
+  for _, bind in ipairs(require("keybinds").BINDS) do
+    if not live[bind.keys] and not bind.quiet then
+      rows[#rows + 1] = { group = bound and "Not bound" or "Windows", keys = bind.keys,
+        what = bound and (bind.label .. ": morf ipc call " .. bind.verb) or bind.label }
+    end
   end
   for _, label in ipairs(shortcuts.LABELS) do
     rows[#rows + 1] = { group = "Shell", keys = spelled(label[1]), what = label[2] }

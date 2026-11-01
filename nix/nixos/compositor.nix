@@ -31,6 +31,7 @@ let
       ${builtins.toJSON config.programs.eva.uiScaleFile}, ${toString config.programs.eva.uiScale})
     local root = (os.getenv("XDG_CONFIG_HOME") or (assert(os.getenv("HOME")) .. "/.config")) .. "/hypr"
     local file = io.open(root .. "/hyprland.lua", "r")
+    local own_config = file ~= nil
     if file then
       file:close()
       -- require registers the user's file with Hyprland's config watcher.
@@ -49,6 +50,12 @@ let
     ${quietConfig}
     -- A lock screen that dies leaves the session locked; a new one may take over.
     hl.config({ misc = { allow_session_lock_restore = true } })
+    ${lib.optionalString (config.programs.eva.hyprland.binds != "never") ''
+      -- The keys of the window features, unless this person has their own.
+      if ${if config.programs.eva.hyprland.binds == "always" then "true" else "not own_config"} then
+        dofile("${../../shell/keybinds.lua}").apply(hl, "${config.system.build.evaLauncher}/bin/morf")
+      end
+    ''}
     ${config.programs.eva.hyprland.extraConfig}
     apply_scale()
     ${lib.optionalString seamless.enable "handoff.record(${builtins.toJSON seamless.outputsFile})"}
@@ -107,6 +114,20 @@ in
     type = lib.types.lines;
     default = "";
     description = "Profile-specific Lua applied after the user's Hyprland configuration.";
+  };
+
+  options.programs.eva.hyprland.binds = lib.mkOption {
+    type = lib.types.enum [
+      "auto"
+      "always"
+      "never"
+    ];
+    default = "auto";
+    description = ''
+      The keys of eva's window features (shell/keybinds.lua): the overview, the
+      switcher, snapping and the rest. `auto` binds them unless the user has a
+      ~/.config/hypr/hyprland.lua of their own. eva-keys lists them either way.
+    '';
   };
 
   # Keep the standard session names and other installed desktop environments.

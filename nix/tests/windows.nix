@@ -47,7 +47,8 @@ in
         isNormalUser = true;
         inherit password;
       };
-      environment.systemPackages = [ pkgs.foot pkgs.jq ];
+      environment.systemPackages = [ pkgs.foot pkgs.ydotool ];
+      boot.kernelModules = [ "uinput" ];
       environment.sessionVariables = software;
       systemd.user.services.eva.environment = software;
       hardware.graphics.enable = true;

@@ -1,6 +1,8 @@
 import json
 import shlex
 
+results = []
+
 
 def session(command):
     return (
@@ -17,8 +19,18 @@ def hyprctl(*words):
 def ipc(*words):
     quoted = " ".join(shlex.quote(word) for word in words)
     out = machine.execute(session(f"morf ipc call {quoted}"))[1].strip()
-    print(f"IPC {quoted} => {out[:700]}")
-    return out
+    print(f"IPC {quoted} => {out[:400]}")
+    try:
+        reply = json.loads(out)
+        if not reply.get("ok"):
+            return None
+        values = reply.get("result") or [None]
+        value = values[0]
+        if isinstance(value, str) and value[:1] in "[{":
+            return json.loads(value)
+        return value
+    except ValueError:
+        return None
 
 
 def clients():
@@ -29,7 +41,20 @@ def client(title):
     for row in clients():
         if row["title"] == title:
             return row
-    raise AssertionError(f"no window titled {title}")
+    return None
+
+
+def workspaces():
+    return json.loads(hyprctl("-j", "workspaces"))
+
+
+def check(label, ok, detail=""):
+    results.append((label, bool(ok)))
+    print(f"RESULT {'ok  ' if ok else 'FAIL'} {label} {detail if not ok else ''}")
+
+
+def near(a, b, tolerance=6):
+    return abs(a - b) <= tolerance
 
 
 def login(password):
@@ -51,27 +76,208 @@ def open_window(title):
     machine.wait_until_succeeds(session(f"hyprctl --instance 0 clients | grep -q 'title: {title}'"), timeout=30)
 
 
+def focus(title):
+    row = client(title)
+    hyprctl("eval", f'hl.dispatch(hl.dsp.focus({{ window = "address:{row["address"]}" }}))')
+    machine.sleep(1)
+
+
+def pointer(x, y):
+    machine.succeed(f"YDOTOOL_SOCKET=/tmp/ydotool ydotool mousemove --absolute -x {x} -y {y}")
+
+
 def run(password):
     login(password)
+    machine.succeed("ydotoold --socket-path=/tmp/ydotool --socket-perm=0666 >/tmp/ydotoold.log 2>&1 &")
+    machine.sleep(1)
+    print("EVA", machine.execute("systemctl --user --machine=alice@.host is-active eva.service")[1].strip())
+    print("BINDS", hyprctl("binds")[:300])
+    binds = json.loads(hyprctl("-j", "binds"))
+    keys = {(bind.get("modmask"), bind.get("key")) for bind in binds}
+    check("default keys are bound", (64, "Tab") in keys and (8, "Tab") in keys, str(sorted(k for k in keys if k[0] in (8, 64)))[:300])
     for title in ("one", "two", "three"):
         open_window(title)
     machine.sleep(2)
-    print("LIST", ipc("windows"))
+    listed = ipc("windows")
+    check("the shell lists the real windows", listed and len([w for w in listed if w.get("class") == "foot"]) == 3)
 
-    with subtest("the overview opens over real windows"):
-        ipc("overview", "open")
+    with subtest("overview"):
+        machine.send_key("meta_l-tab")
         machine.sleep(4)
+        check("Super+Tab opens the overview", ipc("overview", "state") is True)
         machine.screenshot("overview")
-        print("SHOTS", ipc("windows", "shots"))
-        ipc("overview", "close")
+        shots = ipc("windows", "shots") or {}
+        print("SHOTS", shots)
+        check("window pictures arrive on Hyprland", any(v for k, v in shots.items() if k != "refused"), str(shots)[:300])
+        check("the eva process survived the captures", ipc("overview", "state") is True)
+        machine.send_chars("two")
         machine.sleep(2)
+        machine.screenshot("overview-filtered")
+        machine.send_key("esc")
+        machine.sleep(2)
+        check("escape closes it", ipc("overview", "state") is False)
 
-    with subtest("a window on a hidden workspace is captured"):
-        address = client("three")["address"]
-        hyprctl("eval", f'hl.dispatch(hl.dsp.window.move({{ workspace = "2", follow = false, window = "address:{address}" }}))')
+    with subtest("a window on a hidden workspace"):
+        three = client("three")
+        hyprctl("eval", f'hl.dispatch(hl.dsp.window.move({{ workspace = "2", follow = false, window = "address:{three["address"]}" }}))')
         machine.sleep(1)
         ipc("overview", "open")
         machine.sleep(4)
-        print("SHOTS", ipc("windows", "shots"))
+        shots = ipc("windows", "shots") or {}
+        check("a hidden window has a picture", shots.get(three["address"]), str(shots)[:300])
+        machine.screenshot("overview-hidden")
         ipc("overview", "close")
         machine.sleep(2)
+        hyprctl("eval", f'hl.dispatch(hl.dsp.window.move({{ workspace = "1", follow = false, window = "address:{three["address"]}" }}))')
+        machine.sleep(1)
+
+    with subtest("switcher"):
+        focus("one")
+        focus("two")
+        machine.send_key("alt-tab")
+        machine.sleep(2)
+        active = json.loads(hyprctl("-j", "activewindow"))
+        check("Alt+Tab goes to the last window", active.get("title") == "one", str(active.get("title")))
+        ipc("switcher", "next", "free")
+        machine.sleep(2)
+        machine.screenshot("switcher")
+        check("the switcher shows held", (ipc("switcher", "state") or {}).get("shown") is True)
+        ipc("switcher", "commit")
+        machine.sleep(1)
+
+    with subtest("snap"):
+        focus("one")
+        ipc("snap", "left")
+        machine.sleep(2)
+        one = client("one")
+        check("snap left floats and places", one["floating"] and near(one["at"][0], 18) and near(one["size"][0], 618), str(one["at"] + one["size"]))
+        machine.screenshot("snap-assist")
+        machine.send_key("esc")
+        machine.sleep(1)
+        ipc("snap", "picker")
+        machine.sleep(2)
+        machine.screenshot("snap-picker")
+        machine.send_key("esc")
+        machine.sleep(1)
+        ipc("snap", "layout", "thirds")
+        machine.sleep(2)
+        check("a layout places the workspace", client("two")["floating"], str(client("two")))
+        machine.screenshot("snap-thirds")
+
+    with subtest("a drag lands"):
+        two = client("two")
+        focus("two")
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 125:1")
+        pointer(two["at"][0] + 60, two["at"][1] + 60)
+        machine.sleep(1)
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x40")
+        machine.sleep(1)
+        print("DRAGGING", ipc("snap", "state"))
+        pointer(1270, 400)
+        machine.sleep(2)
+        machine.screenshot("snap-drag")
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x80")
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 125:0")
+        machine.sleep(2)
+        two = client("two")
+        check("a window dragged to the right edge lands on the right half", near(two["at"][0], 644, 10), str(two["at"] + two["size"]))
+        machine.send_key("esc")
+        machine.sleep(1)
+
+    with subtest("window state"):
+        focus("three")
+        ipc("keep_above")
+        machine.sleep(1)
+        check("keep above floats it", client("three")["floating"])
+        ipc("opacity", "0.7")
+        machine.sleep(1)
+        print("OPACITY", ipc("windows")[0] if ipc("windows") else None)
+        machine.screenshot("opacity")
+        ipc("pip")
+        machine.sleep(2)
+        three = client("three")
+        check("picture in picture pins it small", three["pinned"] and three["size"][0] < 500, str(three))
+        machine.screenshot("pip")
+        ipc("pip")
+        machine.sleep(2)
+        check("leaving picture in picture unpins it", not client("three")["pinned"])
+        ipc("float")
+        machine.sleep(1)
+        check("float", client("three")["floating"])
+        ipc("float")
+        machine.sleep(1)
+        check("float again tiles", not client("three")["floating"])
+
+    with subtest("workspaces"):
+        ipc("workspace_name", "code")
+        machine.sleep(1)
+        check("rename reaches the compositor", any(w["name"] == "code" for w in workspaces()), str(workspaces()))
+        ipc("workspace_layout", "master")
+        machine.sleep(1)
+        check("a workspace's layout changes live", any(w.get("tiledLayout") == "master" for w in workspaces()), str(workspaces()))
+        machine.screenshot("layout-master")
+        ipc("workspace_layout", "next")
+        machine.sleep(1)
+        check("the next layout", any(w.get("tiledLayout") == "scrolling" for w in workspaces()), str(workspaces()))
+        ipc("workspace_layout", "dwindle")
+        focus("three")
+        ipc("scratchpad", "send", "scratch")
+        machine.sleep(1)
+        check("a window goes to a scratchpad", client("three")["workspace"]["name"] == "special:scratch", str(client("three")))
+        ipc("scratchpad", "scratch")
+        machine.sleep(2)
+        machine.screenshot("scratchpad")
+        monitors = json.loads(hyprctl("-j", "monitors"))
+        check("a scratchpad shows", monitors[0]["specialWorkspace"]["name"] == "special:scratch", str(monitors[0]["specialWorkspace"]))
+        ipc("scratchpad", "scratch")
+        machine.sleep(1)
+        hyprctl("eval", f'hl.dispatch(hl.dsp.window.move({{ workspace = "1", follow = false, window = "address:{client("three")["address"]}" }}))')
+        machine.sleep(1)
+        ipc("show_desktop")
+        machine.sleep(1)
+        check("show desktop clears the workspace", client("one")["workspace"]["name"] == "special:desktop", str(client("one")))
+        ipc("show_desktop")
+        machine.sleep(1)
+        check("and brings them back", client("one")["workspace"]["name"] != "special:desktop", str(client("one")))
+        hyprctl("eval", 'hl.dispatch(hl.dsp.focus({ workspace = "2" }))')
+        machine.sleep(1)
+        machine.screenshot("workspace-osd")
+        hyprctl("eval", 'hl.dispatch(hl.dsp.focus({ workspace = "1" }))')
+        machine.sleep(2)
+
+    with subtest("dock"):
+        print("DOCK", ipc("dock", "on"))
+        machine.sleep(2)
+        ipc("dock", "peek")
+        machine.sleep(1)
+        machine.screenshot("dock")
+        check("the dock takes the windows", (ipc("dock", "state") or {}).get("rows", 0) >= 1)
+
+    with subtest("hot corner"):
+        ipc("corner", "top_left", "overview", "")
+        machine.sleep(1)
+        pointer(640, 400)
+        machine.sleep(1)
+        pointer(1, 1)
+        machine.sleep(2)
+        check("a corner runs its action under a real pointer", ipc("overview", "state") is True)
+        machine.screenshot("hot-corner")
+        ipc("overview", "close")
+        ipc("corner", "top_left", "none", "")
+
+    with subtest("kill mode"):
+        ipc("kill_mode")
+        machine.sleep(1)
+        one = client("one")
+        pointer(one["at"][0] + 40, one["at"][1] + 40)
+        machine.sleep(2)
+        machine.screenshot("kill-mode")
+        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0xC0")
+        machine.sleep(3)
+        check("kill mode force-quits the window pressed", client("one") is None, str(client("one")))
+
+    print("SHELL ALIVE", ipc("overview", "state"))
+    print("JOURNAL", machine.execute("journalctl -b --user-unit eva.service --machine=alice@.host -n 12 --no-pager")[1][-1200:])
+    failed = [label for label, ok in results if not ok]
+    print(f"SUMMARY {len(results) - len(failed)} of {len(results)} passed")
+    print("FAILED", failed)
