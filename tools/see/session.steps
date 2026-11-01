@@ -1,4 +1,5 @@
 # The session menu: its rows, a countdown, and who holds the machine back.
+BOOT=20
 export EVA_FAKE_LOGIND='{"can":{"suspend":"yes","hibernate":"yes","reboot":"yes","power_off":"yes"},"firmware":"yes","sessions":[{"id":"c3","uid":1001,"user":"alice","seat":"seat0"}],"inhibitors":[{"what":"sleep:idle","who":"firefox","why":"Playing video","mode":"block","uid":1000,"pid":1}]}'
 start shell
 pause 1

@@ -1,4 +1,5 @@
 # The lock with everything on, each privacy level, the sheet, the card.
+BOOT=14
 # Settings and the shell's file stand in for the session: no shell runs here.
 SETTINGS=$XDG_STATE_HOME/lock-see.json
 export EVA_SETTINGS=$SETTINGS EVA_FAKE_BATTERY=64,charging EVA_FAKE_STATUS=wifi,bluetooth

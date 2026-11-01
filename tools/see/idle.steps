@@ -1,4 +1,5 @@
 # The idle warning partway through, and the pages it is set on.
+BOOT=20
 export EVA_FAKE_LOGIND='{"can":{"suspend":"yes"},"inhibitors":[{"what":"sleep:idle","who":"firefox","why":"Playing video","mode":"block","uid":1000,"pid":1}]}'
 export EVA_FAKE_BATTERY=64,discharging
 start shell
