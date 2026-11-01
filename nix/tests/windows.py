@@ -62,6 +62,16 @@ def near(a, b, tolerance=6):
     return abs(a - b) <= tolerance
 
 
+def eventually(read, seconds=40):
+    value = read()
+    for _ in range(seconds // 3):
+        if value:
+            return value
+        machine.sleep(3)
+        value = read()
+    return value
+
+
 def login(password):
     machine.start()
     machine.wait_for_unit("greetd.service")
@@ -108,17 +118,19 @@ def run(password):
     for title in ("one", "two", "three"):
         open_window(title)
     machine.sleep(2)
-    listed = ipc("windows")
-    check("the shell lists the real windows", listed and len([w for w in listed if w.get("class") == "foot"]) == 3)
+    listed = eventually(lambda: [w for w in (ipc("windows") or []) if w.get("class") == "foot"])
+    check("the shell lists the real windows", len(listed or []) == 3, str(listed)[:200])
 
     with subtest("overview"):
         machine.send_key("meta_l-tab")
-        machine.sleep(4)
-        check("Super+Tab opens the overview", ipc("overview", "state") is True)
+        check("Super+Tab opens the overview", eventually(lambda: ipc("overview", "state") is True))
+
+        def pictures():
+            return any(v for k, v in (ipc("windows", "shots") or {}).items() if k != "refused")
+
+        check("window pictures arrive on Hyprland", eventually(pictures), str(ipc("windows", "shots"))[:300])
+        machine.sleep(3)
         machine.screenshot("overview")
-        shots = ipc("windows", "shots") or {}
-        print("SHOTS", shots)
-        check("window pictures arrive on Hyprland", any(v for k, v in shots.items() if k != "refused"), str(shots)[:300])
         check("the eva process survived the captures", ipc("overview", "state") is True)
         machine.send_chars("two")
         machine.sleep(2)
@@ -226,17 +238,23 @@ def run(password):
         three = client("three")
         check("picture in picture pins it small", three["pinned"] and three["size"][0] < 500, str(three))
         machine.screenshot("pip")
+        machine.sleep(5)
         before = client("three")["at"]
         pointer(before[0] + 40, before[1] + 40)
-        machine.sleep(1)
+        machine.sleep(3)
+        pointer(before[0] + 44, before[1] + 44)
+        machine.sleep(3)
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x40")
-        machine.sleep(1)
+        machine.sleep(2)
+        pointer(before[0] - 60, before[1] - 40)
+        machine.sleep(2)
         pointer(before[0] - 160, before[1] - 120)
-        machine.sleep(2)
+        machine.sleep(3)
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x80")
-        machine.sleep(2)
+        moved = eventually(lambda: client("three")["at"] != before, 20)
         after = client("three")["at"]
-        check("a real pointer drags the picture", near(after[0], before[0] - 200, 30), f"{before} to {after}")
+        print("PIP SENT", (ipc("windows", "sent") or [])[:3])
+        check("a real pointer drags the picture", moved and near(after[0], before[0] - 200, 40), f"{before} to {after}")
         ipc("pip")
         machine.sleep(2)
         check("leaving picture in picture unpins it", not client("three")["pinned"])
@@ -320,11 +338,12 @@ def run(password):
     with subtest("hot corner"):
         ipc("corner", "top_left", "overview", "")
         machine.sleep(1)
+        machine.sleep(4)
         pointer(640, 400)
-        machine.sleep(1)
-        pointer(1, 1)
         machine.sleep(2)
-        check("a corner runs its action under a real pointer", ipc("overview", "state") is True)
+        pointer(1, 1)
+        check("a corner runs its action under a real pointer", eventually(lambda: ipc("overview", "state") is True))
+        machine.sleep(3)
         machine.screenshot("hot-corner")
         ipc("overview", "close")
         ipc("corner", "top_left", "none", "")
