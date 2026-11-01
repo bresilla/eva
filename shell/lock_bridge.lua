@@ -58,7 +58,9 @@ function M.snapshot(history)
   local notifications = view.project(history, level, M.rules(),
     { silent = config.get("lock.notifications.silent"), since = since,
       hidden = notifs and notifs.redacted or nil })
-  return { notifications = notifications, written = morf.time.now(), mode = {
+  return { notifications = notifications, written = morf.time.now(),
+    phone = { contacts = config.get("phone.contacts"), country = config.get("phone.country"),
+      medical = config.get("phone.medical") }, mode = {
     dnd = notifs and notifs.dnd and notifs.dnd:get() == true or false,
     ringer = ringer_mode(),
     airplane = config.get("airplane.on") == true,

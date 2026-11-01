@@ -89,7 +89,8 @@ function M.path()
   return run .. "/eva/lock-view.json"
 end
 
-local function read_file()
+--- The file as it stands, `{}` without one.
+function M.read_file()
   local path = M.path()
   if not path then return {} end
   local ok, text = pcall(morf.fs.read, path)
@@ -101,13 +102,13 @@ end
 --- The lock's reader: `prefs` are its settings. `items()` and `count()` are
 --- tracked, and hold what the level allows.
 function M.reader(prefs)
-  local view = morf.signal("lock.view", read_file())
+  local view = morf.signal("lock.view", M.read_file())
   local level = prefs.notifications.level
   local started = morf.time.now()
   local self = { watch = nil }
   if M.path() and level ~= "none" then
     pcall(morf.fs.mkdir, M.path():match("^(.*)/"), { parents = true })
-    local ok, watch = pcall(morf.fs.watch, M.path(), function() view:set(read_file()) end)
+    local ok, watch = pcall(morf.fs.watch, M.path(), function() view:set(M.read_file()) end)
     if ok then self.watch = watch end
   end
   local function current()

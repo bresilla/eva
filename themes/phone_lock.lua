@@ -9,8 +9,8 @@
 --   return scene
 --
 -- It goes inside `scene`, whose opaque Rect stays the root. Nothing here is built
--- until a modem that can call is there, however late. The shell writes what the
--- lock cannot read itself to `phone/lock.json` in the state folder.
+-- until a modem that can call is there, however late. What the lock cannot read
+-- itself is in the one file the shell leaves it (shell/lock_bridge.lua).
 local morf = require("morf")
 local ui = require("morf.ui")
 local S = require("themes.spacing")
@@ -20,10 +20,8 @@ local M = { open_emergency = morf.signal("eva.lock.emergency", false) }
 local BUTTON_W = 136
 
 local function settings()
-  local dir = (morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")) .. "/eva/phone/lock.json"
-  local ok, text = pcall(morf.fs.read, dir)
-  local fine, value = pcall(morf.json.decode, ok and text or "")
-  return fine and type(value) == "table" and value or {}
+  local saved = require("models.lock_notifications").read_file().phone
+  return type(saved) == "table" and saved or {}
 end
 
 --- The modem, the book and the models, once for the process; nil without a

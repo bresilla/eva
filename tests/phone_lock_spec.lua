@@ -153,6 +153,30 @@ test.it("Later leaves the SIM locked and the lock usable",function()
   test.truthy(shown("lock-emergency-button"))
 end)
 
+test.it("the card's numbers dial through the phone, and the medical line comes from the one file",function()
+  local view=morf.env("XDG_RUNTIME_DIR").."/eva/lock-view.json"
+  morf.fs.write(view,morf.json.encode{phone={medical="Blood type O"}},{parents=true})
+  run=run+1
+  state=morf.env("XDG_CACHE_HOME").."/phone-lock-"..run
+  test.load("../lock/init.lua",{size={868,1932},args={"window","preview"},source=[[
+    require("init")
+    morf.ipc.dial=function(number)
+      local calls=require("lib.services.emergency_call")
+      return {present=calls.present(),called=calls.dial(number)}
+    end
+  ]],env={EVA_DRY_RUN="1",EVA_FAKE_MODEM="1",EVA_CONTACTS="tests/fixtures/contacts",XDG_STATE_HOME=state}})
+  test.settle(1500)
+  morf.fs.remove(view)
+  test.ipc("phone","emergency") test.advance(40)
+  test.contains(test.get("emergency-medical").text,"Blood type O")
+  test.falsy(morf.fs.exists(state.."/eva/phone/lock.json"))
+  local result=test.ipc("dial","112")
+  test.truthy(result.present)
+  test.truthy(result.called)
+  test.advance(200)
+  test.eq(test.ipc("phone","state").stage,"talking")
+end)
+
 test.it("an emergency number dials from the lock, any other is refused",function()
   load(true)
   test.click("lock-emergency-dial")

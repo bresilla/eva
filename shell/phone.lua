@@ -118,15 +118,6 @@ morf.effect("eva.phone.start", function()
   start()
 end)
 
--- What the lock reads, it having no way to the settings.
-morf.effect("eva.phone.lock-settings", function()
-  local saved = { contacts = config.get("phone.contacts"), country = config.get("phone.country"),
-    medical = config.get("phone.medical") }
-  local state = morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")
-  pcall(morf.fs.write, state .. "/eva/phone/lock.json", morf.json.encode(saved),
-    { atomic = true, parents = true, mode = 384 })
-end)
-
 local function need()
   if not M.model then error("no voice modem") end
   return M.model
