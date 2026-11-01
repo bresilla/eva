@@ -7,6 +7,13 @@ function V.insets(bar)
   return {left=theme.LEFT+bar.left,top=theme.BORDER+bar.top,
     right=theme.BORDER+bar.right,bottom=theme.BORDER+bar.bottom}
 end
+--- The frame's paint on `props`, for any field that joins it.
+function V.paint(props)
+  props.fill_color=function() return theme.color.surface end
+  props.blend,props.blend_profile=theme.SEAM,"circular"
+  props.shadow_color,props.shadow_blur="#000000a0",6
+  return props
+end
 function V.build(model)
   local reveal=require("themes.reveal")
   local hidden,rest=reveal.opening(model.desk,theme.LEFT,theme.BORDER,2*theme.ROUNDING)
@@ -17,8 +24,7 @@ function V.build(model)
       height=function() local _,_,_,h=model.desk() return h-2*theme.BORDER end},0,hidden,rest)
   local transition=require("themes.session").transition
   require("themes.switcher").morph(opening,"radius",theme.ROUNDING,transition and transition.frame_rounding)
-  local field={id="frame",anchors={fill=true},fill_color=function() return theme.color.surface end,
-    blend=theme.SEAM,blend_profile="circular",shadow_color="#000000a0",shadow_blur=6,
+  local field=V.paint {id="frame",anchors={fill=true},
     ui.SdfShape {shape="box",anchors={fill=true}},
     opening,
   }

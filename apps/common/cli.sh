@@ -35,6 +35,32 @@ eva_compositor() {
   fi
 }
 
+# The capture tool's socket, beside the shell's: it runs on every screen as the
+# shell does, so it is not an application of this display but an instance.
+eva_capture_socket() {
+  printf '%s-screenshot' "${WAYLAND_DISPLAY##*/}"
+}
+
+eva_capture_up() {
+  eva_morf -i "$(eva_capture_socket)" ipc verbs > /dev/null 2>&1
+}
+
+eva_capture_call() {
+  eva_morf -i "$(eva_capture_socket)" ipc call "$@"
+}
+
+# The first frame of recording $1 in a private file, when ffmpeg can take one.
+eva_poster() {
+  eva_has ffmpeg || return 1
+  frame=$(eva_private_file png)
+  if ffmpeg -y -loglevel quiet -i "$1" -frames:v 1 "$frame"; then
+    printf '%s' "$frame"
+    return 0
+  fi
+  rm -f "$frame"
+  return 1
+}
+
 # A notification, through the shell when it answers, else through notify-send.
 eva_notify() {
   if eva_shell_up; then

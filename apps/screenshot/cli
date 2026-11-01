@@ -1,24 +1,53 @@
 #!/bin/sh
-# eva-screenshot: a picture of the screen, through the shell when it runs and
-# alone when it does not.
+# eva-screenshot: the capture tool. The panel, the frozen selection, the editor
+# and the recorder, with or without the shell.
 #
-#   eva-screenshot                                   the window
+#   eva-screenshot                                   the panel
 #   eva-screenshot region|window|screen [--edit|--copy|--save] [--delay N] [--last]
 #   eva-screenshot ocr|qr [region|window|screen]     copies what it reads
 #   eva-screenshot --edit-file FILE                  the editor on a picture
+#   eva-screenshot --ask VERB [ARGS]                 a verb of the tool, kept ready
 #
-# --edit (the default) opens the editor, --copy puts the picture on the
-# clipboard, --save writes it to the captures folder. --last takes the region
-# taken last. What ocr and qr read goes to the clipboard, never to a file.
+# Everything goes through the selection: --edit (the default) opens the editor
+# on it, --copy puts it on the clipboard, --save writes it to the captures
+# folder. --last takes the region taken last. What ocr and qr read goes to the
+# clipboard, never to a file.
 set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 target=""
 how=edit
-delay=0
+delay=""
 last=""
 reader=""
+tool=""
+
+# A verb of the tool: the one running hears it, or a new one starts with it.
+order() {
+  if eva_dry; then
+    eva_say "dry run: $*"
+    return 0
+  fi
+  if eva_capture_up; then
+    eva_capture_call "$@" > /dev/null
+    return 0
+  fi
+  sh "$apps/launch" screenshot "$@" > /dev/null 2>&1 &
+  tool=$!
+}
+
+tool_alive() {
+  if [ -n "$tool" ]; then kill -0 "$tool" 2> /dev/null; else eva_capture_up; fi
+}
+
+# Waits for what the tool writes to file $1: "ok" or "no", then a line. Answers
+# with that line in $answer.
+outcome() {
+  while [ ! -s "$1" ] && tool_alive; do sleep 0.1; done
+  answer=$(tail -n +2 "$1" 2> /dev/null || true)
+  [ "$(head -n 1 "$1" 2> /dev/null || true)" = ok ]
+}
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -30,9 +59,38 @@ while [ "$#" -gt 0 ]; do
     --last) last=1 ;;
     --edit-file)
       shift
-      picture=${1:?--edit-file takes a file}
-      if eva_shell_up; then exec env -u MORF_APP "${MORF:-morf}" ipc call capture-editor file "$picture"; fi
-      exec sh "$apps/launch" screenshot file "$picture"
+      order capture-editor file "${1:?--edit-file takes a file}"
+      if [ -n "$tool" ]; then wait "$tool" || true; fi
+      exit 0
+      ;;
+    --ask)
+      shift
+      case "${1:-} ${2:-}" in
+        "capture close" | "capture state" | "capture-editor cancel" | "capture-claim "*)
+          eva_capture_up || exit 0
+          ;;
+      esac
+      if eva_capture_up; then
+        eva_capture_call "$@" > /dev/null
+        exit 0
+      fi
+      [ "${1:-}" != standby ] || shift
+      exec sh "$apps/launch" screenshot standby "$@"
+      ;;
+    --saved-picture)
+      shift
+      eva_thumbnail "$1" "$1" "Capture saved" "$apps/screenshot/cli"
+      exit 0
+      ;;
+    --saved-recording)
+      shift
+      if frame=$(eva_poster "$1"); then
+        eva_thumbnail "$frame" "$1" "Recording saved"
+        rm -f "$frame"
+      else
+        eva_notify "Recording saved" "$1"
+      fi
+      exit 0
       ;;
     --delay)
       shift
@@ -53,65 +111,18 @@ done
 
 case "$delay" in
   '' | *[!0-9]*)
-    eva_say "--delay takes whole seconds"
-    exit 2
+    if [ -n "$delay" ]; then
+      eva_say "--delay takes whole seconds"
+      exit 2
+    fi
     ;;
 esac
 
 if [ -z "$target" ] && [ -z "$reader" ]; then
-  exec sh "$apps/launch" screenshot
+  order capture open
+  if [ -n "$tool" ]; then wait "$tool" || true; fi
+  exit 0
 fi
-
-region_file="$(eva_state)/capture/last-region"
-
-# grim's arguments for the target, one to a line.
-grim_args() {
-  case "$1" in
-    region)
-      if [ -n "$last" ]; then
-        if [ ! -r "$region_file" ]; then
-          eva_say "no region taken yet"
-          return 1
-        fi
-        area=$(cat "$region_file")
-      else
-        area=$(slurp) || return 1
-        mkdir -p "$(dirname "$region_file")"
-        printf '%s' "$area" > "$region_file"
-      fi
-      printf -- '-g\n%s\n' "$area"
-      ;;
-    window)
-      area=$(eva_window_area) || {
-        eva_say "no focused window"
-        return 1
-      }
-      printf -- '-g\n%s\n' "$area"
-      ;;
-    screen)
-      name=$(eva_focused_output) || return 1
-      printf -- '-o\n%s\n' "$name"
-      ;;
-  esac
-}
-
-# Takes the picture into file $2 for target $1.
-take() {
-  args=$(grim_args "$1") || return 1
-  if eva_dry; then
-    eva_say "dry run: grim $(printf '%s' "$args" | tr '\n' ' ')$2"
-    return 0
-  fi
-  old_ifs=$IFS
-  IFS='
-'
-  # shellcheck disable=SC2086
-  set -- $args "$2"
-  IFS=$old_ifs
-  grim "$@"
-}
-
-[ "$delay" -eq 0 ] || sleep "$delay"
 
 if [ -n "$reader" ]; then
   case "$reader" in
@@ -122,60 +133,28 @@ if [ -n "$reader" ]; then
     eva_say "$program is not installed"
     exit 1
   fi
-  shot=$(eva_private_file png)
-  trap 'rm -f "$shot"' EXIT
-  take "${target:-region}" "$shot"
-  if eva_dry; then exit 0; fi
-  case "$reader" in
-    ocr) words=$(tesseract "$shot" - 2>/dev/null || true) ;;
-    qr) words=$(zbarimg --quiet --raw "$shot" 2>/dev/null || true) ;;
-  esac
-  if [ -z "$words" ]; then
-    eva_say "nothing found"
-    exit 1
-  fi
-  printf '%s' "$words" | wl-copy
-  eva_notify "Copied" "$words"
-  exit 0
+  how=$reader
+  target=${target:-region}
 fi
 
+set -- screenshot "$target" "how=$how"
+if [ -n "$delay" ]; then set -- "$@" "delay=$delay"; fi
+if [ -n "$last" ]; then set -- "$@" last=1; fi
+
+# The editor is the person's from here; the rest are told how they went.
 if [ "$how" = edit ]; then
-  if eva_shell_up; then
-    eva_ipc screenshot "$target" > /dev/null
-    if [ -n "$last" ]; then
-      tries=0
-      while [ "$tries" -lt 30 ]; do
-        case "$(eva_ipc capture-editor last 2>/dev/null)" in *true*) break ;; esac
-        sleep 0.1
-        tries=$((tries + 1))
-      done
-    fi
-    exit 0
-  fi
-  picture=$(eva_private_file png)
-  trap 'rm -f "$picture"' EXIT
-  take "$target" "$picture"
-  if eva_dry; then exit 0; fi
-  sh "$apps/launch" screenshot file "$picture"
+  order "$@"
+  if [ -n "$tool" ]; then wait "$tool" || true; fi
   exit 0
 fi
 
-folder=$(eva_captures)
-stamp=$(date +%Y%m%d_%H-%M-%S)
-if [ "$how" = save ]; then
-  mkdir -p "$folder"
-  file="$folder/capture_$stamp.png"
-else
-  file=$(eva_private_file png)
-  trap 'rm -f "$file"' EXIT
-fi
-take "$target" "$file"
-if eva_dry; then exit 0; fi
-if [ "$how" = copy ]; then
-  wl-copy --type image/png < "$file"
-  eva_notify "Screenshot copied"
+result=$(eva_private_file txt)
+trap 'rm -f "$result"' EXIT
+order "$@" "result=$result"
+eva_dry && exit 0
+if outcome "$result"; then
+  if [ "$how" = save ]; then printf '%s\n' "$answer"; fi
   exit 0
 fi
-wl-copy --type image/png < "$file" 2>/dev/null || true
-eva_thumbnail "$file" "$file" "Screenshot saved" "$apps/screenshot/cli" &
-printf '%s\n' "$file"
+eva_say "${answer:-the capture did not finish}"
+exit 1

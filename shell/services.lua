@@ -29,21 +29,11 @@ M.workspace = {}
 -- control answers.
 local local_workspace = morf.signal("eva.workspace", 1)
 
--- The output this runtime draws on (every screen runs the shell once).
-local function screen_name()
-  return (morf.screens and morf.screens[1] and morf.screens[1].name) or ""
-end
-M.output = screen_name
-
--- Capture a destination once per authentication request. Later PAM updates
--- must not open a second dialog just because monitor focus has changed.
-function M.active_output()
-  if hyprland.available() then
-    local focused=hyprland.state.focused_monitor
-    if focused and focused~="" then return focused end
-  end
-  return screen_name()
-end
+local focused = require("focused")
+local screen_name = focused.output
+M.output = focused.output
+M.active_output = focused.active_output
+M.here = focused.here
 
 -- This screen's row in the compositor's monitors, if it has one.
 local function this_monitor()
@@ -66,18 +56,6 @@ function M.workspace.active()
   local id = monitor and monitor.active_workspace or hyprland.state.active_workspace.id
   if type(id) ~= "number" or id < 1 then return 1 end
   return id
-end
-
---- Whether this screen is the one things opened by a key or a verb appear
---- on: the focused monitor on Hyprland, the primary screen elsewhere.
---- Every screen runs the shell and hears every verb; only this one acts.
-function M.here()
-  if hyprland.available() then
-    local focused = hyprland.state.focused_monitor
-    if focused and focused ~= "" then return focused == screen_name() end
-  end
-  if morf.window.primary then return morf.window.primary() end
-  return true
 end
 
 function M.workspace.occupied(id)

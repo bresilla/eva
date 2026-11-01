@@ -83,6 +83,29 @@ end
 function M.window_at(windows,x,y)
   for _,r in ipairs(windows or {}) do if x>=r.x and y>=r.y and x<r.x+r.w and y<r.y+r.h then return r end end
 end
+-- The focused one of a sway tree: `{ x, y, w, h }`.
+function M.focused_in(node)
+  if node.focused and node.pid and node.rect then
+    local r=node.rect return {x=r.x,y=r.y,w=r.width,h=r.height}
+  end
+  for _,key in ipairs {"nodes","floating_nodes"} do
+    for _,child in ipairs(node[key] or {}) do
+      local found=M.focused_in(child)
+      if found then return found end
+    end
+  end
+end
+--- The focused window's place, `cb({ x, y, w, h })`, or `cb(nil)` where the
+--- compositor cannot say.
+function M.focused_window(cb)
+  local kind=M.kind()
+  if kind=="hyprland" then
+    require("lib.compositor.hyprland").json("activewindow",function(c)
+      if c and c.at and c.size then cb({x=c.at[1],y=c.at[2],w=c.size[1],h=c.size[2]}) else cb(nil) end
+    end)
+  elseif kind=="sway" then query({"swaymsg","-t","get_tree"},function(tree) cb(tree and M.focused_in(tree) or nil) end)
+  else cb(nil) end
+end
 function M.desktop_layout(screens,factor)
   local left,top,right,bottom
   for _,screen in ipairs(screens) do
@@ -184,6 +207,14 @@ function M.session(options)
     s.files={} pcall(morf.fs.remove,folder)
   end
   function s.snapshot(output,cb)
+    -- A picture to freeze where the compositor cannot be asked for one.
+    local stand_in=morf.env("EVA_FAKE_SCREEN")
+    if stand_in and stand_in~="" then
+      local info,why=morf.image.info(stand_in)
+      if info then cb(true,{source=stand_in,width=info.width,height=info.height,output=output})
+      else cb(false,why) end
+      return
+    end
     s.sequence=s.sequence+1
     local path=s.path("original-"..s.sequence..".png")
     local function done(ok,value)

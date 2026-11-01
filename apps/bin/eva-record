@@ -1,0 +1,96 @@
+#!/bin/sh
+# eva-record: a recording of the screen, by the capture tool's recorder, with or
+# without the shell.
+#
+#   eva-record                                       the panel
+#   eva-record region|window|monitor [--audio KIND] [--fps N]
+#   eva-record stop                                  ends it and saves the file
+#   eva-record status                                recording or idle
+#
+# KIND is none, desktop, mic or both. A region comes from the selection. A
+# window is recorded from its geometry, through the desktop portal where the
+# geometry cannot be read.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+# What the tool's answer to a verb says, its JSON taken off.
+said() {
+  sed -n 's/.*"result":\["\([^"]*\)".*/\1/p'
+}
+
+running() {
+  [ "$(eva_capture_call record state 2> /dev/null | said)" != idle ] && eva_capture_up
+}
+
+target=""
+audio=none
+fps=60
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    region | window) target=$1 ;;
+    monitor | screen) target=screen ;;
+    stop)
+      if ! running; then
+        eva_say "nothing is recording"
+        exit 1
+      fi
+      file=$(eva_capture_call record stop | said)
+      if [ -n "$file" ]; then printf '%s\n' "$file"; fi
+      exit 0
+      ;;
+    status)
+      if running; then echo recording; else echo idle; fi
+      exit 0
+      ;;
+    --audio)
+      shift
+      audio=${1:?--audio takes none, desktop, mic or both}
+      ;;
+    --fps)
+      shift
+      fps=${1:?--fps takes a number}
+      ;;
+    -h | --help)
+      sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
+      exit 0
+      ;;
+    *)
+      eva_say "unknown argument: $1"
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+if [ -z "$target" ]; then exec sh "$apps/screenshot/cli"; fi
+
+set -- record "$target" start=1 "fps=$fps"
+case "$audio" in
+  none) ;;
+  desktop) set -- "$@" audio=default_output ;;
+  mic) set -- "$@" audio=default_input ;;
+  both) set -- "$@" "audio=default_output|default_input" ;;
+  *)
+    eva_say "--audio takes none, desktop, mic or both"
+    exit 2
+    ;;
+esac
+
+if eva_dry; then
+  eva_say "dry run: $*"
+  exit 0
+fi
+if ! eva_has gpu-screen-recorder; then
+  eva_say "gpu-screen-recorder is not installed"
+  exit 1
+fi
+if running; then
+  eva_say "already recording"
+  exit 1
+fi
+if eva_capture_up; then
+  eva_capture_call "$@" > /dev/null
+  exit 0
+fi
+setsid sh "$apps/launch" screenshot "$@" > /dev/null 2>&1 &

@@ -1,0 +1,28 @@
+# The panel, the selection and the editor at the same moments as a tree from
+# before the split shows them, through the shell's own verbs. tools/see/compare
+# puts these beside that tree's.
+unset EVA_DRY_RUN
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export BOOT=7
+start shell
+pause 1
+grim "$EVA_FAKE_SCREEN"
+shot 00-desk
+ipc capture open > /dev/null
+pause 1.5
+shot 01-panel
+ipc capture close > /dev/null
+pause 1.2
+shot 02-closed
+ipc screenshot region > /dev/null
+pause 1.5
+shot 03-selection
+key s
+pause 1
+shot 04-editor
+ipc capture-editor tool rect > /dev/null
+pause 0.5
+shot 05-editor-tool
+ipc capture-editor cancel > /dev/null
+pause 1
+shot 06-after

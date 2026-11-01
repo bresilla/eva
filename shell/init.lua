@@ -145,14 +145,18 @@ local sidebar = require("sidebar")
 local leftbar = require("leftbar")
 local capture = require("capture")
 local bottom = require("bottom")
--- These two drawers occupy the same edge; only one can be open.
-for _, pair in ipairs { { capture.drawer, bottom.drawer }, { bottom.drawer, capture.drawer } } do
-  local own, other = pair[1], pair[2]
+-- The capture tool's panel and this drawer occupy the same edge; only one can
+-- be open, and a capture takes nothing of the drawer with it.
+do
+  local own = bottom.drawer
   function own.set(on)
-    if on then other.open:set(false) end
+    if on then capture.drawer.set(false) end
     own.open:set(on and true or false)
   end
   function own.toggle() own.set(not own.open:get()) end
+  morf.effect("eva.capture.bottom", function()
+    if capture.panel:get() or capture.phase:get() == "countdown" then own.open:set(false) end
+  end)
 end
 local keyboard = require("keyboard")
 local bar = require("bar")
@@ -162,7 +166,7 @@ local window_menu = require("window_menu")
 -- must not disable typing in the task editor that is still open.
 morf.effect("eva.keyboard.focus", function()
   local exclusive = launcher.drawer.open:get() or session.drawer.open:get() or window_menu.opened:get()
-    or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get() or capture.editor.active:get()
+    or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get()
   -- Typed into on a click: the planner, the terminal, Lule's page.
   local editor_open = leftbar.drawer.open:get()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
@@ -239,13 +243,8 @@ require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)
 -- The shell's window, to a screen reader.
 frame_root.accessible_name = "Eva"
-ui.reparent(capture.editor.node,frame_root)
 -- The focused window's menu, over it: in the screen's own coordinates.
 ui.reparent(window_menu.node,frame_root)
-capture.editor.on_export=function(action,result)
-  notifs.push {summary=action=="copy" and "Capture copied" or action=="save" and "Capture saved" or "Capture uploaded",
-    body=action=="upload" and tostring(result or "Link copied to clipboard") or action=="save" and tostring(result or "") or "",app="Morf"}
-end
 -- Authentication can interrupt editing without ending up behind its overlay.
 morf.effect("eva.capture.authentication",function()
   if (polkit.pending:get() or keyring.request:get()) and capture.editor.running() then capture.cancel() end
@@ -408,14 +407,19 @@ for _, tab in ipairs { "tasks", "calendar" } do
     return verb(leftbar.drawer)(how or "open")
   end
 end
--- PrintScreen opens the original bottom capture panel. Screenshot/Record
--- choose the action and target there; only screenshots enter the editor.
-local capture_popup=verb(capture.drawer)
+-- PrintScreen opens eva-screenshot's panel. The verbs of capture are the tool's;
+-- the focused screen's shell passes each one on, and the tool answers by what it
+-- publishes (shell/capture.lua).
 ipc.capture = function(how)
   how=how or "toggle"
   if how=="menu" then how="open" end
-  if how=="close" or ((how=="open" or how=="toggle") and capture.editor.running()) then capture.cancel() end
-  return capture_popup(how)
+  if how=="state" then return here() and capture.drawer.is_open() or nil end
+  if how~="open" and how~="close" and how~="toggle" then
+    error("`" .. tostring(how) .. "`: open, close, toggle or state")
+  end
+  if not here() then return end
+  capture.ask("capture",how)
+  return how=="open" or (how=="toggle" and not capture.drawer.is_open())
 end
 ipc.bottom = function(how, tab)
   if tab and here() and not bottom.panel.select(tab) then error("No such bottom panel tab: " .. tostring(tab)) end
@@ -441,18 +445,13 @@ do
   end
 end
 ipc["capture-claim"]=function(name)
-  local own=(morf.screens or {})[1]
-  if own and own.name~=name then capture.cancel() capture.drawer.set(false) end
+  if here() then capture.ask("capture-claim",name) end
 end
 ipc["capture-editor"] = function(action,...)
-  if action=="cancel" then capture.cancel() return true end
   if not here() then return end
-  if action=="tool" then capture.editor.choose(...) return true end
-  if action=="copy" or action=="save" or action=="upload" then capture.editor.export(action) return true end
-  if action=="ocr" or action=="qr" then capture.editor.export(action) return true end
-  if action=="last" then return capture.editor.restore_last() end
-  if action=="file" then return capture.editor.open_file((...)) end
-  return {open=capture.editor.active:get(),pending=capture.editor.pending:get(),busy=capture.editor.busy:get(),phase=capture.editor.phase:get()}
+  if action=="cancel" then return capture.cancel() or true end
+  if action then capture.ask("capture-editor",action,...) return true end
+  return {open=capture.editor.active:get(),phase=capture.phase:get()}
 end
 ipc.screenshot = function(what,how)
   if not here() then return nil end

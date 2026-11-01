@@ -34,19 +34,19 @@ function M.follow_scheme()
     if (source == "auto" or source == "lule") and tool then
       theme.follow(tool.accent, nil, mode)
     else
-      local picture = config.get("wallpaper.path")
-      theme.follow(source == "auto" and "wallpaper" or source, picture, mode)
+      theme.follow(source == "auto" and "wallpaper" or source, require("wallpaper").current:get(), mode)
     end
     config.get("theme.variant")
   end)
 end
 
--- A theme or font chosen elsewhere builds the window again in place.
-local function follow_appearance()
+--- A theme or font chosen elsewhere builds the window again in place, when
+--- `ready` (a fn, if any) says it may.
+function M.follow_appearance(ready)
   local style, font = themes.preferences.get("theme"), themes.preferences.get("font")
   morf.effect("eva.app.appearance", function()
     local now, face = themes.preferences.get("theme"), themes.preferences.get("font")
-    if now ~= style or face ~= font then morf.reload() end
+    if (now ~= style or face ~= font) and (not ready or ready()) then morf.reload() end
   end)
 end
 
@@ -85,7 +85,7 @@ function M.open(spec)
   morf.surface.namespace = "eva-" .. spec.id
   require("themes.ui_scale").apply()
   M.follow_scheme()
-  follow_appearance()
+  M.follow_appearance()
   morf.ipc["eva-app"] = function()
     return { theme = themes.current.id, primary = C.primary:hex(), settings = config.path }
   end
