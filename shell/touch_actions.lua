@@ -122,22 +122,14 @@ end
 
 M.ACTIONS = {
   { key = "none", name = "Nothing", icon = "block" },
+  -- Up raises it and down lowers it, the same however many hear the gesture: the
+  -- keyboard's own two fingers hide it too. Anything else turns it over.
   { key = "keyboard", name = "On-screen keyboard", icon = "keyboard",
-    follow = function()
+    run = function(event)
       local keyboard = require("keyboard")
-      if not keyboard.pull_begin() then return nil end
-      return {
-        update = function(e) keyboard.drawer.drag_by(e.dy) end,
-        finish = function(e)
-          keyboard.drawer.drag_by(e.dy)
-          keyboard.pull_end(e.vy or 0, e.committed ~= true, e.direction == "up")
-        end,
-        cancel = function() keyboard.pull_end(0, true) end,
-      }
-    end,
-    run = function()
-      local keyboard = require("keyboard")
-      if keyboard.active() then keyboard.set(false) else keyboard.show("full") end
+      if event.direction == "up" then keyboard.show("full")
+      elseif event.direction == "down" then keyboard.set(false)
+      else keyboard.toggle() end
     end },
   { key = "overview", name = "Overview", icon = "overview", follow = overview_follow,
     run = function() require("overview").toggle() end },

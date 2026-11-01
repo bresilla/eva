@@ -509,8 +509,14 @@ def run(password):
         downs = int(settled_touches("down"))
         stroke(line([(640, 400)]), line([(640, 400)]), steps=1, pause=0.05)
         # wev holds several wl_touch objects after the console switch above, and logs each.
-        check("a tap on the panel reaches the panel's window, focus elsewhere", int(settled_touches("down")) > downs,
-              f"{downs} to {touches('down')}")
+        reached = int(settled_touches("down")) > downs
+        if not reached:
+            machine.screenshot("tap-missed")
+            print("MISSED layers", hyprctl("layers"))
+            print("MISSED clients", [(c["title"], c["at"], c["size"], c["workspace"]["name"]) for c in hypr_json("clients")])
+            print("MISSED", hyprctl("cursorpos"), [(m["name"], m["activeWorkspace"]["id"], m["focused"]) for m in hypr_json("monitors")])
+            print("MISSED drawers", repr(ipc("drawers")), ipc("touch"))
+        check("a tap on the panel reaches the panel's window, focus elsewhere", reached, f"{downs} to {touches('down')}")
         print("WS", before, hypr_json("activeworkspace")["id"])
         stroke(line([(640, 770), (720, 690)]), line([(640, 470), (720, 390)]))
         machine.sleep(2)

@@ -6,10 +6,6 @@ function M.contacts(region,allowed,single)
   return shared.contacts(region,{
     allowed=function() return (region~="bottom" or require("phone_gestures").global_allowed())
       and (not allowed or allowed()) end,
-    owned=function()
-      local driver=package.loaded.touch_driver
-      return driver~=nil and driver.owns()
-    end,
     active=function() return keyboard().active() end,
     show=function(mode) return keyboard().show(mode) end,
     hide=function() return keyboard().set(false) end,

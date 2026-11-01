@@ -86,7 +86,7 @@ local HOST = [[
       "shell/notification_rules.lua", "shell/bar_store.lua", "shell/bar_page.lua", "shell/bar_custom.lua", "shell/panels_board.lua",
       "lib/shell/launcher/pins.lua", "shell/launcher_modes/web.lua",
       "shell/assistant_model.lua", "shell/calendar_sources.lua", "shell/notes_model.lua",
-      "shell/charge_limit_model.lua", "shell/keyboard_page.lua", "themes/layouts/views/keyboard_page.lua",
+      "shell/charge_limit_model.lua",
       "shell/haptics.lua", "shell/mobile_model.lua", "themes/layouts/views/connectivity.lua", "shell/keyboard.lua",
       "shell/quick_tiles.lua", "shell/idle_model.lua", "shell/idle_page.lua", "shell/lock_page.lua",
       "themes/layouts/views/idle_page.lua", "themes/layouts/views/lock_page.lua",
@@ -102,10 +102,9 @@ local HOST = [[
     local sources = table.concat(pages, "\n")
     local reached = require("settings_forms").keys()
     -- Kept by the shell itself: what it remembers, not what a person sets.
-    -- `bar.workspaces.shown` is read by nothing. `keyboard.layouts` holds whole
-    -- layouts, nested tables no field can edit.
+    -- `bar.workspaces.shown` is read by nothing.
     local kept = { "airplane.on", "airplane.was", "ringer.mode", "capture.tools", "bar.workspaces.shown", "bar.modules", "bar.small",
-      "bar.outputs", "wallpaper.fits", "notifications.digest_times", "notifications.keep_actions", "keyboard.layouts" }
+      "bar.outputs", "wallpaper.fits", "notifications.digest_times", "notifications.keep_actions" }
     local groups = { "osd.kinds", "lule", "quick", "input", "accessibility", "sound", "power", "storage", "proxy", "nightlight",
       "edgebar", "dashboard", "sidebar", "leftbar", "bottom", "capture.tools", "appearance", "rotation", "polkit", "osd",
       "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels", "assistant", "calendar",
