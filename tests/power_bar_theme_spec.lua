@@ -145,10 +145,14 @@ for _,page in ipairs {"power","bar"} do
     shot(page.."-compact-top")
     local viewport=test.get(page.."-scroll")
     test.wheel(0,3000,{x=viewport.x+viewport.width-2,y=viewport.y+220}) test.advance(400)
-    local id=page=="power" and "power-open-battery" or "bar-titles-off"
+    local id=page=="power" and "power-open-battery" or "bar-note"
     local last=test.get(id)
     test.truthy(last.y>=viewport.y and last.y+last.height<=viewport.y+viewport.height)
     shot(page.."-compact-bottom")
+    if page=="bar" then
+      test.wheel(0,-3000,{x=viewport.x+viewport.width-2,y=viewport.y+220}) test.advance(400)
+      id="bar-titles-off"
+    end
     test.click(id)
     if page=="power" then test.eq(test.ipc("state").handoffs,1) else test.eq(test.ipc("state").titles,"off") end
     test.ipc("show","no") test.advance(50) test.ipc("show","yes") test.advance(500)

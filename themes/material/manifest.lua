@@ -7,6 +7,8 @@ return {
   views = {
     keyboard = "themes.layouts.views.keyboard",
     bar = "themes.layouts.views.bar",
+    bar_modules = "themes.layouts.views.bar_modules",
+    bar_pill = "themes.layouts.views.bar_pill",
     side_panel = "themes.layouts.views.side_panel",
     connectivity = "themes.layouts.views.connectivity",
     utilities = "themes.layouts.views.utilities",
@@ -50,6 +52,7 @@ return {
     net_pages = "themes.layouts.views.net_pages",
     power_page = "themes.layouts.views.power_page",
     bar_page = "themes.layouts.views.bar_page",
+    bar_board = "themes.layouts.views.bar_board",
     quick_tiles = "themes.layouts.views.quick_tiles",
     panels_page = "themes.layouts.views.panels_page",
     quick_session = "themes.layouts.views.quick_session",

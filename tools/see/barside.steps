@@ -1,0 +1,30 @@
+# The bar's modules along a side and the bottom, and the pill opening from each.
+export EVA_FAKE_BATTERY=57,charging EVA_FAKE_STATUS=wifi,bluetooth
+export EVA_FAKE_MEDIA='So What|Miles Davis' EVA_FAKE_WEATHER=18:2
+export EVA_FAKE_PRIVACY=mic:Firefox,camera:Zoom EVA_FAKE_TIMER='Tea:300'
+start shell
+ipc bar show on
+ipc bar add cpu end; ipc bar add memory end; ipc bar add weather start; ipc bar add visualiser end
+pause 1
+ipc bar side left
+pause 2
+shot left
+ipc bar live toggle
+pause 1.4
+shot left-open
+ipc bar live toggle
+pause 1
+ipc bar side right
+pause 2
+shot right
+ipc bar live toggle
+pause 1.4
+shot right-open
+ipc bar live toggle
+pause 1
+ipc bar side bottom
+pause 2
+shot bottom
+ipc bar live toggle
+pause 1.4
+shot bottom-open

@@ -105,3 +105,10 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   GPU. `MORF_PRESENT=swapchain` does it by hand, in `nix/tests/login.nix`.
 - A first-frame hook. `enter` starts on a surface's first frame, but Lua cannot
   hear it. Plymouth's hand-over listens for Hyprland's `layer.opened` instead.
+- Font features on `ui.Text`. The default skin's `numeric` token names
+  `features = { "tnum" }`, but no node property carries it, so a bar clock with
+  seconds, or a rate that ticks, shifts width as its digits change. `features`
+  on `Text`, passed to shaping as `axes` are, would give tabular figures.
+- Video streams in `morf.audio`. `streams` lists audio alone, so the privacy
+  module spawns `pw-dump` to see who reads a camera or a shared screen. Video
+  nodes and links there would save the child process and hear each change.

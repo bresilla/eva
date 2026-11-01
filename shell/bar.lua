@@ -17,9 +17,11 @@ local function screen()
   return (s and s.width) or 1920, (s and s.height) or 1080
 end
 
---- Whether the bar is up.
+--- Whether the bar is up on this screen: its own say, else the setting's.
 function M.on()
-  local wanted = config.get("edgebar.enabled")
+  local store = require("bar_store")
+  local own = store.on(store.output())
+  local wanted = own ~= "" and own or config.get("edgebar.enabled")
   if wanted == "on" or wanted == true then return true end
   if wanted == "off" or wanted == false then return false end
   local w, h = screen()
@@ -35,11 +37,17 @@ end
 
 function M.vertical() return M.side() == "left" or M.side() == "right" end
 
+--- How thick a bar along the top or bottom is.
+function M.thickness()
+  local set = tonumber(config.get("bar.height")) or 0
+  return set > 0 and set or M.THICK
+end
+
 --- What the bar takes from each side of the screen: `{ left, top, right,
 --- bottom }`, all zero while it is down.
 local function bar_insets()
   local out = { left = 0, top = 0, right = 0, bottom = 0 }
-  if M.on() then out[M.side()] = M.vertical() and M.WIDE or M.THICK end
+  if M.on() then out[M.side()] = M.vertical() and M.WIDE or M.thickness() end
   return out
 end
 
@@ -67,6 +75,7 @@ function M.build()
     screen=function() local w,h=screen() return w,h-keyboard_space:get() end,
     insets=bar_insets,
   }
+  M.model = model
   return view.build(model)
 end
 return M

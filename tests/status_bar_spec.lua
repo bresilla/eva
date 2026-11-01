@@ -17,7 +17,7 @@ local HOST=[[
   local data=morf.state {present=morf.env("TEST_NO_BATTERY")~="1",percentage=64,state="discharging",
     charging=false,available=true,on_battery=true,mode="sound",wifi_connected=false,strength=0,
     time_to_empty=0,time_to_full=0,
-    bluetooth=0,dnd=false,vpn=false,hotspot=false,modem=false,signal=70,tor=false,alarm=false,night=false,saver=false}
+    bluetooth=0,dnd=false,vpn=false,hotspot=false,modem=false,signal=70,roaming=false,tor=false,alarm=false,night=false,saver=false}
   local function rows(fn) return {len=function() return #fn() end,get=function(_,i) return fn()[i] end} end
   local net={state=setmetatable({},{__index=function(_,key)
     if key=="available" then return true end

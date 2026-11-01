@@ -1,18 +1,25 @@
--- The bar, supplied with shared readings and actions. A desk has it framed:
--- the logo and windows, the clock in the middle, the status at the right. A
--- phone and a tablet have a status bar: the time at the left and the status at
--- the right, unframed, with a finger's height to press.
+-- The bar, supplied with shared readings and actions: three zones of modules
+-- along an edge, each module placed by bar_layout.lua and arranged on the board
+-- in the Bar page. A desk has it framed, with the clock in the middle. A phone
+-- and a tablet have a status bar: the time at the left and the status at the
+-- right, unframed, with a finger's height to press.
+--
+-- A module is built once, the first time it is on the board, and kept; its place
+-- and size follow on springs, so rearranging moves what is there.
+local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
 local responsive = require("responsive")
+local layout = require("bar_layout")
 local C = theme.color
 local V = { horizontal = 40, vertical = 48 }
 local S = theme.space
+
 local function button(id, size, on_clicked, child, hint)
   local area
   area = kit.action {
-    id = id, width = size, height = size, cursor = "pointer",
+    id = id, width = size, height = size, cursor = "pointer", accessible_name = hint,
     on_clicked = on_clicked,
     child,
   }
@@ -23,7 +30,7 @@ end
 
 function V.build(model)
   local FORM = responsive.form()
-  local PHONE, TABLET, DESK = FORM == "phone", FORM == "tablet", FORM == "desk"
+  local PHONE, DESK = FORM == "phone", FORM == "desk"
   -- How tall a press is, and the band the icons sit in.
   local ITEM = DESK and 34 or responsive.target()
   local ICONS_H = S.xl
@@ -32,21 +39,32 @@ function V.build(model)
   local SLOT, DOT, PERCENT = S.xl, S.s, 40
   local BATTERY = 16
   local TECH = 22
+  local PAD = responsive.corner()
+  local stamp = model.stamp
+  local function ink() return C.onSurface end
+  local function reading() return model.reading:get() end
+  local function lanes() return responsive.lanes(model.side() == "top" and V.horizontal or 0) end
+  local function small(id) return model.board.small(id) end
+
+  local modules = require("themes").view("bar_modules").context {
+    model = model, ITEM = ITEM, ICONS_H = ICONS_H, GLYPH = GLYPH, DESK = DESK, small = small, ink = ink,
+  }
+  local dress = modules.dress
 
   -- The logo: the author's mark, in the theme's colour. A click opens the
   -- launcher.
   local mark = require("logo")
-  local function logo(suffix)
-    -- A phone has no room for it, and the launcher has its own way in.
-    if PHONE then return ui.Item { id = "bar-logo" .. suffix, width = 0, height = 0 } end
-    return button("bar-logo" .. suffix, ITEM, model.toggle_launcher, ui.Item {
+  local function logo(m, vertical)
+    local area = button("bar-logo" .. (vertical and "-v" or ""), ITEM, model.toggle_launcher, ui.Item {
       anchors = { center_in = true }, width = 24, height = 24,
       ui.Path {
         x = 24 * mark.offset_x / 100, y = 0, width = 24 * mark.scale_x, height = 24,
         view_box = mark.view_box, d = mark.d,
         fill_color = kit.ink("accent"),
       },
-    })
+    }, "Launcher")
+    dress(area, m, vertical)
+    return { node = area, size = function() return ITEM end }
   end
 
   -- --------------------------------------------------------- windows --
@@ -99,40 +117,24 @@ function V.build(model)
         behavior = { width = { duration = theme.duration.small }, x = { duration = theme.duration.small } },
       },
     }
+    modules.tip(area, function() return client.title end)
+    ui.reparent(ui.MouseArea { anchors = { fill = true }, accepted_buttons = { "right" },
+      on_pressed = function() model.window_menu(client.address) end }, area)
     return kit.hover(area, function(hovered)
       if focused() then return C.primary:alpha(0.16) end
       return hovered and C.onSurface:alpha(0.07) or C.onSurface:alpha(0)
     end, 10)
   end
-  -- The bar's row, as the screen's corners and any cutout leave it.
-  local function lanes() return responsive.lanes(model.side() == "top" and V.horizontal or 0) end
-  -- The windows in a lane that ends short of the clock; more than fit
+  -- The windows in a lane that takes what the zone leaves; more than fit
   -- scroll along it, a wheel notch a window at a time.
-  local CLOCK_W, CLOCK_H, PAD = 190, 64, responsive.corner()
-  local LEFT_CLOCK_W = TABLET and 168 or 64
-  local tail_row, tail_column
-  local function windows(as)
-    if PHONE then return ui.Item { width = 0, height = 0 } end
-    local vertical = as == "column"
-    local list = ui.Repeater { as = as, gap = 8, model = model.rows, delegate = window_delegate }
-    local function room()
-      local w, h = model.screen()
-      w, h = w or 0, h or 0
-      if vertical then return math.max(0, h / 2 - CLOCK_H / 2 - PAD - ITEM - 16) end
-      local l = lanes()
-      if TABLET then
-        return math.max(0, l.right - l.left - ITEM - LEFT_CLOCK_W - (tail_row and tail_row.layout_width or 0) - 2 * S.xl)
-      end
-      return math.max(0, w / 2 - CLOCK_W / 2 - l.left - ITEM - 20)
-    end
-    local function along()
-      local size = vertical and list.layout_height or list.layout_width
-      return math.min(size or 0, room())
-    end
-    local lane = require("themes.kit.scroll").make(vertical and "scroll_view" or "shelf", { id = "bar-windows" .. (vertical and "-v" or ""),
-      width = vertical and ITEM or along, height = vertical and along or ITEM, clip = true,
+  local function windows(_, vertical, length)
+    local list = ui.Repeater { as = vertical and "column" or "row", gap = 8, model = model.rows, delegate = window_delegate }
+    local lane = require("themes.kit.scroll").make(vertical and "scroll_view" or "shelf", {
+      id = "bar-windows" .. (vertical and "-v" or ""),
+      width = vertical and ITEM or length, height = vertical and length or ITEM, clip = true,
       snap = "none", item_size = function() return (titles() and ITEM + 8 + TITLE_W or ITEM + 6) + 6 end, list })
-    return lane
+    return { node = lane, flex = true,
+      size = function() return (vertical and list.layout_height or list.layout_width) or 0 end }
   end
 
   -- ----------------------------------------------------------- status --
@@ -149,8 +151,6 @@ function V.build(model)
     spec[along] = function() return shown() and size or CLOSED end
     return ui.Item(spec)
   end
-  local function ink() return C.onSurface end
-  local function reading() return model.reading:get() end
   -- Under a desk's press area: the wheel's own way in, with its setting. A
   -- touchpad turns no notches, only pixels: this many are one.
   local NOTCH_PX = 15
@@ -162,17 +162,6 @@ function V.build(model)
         turned((steps and steps ~= 0) and steps or (pixels or 0) / NOTCH_PX)
       end }
   end
-  local function plan_room(vertical)
-    if vertical then
-      local _, h = model.screen()
-      return math.max(0, (h or 0) / 2 - CLOCK_H / 2 - PAD - S.l)
-    end
-    local l = lanes()
-    if l.gap_to then return l.right - l.gap_to - S.l end
-    local w = model.screen()
-    if DESK then return math.max(0, l.right - (w or 0) / 2 - CLOCK_W / 2 - S.l) end
-    return math.max(0, l.right - l.left - LEFT_CLOCK_W - (TABLET and ITEM or 0) - S.m - S.l)
-  end
   local function fixed(vertical)
     local r = reading()
     local size = vertical and ICONS_H or 2 * BATTERY + S.xs
@@ -180,21 +169,44 @@ function V.build(model)
     if r.mobile_icon ~= "" then size = size + SLOT + ((r.technology ~= "" and not vertical) and TECH or 0) end
     return size
   end
-  local function tail(vertical)
+  -- The indicators the privacy module has not taken over.
+  local status_keys = require("status_model").PRIVATE
+  local function privacy_placed() return model.board.zone_of("privacy") ~= nil end
+  local function indicators()
+    local placed, out = privacy_placed(), {}
+    for _, item in ipairs(reading().indicators) do
+      if not (placed and status_keys[item.key]) then out[#out + 1] = item end
+    end
+    return out
+  end
+  -- The percentage's room: none on a side bar, without a battery, or by the
+  -- setting, unless the battery is low.
+  local function percent_room(vertical)
+    local b = reading().battery
+    if vertical or not b.present then return 0 end
+    if require("config").get("bar.percent") == false and not b.low then return 0 end
+    return PERCENT
+  end
+  local function status(m, vertical, length)
     local v = vertical and "-v" or ""
     local function plan()
-      return model.arrange(plan_room(vertical), { icon = SLOT, dot = DOT, fixed = fixed(vertical),
-        percent = vertical and 0 or PERCENT })
+      local r = reading()
+      local sizes = { icon = SLOT, dot = DOT, fixed = fixed(vertical), percent = percent_room(vertical), level = r.battery.level }
+      return require("status_model").arrange(indicators(), length() - S.l, sizes)
     end
     local nodes = { gap = 0, align = "center" }
     nodes[#nodes + 1] = slot("bar-dot" .. v, function() return plan().dot end, vertical, DOT,
       kit.surface { anchors = { center_in = true }, width = S.xs + S.xxs, height = S.xs + S.xxs, radius = 3, color = ink })
     for _, key in ipairs(model.keys) do
-      local function shown() return reading().icons[key] ~= nil and not plan().hidden[key] end
+      local function shown()
+        if status_keys[key] and privacy_placed() then return false end
+        return reading().icons[key] ~= nil and not plan().hidden[key]
+      end
       nodes[#nodes + 1] = slot("bar-" .. key .. v, shown, vertical, SLOT,
         kit.icon(function() return reading().icons[key] or "" end, GLYPH, ink, { anchors = { center_in = true }, fill = true }))
     end
-    -- A phone's mobile network, with its generation, where it has one.
+    -- A phone's mobile network, with its generation and roaming mark, where
+    -- it has one.
     local function tech_shown() return not vertical and reading().mobile_icon ~= "" and reading().technology ~= "" end
     local mobile_w = function() return SLOT + (tech_shown() and TECH or 0) end
     nodes[#nodes + 1] = ui.Item {
@@ -204,7 +216,7 @@ function V.build(model)
       kit.icon(function() return reading().mobile_icon end, GLYPH, ink, { y = 2, x = 2, fill = true }),
       kit.text { x = SLOT, anchors = { vertical_center = true }, visible = tech_shown,
         font_size = theme.size.small - 2, font_weight = 700,
-        text = function() return reading().technology end },
+        text = function() return reading().technology .. (reading().roaming and " R" or "") end },
     }
     nodes[#nodes + 1] = ui.Item {
       id = "bar-network" .. v, width = SLOT, height = ICONS_H,
@@ -226,13 +238,10 @@ function V.build(model)
     end
     -- One segment, one press: all of it opens the quick settings.
     local row = (vertical and ui.Column or ui.Row)(nodes)
-    local function label()
-      local b = reading().battery
-      return b.present and ("Quick settings. Battery " .. require("battery_status_model").describe(b)) or "Quick settings"
-    end
     local area
     area = kit.action {
-      id = "bar-status" .. v, cursor = "pointer", accessible_name = label,
+      id = "bar-status" .. v, cursor = "pointer", accessible_name = m.tooltip,
+      anchors = vertical and { bottom = true } or { right = true },
       width = function() return vertical and ITEM or (row.layout_width or 160) + S.l end,
       height = function() return vertical and (row.layout_height or 160) + S.l or ITEM end,
       on_clicked = model.open_settings,
@@ -248,13 +257,15 @@ function V.build(model)
         return hovered and C.onSurface:alpha(0.07) or C.onSurface:alpha(0)
       end, 10)
     end
-    return area, row
+    dress(area, m, vertical)
+    return { node = ui.Item { anchors = { fill = true }, area }, flex = true, hold = true,
+      size = function() return fixed(vertical) + #indicators() * SLOT + S.l + percent_room(vertical) end }
   end
 
   -- ------------------------------------------------------------ tray --
   -- The system tray beside the status: the kit's tray item in the theme's
   -- skin, the program's own picture on it. A press activates it, a right
-  -- press opens its menu. It stands down where it would run into the clock.
+  -- press opens its menu.
   local TRAY = 28
   local function tray_picture(row)
     local spec = { anchors = { center_in = true }, width = 20, height = 20 }
@@ -271,10 +282,11 @@ function V.build(model)
     -- The kit's press takes the left button alone: the right one comes here.
     ui.reparent(ui.MouseArea { anchors = { fill = true }, accepted_buttons = { "right" },
       on_pressed = function() item.open_menu() end }, node)
+    modules.tip(node, function() return row.title end)
     return node
   end
-  local function tray(vertical)
-    if not model.tray then return ui.Item {}, function() return 0 end end
+  local function tray(_, vertical)
+    if not model.tray then return { node = ui.Item {}, size = function() return 0 end } end
     local suffix = vertical and "-v" or ""
     local list = ui.Repeater { as = vertical and "column" or "row", gap = S.xs, model = model.tray.rows,
       delegate = function(row) return tray_delegate(row, suffix) end }
@@ -282,66 +294,65 @@ function V.build(model)
       if not model.tray_on() or model.tray.rows:len() == 0 then return 0 end
       return (vertical and list.layout_height or list.layout_width) or 0
     end
-    local function fits()
-      if size() == 0 then return false end
-      local status = (vertical and tail_column or tail_row)
-      local used = (status and status[vertical and "layout_height" or "layout_width"] or 0) + S.l + S.xs + size()
-      if vertical then
-        local _, h = model.screen()
-        return used <= (h or 0) / 2 - CLOCK_H / 2 - PAD
-      end
-      local w = model.screen()
-      return used <= lanes().right - (w or 0) / 2 - CLOCK_W / 2
-    end
-    local node = ui.Item { id = "bar-tray" .. (vertical and "-v" or ""), visible = fits,
-      width = function() return fits() and (list.layout_width or 0) or 0.01 end,
-      height = function() return fits() and (list.layout_height or 0) or 0.01 end, list }
-    return node, function() return fits() and size() + S.xs or 0 end
+    local node = ui.Item { id = "bar-tray" .. suffix, visible = function() return size() > 0 end,
+      anchors = { center_in = true },
+      width = function() return size() > 0 and (list.layout_width or 0) or 0.01 end,
+      height = function() return size() > 0 and (list.layout_height or 0) or 0.01 end, list }
+    return { node = node, size = size }
   end
 
   -- ------------------------------------------------------------ time --
-  -- The date and the time, in the middle; a click opens the dashboard, and
-  -- another shuts it.
-  local stamp = model.stamp
-  -- The time at the left, a tablet's with its date; a press pulls down the
-  -- notifications.
-  local function status_clock()
-    return kit.action { id = "bar-clock", cursor = "pointer", accessible_name = "Notifications",
-      width = LEFT_CLOCK_W, height = ITEM, on_clicked = model.open_notifications,
-      ui.Row { anchors = { vertical_center = true }, gap = S.s, align = "center",
-        kit.text { text = function() return stamp:get()[1] end, font_size = GLYPH, font_weight = 700, morph = true },
-        TABLET and kit.text { text = function() return stamp:get()[2] end, font_size = theme.size.small,
-          color = kit.ink("lo") } or nil,
-      } }
-  end
-  local function clock(vertical)
+  -- The date and the time; a press opens the dashboard on a desk and the
+  -- notifications on a sheet, and another shuts it. A vertical bar stacks them.
+  local function clock(m, vertical)
+    local v = vertical and "-v" or ""
+    local function date_shown() return stamp:get().date ~= "" and not small("clock") end
+    local content
+    if vertical then
+      content = ui.Column {
+        anchors = { center_in = true }, gap = 0, align = "center",
+        kit.text { text = function() return stamp:get().hour end, font_weight = 700, morph = true },
+        kit.text { text = function() return stamp:get().minute end, font_weight = 700, morph = true },
+        kit.text { text = function() return stamp:get().second end, font_size = theme.size.small - 3,
+          color = kit.ink("lo"), visible = function() return require("config").get("bar.clock.seconds") == true end },
+        kit.text { text = function() return stamp:get().meridiem end, font_size = theme.size.small - 3,
+          color = kit.ink("lo"), visible = function() return stamp:get().meridiem ~= "" end },
+        kit.text { text = function() return stamp:get().day end,
+          font_size = theme.size.small - 3, color = kit.ink("lo") },
+      }
+    else
+      content = ui.Row {
+        anchors = { center_in = true }, gap = S.s, align = "center",
+        kit.text { text = function() return stamp:get().date end, font_size = theme.size.small,
+          color = kit.ink("lo"), visible = date_shown },
+        kit.text { text = function() return stamp:get().time end, font_weight = 700, morph = true,
+          font_size = DESK and theme.size.normal or GLYPH },
+      }
+    end
     local area
     area = kit.action {
-      id = "bar-clock" .. (vertical and "-v" or ""), cursor = "pointer",
-      width = vertical and ITEM + 4 or 190, height = vertical and 64 or ITEM,
-      on_clicked = model.toggle_dashboard,
-      wheel("workspace" .. (vertical and "-v" or ""), model.wheel_workspace),
-      vertical and ui.Column {
-        anchors = { center_in = true }, gap = 0, align = "center",
-        kit.text { text = function() return (stamp:get()[1]:sub(1, 2)) end, font_weight = 700, morph = true },
-        kit.text { text = function() return (stamp:get()[1]:sub(4, 5)) end, font_weight = 700, morph = true },
-        kit.text { text = function() return stamp:get()[3] end,
-          font_size = theme.size.small - 3, color = kit.ink("lo") },
-      } or ui.Row {
-        anchors = { center_in = true }, gap = 8, align = "center",
-        kit.text { text = function() return stamp:get()[2] end, font_size = theme.size.small,
-          color = kit.ink("lo") },
-        kit.text { text = function() return stamp:get()[1] end, font_weight = 700, morph = true },
-      },
+      id = "bar-clock" .. v, cursor = "pointer", accessible_name = DESK and "Dashboard" or "Notifications",
+      width = function() return vertical and ITEM + S.xs or (content.layout_width or 0) + 2 * S.s end,
+      height = function() return vertical and (content.layout_height or 0) + S.s or ITEM end,
+      anchors = { center_in = true },
+      on_clicked = model.press_clock,
+      wheel("workspace" .. v, model.wheel_workspace),
+      content,
     }
-    return kit.hover(area, function(hovered)
-      if model.dashboard_open() then return C.primary:alpha(0.16) end
+    kit.hover(area, function(hovered)
+      if DESK and model.dashboard_open() then return C.primary:alpha(0.16) end
       return hovered and C.onSurface:alpha(0.07) or C.onSurface:alpha(0)
     end, 10)
+    dress(area, m, vertical)
+    return { node = area, across = vertical and ITEM + S.xs or nil,
+      size = function()
+        if vertical then return (content.layout_height or 0) + S.s end
+        return (content.layout_width or 0) + 2 * S.s
+      end }
   end
 
   -- ---------------------------------------------------------- layout --
-  local function strip()
+  local function strip_box()
     local w, h = model.screen()
     local i = model.insets()
     local side = model.side()
@@ -350,62 +361,144 @@ function V.build(model)
     if side == "left" then return 0, 0, i.left + theme.LEFT, h end
     return w - i.right - theme.BORDER, 0, i.right + theme.BORDER, h
   end
-  local tail_h, row_h = tail(false)
-  tail_row = row_h
-  local tail_v, row_v = tail(true)
-  tail_column = row_v
-  local tray_h, tray_w = tray(false)
-  local tray_v, tray_tall = tray(true)
-  local head_h = PHONE and ui.Row { gap = 8, align = "center", status_clock() }
-    or TABLET and ui.Row { gap = 8, align = "center", logo(""), status_clock(), windows("row") }
-    or ui.Row { gap = 8, align = "center", logo(""), windows("row") }
-  local head_v = ui.Column { gap = 8, align = "center", logo("-v"), windows("column") }
+  -- The whole screen, in the bar's own space.
+  function modules.origin()
+    local x, y = strip_box()
+    local w, h = model.screen()
+    return -x, -y, w, h
+  end
+
+  local pill = require("themes").view("bar_pill").build(modules)
+  local OWN = { logo = logo, windows = windows, status = status, tray = tray, clock = clock,
+    live = function() return pill.part() end }
+
+  -- Every module along one axis: a slot each, placed by the flow.
+  local function strip(vertical)
+    local v = vertical and "-v" or ""
+    local AT, ALONG, ACROSS = vertical and "y" or "x", vertical and "height" or "width", vertical and "width" or "height"
+    local flow = morf.signal("eva.bar.flow" .. v, { cells = {}, more = {} })
+    local built = morf.signal("eva.bar.built" .. v, 0)
+    local parts, wanted, by_id = {}, {}, {}
+    local layer = { anchors = { fill = true } }
+
+    local function cell(id) return flow:get().cells[id] end
+    local function module_slot(m)
+      local kept = 0
+      local function at()
+        local c = cell(m.id)
+        if c then kept = c.at end
+        return kept
+      end
+      local function length()
+        local c = cell(m.id)
+        return c and c.size or 0
+      end
+      local part = (OWN[m.kind] or modules.part)(m, vertical, length)
+      local function slot_length() return part.flex and math.max(1, length()) or length() end
+      parts[m.id] = part
+      built:set(built:get() + 1)
+      local spec = { id = "bar-slot-" .. m.id .. v, clip = part.clip ~= false,
+        anchors = vertical and { horizontal_center = true } or { vertical_center = true },
+        [AT] = at, [ALONG] = slot_length, [ACROSS] = part.across or ITEM,
+        visible = function() return part.flex or length() > 0.5 end,
+        behavior = { [AT] = theme.spring.spatial, [ALONG] = theme.spring.spatial },
+        part.node }
+      return ui.Item(spec)
+    end
+
+    for _, m in ipairs(model.modules) do
+      by_id[m.id] = m
+      wanted[m.id] = morf.signal("eva.bar.wanted." .. m.id .. v, false)
+      layer[#layer + 1] = ui.Loader { anchors = { fill = true }, keep = true,
+        active = function() return wanted[m.id]:get() end,
+        source = function() return module_slot(m) end }
+    end
+
+    -- A zone's overflow: the mark, and what folded into it.
+    local function more(zone)
+      local function info() return flow:get().more[zone] end
+      local kept = 0
+      local function at()
+        local i = info()
+        if i then kept = i.at end
+        return kept
+      end
+      local area
+      area = kit.action { id = "bar-more-" .. zone .. v, cursor = "pointer", accessible_name = "More",
+        anchors = vertical and { horizontal_center = true } or { vertical_center = true },
+        [AT] = at, width = vertical and ITEM or ICONS_H, height = vertical and ICONS_H or ITEM,
+        visible = function() return info() ~= nil end,
+        on_clicked = function()
+          local i = info()
+          if i then modules.open_more(area, i.ids) end
+        end,
+        kit.surface { anchors = { center_in = true }, width = S.s, height = S.s, radius = S.xs, color = ink } }
+      return area
+    end
+    layer[#layer + 1] = more("start")
+    layer[#layer + 1] = more("end")
+
+    local root = ui.Item(layer)
+    local function active(m)
+      if m.active == nil then return true end
+      local ok, on = pcall(m.active)
+      return ok and on == true
+    end
+    morf.effect("eva.bar.wanted" .. v, function()
+      if not model.on() or model.vertical() ~= vertical then return end
+      for _, zone in ipairs(layout.ZONES) do
+        for _, item in ipairs(model.board.shown(zone)) do
+          if not wanted[item.id]:get() then wanted[item.id]:set(true) end
+        end
+      end
+    end, { owner = root })
+    morf.effect("eva.bar.flow" .. v, function()
+      built:get()
+      if not model.on() or model.vertical() ~= vertical then return end
+      local zones = {}
+      for _, zone in ipairs(layout.ZONES) do
+        local items = {}
+        for _, item in ipairs(model.board.shown(zone)) do
+          local m, part = by_id[item.id], parts[item.id]
+          items[#items + 1] = { id = item.id, tier = m.tier, size = (part and active(m)) and part.size() or 0,
+            flex = part and part.flex, hold = part and part.hold, island = part and part.island,
+            extra = part and part.extra and part.extra() or nil }
+        end
+        zones[zone] = items
+      end
+      local w, h = model.screen()
+      local spec = { zones = zones, gap = S.xs, dot = ICONS_H }
+      if vertical then
+        spec.from, spec.to, spec.middle = PAD, (h or 0) - PAD, (h or 0) / 2
+      else
+        local l = lanes()
+        spec.from, spec.to, spec.middle, spec.gap_from, spec.gap_to = l.left, l.right, (w or 0) / 2, l.gap_from, l.gap_to
+      end
+      flow:set(layout.flow(spec))
+    end, { owner = root })
+    pill.follow(vertical, function() return cell("live") end)
+    return root
+  end
+
+  local along = strip(false)
+  local down = strip(true)
+  local ground
+  ground = ui.MouseArea { id = "bar-ground", anchors = { fill = true }, z = -1, accepted_buttons = { "right" },
+    on_pressed = function() modules.open_bar_menu(ground) end }
   return ui.Item {
     id = "bar",
     visible = function() return model.on() end,
-    x = function() local x = strip() return x end,
-    y = function() local _, y = strip() return y end,
-    width = function() local _, _, w = strip() return w end,
-    height = function() local _, _, _, h = strip() return h end,
+    x = function() local x = strip_box() return x end,
+    y = function() local _, y = strip_box() return y end,
+    width = function() local _, _, w = strip_box() return w end,
+    height = function() local _, _, _, h = strip_box() return h end,
     -- A side bar is ground a drag along it can start from, end to end.
     ui.MouseArea { anchors = { fill = true }, z = -1, visible = function() return model.vertical() end },
-    ui.Item {
-      visible = function() return not model.vertical() end,
-      anchors = { fill = true },
-      ui.Item { x = function() return lanes().left end, width = 1, anchors = { vertical_center = true }, height = ITEM, head_h },
-      DESK and ui.Item { anchors = { center_in = true }, width = 190, height = ITEM, clock(false) } or ui.Item {},
-      ui.Item {
-        x = function() return lanes().right - ((row_h.layout_width or 160) + S.l) end,
-        anchors = { vertical_center = true }, height = ITEM,
-        width = function() return (row_h.layout_width or 160) + S.l end,
-        tail_h,
-      },
-      ui.Item {
-        x = function() return lanes().right - ((row_h.layout_width or 160) + S.l) - tray_w() end,
-        anchors = { vertical_center = true }, height = TRAY, width = function() return math.max(1, tray_w()) end,
-        tray_h,
-      },
-    },
-    ui.Item {
-      visible = function() return model.vertical() end,
-      anchors = { fill = true },
-      ui.Item { y = PAD, height = 1, anchors = { horizontal_center = true }, width = ITEM, head_v },
-      ui.Item { anchors = { center_in = true }, width = ITEM + 4, height = 64, clock(true) },
-      ui.Item {
-        anchors = { bottom = true, bottom_margin = PAD, horizontal_center = true }, width = ITEM,
-        height = function() return (row_v.layout_height or 160) + S.l end,
-        tail_v,
-      },
-      ui.Item {
-        anchors = { horizontal_center = true }, width = TRAY,
-        y = function()
-          local _, _, _, h = strip()
-          return h - PAD - ((row_v.layout_height or 160) + S.l) - tray_tall()
-        end,
-        height = function() return math.max(1, tray_tall()) end,
-        tray_v,
-      },
-    },
+    -- A right press on the bare bar offers the bar's own settings.
+    ground,
+    ui.Item { visible = function() return not model.vertical() end, anchors = { fill = true }, along },
+    ui.Item { visible = function() return model.vertical() end, anchors = { fill = true }, down },
+    pill.node,
   }
 end
 

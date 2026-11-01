@@ -342,4 +342,6 @@ end
 
 M.hyprland = hyprland
 
+require("bar_standins").apply(M)
+
 return M

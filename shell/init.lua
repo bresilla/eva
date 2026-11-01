@@ -173,7 +173,7 @@ morf.effect("eva.keyboard.focus", function()
   local editor_open = pages.typing()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
     or (settings_open and (shown == "theme/lule" or shown == "theme/desktop" or shown == "theme/look"
-      or shown == "theme" or shown == "hotspot" or shown == "panels"
+      or shown == "theme" or shown == "hotspot" or shown == "panels" or shown == "bar"
       or require("utilities").tiles.editing:get()))
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
@@ -463,6 +463,44 @@ ipc.quick = function(how)
   pages.open("settings")
   require("utilities").tiles.editing:set(how == "edit")
   return how == "edit"
+end
+-- `bar modules`: what stands on the bar, zone by zone, and what could. `bar add
+-- ID [ZONE]`, `bar remove ID`, `bar move ID INDEX [ZONE]`, `bar small ID`, `bar
+-- reset`, `bar show on|off|auto`, `bar side EDGE` and `bar live toggle|next`.
+-- `bar output NAME on|off|follow`, `own|shared` or `add ID [ZONE]`: one screen's.
+ipc.bar = function(how, id, a, b)
+  local model = bar.model
+  local board = model.board
+  if how == "output" then
+    local store = require("bar_store")
+    if a == "on" or a == "off" then store.set_on(id, a) return true end
+    if a == "follow" then store.set_on(id, "") return true end
+    if a == "own" or a == "shared" then store.set_own(id, a == "own", require("responsive").form()) return true end
+    if a == "add" and store.output() == id then return board.add(b) end
+    return nil
+  end
+  if how == "show" then config.set("edgebar.enabled", id) return bar.on() end
+  if how == "side" then bar.set_side(id) return bar.side() end
+  if how == "modules" then
+    local out = {}
+    for _, zone in ipairs(board.zones) do
+      out[zone] = {}
+      for i, item in ipairs(board.shown(zone)) do out[zone][i] = item.id end
+    end
+    out.spare = {}
+    for i, item in ipairs(board.spare()) do out.spare[i] = item.id end
+    return out
+  end
+  if how == "add" then return board.add(id, a) end
+  if how == "remove" then board.hide(id) return true end
+  if how == "move" then return board.move(id, tonumber(a) or 1, b) end
+  if how == "small" then board.toggle_size(id) return board.small(id) end
+  if how == "reset" then board.reset() return true end
+  if how == "live" then
+    if id == "next" then model.live.cycle() else model.live.toggle() end
+    return model.live.expanded:get()
+  end
+  error("`" .. tostring(how) .. "`: modules, add, remove, move, small, reset or live")
 end
 -- PrintScreen opens the original bottom capture panel. Screenshot/Record
 -- choose the action and target there; only screenshots enter the editor.

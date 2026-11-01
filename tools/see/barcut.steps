@@ -1,0 +1,4 @@
+# The bar's board round a cutout in the middle of a phone's top edge: the zones
+# part round it, and the live pill wraps the camera.
+export EVA_FAKE_CUTOUT=400,68,34
+. "$SEE_EVA/tools/see/barboard.steps"

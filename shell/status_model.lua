@@ -8,7 +8,10 @@ local morf = require("morf")
 
 local M = {}
 
-M.KEYS = { "alarm", "night", "awake", "hotspot", "ring", "bluetooth", "vpn", "tor", "dnd", "mic", "camera" }
+M.KEYS = { "alarm", "night", "awake", "hotspot", "ring", "muted", "headphones", "bluetooth", "vpn", "tor", "dnd",
+  "mic", "camera", "screen", "location" }
+--- What the privacy module takes over when it is on the bar.
+M.PRIVATE = { mic = true, camera = true, screen = true, location = true }
 local LOW = require("battery_status_model").LOW
 
 local function kept(name) return require("themes.session").keep(name, false):get() end
@@ -51,18 +54,26 @@ local function vpn(net)
   return #vpns.links("mesh") > 0 or #vpns.links("tunnel") > 0
 end
 
--- A program recording from a source, the shell's own monitors aside.
-local function recording()
-  local ok, on = pcall(function()
+local function privacy(kind)
+  return function() return require("privacy_model").shared().in_use(kind) end
+end
+
+-- The default input muted, or the default output a headset.
+local function audio_device(read)
+  local ok, value = pcall(function()
     local audio = morf.audio
-    if not (audio and audio.available() and audio.streams) then return false end
-    for i = 1, audio.streams:len() do
-      local row = audio.streams:get(i)
-      if row.direction == "record" and not (row.app_id or ""):match("^morf%.") then return true end
-    end
-    return false
+    if not (audio and audio.available()) then return false end
+    return read(audio)
   end)
-  return ok and on
+  return ok and value == true
+end
+local function muted() return audio_device(function(audio) return (audio.default_source() or {}).muted == true end) end
+local function headphones()
+  return audio_device(function(audio)
+    local sink = audio.default_sink() or {}
+    local name = (tostring(sink.icon_name or "") .. tostring(sink.name or "")):lower()
+    return name:find("head", 1, true) ~= nil or name:find("bluez", 1, true) ~= nil
+  end)
 end
 
 local SOURCES = {
@@ -77,6 +88,8 @@ local SOURCES = {
   { key = "ring", tier = 1, label = "Ring mode",
     icon = function(s) return require("lib.shell.audio.ringer").icon(s.ringer and s.ringer.state.mode or "sound") end,
     on = function(s) return s.ringer ~= nil and s.ringer.state.mode ~= "sound" end },
+  { key = "muted", tier = 1, icon = "mic_off", label = "Microphone muted", on = muted },
+  { key = "headphones", tier = 2, icon = "headphones", label = "Headphones", on = headphones },
   { key = "bluetooth", tier = 2, icon = "bluetooth_connected", label = "Bluetooth connected",
     on = function(s) return s.bt ~= nil and s.bt.state.available and (s.bt.state.connected_count or 0) > 0 end },
   { key = "vpn", tier = 3, icon = "vpn_key", label = "VPN",
@@ -85,10 +98,10 @@ local SOURCES = {
     on = function(s) return s.tor ~= nil and s.tor.on() == true end },
   { key = "dnd", tier = 3, icon = "do_not_disturb_on", label = "Do not disturb",
     on = function() return kept("eva.notifications.dnd") end },
-  { key = "mic", tier = 0, icon = "mic", label = "Microphone in use",
-    on = recording },
-  { key = "camera", tier = 0, icon = "videocam", label = "Camera in use",
-    on = function(s) return s.camera ~= nil and s.camera.in_use() == true end },
+  { key = "mic", tier = 0, icon = "mic", label = "Microphone in use", on = privacy("mic") },
+  { key = "camera", tier = 0, icon = "videocam", label = "Camera in use", on = privacy("camera") },
+  { key = "screen", tier = 0, icon = "screen_share", label = "Screen being shared", on = privacy("screen") },
+  { key = "location", tier = 0, icon = "location_on", label = "Location in use", on = privacy("location") },
 }
 
 --- The indicators that are active now, left to right. A tracked read.
@@ -111,19 +124,11 @@ end
 --- `hidden[key]` for each indicator in the dot, and whether the dot and the
 --- percentage show.
 function M.arrange(active, room, sizes)
-  local need = sizes.fixed + (sizes.percent or 0) + #active * sizes.icon
-  local out = { hidden = {}, dot = false, percent = (sizes.percent or 0) > 0 }
-  for tier = 1, 3 do
-    for _, item in ipairs(active) do
-      if need <= room then break end
-      if item.tier == tier then
-        out.hidden[item.key] = true
-        need = need - sizes.icon
-        if not out.dot then out.dot = true need = need + sizes.dot end
-      end
-    end
-  end
-  if need > room and out.percent and (sizes.level or 0) > LOW then out.percent = false end
+  local items, base = {}, sizes.fixed + (sizes.percent or 0)
+  for i, item in ipairs(active) do items[i] = { key = item.key, tier = item.tier, size = sizes.icon } end
+  local folded = require("bar_layout").fold(items, room - base, sizes.dot)
+  local out = { hidden = folded.hidden, dot = folded.dot, percent = (sizes.percent or 0) > 0 }
+  if base + folded.need > room and out.percent and (sizes.level or 0) > LOW then out.percent = false end
   return out
 end
 

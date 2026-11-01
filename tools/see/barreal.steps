@@ -1,0 +1,9 @@
+# The modules that read this machine, with nothing standing in for them.
+start shell
+ipc bar show on
+ipc bar add gpu end; ipc bar add cpu end; ipc bar add memory end; ipc bar add temperature end
+ipc bar add disk start; ipc bar add updates start; ipc bar add fans start; ipc bar add uptime start
+ipc bar add load start; ipc bar add host start
+pause 4
+shot real
+ipc bar modules > "$SEE_OUT/board.json"
