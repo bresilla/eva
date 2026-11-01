@@ -246,7 +246,7 @@ in
         unlock()
 
     with subtest("what leaves the shell for the lock stops at the chosen level"):
-        settings('{"lock":{"notifications":{"level":"count","new_only":false}}}')
+        settings('{"lock":{"notifications":{"level":"count","new_only":false}},"notifications":{"lock_previews":"count"}}')
         machine.sleep(2)
         machine.succeed(
             f"{alice} busctl --user call org.freedesktop.Notifications /org/freedesktop/Notifications "

@@ -132,7 +132,7 @@ end)
 test.it("an app with `hide` in its notification rule stops at its name",function()
   test.stub_run("task",{code=0,stdout="[]"})
   local settings=morf.env("XDG_CACHE_HOME").."/lock-bridge-hide.json"
-  morf.fs.write(settings,morf.json.encode {lock={notifications={level="all",new_only=false}}})
+  morf.fs.write(settings,morf.json.encode {lock={notifications={level="all",new_only=false}},notifications={lock_previews="all"}})
   test.load("../shell/init.lua",{size={1200,800},env={EVA_DRY_RUN="1",EVA_SETTINGS=settings,EVA_STYLE="material",XDG_RUNTIME_DIR=RUN,
     EVA_WALLPAPER="",EVA_FONT_FILE="",LULE_A="/nonexistent/lule"},source=[[
       package.loaded.notification_rules={of=function(app) return {hide=app=="Bank"} end}
@@ -159,7 +159,7 @@ end)
 
 test.it("the shell writes only the chosen level, and honours the rule seam",function()
   local settings=morf.env("XDG_CACHE_HOME").."/lock-bridge.json"
-  morf.fs.write(settings,morf.json.encode {lock={notifications={level="count",new_only=false}}})
+  morf.fs.write(settings,morf.json.encode {lock={notifications={level="count",new_only=false}},notifications={lock_previews="count"}})
   test.stub_run("task",{code=0,stdout="[]"})
   test.load("../shell/init.lua",{size={1200,800},env={EVA_DRY_RUN="1",EVA_SETTINGS=settings,EVA_STYLE="material",XDG_RUNTIME_DIR=RUN,
     EVA_WALLPAPER="",EVA_FONT_FILE="",LULE_A="/nonexistent/lule",EVA_FAKE_LOCK_RULES=morf.json.encode{Spam="none"}},
