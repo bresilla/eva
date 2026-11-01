@@ -25,10 +25,13 @@ local HOST=[[
     if key=="wired" then return {connected=false} end
     if key=="access_points" then return rows(function() return {} end) end
     if key=="vpn_connections" then return rows(function() return data.vpn and {{active=true}} or {} end) end
-    if key=="active_connections" then
-      return rows(function() return data.hotspot and {{type="802-11-wireless",id="Hotspot"}} or {} end)
-    end
   end})}
+  local function device(field)
+    return function()
+      return {present=function() return true end,on=function() return data[field] end}
+    end
+  end
+  package.loaded.quick_hardware={hotspot=device("hotspot"),nightlight=device("night")}
   local upower={state=setmetatable({},{__index=function(_,key)
     if key=="display" then return data end
     if key=="profiles" then return {available=true,active=data.saver and "power-saver" or "balanced"} end
@@ -49,7 +52,6 @@ local HOST=[[
     end})},
     tor={on=function() return data.tor end},
     alarm={armed=function() return data.alarm end},
-    night_light={on=function() return data.night end},
     hyprland=nil,workspace={active=function() return 1 end}}
   package.loaded.apps={icon=function() return nil end}
   local function drawer(key)

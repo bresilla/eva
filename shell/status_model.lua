@@ -20,15 +20,23 @@ local function fake_set()
 end
 local FAKE = fake_set()
 
--- A wifi connection that NetworkManager serves as a hotspot, by its name.
-local function hotspot(net)
-  local rows = net and net.state.available and net.state.active_connections
-  if not rows then return false end
-  for i = 1, rows:len() do
-    local row = rows:get(i)
-    if row.type == "802-11-wireless" and (row.id or ""):lower():find("hotspot", 1, true) then return true end
-  end
-  return false
+-- A device of shell/quick_hardware.lua, or nil where it has none.
+local function hardware(name)
+  local ok, devices = pcall(require, "quick_hardware")
+  if not ok or not devices[name] then return nil end
+  local made, device = pcall(devices[name])
+  return made and device or nil
+end
+
+--- Connects the devices the indicators read: outside an effect, each being
+--- built the first time it is asked for.
+function M.connect()
+  hardware("nightlight")
+  hardware("hotspot")
+end
+
+local function running(device)
+  return device ~= nil and device.present() == true and device.on() == true
 end
 
 -- A VPN of NetworkManager's, or a mesh or tunnel by its link.
@@ -61,11 +69,11 @@ local SOURCES = {
   { key = "alarm", tier = 1, icon = "alarm", label = "Alarm set",
     on = function(s) return s.alarm ~= nil and s.alarm.armed() == true end },
   { key = "night", tier = 1, icon = "nightlight", label = "Night light",
-    on = function(s) return s.night_light ~= nil and s.night_light.on() == true end },
+    on = function() return running(hardware("nightlight")) end },
   { key = "awake", tier = 1, icon = "coffee", label = "Keep awake",
     on = function() return kept("eva.utilities.awake") end },
   { key = "hotspot", tier = 1, icon = "wifi_tethering", label = "Hotspot",
-    on = function(s) return hotspot(s.net) end },
+    on = function() return running(hardware("hotspot")) end },
   { key = "ring", tier = 1, label = "Ring mode",
     icon = function(s) return require("lib.shell.audio.ringer").icon(s.ringer and s.ringer.state.mode or "sound") end,
     on = function(s) return s.ringer ~= nil and s.ringer.state.mode ~= "sound" end },

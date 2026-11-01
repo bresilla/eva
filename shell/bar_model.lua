@@ -50,6 +50,7 @@ function M.new(ctx)
     return status.arrange(r.indicators,room,sizes)
   end
 
+  status.connect()
   morf.effect("eva.bar.readings",function()
     if not model.on() then return end
     local b=battery.read()
