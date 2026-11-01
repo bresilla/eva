@@ -393,6 +393,16 @@ test.it("a widget not marked safe is not drawn, and a failing one leaves the loc
   test.eq(#test.logs("error"),0)
 end)
 
+test.it("the desktop's date and clock stand on the lock, what reads the shell does not",function()
+  write(SETTINGS,{lock={widgets={"date","clock","weather","note"}}})
+  load{}
+  test.truthy(shown("lock-widget-date"))
+  test.truthy(shown("lock-widget-clock"))
+  test.falsy(shown("lock-widget-weather"))
+  test.falsy(shown("lock-widget-note"))
+  test.eq(#test.logs("error"),0)
+end)
+
 test.it("a person can hide the name, the face and the readings",function()
   write(SETTINGS,{lock={name=false,avatar=false,media=false,weather=false,status={battery=false,network=false,
     bluetooth=false,mode=false}}})
