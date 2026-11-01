@@ -12,8 +12,9 @@ local M = {}
 
 local THREADS = 60
 local BUBBLES = 80
--- A bubble's width, of the window.
-local WIDE = 0.78
+-- A bubble's width, of the window; a glyph's, of its size; room for a time and
+-- a mark under the words.
+local WIDE, GLYPH, FOOT = 0.78, 0.62, 120
 
 local function thread_row(index, w)
   local function thread() return model.threads()[index] end
@@ -43,14 +44,18 @@ local function threads(w, h)
   }
 end
 
+--- The width for `words` at `size`, the longest line's, within `limit`.
+function M.fit(words, size, limit)
+  local longest = 0
+  for line in (words .. "\n"):gmatch("(.-)\n") do longest = math.max(longest, utf8.len(line) or #line) end
+  return math.min(limit, math.max(FOOT, math.ceil(longest * size * GLYPH)))
+end
+
 -- One message, on the side it came from, as tall as its words.
 local function bubble(index, w)
   local function row() return model.thread()[index] end
   local function outgoing() local r = row() return r ~= nil and r.direction == "out" end
   local function widest() return math.floor(w() * WIDE) end
-  local function words() local r = row() return r and r.text or "" end
-  -- Laid out unwrapped and unseen, for how wide the words want to be.
-  local measure = kit.text { font_size = theme.size.normal, opacity = 0, text = words }
   local foot = kit.text { id = "messages-mark-" .. index, font_size = S.m - S.xxs, color = kit.ink("lo"),
     text = function()
       local r = row()
@@ -58,23 +63,21 @@ local function bubble(index, w)
       local mark = model.mark(r)
       return model.when(r.time) .. (mark ~= "" and (" · " .. mark) or "")
     end }
-  local function fitted()
-    local natural = math.max(measure.layout_width or 0, foot.layout_width or 0) + 2 * S.m
-    return math.min(widest(), math.ceil(natural))
-  end
-  local text = kit.text { id = "messages-text-" .. index, width = function() return fitted() - 2 * S.m end, wrap = true,
-    font_size = theme.size.normal, color = function() return outgoing() and C.onPrimaryContainer or C.onSurface end,
-    text = words }
-  local body = ui.Column { x = S.m, y = S.s, gap = S.xxs, text, foot }
-  return ui.Item { id = "messages-bubble-" .. index, width = w,
-    height = function() return (body.layout_height or 0) + 2 * S.s end,
+  local function words() local r = row() return r and r.text or "" end
+  local function inner() return M.fit(words(), theme.size.normal, widest() - 2 * S.m) end
+  local text = kit.text { id = "messages-text-" .. index, wrap = true, width = inner, text = words,
+    font_size = theme.size.normal, color = function() return outgoing() and C.onPrimaryContainer or C.onSurface end }
+  local body = ui.Column { y = S.s, width = inner, gap = S.xxs, text, foot }
+  local function high() return (body.layout_height or 0) + 2 * S.s end
+  local function wide() return inner() + 2 * S.m end
+  local function left() return outgoing() and w() - wide() or 0 end
+  body.x = function() return left() + S.m end
+  return ui.Item { id = "messages-bubble-" .. index, width = w, height = high,
     visible = function() return row() ~= nil end,
-    ui.Item { width = w, height = 0, clip = true, measure },
-    ui.Item { width = fitted, height = function() return (body.layout_height or 0) + 2 * S.s end,
-      x = function() return outgoing() and w() - fitted() or 0 end,
-      ui.Rect { anchors = { fill = true }, radius = kit.round(S.l),
-        color = function() return outgoing() and C.primaryContainer or C.surfaceContainerHigh end },
-      body } }
+    measure,
+    ui.Rect { x = left, width = wide, height = high, radius = kit.round(S.l),
+      color = function() return outgoing() and C.primaryContainer or C.surfaceContainerHigh end },
+    body }
 end
 
 local function writer(w)

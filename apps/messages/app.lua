@@ -17,6 +17,7 @@ morf.ipc.state = function()
   return { threads = model.threads(), open = model.open:get(), thread = model.thread(),
     draft = model.draft:get(), can_send = model.can_send(), composing = model.composing:get() }
 end
+morf.ipc.fit = function(words, size, limit) return view.fit(words, tonumber(size), tonumber(limit)) end
 morf.ipc.show = function(number) model.show(number) return true end
 morf.ipc.close = function() model.close() return true end
 morf.ipc.compose = function(number) model.compose(number) return true end
