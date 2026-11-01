@@ -28,7 +28,6 @@ M.preview_error = require("themes.session").keep("eva.lule.preview_error", "")
 M.source = require("themes.session").keep("eva.lule.source", config.get("lule.source"))
 M.logo = require("themes.session").keep("eva.lule.logo", config.get("lule.logo"))
 M.logo_size = require("themes.session").keep("eva.lule.logo-size", tostring(config.get("lule.logo_size")))
-local pictures = { png = true, jpg = true, jpeg = true, webp = true, bmp = true, gif = true, avif = true }
 local function message(text, failed) M.failed:set(failed or false) M.message:set(text) end
 function M.set_source(value)
   if M.busy:get() or (value ~= "files" and value ~= "generate") then return false end
@@ -77,16 +76,8 @@ function M.generate(apply)
 end
 function M.scan(path)
   path = expand(path or "")
-  if not morf.fs.is_dir(path) then message("That wallpaper folder does not exist.", true) return false end
-  local ok, entries = pcall(morf.fs.list, path, { follow = true })
-  if not ok or type(entries) ~= "table" then message("Cannot read that wallpaper folder.", true) return false end
-  local files = {}
-  for _, entry in ipairs(entries) do
-    if entry.is_file and pictures[(entry.extension or ""):lower()] then
-      files[#files + 1] = { path = entry.path, name = entry.name }
-    end
-  end
-  table.sort(files, function(a, b) return a.name:lower() < b.name:lower() end)
+  local files, why = lule.pictures(path)
+  if not files then message(why, true) return false end
   M.folder:set(path) M.files:set(files) M.page:set(1)
   if #files == 0 then message("No images in this folder. Choose another wallpaper folder.") end
   return true
@@ -197,10 +188,7 @@ local restoring = require("themes.session").restoring
 morf.effect("eva.lule.open", function()
   if not M.active:get() then scanned = false return end
   if M.source:get() == "generate" then return end
-  local folder = config.get("lule.folder")
-  if folder == "" then folder = morf.env("LULE_W") or "" end
-  if folder == "" then folder = (M.selected:get():match("^(.*)/") or (morf.fs.home() .. "/Pictures/Wallpapers")) end
-  folder = expand(folder)
+  local folder = lule.folder(config.get("lule.folder"), M.selected:get())
   if scanned and M.folder:get() == folder then return end
   local page = M.page:get()
   scanned = M.scan(folder)

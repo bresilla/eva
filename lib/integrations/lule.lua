@@ -28,6 +28,39 @@ function lule.path()
   return morf.fs.join(dir, "colors.json")
 end
 
+local PICTURES = { png = true, jpg = true, jpeg = true, webp = true, bmp = true, gif = true, avif = true }
+
+local function expand(path)
+  if path == "~" then return morf.fs.home() end
+  if path:sub(1, 2) == "~/" then return morf.fs.home() .. path:sub(2) end
+  return path
+end
+
+--- The wallpaper folder: `chosen` (the setting `lule.folder`), then LULE_W,
+--- then the folder of `current`, then ~/Pictures/Wallpapers.
+function lule.folder(chosen, current)
+  local folder = chosen or ""
+  if folder == "" then folder = morf.env("LULE_W") or "" end
+  if folder == "" then folder = (current or ""):match("^(.*)/") or (morf.fs.home() .. "/Pictures/Wallpapers") end
+  return expand(folder)
+end
+
+--- The pictures in `path`, by name: `{ path, name }` each, or nil and why.
+function lule.pictures(path)
+  path = expand(path or "")
+  if not morf.fs.is_dir(path) then return nil, "That wallpaper folder does not exist." end
+  local ok, entries = pcall(morf.fs.list, path, { follow = true })
+  if not ok or type(entries) ~= "table" then return nil, "Cannot read that wallpaper folder." end
+  local files = {}
+  for _, entry in ipairs(entries) do
+    if entry.is_file and PICTURES[(entry.extension or ""):lower()] then
+      files[#files + 1] = { path = entry.path, name = entry.name }
+    end
+  end
+  table.sort(files, function(a, b) return a.name:lower() < b.name:lower() end)
+  return files
+end
+
 --- The scheme in lule's file, or nil and why.
 function lule.read(path)
   path = path or lule.path()
