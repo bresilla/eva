@@ -19,14 +19,7 @@ local SOURCE = [[
   end
   morf.ipc.panel_of = function(key) return pages.panel_name(key) or "" end
   morf.ipc.keys = function(edge) return pages.keys(edge) end
-  morf.ipc.set_panels = function(edge, json) require("config").set("panels." .. edge, morf.json.decode(json)) end
-  morf.ipc.rows = function()
-    local out = {}
-    for _, row in ipairs(require("providers").system and require("providers").system("") or {}) do out[#out + 1] = row.id end
-    return out
-  end
   morf.ipc.sheet_h = function() return require("drawer").sidebar.panel.height end
-  morf.ipc.run_key = function(name, how, tab) return morf.ipc[name](how, tab) end
 ]]
 local loads = 0
 local FORMS = {
@@ -71,6 +64,50 @@ for _, style in ipairs { "material", "tsugumori" } do
     end)
   end
 end
+
+-- The launcher's rows for the shell's own pages: `!NAME`, and Return runs the first.
+local function launch(query)
+  test.ipc("launcher", "open") test.settle(700)
+  test.type(query) test.settle(500)
+end
+
+for _, form in ipairs(SHEETED) do
+  test.it(form .. " launcher rows land on the sheet", function()
+    load("material", form)
+    for _, key in ipairs { "tasks", "calendar", "assistant", "drop", "notifications", "settings" } do
+      local name = key:sub(1, 1):upper() .. key:sub(2)
+      launch("!" .. key)
+      test.truthy(test.find { text = name, visible = true }, "no row for " .. key)
+      test.key("Return") test.settle(900)
+      test.eq(where().open, "sidebar", key)
+      test.eq(where().showing, key)
+      shut()
+    end
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it(form .. " shortcuts land on the sheet", function()
+    load("material", form)
+    test.ipc("sidebar", "open", "settings") test.settle(700)
+    for _, case in ipairs { { "t", "ctrl", "tasks" }, { "c", "ctrl+shift", "calendar" }, { "n", "ctrl", "notifications" } } do
+      test.key(case[1], case[2]) test.settle(700)
+      test.eq(where().open, "sidebar", case[3])
+      test.eq(where().showing, case[3], "a shortcut shut the sheet instead of turning to its page")
+    end
+    test.eq(#test.logs("error"), 0)
+  end)
+end
+
+test.it("on a desk launcher rows and shortcuts land where the page is held", function()
+  load("material", "desk", { right = { "settings", "calendar" }, left = { "notifications" }, bottom = { "tasks" } })
+  launch("!calendar")
+  test.key("Return") test.settle(1000)
+  test.eq(where().open, "sidebar")
+  test.eq(where().showing, "calendar")
+  test.key("t", "ctrl") test.settle(1000)
+  test.eq(where().showing, "tasks")
+  test.truthy(where().open:find("bottom", 1, true), "Ctrl+T did not reach the panel holding Tasks")
+end)
 
 test.it("the desk names reach the sheet through `drawers` too", function()
   load("material", "phone")
@@ -133,6 +170,11 @@ test.it("a page no panel holds has nowhere to land, and no launcher row", functi
   test.eq(test.ipc("panel_of", "drop"), "")
   test.eq(test.ipc("drop"), false)
   test.eq(where().open, "")
+  launch("!tasks")
+  test.truthy(test.find { text = "Tasks", visible = true }, "the rows were not listed at all")
+  test.ipc("close") test.settle(600)
+  launch("!drop")
+  test.falsy(test.find { text = "Drop", visible = true }, "a row for a page with nowhere to land")
   test.eq(#test.logs("error"), 0)
 end)
 
