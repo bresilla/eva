@@ -22,6 +22,9 @@ M.plate = morf.signal("eva.switcher.plate", { x = 0, y = 0, width = 0, height = 
 
 local entries = {}
 local held, waiting = false, nil
+-- When Alt last came up with nothing open: the key's call may reach the shell
+-- after the release's.
+local released_at, RACE = -1e9, 200
 
 --- Which windows it walks: "all", "workspace" or "output".
 function M.scope()
@@ -159,10 +162,6 @@ function M.cancel()
   M.shown:set(false)
   held = false
 end
-
--- When Alt last came up with nothing open: the key's call may reach the shell
--- after the release's.
-local released_at, RACE = -1e9, 200
 
 --- Goes to what is chosen.
 function M.commit()
