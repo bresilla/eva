@@ -164,6 +164,8 @@ local config = settings.open {
       weather_location = "",
       imperial = false,
     },
+    -- eva-update: the flake it reads, or its folder; empty finds /etc/nixos's.
+    update = { flake = "" },
     utilities = {
       commands = {
         mic_on = { "wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "0" },

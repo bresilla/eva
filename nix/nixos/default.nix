@@ -370,6 +370,18 @@ in
           ExecStart = "${tools}/bin/eva-clock sync";
         };
       };
+      systemd.user.services.eva-breaks = {
+        description = "eva break reminders";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        path = [ "/run/current-system/sw" ];
+        serviceConfig = {
+          ExecStart = "${tools}/bin/eva-breaks --watch";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
       systemd.user.services.eva-clipboard = {
         description = "eva clipboard history";
         wantedBy = [ "graphical-session.target" ];

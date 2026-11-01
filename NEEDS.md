@@ -77,6 +77,9 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   with a real key in `tools/see/` and has no spec.
 - ICO images. A favicon holding only BMP frames cannot be decoded: `eva-webapp`
   takes the PNG frames out of an `.ico` in Lua and otherwise draws a letter.
+- `xdg_toplevel`'s suspended state. A window cannot hear that nothing shows it:
+  `eva-monitor` stops sampling when minimised, paused or away, and keeps sampling
+  on a hidden workspace.
 
 ## Seamless login: open
 
