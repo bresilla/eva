@@ -75,6 +75,7 @@ in
       fi
       exec ${config.programs.hyprland.package}/bin/hyprctl dispatch dpms "$action"
     '';
+    system.build.evaIdleLock = idleLock;
     # What the shell reads: the stages fixed here, and the commands to use.
     environment.etc."eva/idle.json".text = builtins.toJSON {
       inherit managed;

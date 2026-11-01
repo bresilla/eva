@@ -70,7 +70,9 @@ in
 
   extraPythonPackages = python: [ python.pillow ];
 
-  testScript = ''
+  testScript =
+    { nodes, ... }:
+    ''
     import time
 
     from PIL import Image
@@ -144,6 +146,96 @@ in
 
     with subtest("the session's output went to the journal"):
         machine.succeed("journalctl -b -t eva-session | grep -q 'Selected compositor ID'")
+
+    alice = "runuser -u alice -- env XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus"
+
+    def session():
+        return machine.succeed("loginctl list-sessions --no-legend | awk '$3 == \"alice\" { print $1; exit }'").strip()
+
+    def is_locked():
+        return f"test \"$(loginctl show-session {session()} -p LockedHint --value)\" = yes"
+
+    def settings(text):
+        path = machine.succeed("cat /home/alice/.local/state/eva/settings-path").strip()
+        machine.succeed(f"printf '%s' '{text}' > {path}", f"chown alice {path}")
+
+    def locked_up():
+        machine.wait_until_succeeds(is_locked(), timeout=90)
+        machine.wait_until_succeeds("pgrep -u alice -f 'morf.*lock'", timeout=60)
+        # The compositor's confirmation, and the first frame on it.
+        machine.sleep(6)
+
+    def unlock():
+        machine.send_chars("${password}\n")
+        machine.wait_until_fails(is_locked(), timeout=60)
+        machine.wait_until_fails("pgrep -u alice -f 'morf.*lock'", timeout=60)
+        machine.sleep(3)
+
+    with subtest("the system's files are there for the shell and the lock"):
+        machine.succeed("jq -e '.managed.lock == 0 and .sleep_lock == true' /etc/eva/idle.json")
+        machine.succeed("jq -e 'type == \"object\"' /etc/eva/lock.json")
+
+    with subtest("real PAM: a wrong password keeps the lock, the right one lifts it"):
+        machine.succeed(f"loginctl lock-session {session()}")
+        locked_up()
+        machine.screenshot("09-lock-rest")
+        machine.send_chars("not the password\n")
+        machine.sleep(8)
+        machine.screenshot("10-lock-wrong")
+        machine.succeed(is_locked())
+        unlock()
+        machine.screenshot("11-unlocked")
+
+    with subtest("a lock asked for by the idle timer opens on a key, inside the window"):
+        settings('{"lock":{"grace_seconds":60}}')
+        machine.succeed(f"{alice} ${nodes.machine.system.build.evaIdleLock}")
+        locked_up()
+        machine.screenshot("12-idle-lock")
+        machine.succeed(is_locked())
+        machine.send_key("shift")
+        machine.wait_until_fails(is_locked(), timeout=30)
+        machine.wait_until_fails("pgrep -u alice -f 'morf.*lock'", timeout=60)
+        machine.sleep(3)
+
+    with subtest("a lock nobody marked wants the password, the window set or not"):
+        machine.succeed(f"loginctl lock-session {session()}")
+        locked_up()
+        machine.send_key("a")
+        machine.sleep(5)
+        machine.succeed(is_locked())
+        machine.screenshot("13-manual-lock-holds")
+        machine.send_key("esc")
+        machine.sleep(1)
+        unlock()
+
+    with subtest("the window ends with the time, and the password is back"):
+        settings('{"lock":{"grace_seconds":2}}')
+        machine.succeed(f"{alice} ${nodes.machine.system.build.evaIdleLock}")
+        locked_up()
+        machine.send_key("a")
+        machine.sleep(5)
+        machine.succeed(is_locked())
+        machine.send_key("esc")
+        machine.sleep(1)
+        unlock()
+
+    with subtest("what leaves the shell for the lock stops at the chosen level"):
+        settings('{"lock":{"notifications":{"level":"count","new_only":false}}}')
+        machine.sleep(2)
+        machine.succeed(
+            f"{alice} busctl --user call org.freedesktop.Notifications /org/freedesktop/Notifications "
+            "org.freedesktop.Notifications Notify susssasa{sv}i app 0 '' 'Secret summary' 'secret body' 0 0 5000"
+        )
+        machine.wait_until_succeeds(
+            "jq -e '.notifications.count == 1 and .notifications.level == \"count\"' /run/user/1000/eva/lock-view.json",
+            timeout=30,
+        )
+        machine.fail("grep -q -i secret /run/user/1000/eva/lock-view.json")
+        machine.succeed("test \"$(stat -c %a /run/user/1000/eva/lock-view.json)\" = 600")
+
+    with subtest("the greeter keeps who came last, and nothing else"):
+        machine.succeed("jq -e '.user == \"alice\" and (.sessions.alice | type) == \"string\"' /var/lib/greetd/.local/state/eva/greeter.json")
+        machine.fail("grep -q 'correct horse' /var/lib/greetd/.local/state/eva/greeter.json")
 
     with subtest("the greeter takes the mode the session recorded"):
         machine.wait_until_succeeds("test -s /var/lib/eva/ui-scale/alice/outputs", timeout=30)
