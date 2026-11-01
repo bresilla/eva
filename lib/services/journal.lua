@@ -1,7 +1,6 @@
 -- A private log several processes keep together: one JSON object a line,
--- appended, so the shell and a tool can each write without losing the other's
--- lines. A later line with the same `id` replaces the earlier one; `gone` drops
--- it. Each process follows the file.
+-- appended. A later line with the same `id` replaces the earlier one; `gone`
+-- drops it. Each process follows the file.
 --
 --   local log = require("lib.services.journal").open { name = "calls" }
 --   log.rows:get()        -- oldest first

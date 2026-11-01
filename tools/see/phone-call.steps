@@ -9,5 +9,7 @@ ipc phone fake ring +31612345678; pause 1.2; shot incoming
 ipc phone answer; pause 1.2; shot talking
 ipc phone mute; ipc phone keypad; pause 0.8; shot keypad
 ipc phone keypad; ipc phone mute; pause 0.4
+ipc phone minimise; pause 1; shot chip
+ipc phone minimise; pause 0.6
 ipc phone fake ring +49301234567; pause 1; shot waiting
 ipc phone hangup; pause 0.6; shot ended

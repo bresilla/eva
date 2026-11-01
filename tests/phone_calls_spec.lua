@@ -176,6 +176,33 @@ test.it("a blocked number never rings",function()
   test.eq(read.outcome,"blocked")
 end)
 
+test.it("a blocked number that arrives after the ring is still turned away",function()
+  test.load("../shell/init.lua",{source=[[
+    local standin=require("lib.services.modem_standin").start()
+    local mobile=require("lib.services.modem").connect{dbus=standin.dbus}
+    local book=require("lib.services.contacts").open{folder="tests/fixtures/contacts",
+      state=morf.env("XDG_CACHE_HOME").."/late-marks.json",watch=false}
+    book.block("+3161234",true)
+    local rang,stopped=0,0
+    local phone=require("models.phone_calls").new{mobile=mobile,book=book,owner=true,
+      ring={trigger=function(_,_,done) rang=rang+1 if done then done(1) end end,stop=function() stopped=stopped+1 end}}
+    local path
+    morf.ipc.ring=function() path=standin.ring("") end
+    morf.ipc.number=function(n) standin.number(path,n) end
+    morf.ipc.read=function() return {rang=rang,stopped=stopped,stage=phone.stage:get()} end
+  ]],size={20,20}})
+  test.advance(20)
+  test.ipc("ring")
+  test.advance(40)
+  test.eq(test.ipc("read").stage,"incoming")
+  test.eq(test.ipc("read").rang,1)
+  test.ipc("number","+3161234")
+  test.advance(60)
+  local read=test.ipc("read")
+  test.eq(read.stage,"idle")
+  test.eq(read.stopped,1)
+end)
+
 test.it("a phone screen is the whole screen, a desk gets a card",function()
   load(868,1932,{EVA_INPUT_DEVICES="tests/fixtures/input-devices-touch"})
   ring()

@@ -260,6 +260,9 @@ function M.ring(number)
   return add_call(number, 1, 3, 2)
 end
 
+--- The caller's number arrives after the ring, as +CLIP follows RING.
+function M.number(path, number) changed(path, CALL, { Number = number }) end
+
 --- The other side hangs up the call at `path`, or every call.
 function M.hang_up(path)
   for _, each in ipairs(path and { path } or calls) do

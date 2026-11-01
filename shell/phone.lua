@@ -9,7 +9,6 @@
 -- With EVA_FAKE_MODEM: `phone ring N`, `phone text N WORDS`, `phone alert CHANNEL
 -- WORDS`, `phone lock sim-pin`, `phone near on`.
 local morf = require("morf")
-local ui = require("morf.ui")
 local config = require("config")
 local services = require("services")
 local M = { near = morf.signal("eva.phone.near", false), rung = morf.signal("eva.phone.rung", ""),
@@ -92,8 +91,7 @@ local function start()
   M.ready:set(true)
 end
 
--- Every output runs the shell once: only the primary one owns calls, or a
--- docked phone would ring and log each call once a screen.
+-- Calls are owned by the primary output's runtime alone.
 local function primary() return not morf.window.primary or morf.window.primary() end
 local is_primary = morf.signal("eva.phone.primary", primary())
 if morf.window.on_primary then morf.window.on_primary(function(now) is_primary:set(now == true) end) end
@@ -128,6 +126,7 @@ local VERBS = {
   mute = function(p) return p.set_muted(not p.muted()) end,
   speaker = function(p) return p.set_speaker(not p.on_speaker()) end,
   keypad = function(p) p.keypad:set(not p.keypad:get()) return p.keypad:get() end,
+  minimise = function(p) p.minimised:set(not p.minimised:get()) return p.minimised:get() end,
   dial = function(p, number) return p.dial(number) end,
   reply = function(_, number, text) return M.reply(number, text) end,
   ok = function() M.alerts.dismiss() return true end,
@@ -160,6 +159,7 @@ local FAKES = {
 
 --- `phone VERB ARGS`, over IPC.
 function M.ipc(verb, ...)
+  if not is_primary:get() then return nil end
   if verb == "key" then return require("hardware_keys").press(M, (...)) end
   if verb == "sos-cancel" then require("hardware_keys").cancel() return true end
   if verb == "fake" then

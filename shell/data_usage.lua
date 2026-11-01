@@ -1,6 +1,5 @@
 -- Bytes through each network interface this calendar month, from the kernel's
--- counters. Those start over at each boot, so what they add is kept in a file
--- beside the phone's other state. No nodes.
+-- counters, added up in a file beside the phone's other state. No nodes.
 --
 --   local usage = require("data_usage").start { limit = fn, notify = fn }
 --   usage.rows:get()     -- { { name, kind, bytes }, ... }, busiest first

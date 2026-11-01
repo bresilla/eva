@@ -8,10 +8,9 @@
 --     visual = visual, width = width, height = height })
 --   return scene
 --
--- It goes inside `scene`: a held lock's root must stay the theme's opaque Rect.
--- Nothing here is built until a modem that can call is there, which on a phone
--- may be after the lock came up. The shell writes what the lock cannot read
--- itself to `phone/lock.json` in the state folder.
+-- It goes inside `scene`, whose opaque Rect stays the root. Nothing here is built
+-- until a modem that can call is there, however late. The shell writes what the
+-- lock cannot read itself to `phone/lock.json` in the state folder.
 local morf = require("morf")
 local ui = require("morf.ui")
 local S = require("themes.spacing")
@@ -107,6 +106,7 @@ function M.host(scene, spec)
       local act = session.standin[what]
       if act then return act(...) end
       if what == "state" then return { stage = phone.stage:get(), sim = sim.asking() } end
+      if what == "emergency" then M.open_emergency:set(true) return true end
     end
   end
 end

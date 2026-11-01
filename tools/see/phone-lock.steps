@@ -6,5 +6,6 @@ start lock
 pause 1.4; shot rest
 ipc phone ring +31612345678; pause 1.2; shot incoming
 ipc phone hang_up; pause 2.4
+ipc phone emergency; pause 1; shot emergency
 ipc phone lock sim-pin; pause 1; shot sim-pin
 ipc phone lock sim-puk; pause 1; shot sim-puk

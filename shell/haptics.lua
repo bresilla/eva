@@ -2,8 +2,7 @@
 --
 --   require("haptics").fire("commit")
 --
--- It wraps every press in the shell, so nothing in it may raise: a buzz that
--- fails is no buzz, and the press still happens.
+-- Nothing here raises: a buzz that fails is no buzz, and the press goes on.
 --
 -- Every press of a kit control reaches it through `attach`, so a view needs no
 -- line of its own; the keyboard, tiles and gestures name their moments. The

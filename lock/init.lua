@@ -286,7 +286,7 @@ local function build(width, height, name)
   ctx.s = require("themes.auth_metrics")(width, height, context.keyboard_attached())
   ctx.text, ctx.icon = require("themes.typography")(visual.tokens, C, ctx.s)
   local scene = require(visual.lock)(ctx)(width, height, name)
-  -- A fault in the phone's part must never cost the lock its surface.
+  -- The phone's part runs guarded: the scene comes back whatever it does.
   pcall(function()
     require("themes.phone_lock").host(scene,
       { C = C, text = ctx.text, icon = ctx.icon, visual = visual, width = width, height = height })

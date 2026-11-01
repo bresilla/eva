@@ -1,8 +1,7 @@
 -- What a phone call is to the person holding the phone, on top of the modem's
 -- call objects. No nodes. The shell runs one as the owner: it rings, routes
 -- the sound, writes the history and clears finished calls. The lock runs
--- another with `owner` false, which only shows and acts, so a call can be
--- taken over the lock without the two ringing or logging twice.
+-- another with `owner` false, which only shows and acts.
 --
 --   local phone = require("models.phone_calls").new { mobile = m, book = contacts, owner = true,
 --     ring = ringer, audio = callaudio, log = journal, notify = fn }
@@ -114,10 +113,10 @@ function M.new(options)
     if not mem then
       mem = { direction = row.direction, time = morf.time.now(), number = row.number }
       memory[row.path] = mem
-      if row.direction == "incoming" and owner and book.blocked(row.number) then
-        mem.outcome = "blocked"
-        voice.hangup(row.path)
-      end
+    end
+    if row.direction == "incoming" and owner and not mem.outcome and row.number ~= "" and book.blocked(row.number) then
+      mem.outcome = "blocked"
+      voice.hangup(row.path)
     end
     if row.state == "active" and not mem.talked then
       mem.talked = morf.time.now()

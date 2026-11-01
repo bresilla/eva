@@ -27,8 +27,7 @@ M.REASONS = { [0] = "unknown", "outgoing-started", "incoming-new", "accepted", "
   "error", "audio-setup-failed", "transferred", "deflected" }
 M.DIRECTIONS = { [0] = "unknown", "incoming", "outgoing" }
 
--- ModemManager before 1.26 sends only the first tone of a string, and the
--- comma pauses two seconds from 1.26 on: one tone a call, the pause here.
+-- One tone a call, this far apart; a comma waits the longer time here.
 local TONE_GAP, TONE_PAUSE = 200, 2000
 
 local serial = 0
