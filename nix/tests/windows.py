@@ -236,18 +236,9 @@ def keys_section():
         machine.send_key("meta_l-y")
         machine.sleep(3)
         check("the new chord does what the old did", ask("window_menu", "state") is True, str(ask("window_menu", "state")))
-        ipc("window_menu", "close")
+        machine.send_key("esc")
         machine.sleep(2)
-
-        # Whether the keys come back to a tool after the window menu.
-        print("LAYERS", hyprctl("layers")[:600])
-        tool_focus()
-        tool(keys, "record", "verb:kill_mode")
-        machine.sleep(2)
-        machine.send_key("meta_l-b")
-        machine.sleep(2)
-        print("AFTER MENU", tool(keys, "state"), hyprctl("activewindow")[:100], hyprctl("submap"))
-        tool(keys, "stop")
+        print("MENU SHUT", ask("window_menu", "state"))
 
         tool(keys, "reset", verb)
         tool(keys, "reset", row.get("id", ""))
