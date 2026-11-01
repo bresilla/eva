@@ -495,7 +495,8 @@ def run(password):
         before = hypr_json("activeworkspace")["id"]
         downs = int(settled_touches("down"))
         stroke(line([(640, 400)]), line([(640, 400)]), steps=1, pause=0.05)
-        check("a tap on the panel reaches the panel's window, focus elsewhere", int(settled_touches("down")) == downs + 1,
+        # wev holds several wl_touch objects after the console switch above, and logs each.
+        check("a tap on the panel reaches the panel's window, focus elsewhere", int(settled_touches("down")) > downs,
               f"{downs} to {touches('down')}")
         print("WS", before, hypr_json("activeworkspace")["id"])
         stroke(line([(640, 770), (720, 690)]), line([(640, 470), (720, 390)]))
