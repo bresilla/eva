@@ -10,6 +10,8 @@
 --   words                a command: a list of words, edited as one line
 --   list                 a list of names, edited as one line
 --   records              a list of tables of `fields`, edited as one line of words
+-- `clean` (words, list) turns the words typed into what is kept; the field then
+-- shows what was.
 local M = {}
 
 local function commands(prefix, rows)
@@ -249,6 +251,21 @@ function M.join_records(list, fields)
     end
   end
   return M.join(flat)
+end
+
+--- The times of day in `words`, each `HH:MM`, in order and once each. What is no
+--- time is dropped.
+function M.times(words)
+  local seen, out = {}, {}
+  for _, word in ipairs(words) do
+    for hour, minute in word:gmatch("%f[%d](%d%d?):(%d%d)%f[%D]") do
+      hour, minute = tonumber(hour), tonumber(minute)
+      if hour < 24 and minute < 60 then seen[("%02d:%02d"):format(hour, minute)] = true end
+    end
+  end
+  for time in pairs(seen) do out[#out + 1] = time end
+  table.sort(out)
+  return out
 end
 
 --- The records on `line`, each `#fields` words. A record left short is dropped.

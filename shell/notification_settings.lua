@@ -15,6 +15,9 @@ M.PREVIEWS = { { 1, "1" }, { 2, "2" }, { 3, "3" }, { 4, "4" } }
 M.URGENCY = { { -1, "App's" }, { 0, "Low" }, { 1, "Normal" }, { 2, "Critical" } }
 M.APP_TIMES = { { -1, "Auto" }, { 3000, "3 s" }, { 10000, "10 s" }, { 0, "Stays" } }
 M.APP_SOUND = { { "default", "Default" }, { "off", "Off" } }
+M.KEEP = { { 0, "Off" }, { 60000, "1 min" }, { 300000, "5 min" }, { 900000, "15 min" }, { 3600000, "1 h" } }
+M.DIGEST = { key = "notifications.digest_times", kind = "list", title = "Summary times", icon = "schedule",
+  note = "When apps held for it arrive, as 08:00 18:00", clean = require("settings_forms").times }
 
 function M.model()
   local notifs = require("notifs")
