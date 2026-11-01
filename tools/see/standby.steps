@@ -1,0 +1,67 @@
+# eva-standby on the sealed session: its views, real keys on its overlay, then beside
+# the running shell, the screen held through the real awake verb and let go on the
+# way out, by the power going and by Escape. UPower is EVA_FAKE_BATTERY's stand-in:
+# no system bus here. The overlay's first frame is slow on this headless GPU.
+unset EVA_DRY_RUN
+export EVA_ALARM_ENGINE=local EVA_FAKE_BATTERY=57,charging
+beside() { timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-app-$TOOL" ipc call "$@"; }
+tool_alive() { [ -d "/proc/$TOOL" ] && echo alive || echo gone; }
+awake() { ipc awake state | tr -d ' \n' | cut -c1-90; }
+state() { appipc state | tr -d ' \n' | cut -c1-240; }
+
+sh apps/clock/cli timer 40 min tea > /dev/null 2>&1
+mkdir -p "$XDG_STATE_HOME/eva/clock"
+cat > "$XDG_STATE_HOME/eva/clock/world.json" <<'CITIES'
+[{"name":"Tokyo","zone":"Asia/Tokyo"},{"name":"Lisbon","zone":"Europe/Lisbon"},{"name":"New York","zone":"America/New_York"}]
+CITIES
+
+BOOT=10 start app standby
+shot clock
+note echo "--- first: $(state)"
+key Right
+pause 1.2
+shot world
+note echo "--- after a real Right: $(state)"
+key Right
+pause 1.2
+shot alarm
+key Right
+text n
+pause 1.4
+shot night
+note echo "--- after Right and a real n: $(state)"
+key Left
+pause 1.2
+shot night-alarm
+text n
+pause 0.5
+note echo "--- second launch"
+sh apps/launch standby
+pause 1
+shot closing
+pause 4
+note echo "after a second launch: $(grep -lsa 'standby/app[.]lua' /proc/[0-9]*/cmdline | wc -l) running"
+stop
+
+start shell
+pause 5
+note echo "--- before: $(awake)"
+sh apps/launch standby --when-charging > "$SEE_OUT/beside.log" 2>&1 &
+TOOL=$!
+pause 10
+note echo "--- showing: $(awake)"
+note echo "tool: $(beside state | tr -d ' \n' | cut -c1-200)"
+note echo "--- the power goes"
+beside fake-battery 57 > /dev/null
+pause 2.5
+note echo "tool: $(tool_alive)"
+note echo "--- after: $(awake)"
+
+sh apps/launch standby > "$SEE_OUT/beside.log" 2>&1 &
+TOOL=$!
+pause 10
+note echo "--- showing again: $(awake)"
+key Escape
+pause 2.5
+note echo "tool after Escape: $(tool_alive)"
+note echo "--- after: $(awake)"
