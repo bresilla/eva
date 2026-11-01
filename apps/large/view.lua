@@ -52,18 +52,18 @@ end
 local function box_w() return math.max(1, card_w() - 2 * M.PAD) end
 local function box_h() return math.max(1, card_h() - 2 * M.PAD) end
 
-local function longest_word()
-  local best, most = "", 0
-  for word in model.text:get():gmatch("%S+") do
-    if #word > most then best, most = word, #word end
-  end
-  return best
-end
-
 local function message()
   local words = model.text:get()
   if words ~= "" then return words end
   return model.from:get() == "" and "" or "Nothing to show"
+end
+
+local function longest_word()
+  local best, most = "", 0
+  for word in message():gmatch("%S+") do
+    if #word > most then best, most = word, #word end
+  end
+  return best
 end
 
 --- The largest size `w` by `h` of text measured at the base size allows in a

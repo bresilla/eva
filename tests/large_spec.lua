@@ -56,6 +56,16 @@ test.it("says so when there is nothing", function()
   test.eq(test.get("large-text").text, "Nothing to show")
 end)
 
+test.it("fits its own message whole, as it would the same words", function()
+  tool({ "Nothing to show" }, nil, { 868, 1932 })
+  local given = test.get("large-text").height
+  test.clear_stubs()
+  test.stub_run("wl-paste", { code = 1, stdout = "" })
+  test.load("../apps/large/app.lua", { env = env(), size = { 868, 1932 } })
+  test.settle(1500)
+  test.eq(test.get("large-text").height, given)
+end)
+
 local function fits(card)
   local text, box = test.get("large-text"), test.get(card or "large-card")
   test.truthy(text.y >= box.y, "the words run above the card")
