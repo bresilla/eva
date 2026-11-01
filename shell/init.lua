@@ -126,9 +126,11 @@ morf.effect("eva.rotation", function()
     morf.reload { output = true }
   end
 end)
--- Auto-rotation while the rotation is not locked, and a night light left on.
+-- Auto-rotation while the rotation is not locked, a night light left on, and
+-- the battery's charge limit.
 require("auto_rotate").start()
 require("quick_hardware").nightlight()
+require("charge_limit_model").start()
 
 -- ---------------------------------------------------------------- drawers --
 

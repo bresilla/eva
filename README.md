@@ -120,7 +120,7 @@ the shell is not running. On NixOS they are on `PATH`, each with a desktop entry
 | `eva-keys` | a searchable sheet of the live bindings and the shell's own |
 | `eva-nightlight on\|off\|toggle\|auto\|daemon\|times` | warmer light over `hyprsunset`, by the sun at `services.weather_location` |
 | `eva-clipboard [--watch]` | a history of text and pictures with pins, skipping what a password manager marks; on NixOS `--watch` runs as a user service |
-| `eva-battery status`, `eva-battery limit on\|off` | the charge limit, through UPower's `EnableChargeThreshold` |
+| `eva-battery status`, `eva-battery limit on\|off\|NN` | what feeds the battery and how fast, and the charge limit: UPower's `EnableChargeThreshold`, or a level in the kernel's own threshold file |
 
 `make app displays` runs one from a checkout.
 

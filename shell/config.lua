@@ -207,6 +207,10 @@ local config = settings.open {
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
     -- keeps it, a phone or a tablet follows the accelerometer).
     rotation = { lock = "auto" },
+    -- Charging stops at `limit` percent: 100 for none, 0 leaves the kernel's
+    -- as it is. With `adaptive` it waits lower overnight and is done by
+    -- `ready`, in minutes after midnight.
+    battery = { limit = 0, adaptive = false, ready = 420 },
   },
 }
 return require("themes.ui_scale").link(config)

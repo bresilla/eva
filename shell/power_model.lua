@@ -33,6 +33,18 @@ function M.new(active,open_battery)
     if p.degraded~="" then return "Performance limited: "..p.degraded end
     return "Choose how the system balances energy and speed."
   end
+  model.charge=require("charge_limit_model")
+  model.charge.probe()
+  --- Whether the Charging section has anything to say.
+  function model.charging_shown()
+    return model.present() and (model.state().ac==true or model.charging() or model.charge.route()~="")
+  end
+  function model.charger_icon()
+    local f=model.feed()
+    if f.wireless then return "contactless" end
+    if model.charging() then return f.fast and "bolt" or "battery_charging_full" end
+    return "power"
+  end
   function model.select(id)
     if not active() then return false end
     local known=false
@@ -48,11 +60,13 @@ function M.new(active,open_battery)
   function model.open_battery() if active() then open_battery() end end
   function model.summary()
     local s,b=model.state(),model.battery()
-    local seconds=b.status=="Discharging" and s.time_left or s.time_to_full
+    local seconds=b.status=="Discharging" and s.time_left or model.to_target()
     local words=b.status or "No battery"
     if seconds and seconds>0 then
       local left=model.duration(seconds)
-      words=words..(b.status=="Discharging" and (", "..left.." left") or (", full in "..left))
+      local target=model.target()
+      words=words..(b.status=="Discharging" and (", "..left.." left")
+        or ((target<100 and (", %d%% in "):format(target) or ", full in ")..left))
     end
     if b.power and b.power>.05 then words=words..("  ·  %.1f W"):format(b.power) end
     return words
@@ -67,7 +81,7 @@ function M.new(active,open_battery)
     {key="mode",name="Charge mode",value=function() return model.battery().charge_mode or "--" end},
     {key="cycles",name="Cycles",value=function() local n=model.battery().cycles return n and tostring(n) or "--" end},
     {key="temperature",name="Temperature",value=function() local n=model.battery().temperature return n and ("%.1f °C"):format(n) or "--" end},
-    {key="charger",name="Charger",value=function() return model.state().ac and "Plugged in" or "Unplugged" end},
+    {key="charger",name="Charger",value=model.charger_name},
   }
   morf.effect("eva.power.visibility",function() if not active() then model.message:set("") end end)
   return model
