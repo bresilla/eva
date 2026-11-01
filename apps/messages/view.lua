@@ -69,7 +69,7 @@ local function bubble(index, w)
   return ui.Item { id = "messages-bubble-" .. index, width = w,
     height = function() return (body.layout_height or 0) + 2 * S.s end,
     visible = function() return row() ~= nil end,
-    ui.Item { width = 0, height = 0, clip = true, measure },
+    ui.Item { width = w, height = 0, clip = true, measure },
     ui.Item { width = fitted, height = function() return (body.layout_height or 0) + 2 * S.s end,
       x = function() return outgoing() and w() - fitted() or 0 end,
       ui.Rect { anchors = { fill = true }, radius = kit.round(S.l),

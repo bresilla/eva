@@ -127,5 +127,21 @@ test.it("a bubble is as wide as its words, up to its limit",function()
   test.advance(40)
   local short=test.get("messages-text-1")
   local long=test.get("messages-text-3")
+  test.truthy(short.width>100,"a short message keeps its words on one line")
   test.truthy(short.width<long.width)
+  test.truthy(long.width<480*0.78,"a long one stops at the limit")
+  test.truthy(test.get("messages-bubble-1").height<test.get("messages-bubble-3").height+1)
+end)
+
+test.it("a long message wraps inside its bubble instead of running out of it",function()
+  load("messages",{"sms:+31612345678"},"messages")
+  test.ipc("write",string.rep("word ",40))
+  test.truthy(test.ipc("send"))
+  test.advance(120)
+  local rows=test.ipc("state").thread
+  local index
+  for i,row in ipairs(rows) do if row.direction=="out" and #row.text>100 then index=i end end
+  local bubble=test.get("messages-bubble-"..index)
+  test.truthy(bubble.height>test.get("messages-bubble-1").height*1.5)
+  test.truthy(test.get("messages-text-"..index).width<=480*0.78)
 end)

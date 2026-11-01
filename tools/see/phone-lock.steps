@@ -3,7 +3,7 @@
 export EVA_FAKE_MODEM=1 EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging}
 export EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
 start lock
-pause 1.4; shot rest
+pause 6; shot rest
 ipc phone ring +31612345678; pause 1.2; shot incoming
 ipc phone hang_up; pause 2.4
 ipc phone emergency; pause 1; shot emergency
