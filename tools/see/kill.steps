@@ -21,7 +21,7 @@ export EVA_FAKE_POINTER=20,20
 BOOT=0.5 start app kill
 unset EVA_FAKE_POINTER
 until_tool
-pause 1
+pause 4
 shot left
 note echo "over the first: $(state)"
 
@@ -48,7 +48,16 @@ until_tool
 pause 1
 key Escape
 pause 1
-note echo "after Escape: $(titles)"
+note echo "after Escape: $(titles), role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+
+# A second launch cancels too.
+BOOT=0.5 start app kill
+until_tool
+pause 3
+sh apps/kill/cli
+pause 1
+note echo "second launch: $(titles), role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+ROLE=""
 
 # --active ends the focused window with no overlay.
 swaymsg '[app_id="eva.keys"] focus' > /dev/null

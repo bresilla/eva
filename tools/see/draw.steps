@@ -54,4 +54,11 @@ appipc board > /dev/null
 key Escape
 pause 1
 note echo "after Escape, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+
+BOOT=0.5 start app draw
+until_tool
+pause 3
+sh apps/draw/cli
+pause 1
+note echo "second launch, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
 ROLE=""

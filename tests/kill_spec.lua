@@ -10,10 +10,10 @@ local test = morf.test
 local ROOT = morf.fs.join(morf.env("PWD"), "")
 local SURFACE = "layer:eva-kill"
 
-local TREE = morf.json.encode {
+local TREE = morf.json.encode({
   type = "root", nodes = { {
     type = "output", name = "__i3", nodes = {
-      { id = 3, type = "workspace", name = "__i3_scratch", pid = morf.json.null, rect = { x = 0, y = 0, width = 1280, height = 800 } },
+      { id = 3, type = "workspace", name = "__i3_scratch", rect = { x = 0, y = 0, width = 1280, height = 800 } },
     },
   }, {
     type = "output", name = "HEADLESS-1", nodes = { {
@@ -28,7 +28,7 @@ local TREE = morf.json.encode {
       },
     } },
   } },
-}
+}):gsub('"name":"__i3_scratch"', '"name":"__i3_scratch","pid":null')
 
 local function env(extra)
   local full = { EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_DRY_RUN = "1" }

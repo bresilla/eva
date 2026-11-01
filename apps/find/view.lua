@@ -52,7 +52,7 @@ local function spotlight()
   }
   local dim = ui.Sdf {
     id = "find-field", anchors = { fill = true },
-    fill_color = function() return C.surfaceContainerLowest:alpha(M.DIM) end,
+    fill_color = function() return C.scrim:alpha(M.DIM) end,
     blend = S.xl, blend_profile = "circular",
     opacity = function() return leaving() and 0 or 1 end,
     enter = { opacity = 0 },

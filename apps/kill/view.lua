@@ -42,7 +42,7 @@ end
 local function field(box)
   return ui.Sdf {
     id = "kill-field", anchors = { fill = true, margins = -M.OVER },
-    fill_color = function() return C.surfaceContainerLowest:alpha(M.DIM) end,
+    fill_color = function() return C.scrim:alpha(M.DIM) end,
     stroke_color = function() return kit.signal("alert")() end, stroke_width = M.RIM,
     blend = theme.SEAM, blend_profile = "circular",
     opacity = function() return leaving() and 0 or 1 end,
@@ -113,7 +113,7 @@ function M.overlay()
   }
   local close = ui.Item {
     id = "kill-cancel-box", z = 3, width = S.TARGET, height = S.TARGET, visible = responsive.sheets(),
-    anchors = { top = true, right = true, top_margin = S.l, right_margin = S.l },
+    anchors = { horizontal_center = true, bottom = true, bottom_margin = S.l + S.TARGET + S.s },
     L.icon_button {
       id = "kill-cancel", name = "Cancel", icon = "close", width = S.TARGET, height = S.TARGET,
       on_clicked = function() model.cancel() end,

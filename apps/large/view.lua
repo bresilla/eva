@@ -146,7 +146,7 @@ function M.overlay()
     anchors = { fill = true },
     ui.Rect {
       id = "large-dim", anchors = { fill = true },
-      color = function() return C.surfaceContainerLowest:alpha(M.DIM) end,
+      color = function() return C.scrim:alpha(M.DIM) end,
       opacity = function() return model.leaving:get() and 0 or 1 end, enter = { opacity = 0 },
       behavior = { opacity = theme.spring.effects },
     },

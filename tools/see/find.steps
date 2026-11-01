@@ -31,7 +31,9 @@ EVA_FIND_MODE=ripple BOOT=0.3 start app find
 until_up
 pause 1
 appipc ripple 300 300 > /dev/null
+pause 0.12
 appipc ripple 500 420 > /dev/null
+pause 0.12
 shot ripple
 note echo "ripple: $(state)"
 pause 1.2
