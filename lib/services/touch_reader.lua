@@ -82,6 +82,13 @@ function M.installed()
   return false
 end
 
+-- The processes running, across a reload: the next runtime has no handle on them.
+local kept_processes
+local function processes()
+  kept_processes = kept_processes or morf.reloadable("eva.touch.reader", {})
+  return kept_processes
+end
+
 --- A reader. `options`, each a seam: `screen()`, `sink`, `find()` (the
 --- touchscreens, as models.touchscreens lists them), `installed()`,
 --- `spawn(spec)` (morf.process.spawn), `changed(state)`.
@@ -95,11 +102,27 @@ function M.new(options)
   local wanted, state = false, "off"
   local open, retry = {}, nil
   local wait, serial = M.RETRY, 0
+  local kept = processes()
 
   local function say(value)
     if value == state then return end
     state = value
     if options.changed then options.changed(value) end
+  end
+
+  local function remember()
+    local pids = {}
+    for _, entry in pairs(open) do pids[#pids + 1] = entry.pid end
+    kept:set(pids)
+  end
+
+  -- Ends what an earlier runtime left reading, if that is still what it is.
+  local function end_left_behind()
+    for _, pid in ipairs(kept:get()) do
+      local ok, line = pcall(morf.fs.read, "/proc/" .. tostring(pid) .. "/cmdline")
+      if ok and type(line) == "string" and line:find("debug-events", 1, true) then pcall(morf.process.kill, pid, "TERM") end
+    end
+    kept:set({})
   end
 
   local function close(entry)
@@ -109,6 +132,7 @@ function M.new(options)
       pcall(entry.child.close, entry.child)
     end
     open[entry.node] = nil
+    remember()
   end
 
   -- A line from `entry`'s process, passed on in the screen's pixels.
@@ -170,6 +194,8 @@ function M.new(options)
       return false
     end
     entry.child = child
+    entry.pid = child.pid and child:pid() or nil
+    remember()
     return true
   end
 
@@ -198,6 +224,7 @@ function M.new(options)
     if wanted then return end
     wanted = true
     wait = M.RETRY
+    end_left_behind()
     r.refresh()
   end
 

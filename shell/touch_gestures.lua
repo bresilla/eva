@@ -152,8 +152,7 @@ function M.new(spec)
     local gesture = run.gesture
     if gesture.kind == "pinch" then
       local from, to = spreads()
-      local change = gesture.from + (to - from) - gesture.from
-      event.spread, event.travel = to, gesture.direction == "in" and -change or change
+      event.spread, event.travel = to, gesture.direction == "in" and from - to or to - from
       event.dx, event.dy = 0, 0
     else
       local dx, dy = displacement()
@@ -167,9 +166,11 @@ function M.new(spec)
   local function begin(kind, direction, n, edge, region)
     local _, _, _, _, cx0, cy0 = spreads()
     run.gesture = { kind = kind, direction = direction, fingers = n, edge = edge, region = region, x = cx0, y = cy0 }
-    if kind == "pinch" then run.gesture.from = select(1, spreads()) end
     run.spent = true
-    say(measure(shared(run.gesture, "begin")))
+    local event = measure(shared(run.gesture, "begin"))
+    run.last_dx, run.last_dy, run.last_travel = event.dx, event.dy, event.travel
+    record(run.last, event.dx, event.dy)
+    say(event)
   end
 
   local function decide(t)
@@ -200,12 +201,13 @@ function M.new(spec)
     end
   end
 
+  -- A pinch is read while every finger is down: the spread of what stays is another.
   local function advance(t)
     local gesture = run.gesture
-    if gesture.kind == "hold" or gesture.kind == "tap" or #fingers == 0 then return end
+    if gesture.kind == "hold" or #fingers == 0 or (gesture.kind == "pinch" and run.lifted) then return end
     local event = measure(shared(gesture, "update"))
+    run.last_dx, run.last_dy, run.last_travel = event.dx, event.dy, event.travel
     record(t, event.dx, event.dy)
-    if gesture.kind == "pinch" then record(t, event.travel, 0) end
     say(event)
   end
 
@@ -281,11 +283,7 @@ function M.new(spec)
     contacts[id] = nil
     if finger.resting or not run then return end
     run.lifted = true
-    if run.gesture then
-      if run.vx == nil then run.vx, run.vy = velocity() end
-      local event = measure(shared(run.gesture, "update"))
-      run.last_dx, run.last_dy, run.last_travel = event.dx, event.dy, event.travel
-    end
+    if run.gesture and run.vx == nil then run.vx, run.vy = velocity() end
     -- Whatever fingers stay carry on from where the group had got to.
     local before_x, before_y = 0, 0
     if #fingers > 1 then before_x, before_y = displacement() end
@@ -297,7 +295,6 @@ function M.new(spec)
       local after_x, after_y = displacement()
       run.shift_x, run.shift_y = before_x - after_x, before_y - after_y
     end
-    run.ended = t
   end
 
   --- The end of a report: a set of contacts that belong together.
@@ -310,11 +307,7 @@ function M.new(spec)
     elseif not run.spent then
       decide(t)
     end
-    if run and run.gesture and #fingers > 0 then
-      local event = measure(shared(run.gesture, "update"))
-      run.last_dx, run.last_dy, run.last_travel = event.dx, event.dy, event.travel
-    end
-    if run and #fingers == 0 then conclude(t) end
+    if #fingers == 0 then conclude(t) end
   end
 
   --- The clock, while fingers rest: a long press has no report to come from.

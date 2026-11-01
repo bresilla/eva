@@ -82,17 +82,21 @@ function M.set(key, form, action)
   if M.BY_KEY[key] then config().set("gestures." .. form_of(form) .. "." .. key, action) end
 end
 
+--- The stored commands: an empty list of words for every gesture.
+function M.commands()
+  local out = {}
+  for _, gesture in ipairs(M.GESTURES) do out[gesture.key] = {} end
+  return out
+end
+
 --- The words of `key`'s custom command.
 function M.command(key)
-  local words = (config().get("gestures.commands") or {})[key]
+  local words = M.BY_KEY[key] and config().get("gestures.commands." .. key)
   return type(words) == "table" and words or {}
 end
 
 function M.set_command(key, words)
-  local all = {}
-  for name, list in pairs(config().get("gestures.commands") or {}) do all[name] = list end
-  all[key] = #words > 0 and words or nil
-  config().set("gestures.commands", all)
+  if M.BY_KEY[key] then config().set("gestures.commands." .. key, words) end
 end
 
 --- Whether `key` on `form` stands as it came.

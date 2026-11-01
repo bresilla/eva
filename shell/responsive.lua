@@ -42,6 +42,10 @@ local function read_input()
   return ok and touch == true
 end
 local input = morf.signal("eva.input.touch", read_input())
+local listeners = {}
+
+--- `heard()` from here on, each time an input device comes or goes.
+function M.on_input(heard) listeners[#listeners + 1] = heard end
 
 --- Reads the input devices again as they come and go, and as the machine
 --- folds (models.posture, which this panel's shell starts).
@@ -53,6 +57,7 @@ function M.watch_input()
   pcall(morf.udev.subscribe, "input", function()
     input:set(read_input())
     if not external() then posture.refresh() end
+    for _, heard in ipairs(listeners) do heard() end
   end)
 end
 

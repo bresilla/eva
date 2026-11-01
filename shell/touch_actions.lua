@@ -62,6 +62,7 @@ end
 local function slide(event, apps)
   local controller = gestures().workspace_controller
   if not controller or (event.direction ~= "left" and event.direction ~= "right") then return nil end
+  if apps and #require("windows_model").list() < 2 then return nil end
   gestures().close_panels(nil)
   controller.begin("x", apps)
   return {

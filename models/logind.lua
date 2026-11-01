@@ -17,8 +17,9 @@ local function stand_in(spec)
   local inhibitors = morf.signal("eva.fake.logind.inhibitors", spec.inhibitors or {})
   local handlers = { sleep = {}, lock = {} }
   local fake = { fake = true, calls = {} }
-  fake.state = { can = spec.can or {}, preparing_for_sleep = false, lid_closed = spec.lid == true,
+  fake.state = morf.state { can = spec.can or {}, preparing_for_sleep = false, lid_closed = spec.lid == true,
     session = { locked = false } }
+  function fake.set_locked(on) fake.state.session.locked = on == true end
   local function record(name) fake.calls[#fake.calls + 1] = name morf.log("info", "eva: logind " .. name .. " (dry run)") return true end
   function fake.available() return spec.available ~= false end
   function fake.can(what) return (spec.can or {})[what] or "na" end

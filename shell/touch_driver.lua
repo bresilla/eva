@@ -103,10 +103,25 @@ local function note(event, key, action)
     phase = event.phase, progress = event.progress or 0, committed = event.committed == true }
 end
 
+-- Whether this screen's output is off, asked as a sequence starts: a dark screen
+-- in a pocket or against an ear is no place for a gesture.
+local dark = false
+local function look_at_output()
+  local hyprland = require("lib.compositor.hyprland")
+  local name = ((morf.screens or {})[1] or {}).name
+  dark = false
+  if not hyprland.available() then return end
+  hyprland.json("j/monitors", function(rows)
+    for _, row in ipairs(type(rows) == "table" and rows or {}) do
+      if row.name == name and row.dpmsStatus == false then dark = true end
+    end
+  end)
+end
+
 local function begin(event, key)
   local chosen = bindings.action(key)
   note(event, key, chosen)
-  if M.trying:get() or chosen == "none" then return end
+  if dark or M.trying:get() or chosen == "none" then return end
   local action = actions.BY_KEY[chosen]
   if not action then return end
   require("phone_gestures").yield()
@@ -177,6 +192,7 @@ local function build()
   local sink = {
     down = function(id, x, y, ms)
       stamp(ms)
+      if recogniser.count() == 0 then look_at_output() end
       recogniser.down(id, x, y, ms or event_at)
       start_ticking()
     end,
@@ -228,9 +244,7 @@ function M.start()
     if morf.window and morf.window.screens_revision then morf.window.screens_revision() end
     if M.allowed() then reader.start() else reader.stop() end
   end)
-  if morf.udev and morf.udev.subscribe then
-    pcall(morf.udev.subscribe, "input", function() reader.refresh() end)
-  end
+  require("responsive").on_input(function() reader.refresh() end)
 end
 
 --- Whether a process is reading the touchscreen.

@@ -23,6 +23,12 @@ local NOT = {
   "mouse", "virtual", "ydotool", "morf", "wtype", "uinput",
 }
 
+-- A cover that clips to a tablet: on USB, and yet part of the machine. One with
+-- no caps lock light is a keyboard all the same.
+local function cover(device)
+  return (device.name or ""):lower():find("type cover", 1, true) ~= nil
+end
+
 local function counts(device)
   local name = (device.name or ""):lower()
   for _, word in ipairs(NOT) do
@@ -30,7 +36,7 @@ local function counts(device)
   end
   local handlers = device.handlers or ""
   -- Letter keys and the lights for caps and num lock.
-  return handlers:find("kbd", 1, true) ~= nil and handlers:find("leds", 1, true) ~= nil
+  return handlers:find("kbd", 1, true) ~= nil and (cover(device) or handlers:find("leds", 1, true) ~= nil)
 end
 
 --- The keyboards that count, each `{ name, handlers, bus }`.
@@ -57,10 +63,11 @@ end
 -- Input buses a keyboard is plugged or paired over: USB and Bluetooth.
 local OUTSIDE = { ["0003"] = true, ["0005"] = true }
 
---- Whether one is attached from outside the machine.
+--- Whether one is attached from outside the machine: a cover folded behind
+--- the screen is no more in reach than a laptop's own keys.
 function keyboards.external(path)
   for _, device in ipairs(keyboards.list(path)) do
-    if OUTSIDE[device.bus] then return true end
+    if OUTSIDE[device.bus] and not cover(device) then return true end
   end
   return false
 end

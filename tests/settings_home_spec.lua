@@ -67,7 +67,9 @@ local HOST = [[
   local function leaves(tree, prefix, out)
     for key, value in pairs(tree) do
       local path = prefix == "" and key or (prefix .. "." .. key)
-      if type(value) == "table" and next(value) ~= nil and value[1] == nil then leaves(value, path, out)
+      -- The gestures are one table per form, all on the Touch gestures page.
+      if path == "gestures" then
+      elseif type(value) == "table" and next(value) ~= nil and value[1] == nil then leaves(value, path, out)
       else out[#out + 1] = path end
     end
     return out
