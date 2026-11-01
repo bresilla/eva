@@ -17,6 +17,8 @@ let
   threshold = file: ''
     ACTION=="add|change", SUBSYSTEM=="power_supply", ATTR{type}=="Battery", TEST=="${file}", RUN+="${pkgs.coreutils}/bin/chgrp eva-hardware /sys%p/${file}", RUN+="${pkgs.coreutils}/bin/chmod g+w /sys%p/${file}"
   '';
+  # Every Wi-Fi interface, as each firewall backend spells it.
+  wifi = if config.networking.nftables.enable then "wl*" else "wl+";
 in
 {
   options.programs.eva.hardware = {
@@ -31,10 +33,15 @@ in
     };
     chargeLimit = lib.mkEnableOption "the session writing the kernel's charge thresholds";
     usbTether = lib.mkEnableOption "a USB network gadget for the USB tethering tile";
+    hotspot = lib.mkEnableOption ''
+      clients of the Wi-Fi hotspot reaching the machine's DHCP and DNS: the firewall
+      opens those ports on every Wi-Fi interface, to whatever listens on them
+    '';
   };
 
   config =
-    lib.mkIf (config.programs.eva.enable && (cfg.tabletSwitch.enable || cfg.chargeLimit || cfg.usbTether))
+    lib.mkIf
+      (config.programs.eva.enable && (cfg.tabletSwitch.enable || cfg.chargeLimit || cfg.usbTether || cfg.hotspot))
       (
         lib.mkMerge [
           (lib.mkIf (cfg.tabletSwitch.enable || cfg.chargeLimit) {
@@ -57,6 +64,15 @@ in
               (threshold "charge_control_end_threshold")
               (threshold "charge_control_start_threshold")
             ];
+          })
+          (lib.mkIf cfg.hotspot {
+            networking.firewall.interfaces.${wifi} = {
+              allowedUDPPorts = [
+                53
+                67
+              ];
+              allowedTCPPorts = [ 53 ];
+            };
           })
           (lib.mkIf cfg.usbTether {
             systemd.services.eva-usb-gadget = {

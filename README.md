@@ -810,6 +810,10 @@ programs.eva.hardware = {
   chargeLimit = true;
   # A USB network port for the USB tethering tile.
   usbTether = true;
+  # The Wi-Fi hotspot's clients reaching DHCP and DNS: the firewall opens those
+  # ports on every Wi-Fi interface, to whatever listens on them. Without it they
+  # join the network and are given no address.
+  hotspot = true;
 };
 ```
 
