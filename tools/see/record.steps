@@ -11,7 +11,7 @@ stop
 # Recording a window takes its place on screen, not -w focused.
 start app displays
 note echo "window: $($CLI window --audio both 2>&1)"
-pause 1.5
+pause 3
 shot indicator
 note echo "status: $($CLI status)"
 note cat "$RECORD_ARGS"

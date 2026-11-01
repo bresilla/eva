@@ -54,8 +54,10 @@ end
 --- The pill at the top of the screen, until the recording ends: `done()` then.
 function M.indicator(done)
   local dot = S.m
+  local height = S.TARGET + S.xs
   local pill = kit.card {
-    id = "record-indicator", anchors = { fill = true }, radius = kit.round(S.l),
+    id = "record-indicator", width = S.TARGET * 6, height = height, radius = kit.round(S.l),
+    anchors = { horizontal_center = true, top = true, top_margin = S.s },
     ui.Rect {
       x = S.m, width = dot, height = dot, radius = dot / 2, anchors = { vertical_center = true },
       color = function() return C.error end,
@@ -65,15 +67,18 @@ function M.indicator(done)
       color = kit.ink("hi"), font_size = theme.size.normal,
       text = function() return model.clock(model.elapsed:get()) end,
     },
-    P.button {
-      id = "record-indicator-stop", label = "Stop", height = S.TARGET - S.s, width = S.TARGET * 2,
+    ui.Row {
       anchors = { right = true, right_margin = S.xs, vertical_center = true },
-      on_clicked = function() model.stop() end,
+      P.button {
+        id = "record-indicator-stop", label = "Stop", height = S.TARGET - S.s, width = S.TARGET * 2,
+        on_clicked = function() model.stop() end,
+      },
     },
   }
   morf.window.layer {
-    blend = "srgb", namespace = "eva-record", layer = "overlay", anchors = { top = true },
-    width = S.TARGET * 6, height = S.TARGET + S.xs, margin_top = S.s, exclusive_zone = 0,
+    blend = "srgb", namespace = "eva-record", layer = "overlay",
+    anchors = { top = true, left = true, right = true },
+    width = 0, height = height + 2 * S.s, exclusive_zone = 0,
     keyboard_focus = "none", visible = true,
     root = ui.Item { anchors = { fill = true }, pill },
   }
