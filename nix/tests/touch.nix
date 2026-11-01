@@ -66,7 +66,7 @@ in
       services.pipewire.wireplumber.enable = lib.mkForce false;
       networking.modemmanager.enable = lib.mkForce false;
       hardware.bluetooth.enable = lib.mkForce false;
-      environment.sessionVariables = software;
+      environment.sessionVariables = software // { EVA_WELCOME = "0"; };
       systemd.user.services.eva.environment = software;
       hardware.graphics.enable = true;
       virtualisation = {
