@@ -88,6 +88,9 @@ whether the compositor can hold one (docs/IO.md, "Idle").
 - `morf.image.pixel` decodes the whole file on each call and refuses pictures over
   4 MP. `common/freeze.lua` samples through `morf.image.preview`.
 - `morf.ipc` limits a call's arguments, so eva-draw's `stroke` verb takes one string.
+- A job without a compositor. `morf app` needs Wayland and has no stdin, stdout or
+  exit status for a configuration, so a tool's command line runs through files
+  (`lib/util/job.lua`) and fails on a TTY or over SSH, `eva-text` included.
 - `xdg_toplevel`'s suspended state. A window cannot hear that nothing shows it:
   `eva-monitor` stops sampling when minimised, paused or away, and keeps sampling
   on a hidden workspace.

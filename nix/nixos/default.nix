@@ -263,6 +263,7 @@ in
         (lib.hiPrio morfDefault)
         bridge
         pkgs.hyprsunset
+        pkgs.fontconfig
         pkgs.libnotify
         pkgs.pipewire
         pkgs.qrencode

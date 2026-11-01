@@ -139,6 +139,12 @@ Launching one a second time raises the window it has open; an overlay shuts.
 | `eva-kill [--active]` | press a window to end it, or end the focused one |
 | `eva-draw` | draw and write over the screen, with a toolbar |
 | `eva-large [WORDS]` | words huge across the screen, from arguments, stdin or the clipboard |
+| `eva-pomodoro [start\|pause\|skip\|reset\|status]` | a focus timer whose phases ring through eva-clock and hold do not disturb |
+| `eva-fonts [list [--mono]\|current\|set NAME\|reset]` | browse and preview installed fonts, and set the shell's |
+| `eva-qr [TEXT\|-]`, `eva-qr wifi SSID`, `eva-qr --png FILE TEXT` | a QR code from text or a Wi-Fi network, on screen or in a file; `-` reads stdin, and a Wi-Fi password never reaches a command line |
+| `eva-translate [-s LANG] [-t LANG] [-e ENGINE] TEXT\|-\|--clipboard\|--selection` | free translation, offline with Argos where it is set up, else `trans` or MyMemory; text leaves the machine only on a press, and the window says when an online engine is in use |
+| `eva-text TRANSFORM < FILE`, `eva-text list` | a developer's scratchpad: case, lines, encodings, JSON, hashes, UUIDs, passwords, placeholder text |
+| `eva-standby [--when-charging] [--night]` | a clock for a phone or tablet on its charger: time, world, next alarm, night mode |
 
 `make app displays` runs one from a checkout.
 
