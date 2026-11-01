@@ -7,6 +7,7 @@ local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
+local F = require("themes.layouts.form")
 local L = require("themes.layouts.parts")
 local S = require("notification_settings")
 local C = theme.color
@@ -22,15 +23,12 @@ local function toggle(w, id, icon, name, subtitle, on, set)
 end
 
 --- A caption and its choices, sharing the width: each choice `{ value, label }`.
-local function choices(w, id, title, items, now, pick)
-  local row = { width = P.inner(w) }
-  for _, item in ipairs(items) do
-    row[#row + 1] = { id = id .. "-" .. tostring(item[1]), label = item[2], group = id,
-      selected = function() return now() == item[1] end, on_clicked = function() pick(item[1]) end }
-  end
+local function choices(w, id, title, items, now, pick, per)
+  local named = {}
+  for i, item in ipairs(items) do named[i] = { item[1], nil, item[2] } end
   return ui.Column { width = P.inner(w), gap = theme.space.xs,
     kit.subtitle { width = P.inner(w), font_size = theme.size.small, color = kit.ink("lo"), text = title },
-    P.buttons(row) }
+    F.choices { id = id, width = P.inner(w), items = named, per_row = per or #items, now = now, pick = pick } }
 end
 
 --- A one-line text field the card's width: `id`, `placeholder`, `on_text`.
@@ -82,7 +80,7 @@ function V.build(model, w, h)
     toggle(w, "notif-hide", "visibility_off", "Hide content", "Cards show only the app until opened",
       function() return model.get("previews") == "hide" end,
       function(on) model.set("previews", on and "hide" or "show") end),
-    choices(w, "notif-lock", "On the lock screen", S.LOCK, setting("lock_previews"), setter("lock_previews")),
+    choices(w, "notif-lock", "On the lock screen", S.LOCK, setting("lock_previews"), setter("lock_previews"), 2),
   }
 
   local summary = P.section { id = "notif-summary", width = w, title = "Summary",
