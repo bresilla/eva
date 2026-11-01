@@ -14,8 +14,8 @@ function V.build(model)
     local _, h = model.desk_size()
     local most = math.floor(math.min(TALLEST, h - 2 * theme.BORDER - 40) * .6)
     local wanted = model.fit()
-    if not wanted then return most end
-    return math.min(most, math.ceil(wanted) + tabbed_layout.TABS_H + 2 * tabbed_layout.PAD)
+    if not wanted then return room.height(most) end
+    return room.height(math.min(most, math.ceil(wanted) + tabbed_layout.TABS_H + 2 * tabbed_layout.PAD))
   end
   local tabs = {}
   for i, tab in ipairs(model.tabs) do
