@@ -30,6 +30,29 @@ M.all = {
   drop = { name = "Drop", icon = "forum", title_id = "drop-title", build = workspace("drop", "Drop") },
 }
 
+--- Brings up the page `key`, in whichever panel holds it.
+function M.open(key)
+  for _, name in ipairs { "sidebar", "leftbar", "bottom" } do
+    local holder = require(name)
+    local select = holder.select or (holder.panel and holder.panel.select)
+    if select and select(key) then
+      holder.drawer.set(true)
+      return true
+    end
+  end
+  return false
+end
+
+do
+  local KEYWORDS = { settings = "quick tiles toggles", notifications = "history alerts", tasks = "taskwarrior todo",
+    calendar = "agenda dates schedule", assistant = "ai chat ask", drop = "share files send" }
+  local index = require("lib.shell.launcher.search_index")
+  for key, page in pairs(M.all) do
+    index.register { id = "page:" .. key, name = page.name, keywords = KEYWORDS[key], material = page.icon, tag = "Panel",
+      description = "Panel", kind = "menu", run = function() return M.open(key) and "close" or "keep" end }
+  end
+end
+
 --- The pages the panel on `edge` holds, as side panel tabs (`key`, `name`,
 --- `icon`, `fit`, `build(w, h)` once `bind(model)` has given them their
 --- panel). `fit()` is how tall a page wants to stand, or nil for all there is.

@@ -609,4 +609,5 @@ morf.effect("eva.settings.presentation",function()
   presentation.set("settings.detail",open and key~="")
   for _, detail in ipairs(M.DETAILS) do presentation.set("settings."..detail.key,open and key==detail.key) end
 end)
+require("settings_search").register(M)
 return M

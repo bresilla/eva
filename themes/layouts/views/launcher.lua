@@ -15,23 +15,25 @@ local kit = require("kit")
 local C = theme.color
 local V = {}
 
--- Each mode's badge: the shape it morphs to, and the glyph on it.
+-- The badge of what is not a mode: the shape it morphs to, and the glyph on it. A
+-- mode brings its own.
 local BADGES = {
-  Search = { "circle", "search" }, Apps = { "cookie9", "apps" }, Web = { "soft_burst", "language" },
-  Calculator = { "diamond", "calculate" }, Run = { "square", "terminal" }, Files = { "pill", "folder_open" },
-  Windows = { "square", "desktop_windows" }, System = { "sunny", "settings_power" },
-  Emoji = { "cookie9", "mood" }, Clipboard = { "pill", "content_paste" }, Colour = { "sunny", "palette" },
-  Commands = { "soft_burst", "bolt" }, Actions = { "soft_burst", "bolt" },
+  Search = { "circle", "search" }, Apps = { "cookie9", "apps" }, Commands = { "soft_burst", "bolt" },
+  Actions = { "soft_burst", "bolt" },
 }
 
 -- The prefixes the legend lists, most useful first.
 local CHIPS = {
   { "=", "Calc" }, { "/", "Files" }, { "?", "Web" }, { "@", "Win" }, { "!", "Sys" }, { ":", "Emoji" },
+  { ";", "Clip" }, { ">", "More" },
 }
 
 function V.build(M)
   local row_of = M.row_of
-  local WIDTH, WIDE = require("responsive").fit(620, 8), 1180
+  local responsive = require("responsive")
+  local grid_view = require("themes").view("launcher_grid")
+  local preview_view = require("themes").view("launcher_preview")
+  local WIDTH, WIDE = responsive.fit(620, 8), 1180
   local PAD = 12
   local SEARCH = 50
   local HEAD = 30
@@ -44,18 +46,38 @@ function V.build(M)
   local CAROUSEL = 196
   local SLOT, SLOT_ON = 224, 280
   local INNER = WIDTH - 2 * PAD
+  local PANE, PANE_H = 340, 372
+  -- The grid: as wide as the desk lets it, up to this.
+  local GRID_MAX = 960
+  local ALPHABET = theme.space.xl
+  local GRID_W = responsive.fit(GRID_MAX, 8)
+  local COLUMNS = math.max(3, (GRID_W - 2 * PAD - ALPHABET) // grid_view.CELL_W)
+  local TILES = COLUMNS * grid_view.CELL_W
+  local GRID_W_FIT = TILES + 2 * PAD + ALPHABET
+  M.columns:set(COLUMNS)
 
   local function wide() return M.mode:get() == "wallpapers" end
+  local function gridded() return M.mode:get() == "grid" end
   local function wide_width()
     local _, _, desk_w = require("bar").desk()
     return math.max(WIDTH, math.min(WIDE, (desk_w or WIDE) - 80))
   end
-  local function width() return wide() and wide_width() or WIDTH end
+  local function pane_room() return responsive.desk_width() >= WIDTH + PANE + 80 end
+  local function previewing() return M.previewed() ~= nil end
+  local function pane_beside() return previewing() and pane_room() end
+  local function pane_over() return previewing() and not pane_room() end
+  local function width()
+    if wide() then return wide_width() end
+    if gridded() then return GRID_W_FIT end
+    return pane_beside() and WIDTH + PANE or WIDTH
+  end
+  local function chips_height() return gridded() and grid_view.CHIPS_H or 0 end
 
   local function entry_height(entry)
     if not entry then return ROW end
     if entry.kind == "header" then return HEADER end
     if entry.kind == "hero" then return HERO end
+    if entry.kind == "tiles" then return grid_view.CELL_H end
     return ROW
   end
   --- Where entry `index` starts in the list, and how tall it is.
@@ -71,17 +93,31 @@ function V.build(M)
     return y + h
   end
 
+  local SHEET_TOP = theme.space.xl
+  local function top_margin()
+    if responsive.sheets() then return SHEET_TOP end
+    local _, _, _, h = require("bar").desk()
+    return math.floor(h * 0.16)
+  end
   -- As much of the list as the output has room for; the rest scrolls.
   local function view_height()
+    if not M.opened:get() then return EMPTY end
     local _, _, _, desk_h = require("bar").desk()
-    local room = math.floor((desk_h or 1080) * 0.66) - HEAD - SEARCH - 3 * PAD
+    desk_h = desk_h or 1080
+    local tall = gridded() or responsive.sheets()
+    local room = (tall and (desk_h - 2 * top_margin()) or math.floor(desk_h * 0.66)) - HEAD - SEARCH - 3 * PAD - chips_height()
+    if gridded() then return math.max(ROW, room) end
+    if pane_over() then return math.max(ROW, room) end
+    if pane_beside() then return math.max(ROW, math.min(room, math.max(PANE_H, list_height()))) end
     return math.max(ROW, math.min(list_height(), room))
   end
   local function body_height() return wide() and CAROUSEL or view_height() end
   local TOP = PAD + HEAD + SEARCH + PAD
-  local function height() return TOP + body_height() + PAD end
+  local function body_top() return TOP + chips_height() end
+  local function height() return body_top() + body_height() + PAD end
   -- The rows' heights, which the controller reads before the panel is built.
-  M.row_heights = { header = HEADER + ROW_GAP, hero = HERO + ROW_GAP, row = ROW + ROW_GAP }
+  M.row_heights = { header = HEADER + ROW_GAP, hero = HERO + ROW_GAP, row = ROW + ROW_GAP,
+    tiles = grid_view.CELL_H + ROW_GAP }
 
   -- The search field once there is one, and the focus asked for till then.
   local field
@@ -107,6 +143,10 @@ function V.build(M)
       end
       if row.kind == "calc" then
         return centred(kit.icon("function", 28, function() return C.onSurface end))
+      end
+      if row.image then
+        return ui.Image { width = 32, height = 32, source = row.image, source_width = 64,
+          fill_mode = "preserve_aspect_crop" }
       end
       if row.kind == "action" or row.kind == "variant" or row.material then
         return centred(kit.icon(row.material or row.icon, 26, function() return C.onSurfaceVariant end))
@@ -138,6 +178,15 @@ function V.build(M)
         behavior = { opacity = { duration = theme.duration.small } },
         kit.text { text = "Actions", font_size = theme.size.smaller, color = kit.ink("lo") },
         kit.keycap { text = "Tab", height = 20 },
+      }
+    end
+
+    -- The small word at a row's end, saying what kind of thing it is.
+    local function tag(now, selected, has_actions)
+      return kit.text {
+        anchors = { right = true, right_margin = 12, vertical_center = true },
+        text = function() return tostring(now().tag or "") end, font_size = theme.size.smaller,
+        color = kit.ink("lo"), visible = function() return (now().tag or "") ~= "" and not (selected() and has_actions()) end,
       }
     end
 
@@ -209,7 +258,7 @@ function V.build(M)
       local revision = morf.signal("eva.launcher.row." .. serial, 0)
       local function now() revision:get() return bound.row end
       local function selected() revision:get() return is_selected(bound.entry.key) end
-      local function has_actions() local r = now() return r.actions ~= nil and #r.actions > 0 and M.acting:get() == "" end
+      local function has_actions() return M.has_actions(now()) and M.acting:get() == "" end
       local icon = row_icon(bound.row)
       local icon_box = ui.Item { width = 32, height = 32, icon }
       local area = kit.action {
@@ -220,7 +269,11 @@ function V.build(M)
           local i = index_of(bound.entry.key)
           if i then M.selected:set(i) end
         end,
-        on_clicked = function() M.activate(bound.row) end,
+        on_clicked = function(_, _, _, _, button)
+          if button == "right" then M.act_on(bound.entry.key) return end
+          M.activate(bound.row)
+        end,
+        on_long_pressed = function() M.act_on(bound.entry.key) end,
         ui.Row {
           anchors = { left = true, left_margin = 8, vertical_center = true }, gap = 12, align = "center",
           INSTRUMENT and kit.text {
@@ -238,6 +291,7 @@ function V.build(M)
             gap = 1,
             kit.text {
               id = "launcher-name", text = function() return tostring(now().name or "") end,
+              spans = function() revision:get() return bound.entry.spans end,
               font_size = theme.size.normal, font_weight = 500, elide = "right",
               width = function() return INNER - 70 - NUMBER - ((selected() and has_actions()) and 120 or 0) end,
               color = function() return C.onSurface end,
@@ -254,6 +308,7 @@ function V.build(M)
           anchors = { right = true, right_margin = 16, vertical_center = true },
           visible = function() return now().current and true or false end,
         }),
+        tag(now, selected, has_actions),
         hints(selected, has_actions),
       }
       return area, function(next_entry)
@@ -271,6 +326,7 @@ function V.build(M)
     local function delegate(entry)
       if entry.kind == "header" then return header(entry) end
       if entry.kind == "hero" then return hero(entry) end
+      if entry.kind == "tiles" then return grid_view.row(M, entry, COLUMNS, { index_of = index_of }) end
       return plain_row(entry)
     end
 
@@ -349,7 +405,8 @@ function V.build(M)
         visible = wide,
         strip,
         kit.text {
-          anchors = { center_in = true }, text = "No wallpapers in ~/Pictures/Wallpapers",
+          anchors = { center_in = true },
+          text = function() return wide() and ("No wallpapers in " .. M.wallpaper_folder()) or "" end,
           font_size = theme.size.larger, color = function() return C.onSurfaceVariant end,
           visible = function() return M.wall_count:get() == 0 end,
         },
@@ -367,23 +424,44 @@ function V.build(M)
         color = function() return C.onSurface end },
     }
 
-    -- Keeps the chosen row, and its section's heading, in view.
+    -- Keeps the chosen row, and its section's heading, in view. The wheel and a
+    -- finger move the list too; only the highlight moving brings it back.
     local scroll = morf.signal("eva.launcher.scroll", 0)
+    local offset = 0
+    local function scroll_to(y)
+      y = math.max(0, math.min(y, math.max(0, list_height() - view_height())))
+      offset = y
+      scroll:set(y)
+    end
     morf.effect("eva.launcher.scroll", function()
       local count = M.results:len()
-      if wide() or count == 0 then if scroll:get() ~= 0 then scroll:set(0) end return end
+      if wide() or count == 0 then if offset ~= 0 then scroll_to(0) end return end
       local at = math.max(1, math.min(M.selected:get(), count))
       local start, h = entry_span(at)
       local top = start
       local before = at > 1 and M.results:get(at - 1) or nil
       if before and before.kind == "header" then top = entry_span(at - 1) end
-      local view, now = view_height(), scroll:get()
+      local view, now = view_height(), offset
       local next_scroll = now
       if top < now then next_scroll = top end
       if start + h > now + view then next_scroll = start + h - view end
-      next_scroll = math.max(0, math.min(next_scroll, math.max(0, list_height() - view)))
-      if next_scroll ~= now then scroll:set(next_scroll) end
+      if next_scroll ~= now then scroll_to(next_scroll) end
     end)
+
+    -- A flick coasts on, slowing, until a finger comes down.
+    local coasting
+    local function stop_coasting()
+      if coasting then coasting:cancel() coasting = nil end
+    end
+    local function coast(speed)
+      stop_coasting()
+      local FRAME = 16
+      coasting = morf.time.timer(FRAME, function()
+        speed = speed * 0.94
+        scroll_to(offset - speed * FRAME / 1000)
+        if math.abs(speed) < 40 then stop_coasting() end
+      end, true)
+    end
 
     -- The rows: the engine's list view, virtualised by each row's height and
     -- recycling within a kind, scrolled by the effect above.
@@ -394,6 +472,7 @@ function V.build(M)
     morf.effect("eva.launcher.list", function()
       local y = scroll:get()
       list.height = view_height()
+      list.width = gridded() and TILES or INNER
       morf.sync_view(list, y)
     end, { owner = list })
 
@@ -401,10 +480,11 @@ function V.build(M)
     -- from row to row, so it stretches towards the next row and settles there.
     local highlight = ui.Item {
       id = "launcher-highlight",
-      x = 0, width = INNER,
+      x = function() return gridded() and (M.cell:get() - 1) * grid_view.CELL_W or 0 end,
+      width = function() return gridded() and grid_view.CELL_W or INNER end,
       y = function() return (entry_span(math.max(1, M.selected:get()))) - scroll:get() end,
       height = function() local _, h = entry_span(math.max(1, M.selected:get())) return h end,
-      behavior = { y = theme.spring.spatial, height = theme.spring.spatial },
+      behavior = { x = theme.spring.spatial, y = theme.spring.spatial, height = theme.spring.spatial },
       visible = function()
         local sel = M.results:get(M.selected:get())
         return M.count:get() > 0 and sel ~= nil and sel.kind ~= "hero"
@@ -415,16 +495,64 @@ function V.build(M)
       color = function() return C.primary:alpha(0.14) end,
     }
 
+    local pan_from = 0
     results = ui.Item {
       id = "launcher-results",
-      x = PAD, y = TOP, width = INNER, height = view_height,
-      visible = function() return not wide() end,
+      x = PAD, y = body_top, width = function() return gridded() and TILES or INNER end, height = view_height,
+      visible = function() return not wide() and not pane_over() end,
       clip = true,
+      on_panned = function(phase, dx, dy, _, vy)
+        if phase == "begin" then
+          if math.abs(dy) < math.abs(dx) then return false end
+          stop_coasting()
+          pan_from = offset
+          return true
+        elseif phase == "update" then
+          scroll_to(pan_from - dy)
+        else
+          coast(vy or 0)
+        end
+      end,
+      ui.MouseArea { anchors = { fill = true }, z = -1,
+        on_wheel = function(_, _, _, pixel_y)
+          stop_coasting()
+          scroll_to(offset + (pixel_y or 0))
+        end },
       selection,
       highlight,
       list,
       empty,
     }
+
+    --- Goes to the first app of the grid whose name starts at `letter` or later.
+    local function jump_to(letter)
+      for i = 1, M.results:len() do
+        local entry = M.results:get(i)
+        for j, tile in ipairs(entry.cells or {}) do
+          if tile.kind == "app" and tile.name:sub(1, 1):upper() >= letter then
+            M.selected:set(i)
+            M.cell:set(j)
+            return
+          end
+        end
+      end
+    end
+    local alphabet = grid_view.alphabet(M, view_height, jump_to)
+    alphabet.x = PAD + TILES
+    alphabet.y = body_top
+    alphabet.visible = function() return gridded() and M.folder:get() == "" and M.category:get() == "" end
+
+    local chips = grid_view.chips(M, TILES)
+    chips.x = PAD
+    chips.y = TOP
+    chips.visible = gridded
+
+    -- Quick look: beside the list where there is room, over it where not.
+    local function pane_width() return pane_room() and PANE - PAD or INNER end
+    local pane = preview_view.build(M, pane_width, view_height)
+    pane.x = function() return pane_room() and WIDTH or PAD end
+    pane.y = TOP
+    pane.visible = previewing
 
 
     -- ----------------------------------------------------------------- legend --
@@ -476,7 +604,8 @@ function V.build(M)
       opacity = function()
         -- And only where there is room beside the panel for it.
         local room = (require("responsive").desk_width() - width()) / 2 >= LEGEND_W + 16
-        return (room and legend_due:get() and M.opened:get() and not wide() and M.acting:get() == "") and 1 or 0
+        return (room and legend_due:get() and M.opened:get() and not wide() and not gridded()
+          and M.acting:get() == "") and 1 or 0
       end,
       behavior = { opacity = { duration = theme.duration.normal } },
       ui.Rect {
@@ -493,26 +622,37 @@ function V.build(M)
 
     -- ----------------------------------------------------------------- header --
 
-    local header_row = kit.caption {
-      id = "launcher-caption",
-      x = PAD + 4, y = PAD + 8, width = INNER - 8,
-      text = function() return INSTRUMENT and ((M.mode_name()) .. " //"):upper() or (M.mode_name()) end,
-      note = function()
-        local n = 0
-        for i = 1, M.results:len() do
-          local kind = M.results:get(i).kind
-          if kind ~= "header" then n = n + 1 end
-        end
-        if wide() then n = M.wall_count:get() end
-        return INSTRUMENT and ("%02d MATCHES"):format(n) or (n == 1 and "1 result" or n .. " results")
-      end,
-    }
+    local function caption(id, caption_width)
+      return kit.caption {
+        id = id,
+        x = PAD + 4, y = PAD + 8, width = caption_width,
+        text = function() return INSTRUMENT and ((M.mode_name()) .. " //"):upper() or (M.mode_name()) end,
+        note = function()
+          local n = 0
+          for i = 1, M.results:len() do
+            local entry = M.results:get(i)
+            if entry.cells then n = n + #entry.cells
+            elseif entry.kind ~= "header" then n = n + 1 end
+          end
+          if wide() then n = M.wall_count:get() end
+          return INSTRUMENT and ("%02d MATCHES"):format(n) or (n == 1 and "1 result" or n .. " results")
+        end,
+      }
+    end
+    local header_row = caption("launcher-caption", INNER - 8)
+    header_row.visible = function() return not gridded() end
+    local grid_caption = caption("launcher-grid-caption", GRID_W_FIT - 2 * PAD - 8)
+    grid_caption.visible = gridded
 
     -- ----------------------------------------------------------------- search --
 
     -- What the query is searching, as the badge at the field's head: an M3
     -- shape that morphs from one mode's to the next, the mode's glyph on it.
-    local function badge_of() return BADGES[(M.mode_name())] or BADGES.Search end
+    local function badge_of()
+      local name, material, shape = M.mode_name()
+      if shape or not BADGES[name] then return { shape or "soft_burst", material or "search" } end
+      return BADGES[name]
+    end
     local badge = ui.Item {
       id = "launcher-badge",
       anchors = { left = true, left_margin = 8, vertical_center = true }, width = 36, height = 36,
@@ -530,11 +670,11 @@ function V.build(M)
       vertical_alignment = "center", tab_navigation = false,
       font_family = theme.font, font_size = theme.size.larger,
       color = function() return C.onSurface end,
-      placeholder = "Search apps, files, the web…",
+      placeholder = "Search everything…",
       placeholder_color = function() return C.onSurfaceVariant end,
       caret_color = function() return C.primary end,
       selection_color = function() return C.primary:alpha(0.35) end,
-      on_text_changed = function(text) M.query:set(text) end,
+      on_text_changed = M.typed,
       on_accepted = function() M.activate(M.chosen()) end,
       on_escape = M.escape,
       on_key_pressed = M.key,
@@ -547,6 +687,15 @@ function V.build(M)
       visible = function() return M.query:get() ~= "" end,
       on_clicked = function() field.text = "" M.query:set("") field.focus = true end,
       kit.icon("close", 18, function() return C.onSurfaceVariant end, { anchors = { center_in = true } }),
+    }
+    -- Over the grid the on-screen keyboard waits for a press on the field.
+    local summon = kit.action {
+      id = "launcher-summon-keyboard", accessible_name = "Search",
+      anchors = { fill = true }, visible = gridded,
+      on_clicked = function()
+        field.focus = true
+        M.bring_keyboard()
+      end,
     }
     local search = ui.Item {
       id = "launcher-field",
@@ -567,6 +716,7 @@ function V.build(M)
       kit.decor("corners", { length = 8 }) or ui.Item {},
       badge,
       field,
+      summon,
       clear,
     }
 
@@ -598,7 +748,11 @@ function V.build(M)
       } or nil,
       kit.decor("corners", { length = 14, inset = 4 }) or ui.Item {},
       header_row,
+      grid_caption,
+      chips,
       results,
+      alphabet,
+      pane,
       ui.Loader {
         anchors = { fill = true }, keep = true,
         active = function() return walls:get() end,
@@ -606,6 +760,7 @@ function V.build(M)
       },
       search,
       legend,
+      preview_view.large(M, width, height),
     }
     field.text = M.query:get()
     field.cursor_position = #field.text
@@ -613,14 +768,14 @@ function V.build(M)
     return content
   end
 
-  local function top_margin()
-    local _, _, _, h = require("bar").desk()
-    return math.floor(h * 0.16)
-  end
   return {
-    content = build, width = width, height = height,
-    set_query = function(text)
-      if field then field.text = text field.cursor_position = #text end
+    content = build, width = width, height = height, pane_room = pane_room,
+    set_query = function(text, select_it)
+      if field then
+        field.text = text
+        field.cursor_position = #text
+        if select_it then field:select_all() end
+      end
     end,
     focus = function(on)
       focused = on

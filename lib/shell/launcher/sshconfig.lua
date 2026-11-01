@@ -8,8 +8,10 @@ local M = {}
 
 local MAX_INCLUDES = 16
 
+local function home() return (morf.env and morf.env("HOME")) or morf.fs.home() end
+
 local function expand(path, folder)
-  if path:sub(1, 2) == "~/" then return morf.fs.home() .. path:sub(2) end
+  if path:sub(1, 2) == "~/" then return home() .. path:sub(2) end
   if path:sub(1, 1) ~= "/" then return folder .. "/" .. path end
   return path
 end
@@ -60,7 +62,7 @@ end
 
 --- The hosts in the config at `path` (~/.ssh/config).
 function M.hosts(path)
-  local folder = morf.fs.home() .. "/.ssh"
+  local folder = home() .. "/.ssh"
   path = path or (folder .. "/config")
   local ok, text = pcall(morf.fs.read, path)
   local out = {}
