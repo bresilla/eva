@@ -464,7 +464,8 @@ no sound and no popup. What it sends waits in the history until a time in
 Then one notice says how many, and a card heads the history: conversations
 first, one row to a person, then each app with its last line. Pressing a row
 runs the sender's own action, or opens its group. Done puts the card away and
-keeps them in the history; Clear them can be undone. “Show now” gives it early.
+keeps them in the history; Clear them can be undone. “Show now”, or `eva
+notifications digest`, gives it early.
 A time slept through comes on waking, once; a Focus holds it until it ends.
 Nothing of the summary's content reaches its file, and a hidden preview stays
 hidden on the card.

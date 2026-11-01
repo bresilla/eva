@@ -1,5 +1,6 @@
 # The Backups page on the stand-in machine (run with EVA_FAKE_SYSTEM=1): first
 # with no tool, then with snapper's fixture. No real snapper runs here.
+export BOOT=6
 start shell
 ipc settings backups; pause 1.4; shot backups-none
 stop
