@@ -462,7 +462,8 @@ function V.build(model)
         local items = {}
         for _, item in ipairs(model.board.shown(zone)) do
           local m, part = by_id[item.id], parts[item.id]
-          items[#items + 1] = { id = item.id, tier = m.tier, size = (part and active(m)) and part.size() or 0,
+          items[#items + 1] = { id = item.id, tier = require("status_model").tier_of(m.id, m.tier),
+            size = (part and active(m)) and part.size() or 0,
             flex = part and part.flex, hold = part and part.hold, island = part and part.island,
             extra = part and part.extra and part.extra() or nil }
         end

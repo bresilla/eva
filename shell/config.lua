@@ -218,6 +218,10 @@ local config = settings.open {
       height = 0,
       -- Whether the status writes the battery's percentage.
       percent = true,
+      -- What folds when the bar runs out of room: `{ id, rule }` by module or
+      -- indicator, `rule` being "keep", "late", "early" or, for an indicator,
+      -- "hide"; the rest as they are.
+      fold = {},
       -- The modules along the bar on each kind of machine, zone by zone, in
       -- order; which are drawn as an icon alone. A module the machine lacks
       -- is skipped.

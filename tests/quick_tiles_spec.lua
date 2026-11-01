@@ -165,7 +165,7 @@ end)
 
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." edit mode hides, adds back, resizes and resets",function()
-    load({style=style,size={1600,1500}})
+    load({style=style,size={1600,2400}})
     edit()
     test.truthy(test.ipc("q_editing"))
     test.truthy(test.find{id="utilities-available",visible=true})

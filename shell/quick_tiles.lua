@@ -59,11 +59,45 @@ local function app(id, name, icon, ids, word, wanted)
     end }
 end
 
+-- A tool of apps/ a press opens, where this install has it. It never lights.
+local function tool(model, id, name, icon, program, status)
+  local function host() return require("lib.services.host") end
+  return { id = id, name = name, icon = icon,
+    present = function() return host().tool(program) ~= nil end,
+    on = function() return false end,
+    set = function()
+      model.close_panel()
+      host().open_tool(program)
+    end,
+    status = function() return status end }
+end
+
+-- The launcher, opened on what `query` asks. It never lights.
+local function asks(model, id, name, icon, query, status)
+  return { id = id, name = name, icon = icon,
+    on = function() return false end,
+    set = function()
+      model.close_panel()
+      require("launcher").open_on(query())
+    end,
+    status = function() return status end }
+end
+
+-- A setting of `key` to flip, `detail` its page.
+local function setting(id, name, icon, key, detail, present)
+  local config = require("config")
+  return { id = id, name = name, icon = icon, detail = detail, present = present,
+    on = function() return config.get(key) == true end,
+    set = function(now) config.set(key, now == true) end,
+    status = function() return config.get(key) == true and "On" or "Off" end }
+end
+
 --- The tiles, for the settings model `model`. `gamemode` is the signal game
 --- mode keeps.
 function M.list(model, gamemode)
   local hotspot, rotation = hardware("hotspot"), hardware("rotation")
   local night, torch, power = hardware("nightlight"), hardware("torch"), hardware("power")
+  local function prefix() return require("config").get("launcher.action_prefix") end
   return {
     {
       -- Sharing the connection over Wi-Fi: a first start needs a name and a
@@ -193,6 +227,63 @@ function M.list(model, gamemode)
       local rows = require("lib.compositor.hyprland").state.monitors
       return rows ~= nil and rows:len() > 1
     end),
+    asks(model, "timer", "Timer", "timer", function() return prefix() .. " timer " end, "Set one"),
+    asks(model, "clipboard", "Clipboard", "content_paste", function() return ";" end, "History"),
+    tool(model, "clock", "Clock", "schedule", "clock", "Alarms and timers"),
+    tool(model, "qr", "QR code", "qr_code_scanner", "qr", "Read or make one"),
+    tool(model, "translate", "Translate", "translate", "translate", "Open"),
+    tool(model, "magnifier", "Magnifier", "zoom_in", "zoom", "Open"),
+    tool(model, "colorpick", "Colour picker", "colorize", "colorpick", "Open"),
+    tool(model, "pomodoro", "Pomodoro", "timelapse", "pomodoro", "Open"),
+    tool(model, "breaks", "Breaks", "self_improvement", "breaks", "Rests from the screen"),
+    setting("alwayson", "Always on", "nightlight", "lock.always_on.enabled", "lock",
+      function() return require("themes.phone_wake").always_on() end),
+    setting("highcontrast", "High contrast", "contrast", "appearance.high_contrast", "accessibility"),
+    {
+      id = "largetext", icon = "format_size", name = "Large text", detail = "accessibility",
+      on = function() return (tonumber(require("config").get("appearance.text_scale")) or 1) > 1 end,
+      set = function(now) require("config").set("appearance.text_scale", now and 1.25 or 1) end,
+      status = function()
+        local scale = tonumber(require("config").get("appearance.text_scale")) or 1
+        return scale > 1 and ("%d%%"):format(math.floor(scale * 100 + 0.5)) or "Off"
+      end,
+    },
+    {
+      id = "lockscreen", icon = "lock", name = "Lock",
+      present = function() return model.session_available("lock") end,
+      on = function() return false end,
+      set = function() model.session_run("lock") end,
+      status = function() return "Now" end,
+    },
+    {
+      id = "power", icon = "power_settings_new", name = "Power menu",
+      on = function() return false end,
+      set = function()
+        model.close_panel()
+        require("session").drawer.set(true)
+      end,
+      status = function() return "Sleep, restart, off" end,
+    },
+    {
+      id = "arrange", icon = "dashboard_customize", name = "Arrange home",
+      present = function() return require("desktop_model").home() end,
+      on = function() return require("desktop_model").editing() end,
+      set = function(now)
+        model.close_panel()
+        require("desktop_model").set_editing(now)
+      end,
+      status = function() return "Pages and icons" end,
+    },
+    {
+      id = "getapps", icon = "add_circle", name = "Get apps",
+      present = function() return require("launcher").can_install() end,
+      on = function() return false end,
+      set = function()
+        model.close_panel()
+        require("launcher").open_on("> get ")
+      end,
+      status = function() return "Install" end,
+    },
   }
 end
 

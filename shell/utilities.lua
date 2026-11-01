@@ -48,6 +48,11 @@ local function active(key) return require("presentation").active("settings."..ke
 local function with_request(model) model.request=M.request return model end
 local function themed(name) return require("themes").view(name) end
 
+builders["bar/fold"]=function(w,h)
+  local bar=require("bar")
+  return themed("bar_fold").build(require("status_model"),bar.model.board,bar.model.modules,w,h)
+end
+
 -- All settings, and the pages over the shell's own configuration.
 builders.home=function(w,h)
   return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)

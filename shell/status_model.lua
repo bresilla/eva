@@ -115,15 +115,59 @@ local SOURCES = {
   { key = "location", tier = 0, icon = "location_on", label = "Location in use", on = privacy("location") },
 }
 
+-- ----------------------------------------------------------------- rules --
+
+-- What a person can say of a module or an indicator, kept in `bar.fold` as `{ id,
+-- rule }`. "auto" leaves its tier as it is; "hide" is an indicator's alone.
+M.RULES = { { "auto", "Auto" }, { "keep", "Keep" }, { "late", "Last" }, { "early", "First" } }
+M.HIDE = { "hide", "Never" }
+local TIERS = { keep = 0, late = 3, early = 1 }
+
+--- The rule set for `id`: "auto" while none is.
+function M.rule(id)
+  for _, item in ipairs(require("config").get("bar.fold")) do
+    if item.id == id then return item.rule end
+  end
+  return "auto"
+end
+
+--- Sets the rule for `id`.
+function M.set_rule(id, rule)
+  local config = require("config")
+  local out = {}
+  for _, item in ipairs(config.get("bar.fold")) do
+    if item.id ~= id then out[#out + 1] = item end
+  end
+  if rule ~= "auto" then out[#out + 1] = { id = id, rule = rule } end
+  config.set("bar.fold", out)
+end
+
+--- When `id` folds: its own `tier`, unless a rule says otherwise. What never
+--- folds, a microphone in use among it, stays so whatever the rules say.
+function M.tier_of(id, tier)
+  if tier == 0 or M.PRIVATE[id] then return tier end
+  return TIERS[M.rule(id)] or tier
+end
+
+--- The indicators a person can rule on, as `{ key, label, tier }`.
+function M.ruled()
+  local out = {}
+  for _, source in ipairs(SOURCES) do
+    if not M.PRIVATE[source.key] then out[#out + 1] = { key = source.key, label = source.label, tier = source.tier } end
+  end
+  return out
+end
+
 --- The indicators that are active now, left to right. A tracked read.
 function M.read(services)
   services = services or require("services")
   local out = {}
   for _, source in ipairs(SOURCES) do
-    if FAKE[source.key] or source.on(services) then
+    local hidden = not M.PRIVATE[source.key] and M.rule(source.key) == "hide"
+    if not hidden and (FAKE[source.key] or source.on(services)) then
       local icon = source.icon
       if type(icon) == "function" then icon = icon(services) end
-      out[#out + 1] = { key = source.key, icon = icon, tier = source.tier, label = source.label }
+      out[#out + 1] = { key = source.key, icon = icon, tier = M.tier_of(source.key, source.tier), label = source.label }
     end
   end
   return out

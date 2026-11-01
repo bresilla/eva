@@ -25,6 +25,7 @@ return {
     power_page = "themes.layouts.views.power_page",
     bar_page = "themes.layouts.views.bar_page",
     bar_board = "themes.layouts.views.bar_board",
+    bar_fold = "themes.layouts.views.bar_fold",
     quick_tiles = "themes.layouts.views.quick_tiles",
     panels_page = "themes.layouts.views.panels_page",
     quick_session = "themes.layouts.views.quick_session",
