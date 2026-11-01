@@ -30,6 +30,30 @@ local FIELD = [[
   end
 ]]
 
+local TERMINAL = [[
+  local ui = require("morf.ui")
+  local held = 0
+  local term = ui.Terminal { id = "term", command = { "sh", "-c", "seq 1 400; sleep 20" }, cwd = "/",
+    font_size = 13, width = 400, height = 300,
+    on_long_pressed = function() held = held + 1 end }
+  ui.Item { width = 400, height = 300, term }
+  morf.ipc.q_term = function() return { text = term:text(), held = held } end
+]]
+
+local RANGES = [[
+  local ui = require("morf.ui")
+  local kit = require("kit")
+  local level = .2
+  local slider = kit.slider { id = "slider", width = 300, height = 22, label = false,
+    value = function() return level end, set = function(v) level = v end }
+  local track = 0
+  ui.Item { width = 400, height = 200,
+    on_panned = function(phase) if phase == "begin" then track = track + 1 end end,
+    ui.MouseArea { anchors = { fill = true }, z = -1 },
+    ui.Item { x = 40, y = 40, width = 300, height = 60, slider } }
+  morf.ipc.q_range = function() return { level = level, pans = track } end
+]]
+
 local function load(style, source, size)
   test.load("../shell/init.lua", { source = source, size = size or { 400, 400 }, env = { EVA_STYLE = style,
     EVA_DRY_RUN = "1", EVA_WALLPAPER = "", EVA_FONT_FILE = "", LULE_A = "/nonexistent/lule",
@@ -84,6 +108,35 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(test.ipc("q_view").scale > 2)
     test.click(200, 160) test.advance(60) test.click(200, 160) test.advance(900)
     test.near(test.ipc("q_view").scale, 1, .01)
+    test.eq(test.logs("error"), {})
+  end)
+
+  test.it(style .. " a tap on a slider's track jumps, a drag along it needs no hold, and a page keeps its swipe", function()
+    load(style, RANGES, { 400, 200 })
+    local box = test.get("slider")
+    local y = box.y + box.height / 2
+    test.touch("down", 0, box.x + box.width * .8, y) test.touch("up", 0, box.x + box.width * .8, y) test.advance(100)
+    test.truthy(test.ipc("q_range").level > .6, "a tap jumped there, got " .. tostring(test.ipc("q_range").level))
+    drag(box.x + box.width * .8, y, -box.width * .5, 0)
+    test.truthy(test.ipc("q_range").level < .5, "a drag moved it, got " .. tostring(test.ipc("q_range").level))
+    test.eq(test.ipc("q_range").pans, 0, "a drag along it is not the page's")
+    local level = test.ipc("q_range").level
+    drag(box.x + box.width * .5, y, 0, 60)
+    test.near(test.ipc("q_range").level, level, .001, "a drag across leaves it where it was")
+    test.eq(test.ipc("q_range").pans, 1, "a drag across is the page's")
+    test.eq(test.logs("error"), {})
+  end)
+
+  test.it(style .. " two fingers scroll a terminal's history, and a long press reaches it", function()
+    load(style, TERMINAL, { 400, 300 })
+    test.wait(function() return test.ipc("q_term").text:find("400", 1, true) ~= nil end, 4000, "it printed")
+    local before = test.ipc("q_term").text
+    test.touch("down", 0, 160, 80) test.touch("down", 1, 240, 80) test.advance(16)
+    for i = 1, 10 do test.touch("move", 0, 160, 80 + 16 * i) test.touch("move", 1, 240, 80 + 16 * i) test.advance(16) end
+    test.touch("up", 0, 160, 240) test.touch("up", 1, 240, 240) test.advance(100)
+    test.ne(test.ipc("q_term").text, before, "the history moved")
+    test.touch("down", 0, 200, 120) test.advance(700) test.touch("up", 0, 200, 120) test.advance(50)
+    test.eq(test.ipc("q_term").held, 1)
     test.eq(test.logs("error"), {})
   end)
 

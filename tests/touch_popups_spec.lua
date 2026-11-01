@@ -34,6 +34,10 @@ local SOURCE = [[
     return group ~= nil and history.is_open(group.key)
   end
   morf.ipc.q_records = function() return #notifs.records() end
+  morf.ipc.q_drive = function()
+    require("themes").view("drive_popup").show({ name = "Stick", size = 1024, encrypted = false },
+      { open = function() end, eject = function() end, settings = function() end, human = tostring })
+  end
 ]]
 
 local function card()
@@ -81,6 +85,44 @@ for _, form in ipairs(touch.FORMS) do
       test.click("notification-snooze-1") test.advance(800)
       test.eq(test.ipc("q_state").snoozed, 1, "it snoozed")
       test.eq(#test.ipc("q_state").ids, 0)
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a drive's card swipes off", function()
+      touch.load(form, style, SOURCE)
+      test.ipc("q_drive") test.advance(400)
+      local on, labels = nil, {}
+      for _, surface in ipairs(test.surfaces()) do
+        labels[#labels + 1] = surface.label
+        if surface.label:find("eva-drive", 1, true) then on = { surface = surface.label } end
+      end
+      test.truthy(on, "no drive surface among " .. table.concat(labels, " "))
+      test.touch("down", 0, 300, 20, on) test.advance(16)
+      for i = 1, 10 do test.touch("move", 0, 300 + 16 * i, 20, on) test.advance(16) end
+      test.touch("up", 0, 460, 20, on) test.advance(700)
+      local still = false
+      for _, surface in ipairs(test.surfaces()) do
+        if surface.label:find("eva-drive", 1, true) then still = true end
+      end
+      test.falsy(still, "it went")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": the island opens down, shuts up and walks its faces across", function()
+      local settings = morf.env("XDG_CACHE_HOME") .. "/touch-island.json"
+      morf.fs.write(settings, morf.json.encode { island = { enabled = true } })
+      touch.load(form, style, SOURCE, { EVA_SETTINGS = settings })
+      local node = test.get("island")
+      local x, y = node.x + node.width / 2, node.y + node.height / 2
+      local face = test.ipc("island", "state").face
+      touch.drag(x, y, 70, 0)
+      test.ne(test.ipc("island", "state").face, face, "across walks the faces")
+      test.falsy(test.ipc("island", "state").open)
+      touch.drag(x, y, 0, 70)
+      test.truthy(test.ipc("island", "state").open, "down opens it")
+      node = test.get("island")
+      touch.drag(node.x + node.width / 2, node.y + node.height / 2, 0, -60)
+      test.falsy(test.ipc("island", "state").open, "up shuts it")
       test.eq(test.logs("error"), {})
     end)
 

@@ -101,6 +101,19 @@ test.describe("when it shows", function()
     test.truthy(test.find { id = "standby", visible = true })
   end)
 
+  test.it("follows a finger across the views and turns on the lift", function()
+    load {}
+    local on = { surface = "eva-standby" }
+    local before = test.ipc("standby", "state").view
+    test.touch("down", 0, 800, 250, on) test.advance(16)
+    for i = 1, 10 do test.touch("move", 0, 800 - 30 * i, 250, on) test.advance(16) end
+    test.eq(test.ipc("standby", "state").view, before, "the view waits for the lift")
+    test.touch("up", 0, 500, 250, on) test.settle(300)
+    test.eq(test.ipc("standby", "state").view, "photos")
+    test.falsy(test.find { id = "standby-close", visible = true }, "a swipe is no touch for the way out")
+    test.eq(test.logs("error"), {})
+  end)
+
   test.it("turns the view on a swipe and offers the way out on a touch", function()
     load {}
     test.drag({ 800, 250 }, { 500, 250 }, { steps = 6, surface = "eva-standby" })

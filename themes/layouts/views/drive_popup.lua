@@ -26,6 +26,8 @@ function M.show(row, actions)
   local inner = WIDTH - 2 * P.PAD
   local function act(fn) return function() M.close() fn(row) end end
   local card = kit.card { width = WIDTH, height = HEIGHT, radius = kit.round(P.RADIUS),
+    -- Under what it says, so a finger on its bare parts is on the card.
+    ui.MouseArea { anchors = { fill = true }, z = -1 },
     ui.Column { x = P.PAD, y = P.PAD, gap = S.s, width = inner,
       P.row { id = "drive-popup-row", width = inner, height = 56, icon = row.encrypted and "lock" or "usb", title = row.name,
         subtitle = actions.human(row.size) .. (row.encrypted and " · Encrypted" or "") },

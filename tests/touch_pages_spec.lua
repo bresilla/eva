@@ -78,6 +78,32 @@ for _, form in ipairs(touch.FORMS) do
       test.eq(test.logs("error"), {})
     end)
 
+    test.it(tag .. ": a page on the panels board comes loose on a long press", function()
+      touch.load(form, style, SOURCE)
+      open("settings")
+      test.ipc("q_detail", "panels") test.advance(1200)
+      test.falsy(test.find { id = "panels-tile-tasks", visible = true }, "at rest a drag over it scrolls")
+      local tile = test.get("panels-page-tasks")
+      local x, y = tile.x + tile.width / 2, tile.y + tile.height / 2
+      test.touch("down", 0, x, y) test.advance(700) test.touch("up", 0, x, y) test.advance(300)
+      test.truthy(test.find { id = "panels-tile-tasks", visible = true }, "held, it comes loose")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": two fingers look closer at a wallpaper", function()
+      touch.load(form, style, SOURCE)
+      open("settings")
+      test.ipc("q_detail", "theme/wallpaper") test.advance(1200)
+      local frame = test.get("wallpaper-preview-frame")
+      local x, y = frame.x + frame.width / 2, frame.y + frame.height / 2
+      test.touch("down", 0, x - 30, y) test.touch("down", 1, x + 30, y) test.advance(16)
+      for i = 1, 8 do test.touch("move", 0, x - 30 - 8 * i, y) test.touch("move", 1, x + 30 + 8 * i, y) test.advance(16) end
+      test.touch("up", 0, x - 94, y) test.touch("up", 1, x + 94, y) test.advance(500)
+      test.eq(test.ipc("q_state").haptic, "commit", "the pinch settled")
+      test.truthy(test.ipc("q_state").open.sidebar)
+      test.eq(test.logs("error"), {})
+    end)
+
     test.it(tag .. ": the calendar's month turns under a finger", function()
       touch.load(form, style, SOURCE)
       test.ipc("q_panel", form.sheet and "sidebar" or "leftbar", "calendar") test.advance(1100)
