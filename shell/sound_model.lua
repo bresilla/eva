@@ -10,10 +10,12 @@ local function volume(value)
   if type(value)~="number" or value~=value or math.abs(value)==math.huge then return nil end
   return math.max(0,math.min(1.5,value))
 end
-function M.new(kind,active)
+--- A model of `kind`'s devices while `active()`. `page` names it where another
+--- page than the kind's own shows them.
+function M.new(kind,active,page)
   assert(kind=="output" or kind=="input","unknown audio page")
   local audio=morf.audio
-  local key=kind=="output" and "sound" or "microphone"
+  local key=page or (kind=="output" and "sound" or "microphone")
   local snapshot=morf.signal("eva."..key..".audio",{available=false,devices={},streams={}})
   local rows=morf.state {devices={},streams={},channels={}}
   local model={key=key,kind=kind,active=active,devices=rows.devices,streams=rows.streams,channels=rows.channels}
@@ -129,6 +131,37 @@ function M.new(kind,active)
     for i=1,row.channels do values[i]=(row.volumes or {})[i] or row.volume or 0 end
     values[index]=v
     return send(audio.set_channel_volumes,row.id,values)
+  end
+  if kind=="input" then
+    -- The level of the default input while a test runs: a monitor on it,
+    -- stopped as the test ends or the page goes.
+    model.level=morf.signal("eva.microphone.level",0)
+    model.testing=morf.signal("eva.microphone.testing",false)
+    local meter
+    local function stop()
+      if meter then pcall(meter.stop,meter) meter=nil end
+      model.level:set(0)
+    end
+    function model.test(on)
+      stop()
+      local source=model.default()
+      if not on or not source or not audio or not audio.monitor then model.testing:set(false) return false end
+      local ok,made=pcall(audio.monitor,{device=source.id,rate_hz=30,on_level=function(left,right)
+        model.level:set(math.max(left or 0,right or 0))
+      end})
+      if not ok then model.testing:set(false) return false end
+      meter=made
+      model.testing:set(true)
+      return true
+    end
+    function model.verdict()
+      local v=model.level:get()
+      if v<=.02 then return "Say something" end
+      if v<.15 then return "A little quiet" end
+      if v>.92 then return "Too loud" end
+      return "A good level"
+    end
+    morf.effect("eva.microphone.test.gone",function() if not active() and model.testing:get() then model.test(false) end end)
   end
   return model
 end
