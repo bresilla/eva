@@ -1,14 +1,12 @@
--- Answers that take a while, for a search that must not wait for them: a slot
--- per source, each holding one question at a time. A question starts only once
--- the typing has paused, a newer one kills the one before it, and until an
--- answer lands the last answer stands, so the list never flashes empty.
+-- Answers that take a while: a slot per source, each holding one question at a
+-- time. A question starts once the typing has paused, a newer one kills the one
+-- before it, and the last answer stands until the next lands. Answers are kept by
+-- question.
 --
 --   local ask = asker.new { on_answer = refresh, debounce_ms = 120 }
 --   local files, settled = ask("files", term, function(done)
 --     return morf.process.run(argv, {}, function(r) done(parse(r)) end)
 --   end)
---
--- Answers are kept by question, so going back over what was typed is instant.
 
 local morf = require("morf")
 

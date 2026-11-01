@@ -76,6 +76,15 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.truthy(host.row("Pin to favourites"))
     end)
 
+    test.it("lists a tile's actions on a right click", function()
+      host.load { style = style, settings = { launcher = { layout = "grid" } } }
+      local tile = test.get { text = "Fixture Browser", visible = true }
+      test.click(tile.x + tile.width / 2, tile.y, { button = "right" })
+      test.advance(300)
+      test.ne(test.ipc("state").acting, "", "a right click listed no actions")
+      test.truthy(host.row("New Window"))
+    end)
+
     test.it("lists favourites first, then what is used, then every app", function()
       phone { style = style, settings = { launcher = { favourites = { "app:fixture-editor" } } } }
       local rows = test.ipc("rows")

@@ -41,8 +41,10 @@ local function processes()
       local pid, cpu, mem, args = line:match("^%s*(%d+)%s+([%d.]+)%s+([%d.]+)%s+(.+)$")
       local program = args and args:match("^(%S+)")
       if program and program:sub(1, 1) ~= "[" then
-        list[#list + 1] = { pid = tonumber(pid), cpu = tonumber(cpu), mem = tonumber(mem), args = args,
-          name = program:match("([^/]+)$") or program, description = args }
+        local name = program:match("([^/]+)$") or program
+        local shown = name .. args:sub(#program + 1)
+        list[#list + 1] = { pid = tonumber(pid), cpu = tonumber(cpu), mem = tonumber(mem), args = shown,
+          name = name, description = shown }
       end
     end
     table.sort(list, function(a, b) return a.cpu > b.cpu end)
@@ -352,9 +354,10 @@ registry.mode { id = "nix", name = "Nix packages", material = "deployed_code", s
   hint = "nix ripgrep  ·  Return: nix run", search = function(term)
     if term == "" then return { note("nix", "Type a package", "Searches nixpkgs; the first search takes a while", "deployed_code") } end
     if not run.has("nix") then return missing("nix", "nix", "deployed_code") end
+    -- The answer alone: stderr goes to /dev/null.
     local list, settled = rows.ask_run("nix", term,
-      { "nix", "--extra-experimental-features", "nix-command flakes", "search", "nixpkgs", term, "--json" }, M.parse_nix,
-      { debounce_ms = 500, timeout_ms = 90000, any_exit = true })
+      { "sh", "-c", 'exec nix --extra-experimental-features "nix-command flakes" search nixpkgs "$1" --json 2>/dev/null', "sh", term },
+      M.parse_nix, { debounce_ms = 500, timeout_ms = 120000, any_exit = true })
     local out = {}
     for _, p in ipairs(list or {}) do
       local flake = "nixpkgs#" .. p.attr

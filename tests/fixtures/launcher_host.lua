@@ -106,6 +106,31 @@ M.SHELL = [==[
   morf.ipc.keyboard_open = function() return require("keyboard").drawer.open:get() end
   morf.ipc.preview_clear = function() launcher.preview_open:set(false) return true end
   morf.ipc.toggle_preview = function() return launcher.toggle_preview() end
+  morf.ipc.timers_path = function() return morf.paths.state("eva-timers.json") end
+  morf.ipc.dashboard_open = function() return require("dashboard").drawer.open:get() end
+  local status_reads = 0
+  do
+    local index = require("lib.shell.launcher.search_index")
+    for _, entry in ipairs(index.all()) do
+      local description = entry.description
+      if type(description) == "function" then
+        entry.description = function()
+          status_reads = status_reads + 1
+          return description()
+        end
+      end
+    end
+  end
+  morf.ipc.status_reads = function(query)
+    status_reads = 0
+    require("universal").search(query, 40)
+    return status_reads
+  end
+  morf.ipc.timed_query = function(query)
+    local started = morf.time.now_ms()
+    require("universal").search(query, 40)
+    return morf.time.now_ms() - started
+  end
   morf.ipc.columns = function() return launcher.columns:get() end
   local copied = {}
   morf.clipboard.set = function(data) copied[#copied + 1] = data end

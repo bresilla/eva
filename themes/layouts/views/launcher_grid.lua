@@ -3,7 +3,7 @@
 -- click lists a tile's actions.
 --
 -- A row is one press area over plain nodes, told which tile by where it was
--- pressed: a screen of apps stays cheap to build and to rebind as it scrolls.
+-- pressed.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
@@ -77,7 +77,7 @@ function V.row(M, entry, columns, ctx)
     return bound.entry.cells[i], i
   end
   local press = ui.MouseArea {
-    anchors = { fill = true }, cursor = "pointer",
+    anchors = { fill = true }, cursor = "pointer", accepted_buttons = "all",
     on_clicked = function(_, _, x, _, button)
       local tile = tile_at(x)
       if not tile then return end

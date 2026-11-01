@@ -105,7 +105,83 @@ test.describe("what the network answers", function()
   end)
 end)
 
+test.describe("a press", function()
+  test.it("lists a row's actions on a right click", function()
+    host.load()
+    host.search("fixture browser")
+    local row = test.get { text = "Fixture Browser", visible = true }
+    test.click(row.x + row.width / 2, row.y + row.height / 2, { button = "right" })
+    test.advance(200)
+    test.ne(test.ipc("state").acting, "", "a right click ran it instead")
+    test.truthy(host.row("New Window"))
+  end)
+
+  test.it("lists a row's actions on a long press", function()
+    host.load()
+    host.search("fixture browser")
+    local row = test.get { text = "Fixture Browser", visible = true }
+    local x, y = row.x + row.width / 2, row.y + row.height / 2
+    test.touch("down", 0, x, y)
+    test.advance(700)
+    test.touch("up", 0, x, y)
+    test.advance(200)
+    test.ne(test.ipc("state").acting, "")
+  end)
+
+  test.it("runs a row on a left click", function()
+    host.load()
+    host.search("fixture browser")
+    local row = test.get { text = "Fixture Browser", visible = true }
+    test.click(row.x + row.width / 2, row.y + row.height / 2)
+    test.settle(400)
+    test.truthy(host.logged("launch fixture-browser"))
+  end)
+end)
+
+test.describe("a keystroke's cost", function()
+  test.it("reads a tile's status only for what is listed", function()
+    host.load()
+    test.eq(test.ipc("status_reads", "zzqq no match at all"), 0, "every tile was read for a search that listed none")
+    test.truthy(test.ipc("status_reads", "wi-fi") >= 1, "the tile that was listed has no status")
+  end)
+
+  test.it("does not build a bookmark's row again for each letter", function()
+    local marks = {}
+    for i = 1, 3000 do marks[i] = { name = "Mark " .. i, url = "https://m.example/" .. i } end
+    host.load { settings = { launcher = { bookmarks = marks } } }
+    host.search("> mark ", 100)
+    landed("Mark 1")
+    host.search("mar", 100)
+    test.note("keystroke over 3000 bookmarks: " .. tostring(test.ipc("timed_query", "mark 2")) .. " ms")
+    test.truthy(test.ipc("timed_query", "mark 29") < 16, "a keystroke over 3000 bookmarks took too long")
+    test.eq(#test.logs("warn"), 0)
+  end)
+
+  test.it("leaves a huge picture out of a row", function()
+    local big = morf.env("XDG_CACHE_HOME") .. "/huge.png"
+    host.write(big, string.rep("x", 6 * 1024 * 1024))
+    host.load { path = { "fd" } }
+    test.stub_run("fd", { code = 0, stdout = big .. "\n" })
+    host.search("/huge", 300)
+    landed("huge.png")
+    test.falsy(test.find(function(n) return n.element == "Image" and n.visible and n.height == 32 end),
+      "a row decodes a picture of 6 MiB")
+    morf.fs.remove(big)
+  end)
+end)
+
 test.describe("the small things", function()
+  test.it("finds a dashboard tab from the plain box, and opens it", function()
+    host.load()
+    host.search("weather")
+    local row = host.row("Weather")
+    test.truthy(row, "no dashboard tab")
+    test.eq(row.tag, "Dashboard")
+    test.ipc("activate")
+    test.settle(600)
+    test.truthy(test.ipc("dashboard_open"))
+  end)
+
   test.it("reads CSS sizes", function()
     host.load()
     host.search("24px in rem")

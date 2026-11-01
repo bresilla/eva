@@ -1,9 +1,9 @@
 -- Timers and alarms, for whatever sets them. A timer rings after a span, an alarm
 -- at an hour. No nodes.
 --
--- The clock owns these once it is ready: it hands `M.use` a backend and everything
--- here goes through it. Until then this module keeps them itself, on the state
--- folder so they outlive a reload, and rings with a notification.
+-- `M.use` hands them to a backend, and everything here goes through it. Without
+-- one this module keeps them itself, in the state folder, and rings with a
+-- notification.
 --
 --   M.use { add = function(entry) end, cancel = function(id) end, list = function() end }
 --
@@ -45,7 +45,7 @@ local function ring(entry)
 end
 
 local function arm(entry)
-  local wait = math.max(0, entry.at - morf.time.now()) * 1000
+  local wait = math.max(1, (entry.at - morf.time.now()) * 1000)
   running[entry.id] = morf.time.timer(wait, function() ring(entry) end, false)
 end
 

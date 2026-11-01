@@ -1,0 +1,27 @@
+# The launcher's modes against what is really there: the machine's own programs and
+# the web. Nothing here acts: EVA_DRY_RUN holds back every Return.
+printf 'Host box\n  HostName example.org\n  User me\n' > /dev/null
+mkdir -p "$HOME/.ssh"
+printf 'Host box\n  HostName example.org\n  User me\n' > "$HOME/.ssh/config"
+BOOT=9
+start shell
+ipc launcher open; pause 2.5
+ipc close; pause 1
+ipc launcher query '> kill sway'; pause 1.5; shot live-kill
+ipc close; pause 0.6
+ipc launcher query '> port '; pause 1.5; shot live-port
+ipc close; pause 0.6
+ipc launcher query '> ssh '; pause 1; shot live-ssh
+ipc close; pause 0.6
+ipc launcher query '> tr es good morning'; pause 3; shot live-translate
+ipc close; pause 0.6
+ipc launcher query '> define ephemeral'; pause 3; shot live-define
+ipc close; pause 0.6
+ipc launcher query '> wiki Linux'; pause 3; shot live-wiki
+ipc close; pause 0.6
+ipc launcher query '100 usd in eur'; pause 3; shot live-currency
+ipc close; pause 0.6
+ipc launcher query '> hash the launcher'; pause 1.5; shot live-hash
+ipc close; pause 0.6
+ipc launcher query '> nix ripgrep'; pause 40; shot live-nix
+ipc close; pause 0.6

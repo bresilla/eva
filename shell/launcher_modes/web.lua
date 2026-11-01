@@ -166,11 +166,13 @@ local library = require("lib.shell.launcher.bookmarks")
 
 local function tool_dir() return rows.untilde(config.get("launcher.menus.bookmarks")) end
 
+local NONE = {}
+
 --- Every bookmark, off the loop, kept a minute.
 function M.bookmarks()
   local list = rows.ask("bookmarks", "all", function(done) return library.read(tool_dir(), done) end,
     { debounce_ms = 0, ttl_ms = 60000 })
-  return list or {}
+  return list or NONE
 end
 
 --- `mark` as a row.

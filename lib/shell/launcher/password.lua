@@ -1,6 +1,6 @@
 -- Passwords and passphrases from the system's random source. Bytes come from
--- `morf.encoding.uuid`, skipping the bits a UUID fixes, and every choice is
--- made by rejection, so no character is likelier than another.
+-- `morf.encoding.uuid`, skipping the bits a UUID fixes, and every choice is made
+-- by rejection.
 
 local morf = require("morf")
 

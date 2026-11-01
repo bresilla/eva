@@ -219,7 +219,11 @@ registry.mode { id = "media", name = "Media", material = "play_circle", shape = 
     local title = tostring(active.title or active.name or "")
     local artist = type(active.artist) == "table" and table.concat(active.artist, ", ") or tostring(active.artist or "")
     local function control(verb)
-      return function() media.control(verb) return "keep" end
+      return function()
+        if run.dry() then morf.log("info", "eva: launcher (dry run): media " .. verb) end
+        media.control(verb)
+        return "keep"
+      end
     end
     local out = {
       row { id = "media:toggle", name = media.playing() and "Pause" or "Play", description = title .. "  ·  " .. artist,

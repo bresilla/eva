@@ -143,6 +143,8 @@ registry.mode { id = "grep", name = "File contents", material = "manage_search",
 
 local recent = require("lib.shell.launcher.recent")
 
+local NONE = {}
+
 --- The recent files, read off the loop at most every half minute.
 local function recent_list()
   local list = rows.ask("recent", "all", function(done)
@@ -151,8 +153,9 @@ local function recent_list()
       done(recent.parse(type(text) == "string" and text or "", 200))
     end, 4 * 1024 * 1024)
   end, { debounce_ms = 0, ttl_ms = 30000 })
-  return list or {}
+  return list or NONE
 end
+M.recent_list = recent_list
 
 registry.mode { id = "recent", name = "Recent files", material = "history", shape = "pill", words = { "recent" },
   hint = "what applications opened lately", search = function(term)
@@ -231,12 +234,10 @@ function M.universal(q)
   return out
 end
 
---- Recent files as candidates: `{ path, name, description }`, rows on demand.
-function M.recent_candidates()
+--- The rows of `list`, the recent files.
+function M.recent_rows(list)
   local out = {}
-  for _, f in ipairs(recent_list()) do
-    out[#out + 1] = rows.file(f.path, false, "Recent")
-  end
+  for _, f in ipairs(list) do out[#out + 1] = rows.file(f.path, false, "Recent") end
   return out
 end
 

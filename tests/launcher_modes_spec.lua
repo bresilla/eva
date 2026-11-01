@@ -171,6 +171,16 @@ test.describe("timers and alarms", function()
     test.eq(test.ipc("seam"), { "tea", "late" })
   end)
 
+  test.it("rings what came due while the shell was down", function()
+    host.load()
+    host.write(test.ipc("timers_path"), morf.json.encode {
+      { id = "late", kind = "timer", label = "overdue", seconds = 60, at = morf.time.now() - 30 } })
+    host.load()
+    test.settle(300)
+    test.truthy(test.find { text = "Timer done" }, "what came due never rang")
+    test.eq(#test.logs("warn"), 0)
+  end)
+
   test.it("sets an alarm", function()
     host.load()
     host.search("> alarm 23:59 late")
@@ -383,7 +393,7 @@ test.describe("the machine", function()
 
   test.it("searches nixpkgs and runs a package", function()
     host.load { path = { "nix", "foot" } }
-    test.stub_run("nix", morf.json.encode {
+    test.stub_run("sh", morf.json.encode {
       ["legacyPackages.x86_64-linux.ripgrep"] = { pname = "ripgrep", version = "14.1", description = "A fast grep" } })
     host.search("> nix ripgrep", 600)
     landed("ripgrep")

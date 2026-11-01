@@ -1,9 +1,8 @@
 -- The clipboard's history: text and pictures copied, newest first, pins on top,
 -- kept in a private folder. What a password manager marks is never read.
 --
--- One store: eva-clipboard keeps it and the launcher's `;` reads it. Either
--- process may write, so each reads the file before it changes it and follows
--- the file for what the other wrote.
+-- One store: eva-clipboard keeps it and the launcher's `;` reads it. Each process
+-- reads the file before it changes it, and follows it for what the other wrote.
 local morf = require("morf")
 
 local M = {

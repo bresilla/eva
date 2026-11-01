@@ -47,6 +47,7 @@ function V.build(M)
   local SLOT, SLOT_ON = 224, 280
   local INNER = WIDTH - 2 * PAD
   local PANE, PANE_H = 340, 372
+  local THUMBNAIL_LIMIT = 4 * 1024 * 1024
   -- The grid: as wide as the desk lets it, up to this.
   local GRID_MAX = 960
   local ALPHABET = theme.space.xl
@@ -131,6 +132,11 @@ function V.build(M)
     -- ------------------------------------------------------------------ rows --
 
     local function centred(node) return kit.centred(32, 32, node) end
+    -- A picture too big to decode for a row's corner.
+    local function small_picture(path)
+      local ok, stat = pcall(morf.fs.stat, path)
+      return ok and type(stat) == "table" and (stat.size or math.huge) < THUMBNAIL_LIMIT
+    end
     local function row_icon(row)
       if row.glyph then return centred(kit.text { text = row.glyph, font_size = 24 }) end
       local paint = row.swatch or (row.kind == "scheme" and row.color)
@@ -146,10 +152,11 @@ function V.build(M)
       if row.kind == "calc" then
         return centred(kit.icon("function", 28, function() return C.onSurface end))
       end
-      if row.image then
+      if row.image and small_picture(row.image) then
         return ui.Image { width = 32, height = 32, source = row.image, source_width = 64,
           fill_mode = "preserve_aspect_crop" }
       end
+      if row.image then return centred(kit.icon("image", 26, function() return C.onSurfaceVariant end)) end
       if row.kind == "action" or row.kind == "variant" or row.material then
         return centred(kit.icon(row.material or row.icon, 26, function() return C.onSurfaceVariant end))
       end
@@ -261,6 +268,11 @@ function V.build(M)
       local function now() revision:get() return bound.row end
       local function selected() revision:get() return is_selected(bound.entry.key) end
       local function has_actions() return M.has_actions(now()) and M.acting:get() == "" end
+      -- What is left for the words once the row's end has what it shows.
+      local function text_width()
+        local trailing = (selected() and has_actions()) and 120 or ((now().tag or "") ~= "" and 76 or 0)
+        return INNER - 70 - NUMBER - trailing
+      end
       local icon = row_icon(bound.row)
       local icon_box = ui.Item { width = 32, height = 32, icon }
       local area = kit.action {
@@ -271,11 +283,10 @@ function V.build(M)
           local i = index_of(bound.entry.key)
           if i then M.selected:set(i) end
         end,
-        on_clicked = function(_, _, _, _, button)
-          if button == "right" then M.act_on(bound.entry.key) return end
-          M.activate(bound.row)
-        end,
+        on_clicked = function() M.activate(bound.row) end,
         on_long_pressed = function() M.act_on(bound.entry.key) end,
+        ui.MouseArea { anchors = { fill = true }, accepted_buttons = "right",
+          on_clicked = function() M.act_on(bound.entry.key) end },
         ui.Row {
           anchors = { left = true, left_margin = 8, vertical_center = true }, gap = 12, align = "center",
           INSTRUMENT and kit.text {
@@ -295,13 +306,13 @@ function V.build(M)
               id = "launcher-name", text = function() return tostring(now().name or "") end,
               spans = function() revision:get() return bound.entry.spans end,
               font_size = theme.size.normal, font_weight = 500, elide = "right",
-              width = function() return INNER - 70 - NUMBER - ((selected() and has_actions()) and 120 or 0) end,
+              width = text_width,
               color = function() return C.onSurface end,
             },
             kit.text {
               text = function() return tostring(now().description or "") end, font_size = theme.size.smaller,
               visible = function() return (now().description or "") ~= "" end, elide = "right",
-              width = function() return INNER - 70 - NUMBER - ((selected() and has_actions()) and 120 or 0) end,
+              width = text_width,
               color = function() return C.onSurfaceVariant end,
             },
           },

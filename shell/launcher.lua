@@ -44,15 +44,13 @@ local function row_of(entry) return entry and by_key[entry.key] end
 
 local function providers() return require("providers") end
 
--- The row with the highlight, by key, kept outside the signals: an answer
--- landing must not move it, and reading it must not re-run the search.
+-- The row with the highlight, by key, and the query it was found for.
 local chosen_key, searched_query = nil, nil
 -- Whether the highlight was walked there by a key since the last edit.
 local walked = false
 local active_mode
 
---- The mode `query` is in, told when it stops being: a mode may hold a model
---- live only while it is on show.
+--- Tells the mode on show when `query` leaves it.
 local function follow_mode(query)
   local route = providers().route
   local mode = route and route(query) or nil
@@ -271,8 +269,7 @@ function M.open_on(text)
 end
 
 --- The field changed under the person's fingers. A space after walking the list
---- is quick look, not a space: the field takes the key before anyone hears it, so
---- it is taken back out.
+--- opens quick look and leaves the field as it was.
 function M.typed(text)
   local before = M.query:get()
   if walked and text == before .. " " and M.toggle_preview() then

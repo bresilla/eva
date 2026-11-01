@@ -1,8 +1,7 @@
 -- One box for everything: a plain search reaches apps, Settings pages, quick tiles,
 -- open windows, files and actions, ranked together. Each source hands in rows; one
 -- fuzzy pass over the lot ranks them, a source's weight and what was picked before
--- deciding between matches about as good. Files land when they land: the rest of
--- the list does not wait for them.
+-- deciding between matches about as good.
 --
 -- The setting `launcher.sources` says which sources join, by name.
 local config = require("config")
@@ -45,12 +44,44 @@ function M.entry_row(entry)
   }
 end
 
-local function index_rows()
-  local out = {}
-  for _, entry in ipairs(index.all()) do
-    if not entry.present or entry.present() then out[#out + 1] = M.entry_row(entry) end
+-- Rows are built once for what they are built from, not for each letter.
+local built = {}
+local function cached(name, from, make)
+  local slot = built[name]
+  if not slot or slot.from ~= from then
+    slot = { from = from, rows = make(from) }
+    built[name] = slot
   end
-  return out
+  return slot.rows
+end
+
+-- The index's rows, without what they say of themselves now.
+local function index_rows()
+  return cached("index", index.revision:get(), function()
+    local out = {}
+    for _, entry in ipairs(index.all()) do
+      out[#out + 1] = rows.row {
+        id = entry.id, name = entry.name, keywords = entry.keywords, tag = entry.tag, icon = entry.icon, kind = entry.kind,
+        pin = entry.pin or entry.id, run = entry.run, actions = entry.actions, entry = entry,
+        description = type(entry.description) == "string" and entry.description or "",
+        material = type(entry.material) == "string" and entry.material or nil,
+      }
+    end
+    return out
+  end)
+end
+
+--- `row` with what its entry says now; nil when the machine lacks what it is for.
+local function freshened(row)
+  local entry = row.entry
+  if not entry then return row end
+  if entry.present then
+    local ok, there = pcall(entry.present)
+    if ok and not there then return nil end
+  end
+  local now = M.entry_row(entry)
+  row.description, row.material, row.current = now.description, now.material, now.current
+  return row
 end
 
 -- Each source: what it hands in, and how much a match in it counts.
@@ -64,19 +95,25 @@ local SOURCES = {
   places = { 0.85, function() return require("launcher_modes.files").place_rows() end },
   modes = { 0.8, function() return providers().mode_rows() end },
   snippets = { 0.8, function()
-    local out = {}
-    local text = require("launcher_modes.text")
-    for _, item in ipairs(require("lib.shell.launcher.snippets").all()) do out[#out + 1] = text.snippet_row(item) end
-    return out
+    local library = require("lib.shell.launcher.snippets")
+    return cached("snippets", library.revision:get(), function()
+      local out = {}
+      local text = require("launcher_modes.text")
+      for _, item in ipairs(library.all()) do out[#out + 1] = text.snippet_row(item) end
+      return out
+    end)
   end },
-  recent = { 0.8, function() return require("launcher_modes.files").recent_candidates() end },
+  recent = { 0.8, function()
+    local files = require("launcher_modes.files")
+    return cached("recent", files.recent_list(), files.recent_rows)
+  end },
   bookmarks = { 0.76, function()
-    local out = {}
     local web = require("launcher_modes.web")
-    for i, mark in ipairs(web.bookmarks()) do
-      out[i] = web.mark_row(mark)
-    end
-    return out
+    return cached("bookmarks", web.bookmarks(), function(list)
+      local out = {}
+      for i, mark in ipairs(list) do out[i] = web.mark_row(mark) end
+      return out
+    end)
   end },
   files = { 0.78, nil },
 }
@@ -141,10 +178,15 @@ function M.search(q, limit)
     boost = function(item) return item.weight or 1 end })
   hits = app.strict(q, hits)
   local out, seen = {}, {}
+  local listed = 0
   local function add(r)
     local key = (r.kind or "menu") .. ":" .. tostring(r.id)
     if seen[key] then return end
     seen[key] = true
+    if listed >= (limit or math.huge) then return end
+    r = freshened(r)
+    if not r then return end
+    listed = listed + 1
     out[#out + 1] = r
   end
   local answer = prov.inline(q)
@@ -165,11 +207,9 @@ function M.search(q, limit)
     hit.item.positions = hit.key == "name" and hit.positions or nil
     add(hit.item)
   end
-  local fallbacks = prov.fallbacks(q)
-  local room = limit and math.max(1, limit - #fallbacks) or #out
-  for i = #out, room + 1, -1 do out[i] = nil end
-  for _, f in ipairs(fallbacks) do add(f) end
-  out.cap = limit
+  listed = 0
+  for _, f in ipairs(prov.fallbacks(q)) do add(f) end
+  out.cap = limit and limit + 2 or nil
   return out
 end
 

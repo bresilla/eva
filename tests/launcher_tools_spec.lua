@@ -92,6 +92,8 @@ local HOST = [==[
     return dates.parse(text, tonumber(now))
   end
   morf.ipc.format = function(t, zone) return morf.time.format("%Y-%m-%d %H:%M", tonumber(t), zone and { tz = zone } or nil) end
+  morf.ipc.weekday_of = function(t) return morf.time.format("%A", tonumber(t)) end
+  morf.ipc.day_of = function(t) return morf.time.format("%Y-%m-%d %A", tonumber(t)) end
   morf.ipc.relative = function(t, now) return dates.relative(tonumber(t), tonumber(now)) end
   morf.ipc.days = function(now, t) return dates.days_between(tonumber(now), tonumber(t)) end
   morf.ipc.ssh = function(path) return ssh.hosts(path) end
@@ -252,6 +254,16 @@ test.describe("dates", function()
     test.eq(test.ipc("relative", "1793534500", NOW), "in 1 min")
     test.eq(test.ipc("relative", "1793520000", NOW), "4 h ago")
   end)
+  test.it("reads a weekday from the day it is said on", function()
+    load()
+    test.eq(test.ipc("weekday_of", NOW), "Sunday")
+    local function on(text) return test.ipc("day_of", test.ipc("parse", text, NOW)) end
+    test.eq(on("next monday"), "2026-11-02 Monday")
+    test.eq(on("friday"), "2026-11-06 Friday")
+    test.eq(on("next sunday"), "2026-11-08 Sunday", "today is no next")
+    test.eq(on("monday in 3 weeks"), "2026-11-23 Monday")
+  end)
+
   test.it("counts days, moves in weeks, and rolls a past date to next year", function()
     load()
     local base = 1793534400
