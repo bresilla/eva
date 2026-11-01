@@ -206,10 +206,13 @@ test.describe("what the tools print", function()
   end)
 
   test.it("reads btrbk's raw lines, the stamp from the name", function()
-    local rows = test.ipc("btrbk", "snapshot_subvolume='/mnt/s/home.20260102T0304' source_subvolume='/home'\nnoise\n")
+    local rows = test.ipc("btrbk", "format=\"snapshots\" source_url='/home' source_subvolume='/home' " ..
+      "snapshot_subvolume='/mnt/s/home.20260102T0304' snapshot_name='home' status=''\nnoise\n")
     test.eq(#rows, 1)
     test.eq(rows[1].when, "2026-01-02 03:04")
     test.eq(rows[1].root, "/home")
+    rows = test.ipc("btrbk", "snapshot_subvolume='/mnt/s/home.20260102' source_subvolume='/home'\n")
+    test.eq(rows[1].when, "2026-01-02 00:00", "a day-only stamp")
   end)
 
   test.it("reads restic's JSON", function()

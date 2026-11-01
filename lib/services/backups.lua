@@ -106,8 +106,9 @@ function M.parse_btrbk(text)
     local fields = words(line)
     local base = fields.snapshot_subvolume
     if base then
-      local stamp = fields.snapshot_name or base:match("([^/]+)$") or ""
-      local y, m, d, H, N = stamp:match("(%d%d%d%d)(%d%d)(%d%d)T(%d%d)(%d%d)")
+      local stamp = base:match("([^/]+)$") or ""
+      local y, m, d, H, N = stamp:match("(%d%d%d%d)(%d%d)(%d%d)T?(%d?%d?)(%d?%d?)")
+      if H == "" then H, N = "00", "00" end
       rows[#rows + 1] = { id = base, when = y and ("%s-%s-%s %s:%s"):format(y, m, d, H, N) or "",
         title = fields.source_subvolume or stamp, detail = stamp, root = fields.source_subvolume or "", base = base }
     end

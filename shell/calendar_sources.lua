@@ -301,8 +301,8 @@ end
 --- Fetches every address into the cache; a failed one keeps what it had.
 function M.fetch()
   for _, url in ipairs(list("urls")) do
-    local address = M.fetchable(url)
-    morf.http.get(address, { timeout_ms = M.URL_TIMEOUT_MS, max_bytes = 16 * 1024 * 1024 }, function(response)
+    local request = { url = M.fetchable(url), timeout_ms = M.URL_TIMEOUT_MS, max_bytes = 16 * 1024 * 1024 }
+    require("lib.services.host").http(request, function(response)
       if response and response.ok and type(response.body) == "string" and response.body:find("BEGIN:VCALENDAR", 1, true) then
         morf.fs.write(cache_path(url), response.body, { mode = 384 })
         url_state[url] = ""

@@ -20,8 +20,8 @@ function V.page(model, w, h)
     model = require("themes.layouts.mirror").new(model.sources, "id", keeper),
     delegate = function(row)
       local detail = ("%s · %d events"):format(KINDS[row.kind] or "", row.events or 0)
-      if (row.locked or "") ~= "" then detail = detail .. " · Read-only" end
       if (row.state or "") ~= "" then detail = row.state end
+      if (row.locked or "") ~= "" then detail = "Read-only · " .. detail end
       return P.row { id = "calendar-source-" .. tostring(row.id):gsub("[^%w]", "-"), width = inner, icon = "calendar_month",
         title = row.name, subtitle = detail,
         trailing = row.kind ~= "found" and kit.action { width = 32, height = 32, cursor = "pointer",

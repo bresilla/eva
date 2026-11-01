@@ -16,11 +16,11 @@ local MODES = { { "auto", "brightness_auto", "Auto" }, { "dark", "dark_mode", "D
 local function get(v) if type(v) == "function" then return v() end return v end
 
 local function rows(prefix, list, inner)
-  local out = {}
+  local out = { width = inner, gap = P.ROW_GAP }
   for index, row in ipairs(list) do
     out[index] = F.fact { id = prefix .. index, width = inner, icon = row[1], title = row[2], subtitle = row[3] }
   end
-  return table.unpack(out)
+  return ui.Column(out)
 end
 
 function M.page(model, settings, w, h)

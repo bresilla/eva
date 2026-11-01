@@ -85,8 +85,10 @@ M.snapshots = {
     { number = 41, type = "pre", date = "2026-10-30 09:12:00", description = "nixos-rebuild" },
     { number = 42, type = "post", date = "2026-10-30 09:14:30", description = "nixos-rebuild" },
     { number = 43, type = "single", date = "2026-11-01 08:00:00", description = "timeline" } } },
-  btrbk = "snapshot_subvolume='/mnt/pool/_snap/home.20261030T0900' source_subvolume='/home' snapshot_name='home'\n"
-    .. "snapshot_subvolume='/mnt/pool/_snap/home.20261101T0900' source_subvolume='/home' snapshot_name='home.20261101T0900'\n",
+  btrbk = "format=\"snapshots\" source_url='/home' source_host='' source_port='' source_subvolume='/home' "
+    .. "snapshot_subvolume='/mnt/pool/_snap/home.20261030T0900' snapshot_name='home' status='' source_rsh=''\n"
+    .. "format=\"snapshots\" source_url='/home' source_host='' source_port='' source_subvolume='/home' "
+    .. "snapshot_subvolume='/mnt/pool/_snap/home.20261101T0900' snapshot_name='home' status='' source_rsh=''\n",
   restic = { { short_id = "1a2b3c4d", time = "2026-10-29T22:00:03.1Z", paths = { "/home/kate" }, hostname = "evabook" },
     { short_id = "5e6f7a8b", time = "2026-10-31T22:00:01.9Z", paths = { "/home/kate" }, hostname = "evabook" } },
 }

@@ -81,7 +81,8 @@ function M.start()
   end
   local last
   morf.effect("eva.network.portal", function()
-    local state, primary = net.state.connectivity, net.state.primary.path
+    if not net.state.available then return end
+    local state, primary = net.state.connectivity, net.state.primary and net.state.primary.path or ""
     local probing_on = config.get("network.portal_probe") == true
     local word = table.concat({ tostring(state), tostring(primary), tostring(probing_on) }, "\n")
     if word == last then return end
