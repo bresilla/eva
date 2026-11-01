@@ -32,10 +32,13 @@ end
 --- Called by the `power-key` verb, which the compositor's binding sends.
 function M.power_key() act(config.get("power.button")) end
 
---- Whether anything is chosen but System.
-local function taken()
-  return config.get("power.lid_battery") ~= "system" or config.get("power.lid_ac") ~= "system"
-    or config.get("power.button") ~= "system"
+--- What the shell must take from logind now: only what is chosen for this
+--- moment, each lid choice by its power source.
+function M.taken(battery)
+  local parts = {}
+  if M.lid_choice(battery) ~= "system" then parts[#parts + 1] = "handle-lid-switch" end
+  if config.get("power.button") ~= "system" then parts[#parts + 1] = "handle-power-key" end
+  return table.concat(parts, ":")
 end
 
 local function bind_key(on)
@@ -58,13 +61,16 @@ function M.start()
     return require("lib.services.logind").connect { dbus = host.fake() and require("lib.services.host_fake").dbus or nil, udev = false }
   end)
   if not ok then return morf.log("info", "eva: no logind: " .. tostring(login)) end
-  local lock, keyed
+  local lock, held, keyed = nil, "", nil
   morf.effect("eva.lid.inhibit", function()
-    local want = taken()
+    local want = M.taken(on_battery())
     local key = config.get("power.button") ~= "system"
     if host.dry() then return end
-    if want and not lock then lock = login.inhibit("handle-lid-switch:handle-power-key", "eva", "Settings chose what they do", "block") end
-    if not want and lock then lock.release() lock = nil end
+    if want ~= held then
+      if lock then lock.release() lock = nil end
+      if want ~= "" then lock = login.inhibit(want, "eva", "Settings chose what they do", "block") end
+      held = want
+    end
     if key ~= keyed then
       if key or keyed then bind_key(key) end
       keyed = key

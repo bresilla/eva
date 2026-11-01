@@ -135,6 +135,45 @@ test.it("closing the lid runs what Settings chose, and leaves System to logind",
   test.eq(test.ipc("last"), "lock")
 end)
 
+test.it("the shell takes from logind only what is chosen, so the rest keeps working", function()
+  host([[
+    local config = require("config")
+    local lid = require("lid_watch")
+    morf.ipc.taken = function(lid_ac, lid_battery, button, battery)
+      config.set("power.lid_ac", lid_ac) config.set("power.lid_battery", lid_battery) config.set("power.button", button)
+      return lid.taken(battery == "yes")
+    end
+  ]])
+  test.eq(test.ipc("taken", "system", "system", "system", "no"), "", "nothing chosen, nothing held")
+  test.eq(test.ipc("taken", "lock", "system", "system", "no"), "handle-lid-switch", "the power button stays logind's")
+  test.eq(test.ipc("taken", "lock", "system", "system", "yes"), "", "on battery the lid stays logind's")
+  test.eq(test.ipc("taken", "system", "system", "lock", "no"), "handle-power-key", "the lid stays logind's")
+  test.eq(test.ipc("taken", "suspend", "suspend", "lock", "yes"), "handle-lid-switch:handle-power-key")
+end)
+
+test.it("changing layouts rebuilds the sticky keymap", function()
+  host([[
+    local config = require("config")
+    local fake = require("lib.services.host_fake")
+    local input = require("input_model")
+    input.available()
+    require("lib.compositor.hyprland_config").set_flavour("lua")
+    config.set("accessibility.sticky_keys", true)
+    morf.ipc.rebuild = function()
+      fake.ran = {}
+      require("access_model").rebuild()
+      return true
+    end
+    morf.ipc.ran = function()
+      local out = {}
+      for _, argv in ipairs(fake.ran) do out[#out + 1] = table.concat(argv, " ") end
+      return out
+    end
+  ]])
+  test.ipc("rebuild") test.advance(100)
+  test.truthy(table.concat(test.ipc("ran"), "\n"):find("xkbcli compile-keymap", 1, true), "the keymap was not rebuilt")
+end)
+
 test.it("a disk under the limit warns once until it recovers", function()
   host([[
     local storage = require("storage_model")

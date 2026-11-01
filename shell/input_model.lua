@@ -95,6 +95,7 @@ function M.choose(name, value)
   chosen[name] = value
   write_map("chosen", chosen)
   M.apply()
+  if name == "caps" or name == "compose" then require("access_model").rebuild() end
 end
 
 local names
@@ -150,6 +151,7 @@ function M.new(key, active)
   local function store(list)
     config.set("input.layouts", list)
     M.apply()
+    require("access_model").rebuild()
   end
   local function copy()
     local list = {}

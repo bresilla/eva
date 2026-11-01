@@ -40,6 +40,11 @@ local function push_sticky()
   end)
 end
 
+--- Builds the sticky keymap again, for layouts or xkb options that changed.
+function M.rebuild()
+  if get("sticky_keys") then push_sticky() end
+end
+
 local function push_mouse_keys(on)
   hyprconf.apply(function(how) return access.mouse_key_steps(on, how) end)
 end
