@@ -7,6 +7,7 @@ local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
+local F = require("themes.layouts.form")
 local L = require("themes.layouts.parts")
 local C = theme.color
 local V = {}
@@ -23,13 +24,11 @@ local function caption(w, text)
   return kit.subtitle { width = P.inner(w), font_size = theme.size.small, color = kit.ink("lo"), text = text }
 end
 
-local function choices(w, id, title, items, now, pick)
-  local row = { width = P.inner(w) }
-  for _, item in ipairs(items) do
-    row[#row + 1] = { id = id .. "-" .. tostring(item[1]), label = item[2], group = id,
-      selected = function() return now() == item[1] end, on_clicked = function() pick(item[1]) end }
-  end
-  return ui.Column { width = P.inner(w), gap = theme.space.xs, caption(w, title), P.buttons(row) }
+local function choices(w, id, title, items, now, pick, per)
+  local named = {}
+  for i, item in ipairs(items) do named[i] = { item[1], nil, item[2] } end
+  return ui.Column { width = P.inner(w), gap = theme.space.xs, caption(w, title),
+    F.choices { id = id, width = P.inner(w), items = named, per_row = per or #items, now = now, pick = pick } }
 end
 
 function V.build(model, w, h)
@@ -73,7 +72,7 @@ function V.build(model, w, h)
     P.section(section),
     P.section(modes),
     P.section { id = "focus-session", width = w, title = "A session",
-      choices(w, "focus-duration", "How long a mode runs when turned on", model.DURATIONS, model.duration, model.set_duration) },
+      choices(w, "focus-duration", "How long a mode runs when turned on", model.DURATIONS, model.duration, model.set_duration, 3) },
     P.section { id = "focus-auto", width = w, title = "By itself",
       toggle(w, "focus-sharing", "screen_share", "While sharing the screen", "Stay quiet and hide what cards say",
         model.sharing, model.set_sharing),
@@ -117,7 +116,7 @@ function V.mode(model, w, h)
   end
 
   local allow = { id = "focus-allow", width = w, title = "What comes through",
-    choices(w, "focus-urgency", "Urgency", model.URGENCY, get("allow.urgency"), set("allow.urgency")),
+    choices(w, "focus-urgency", "Urgency", model.URGENCY, get("allow.urgency"), set("allow.urgency"), 2),
     flag("calls", "call", "Calls", "A second call in 15 minutes always rings", "allow.calls"),
     flag("alarms", "alarm", "Alarms", "Alarm notifications come through", "allow.alarms"),
     caption(w, "People: names in a title, separated by commas"),
