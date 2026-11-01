@@ -17,7 +17,7 @@ in
   name = "eva-windows";
 
   nodes.machine =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
     let
       lule = pkgs.writeShellScriptBin "lule" ''
         for argument in "$@"; do
@@ -49,6 +49,11 @@ in
       };
       environment.systemPackages = [ pkgs.foot pkgs.ydotool ];
       boot.kernelModules = [ "uinput" ];
+      # No sound, modem or Bluetooth service, even in the guest.
+      services.pipewire.enable = lib.mkForce false;
+      services.pipewire.wireplumber.enable = lib.mkForce false;
+      networking.modemmanager.enable = lib.mkForce false;
+      hardware.bluetooth.enable = lib.mkForce false;
       environment.sessionVariables = software;
       systemd.user.services.eva.environment = software;
       hardware.graphics.enable = true;

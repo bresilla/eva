@@ -16,10 +16,9 @@ def hyprctl(*words):
     return machine.execute(session(f"hyprctl --instance 0 {quoted}"))[1].strip()
 
 
-def ipc(*words):
+def ipc(*words, tries=1):
     quoted = " ".join(shlex.quote(word) for word in words)
-    # A software GPU on a busy machine can hold the shell for seconds at a time.
-    for _ in range(6):
+    for _ in range(tries):
         out = machine.execute(session(f"morf ipc call {quoted}"))[1].strip()
         if "timed out" not in out:
             break
@@ -36,6 +35,15 @@ def ipc(*words):
         return value
     except ValueError:
         return None
+
+
+def ask(*words):
+    # Reads only: this asks again after a timeout.
+    return ipc(*words, tries=6)
+
+
+def panels():
+    return ask("drawers") or ""
 
 
 def clients():
@@ -124,26 +132,26 @@ def run(password):
     for title in ("one", "two", "three"):
         open_window(title)
     machine.sleep(2)
-    listed = eventually(lambda: [w for w in (ipc("windows") or []) if w.get("class") == "foot"])
+    listed = eventually(lambda: [w for w in (ask("windows") or []) if w.get("class") == "foot"])
     check("the shell lists the real windows", len(listed or []) == 3, str(listed)[:200])
 
     with subtest("overview"):
         machine.send_key("meta_l-tab")
-        check("Super+Tab opens the overview", eventually(lambda: ipc("overview", "state") is True))
+        check("Super+Tab opens the overview", eventually(lambda: ask("overview", "state") is True))
 
         def pictures():
-            return any(v for k, v in (ipc("windows", "shots") or {}).items() if k != "refused")
+            return any(v for k, v in (ask("windows", "shots") or {}).items() if k != "refused")
 
-        check("window pictures arrive on Hyprland", eventually(pictures), str(ipc("windows", "shots"))[:300])
+        check("window pictures arrive on Hyprland", eventually(pictures), str(ask("windows", "shots"))[:300])
         machine.sleep(3)
         machine.screenshot("overview")
-        check("the eva process survived the captures", ipc("overview", "state") is True)
+        check("the eva process survived the captures", ask("overview", "state") is True)
         machine.send_chars("two")
         machine.sleep(2)
         machine.screenshot("overview-filtered")
         machine.send_key("esc")
         machine.sleep(2)
-        check("escape closes it", ipc("overview", "state") is False)
+        check("escape closes it", ask("overview", "state") is False)
 
     with subtest("a window on a hidden workspace"):
         three = client("three")
@@ -151,7 +159,7 @@ def run(password):
         machine.sleep(1)
         ipc("overview", "open")
         machine.sleep(4)
-        shots = ipc("windows", "shots") or {}
+        shots = ask("windows", "shots") or {}
         check("a hidden window has a picture", shots.get(three["address"]), str(shots)[:300])
         machine.screenshot("overview-hidden")
         ipc("overview", "close")
@@ -166,14 +174,14 @@ def run(password):
         machine.sleep(2)
         active = json.loads(hyprctl("-j", "activewindow"))
         check("a quick Alt+Tab goes to the last window", active.get("title") == "one", str(active.get("title")))
-        print("AFTER TAP", ipc("switcher", "state"))
+        print("AFTER TAP", ask("switcher", "state"))
         ipc("switcher", "cancel")
         machine.sleep(1)
         focus("two")
         focus("one")
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 56:1 15:1 15:0")
         machine.sleep(2)
-        held = ipc("switcher", "state") or {}
+        held = ask("switcher", "state") or {}
         print("HELD", held)
         machine.screenshot("switcher-held")
         check("held, Alt+Tab shows the switcher", held.get("shown") is True)
@@ -182,12 +190,12 @@ def run(password):
         active = json.loads(hyprctl("-j", "activewindow"))
         check("letting Alt go goes to the window chosen", active.get("title") == held.get("title"),
               f'{active.get("title")} for {held.get("title")}')
-        print("AFTER RELEASE", ipc("switcher", "state"))
+        print("AFTER RELEASE", ask("switcher", "state"))
         ipc("switcher", "cancel")
         ipc("switcher", "next", "free")
         machine.sleep(2)
         machine.screenshot("switcher")
-        check("the switcher shows held", (ipc("switcher", "state") or {}).get("shown") is True)
+        check("the switcher shows held", (ask("switcher", "state") or {}).get("shown") is True)
         ipc("switcher", "commit")
         machine.sleep(1)
 
@@ -212,32 +220,34 @@ def run(password):
 
     with subtest("a drag lands"):
         two = client("two")
-        focus("two")
-        print("DRAG 0 drawers", ipc("drawers"), hyprctl("cursorpos"))
         warp(two["at"][0] + 60, two["at"][1] + 60)
         machine.sleep(2)
+        # Thirds with four windows stacks two of them: the top one takes the grab.
+        grabbed = json.loads(hyprctl("-j", "activewindow"))["title"]
+        print("DRAG 0", grabbed, panels(), hyprctl("cursorpos"))
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 125:1")
         machine.sleep(2)
-        print("DRAG 1 drawers", ipc("drawers"))
+        print("DRAG 1", panels())
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x40")
         machine.sleep(2)
-        print("DRAG 2 drawers", ipc("drawers"), ipc("snap", "state"), client("two")["at"])
+        print("DRAG 2", panels(), ask("snap", "state"), client(grabbed)["at"])
         warp(1000, 400)
         machine.sleep(2)
-        print("DRAG 3 drawers", ipc("drawers"), ipc("snap", "state"), client("two")["at"])
+        print("DRAG 3", panels(), ask("snap", "state"), client(grabbed)["at"])
         warp(1272, 400)
         machine.sleep(4)
         machine.screenshot("snap-drag")
-        print("DRAG 4 drawers", ipc("drawers"), ipc("snap", "state"), client("two")["at"])
-        check("a drag to an edge leaves the panels shut", eventually(lambda: ipc("drawers") == "", 6))
+        print("DRAG 4", panels(), ask("snap", "state"), client(grabbed)["at"])
+        check("a drag to an edge leaves the panels shut", panels() == "", panels())
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x80")
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 125:0")
-        moved = eventually(lambda: near(client("two")["at"][0], 644, 12), 15)
-        two = client("two")
-        print("DRAG 5 drawers", ipc("drawers"), (ipc("windows", "sent") or [])[:1])
-        check("a window dragged to the right edge lands on the right half", moved, str(two["at"] + two["size"]))
-        machine.sleep(3)
-        check("the pointer resting there opens no panel", ipc("drawers") == "", str(ipc("drawers")))
+        moved = eventually(lambda: near(client(grabbed)["at"][0], 644, 12), 15)
+        landed = client(grabbed)
+        print("DRAG 5", panels(), (ask("windows", "sent") or [])[:1])
+        check("a window dragged to the right edge lands on the right half",
+              moved and near(landed["size"][0], 618, 12), str(landed["at"] + landed["size"]))
+        machine.sleep(4)
+        check("the pointer resting there opens no panel", panels() == "", panels())
         ipc("close")
         machine.sleep(1)
         warp(640, 400)
@@ -245,16 +255,30 @@ def run(password):
         machine.send_key("esc")
         machine.sleep(1)
 
-    with subtest("window state"):
+    with subtest("a panel gives the keys back"):
         focus("three")
+        ipc("settings", "dock")
+        machine.sleep(2)
+        print("PANEL", panels(), json.loads(hyprctl("-j", "activewindow")).get("title"))
+        ipc("close")
+        machine.sleep(2)
+        print("PANEL SHUT", panels(), json.loads(hyprctl("-j", "activewindow")).get("title"))
+        check("the focused window is known after a panel", ipc("keep_above") is True)
+        machine.sleep(1)
+        check("keep above raises it", "alter_zorder" in (ask("windows", "sent") or [""])[0], str(ask("windows", "sent")))
         ipc("keep_above")
         machine.sleep(1)
-        check("keep above floats it", client("three")["floating"])
-        ipc("opacity", "0.7")
+
+    with subtest("window state"):
+        focus("three")
+        check("keep above is on", ipc("keep_above") is True)
         machine.sleep(1)
-        print("OPACITY", ipc("windows")[0] if ipc("windows") else None)
+        check("keep above floats it", client("three")["floating"])
+        check("an opacity is accepted", ipc("opacity", "0.7") is True)
+        machine.sleep(1)
+        print("OPACITY", (ask("windows") or [None])[0])
         machine.screenshot("opacity")
-        ipc("pip")
+        check("picture in picture starts", ipc("pip") is True)
         machine.sleep(2)
         three = client("three")
         check("picture in picture pins it small", three["pinned"] and three["size"][0] < 500, str(three))
@@ -274,7 +298,7 @@ def run(password):
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0x80")
         moved = eventually(lambda: client("three")["at"] != before, 20)
         after = client("three")["at"]
-        print("PIP SENT", (ipc("windows", "sent") or [])[:3])
+        print("PIP SENT", (ask("windows", "sent") or [])[:3])
         check("a real pointer drags the picture", moved and near(after[0], before[0] - 200, 40), f"{before} to {after}")
         ipc("pip")
         machine.sleep(2)
@@ -288,7 +312,7 @@ def run(password):
         ipc("float")
         machine.sleep(2)
         print("AFTER TILE", client("three")["floating"], json.loads(hyprctl("-j", "activewindow")).get("title"))
-        print("SENT", (ipc("windows", "sent") or [])[:4])
+        print("SENT", (ask("windows", "sent") or [])[:4])
         check("float again tiles", not client("three")["floating"])
 
     with subtest("split"):
@@ -349,7 +373,7 @@ def run(password):
         print("DOCK", ipc("dock", "on"))
         machine.sleep(10)
         machine.screenshot("dock")
-        state = ipc("dock", "state") or ipc("dock", "state") or {}
+        state = ask("dock", "state") or ask("dock", "state") or {}
         print("DOCK STATE", state)
         check("the dock takes the windows", state.get("rows", 0) >= 1, str(state))
         check("a dock that stays out keeps windows clear of it", json.loads(hyprctl("-j", "monitors"))[0]["reserved"][3] > 10,
@@ -363,7 +387,7 @@ def run(password):
         pointer(640, 400)
         machine.sleep(2)
         pointer(1, 1)
-        check("a corner runs its action under a real pointer", eventually(lambda: ipc("overview", "state") is True))
+        check("a corner runs its action under a real pointer", eventually(lambda: ask("overview", "state") is True))
         machine.sleep(3)
         machine.screenshot("hot-corner")
         ipc("overview", "close")
@@ -381,10 +405,10 @@ def run(password):
         machine.screenshot("kill-mode")
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0xC0")
         machine.sleep(3)
-        print("SENT", (ipc("windows", "sent") or [])[:2])
+        print("SENT", (ask("windows", "sent") or [])[:2])
         check("kill mode force-quits the window pressed", client("one") is None, str(client("one")))
 
-    print("SHELL ALIVE", ipc("overview", "state"))
+    print("SHELL ALIVE", ask("overview", "state"))
     print("JOURNAL", machine.execute("journalctl -b --user-unit eva.service --machine=alice@.host -n 12 --no-pager")[1][-1200:])
     failed = [label for label, ok in results if not ok]
     print(f"SUMMARY {len(results) - len(failed)} of {len(results)} passed")
