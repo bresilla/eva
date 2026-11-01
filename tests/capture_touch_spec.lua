@@ -26,10 +26,12 @@ local SOURCE = [[
   morf.env = function(key) if key == "EVA_DRY_RUN" then return "0" end return env(key) end
   local capture = require("capture")
   morf.shared("eva.capture.owner", ""):set("")
+  local moves, move = 0, capture.editor.move
+  capture.editor.move = function(...) moves = moves + 1 return move(...) end
   morf.ipc.flow = function()
     local doc = capture.editor.document
     local thumb = package.loaded.thumb
-    return { stage = capture.editor.phase:get(), active = capture.editor.active:get(),
+    return { stage = capture.editor.phase:get(), active = capture.editor.active:get(), moves = moves,
       crop = doc and doc.crop or false, thumb = thumb and thumb.showing:get() or "" }
   end
 ]]
@@ -53,6 +55,33 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.eq(state.stage, "editing", "the selection did not take")
     test.near(state.crop.x, 50, 2) test.near(state.crop.y, 120, 2)
     test.near(state.crop.w, 250, 2) test.near(state.crop.h, 380, 2)
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it(style .. ": a finger drags a crop handle and draws in the editor", function()
+    phone(style)
+    test.ipc("screenshot", "region") test.advance(600)
+    test.touch("down", 1, 50, 120) test.advance(16)
+    test.touch("move", 1, 300, 500) test.advance(16)
+    test.touch("up", 1, 300, 500) test.advance(300)
+    test.eq(test.ipc("flow").stage, "editing")
+    local before = test.ipc("flow").crop
+    local handle = test.get("capture-handle-se")
+    local x, y = handle.x + handle.width / 2, handle.y + handle.height / 2
+    test.touch("down", 2, x, y) test.advance(16)
+    test.touch("move", 2, x - 60, y - 80) test.advance(16)
+    test.touch("up", 2, x - 60, y - 80) test.advance(200)
+    local after = test.ipc("flow").crop
+    test.truthy(after.w < before.w - 20 and after.h < before.h - 20, "the handle stayed where it was")
+    test.click("capture-editor-draw") test.advance(220)
+    test.click("capture-tool-pen") test.advance(220)
+    local canvas = test.get("capture-editor-canvas")
+    local cx, cy = canvas.x + canvas.width / 2, canvas.y + canvas.height / 2
+    test.touch("down", 3, cx, cy) test.advance(16)
+    test.touch("move", 3, cx + 30, cy + 10) test.advance(16)
+    test.touch("move", 3, cx + 60, cy + 40) test.advance(16)
+    test.touch("up", 3, cx + 60, cy + 40) test.advance(200)
+    test.truthy(test.ipc("flow").moves >= 2, "the pen missed the finger's way")
     test.eq(#test.logs("error"), 0)
   end)
 

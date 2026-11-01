@@ -38,19 +38,23 @@ function V.build(M)
   local handles={}
   local roles={{"nw",0,0},{"n",.5,0},{"ne",1,0},{"w",0,.5},{"e",1,.5},{"sw",0,1},{"s",.5,1},{"se",1,1}}
   for _,handle in ipairs(roles) do
-    local pressed=false
+    local pressed,finger=false,false
+    local function follow(sx,sy)
+      if pressed then local a=g() M.resize(handle[1],(sx-a.x)/a.scale,(sy-a.y)/a.scale) end
+    end
     handles[#handles+1]=ui.MouseArea {id="capture-handle-"..handle[1],width=16,height=16,
       x=function() local b=crop() return b.x+b.w*handle[2]-8 end,
       y=function() local b=crop() return b.y+b.h*handle[3]-8 end,
-      visible=editing,cursor="crosshair",on_pressed=function() pressed=M.resize_begin() end,
-      on_position_changed=function(sx,sy)
-        if pressed then local a=g() M.resize(handle[1],(sx-a.x)/a.scale,(sy-a.y)/a.scale) end
-      end,on_released=function() pressed=false M.resize_end() end,
+      visible=editing,cursor="crosshair",
+      on_pressed=function(_,_,_,_,button) finger=button==nil pressed=M.resize_begin() end,
+      on_position_changed=follow,
+      on_dragged=function(sx,sy) if finger then follow(sx,sy) end end,
+      on_released=function() pressed=false M.resize_end() end,
       kit.surface {anchors={center_in=true},width=9,height=9,radius=3,color=function() return C.primary end,
         border_width=1,border_color=function() return C.onPrimary end},
     }
   end
-  local canvas,gesture,zoom
+  local canvas,gesture,zoom,finger
   -- Where a surface point falls on the picture, as two fingers have it zoomed.
   local function picture(sx,sy)
     local x,y=zoom.point(sx,sy)
@@ -63,11 +67,13 @@ function V.build(M)
     on_key_pressed=M.key,
     on_pressed=function(sx,sy,_,_,button)
       gesture=false
+      finger=button==nil
       if button=="right" then if not M.dismiss_tools() then M.cancel() end return end
       if button and button~="left" then return end
       gesture=M.begin(picture(sx,sy))
     end,
     on_position_changed=function(sx,sy) if gesture then M.move(picture(sx,sy)) elseif not canvas.pressed then M.hover(picture(sx,sy)) end end,
+    on_dragged=function(sx,sy) if gesture and finger then M.move(picture(sx,sy)) end end,
     on_released=function(sx,sy) if gesture then M.finish(picture(sx,sy)) end gesture=false end,
     on_wheel=function(_,_,_,_,_,steps) if editing() then M.wheel(steps) end end,
     ui.Image {id="capture-editor-image",x=function() return M.preview_geometry().x end,y=function() return M.preview_geometry().y end,
@@ -179,14 +185,18 @@ function V.build(M)
     ui.Item {x=0,y=function() return palette_height()-82 end,width=palette_width,height=80,table.unpack(styles_items)},
   }
   local toolbar_drag
+  local function move_toolbar(sx,sy)
+    if toolbar_drag then M.toolbar:set({x=toolbar_drag.pos.x+sx-toolbar_drag.x,y=toolbar_drag.pos.y+sy-toolbar_drag.y}) end
+  end
   local function tx(x) return x*menu().w/392 end
   local toolbar=ui.Item {id="capture-editor-toolbar",visible=editing,width=function() return menu().w end,height=function() return menu().h end,
     x=function() return menu().x end,y=function() return menu().y end,
 
     shell_surface(20),
     ui.MouseArea {x=12,y=0,width=function() return menu().w-24 end,height=34,cursor="move",
-      on_pressed=function(sx,sy) toolbar_drag={x=sx,y=sy,pos=M.toolbar:get()} end,
-      on_position_changed=function(sx,sy) if toolbar_drag then M.toolbar:set({x=toolbar_drag.pos.x+sx-toolbar_drag.x,y=toolbar_drag.pos.y+sy-toolbar_drag.y}) end end,
+      on_pressed=function(sx,sy,_,_,button) toolbar_drag={x=sx,y=sy,pos=M.toolbar:get(),finger=button==nil} end,
+      on_position_changed=move_toolbar,
+      on_dragged=function(sx,sy) if toolbar_drag and toolbar_drag.finger then move_toolbar(sx,sy) end end,
       on_released=function() toolbar_drag=nil end,
       kit.icon(function() return M.tool_info()[4] end,18,function() return C.primary end,{x=2,y=11}),
       kit.heading {id="capture-editor-title",x=28,y=8,width=function() return menu().w-148 end,height=24,
