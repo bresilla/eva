@@ -91,7 +91,7 @@ function M.explain()
   local state, provider = M.state(), M.provider()
   local name = provider and llm.KINDS[provider.kind].name or ""
   if state == "none" then
-    return "No assistant connected", "Nothing is answering yet. Choose Anthropic, an OpenAI-compatible service or a local Ollama in the settings."
+    return "No assistant connected", "Choose a provider in the settings: Anthropic, OpenAI-compatible or Ollama."
   elseif state == "needs-model" then
     return "No model chosen", name .. " is selected, but no model is. Pick one in the settings."
   elseif state == "no-tool" then
