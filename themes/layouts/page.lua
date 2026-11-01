@@ -142,6 +142,9 @@ function P.field(spec)
   local node, handle = kit.text_field(spec.kind or "entry", { id = spec.id, x = inset, y = 3, width = w - 2 * inset,
     height = 30, font_family = theme.font, font_size = 12, placeholder = spec.placeholder,
     reveal = spec.kind == "password" and false or nil,
+    -- A search field's magnifier stands at its left.
+    icon = spec.kind == "search" and "search" or nil,
+    inset = spec.kind == "search" and { S.xl + S.l, 0, S.m, 0 } or nil,
     color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
     caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
     on_text_changed = spec.on_changed, on_accepted = spec.on_accepted, on_escape = spec.on_escape })
