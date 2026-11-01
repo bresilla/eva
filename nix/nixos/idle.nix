@@ -6,6 +6,16 @@
 }:
 let
   cfg = config.programs.eva.idle;
+  lockSession = "${pkgs.systemd}/bin/loginctl lock-session";
+  suspendNow = "${pkgs.systemd}/bin/systemctl suspend";
+  # The timeouts Settings wrote for this account win over these options; taking
+  # them away there comes back here.
+  hypridleStart = pkgs.writeShellScript "eva-hypridle" ''
+    chosen="''${XDG_STATE_HOME:-$HOME/.local/state}/eva/idle/hypridle.conf"
+    file=/etc/xdg/hypr/hypridle.conf
+    if [ -r "$chosen" ]; then file=$chosen; fi
+    exec ${config.services.hypridle.package}/bin/hypridle --config "$file"
+  '';
 in
 {
   options.programs.eva.idle = {
@@ -39,12 +49,25 @@ in
       fi
       exec ${config.programs.hyprland.package}/bin/hyprctl dispatch dpms "$action"
     '';
+    # What Settings needs to write the same file with other timeouts.
+    environment.etc."eva/idle.json".text = builtins.toJSON {
+      inherit (cfg) lockTimeout screenOffTimeout suspendTimeout;
+      commands = {
+        lock_session = "${pkgs.systemd}/bin/systemctl --user start eva-idle-lock.service";
+        before_sleep = lockSession;
+        after_sleep = "${config.system.build.hyprlandIdleDpms} on";
+        lock = lockSession;
+        screen_off = "${config.system.build.hyprlandIdleDpms} off";
+        screen_on = "${config.system.build.hyprlandIdleDpms} on";
+        suspend = suspendNow;
+      };
+    };
     # Pass an explicit system config: ~/.config/hypr remains an editable
     # dotfiles symlink, and switching compositors drops this entire block.
     environment.etc."xdg/hypr/hypridle.conf".text = ''
       general {
         lock_cmd = ${pkgs.systemd}/bin/systemctl --user start eva-idle-lock.service
-        before_sleep_cmd = ${pkgs.systemd}/bin/loginctl lock-session
+        before_sleep_cmd = ${lockSession}
         after_sleep_cmd = ${config.system.build.hyprlandIdleDpms} on
         inhibit_sleep = 3
       }
@@ -52,7 +75,7 @@ in
       ${lib.optionalString (cfg.lockTimeout > 0) ''
       listener {
         timeout = ${toString cfg.lockTimeout}
-        on-timeout = ${pkgs.systemd}/bin/loginctl lock-session
+        on-timeout = ${lockSession}
       }
       ''}
 
@@ -67,7 +90,7 @@ in
       ${lib.optionalString (cfg.suspendTimeout > 0) ''
       listener {
         timeout = ${toString cfg.suspendTimeout}
-        on-timeout = ${pkgs.systemd}/bin/systemctl suspend
+        on-timeout = ${suspendNow}
       }
       ''}
     '';
@@ -75,7 +98,7 @@ in
       partOf = [ "graphical-session.target" ];
       serviceConfig.ExecStart = lib.mkForce [
         ""
-        "${config.services.hypridle.package}/bin/hypridle --config /etc/xdg/hypr/hypridle.conf"
+        "${hypridleStart}"
       ];
       restartTriggers = [ config.environment.etc."xdg/hypr/hypridle.conf".source ];
     };

@@ -263,6 +263,10 @@ in
         (lib.hiPrio morfDefault)
         bridge
         pkgs.hyprsunset
+        # Sharing Wi-Fi by code, sticky keys and mouse keys.
+        pkgs.qrencode
+        (lib.getBin pkgs.libxkbcommon)
+        pkgs.wlrctl
         tools
       ];
       hardware.sensor.iio.enable = lib.mkIf config.programs.eva.rotation.enable true;
