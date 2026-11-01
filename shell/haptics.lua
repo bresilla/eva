@@ -62,7 +62,7 @@ function M.fire(kind)
   M.count:set(M.count:get() + 1)
   if flag("EVA_DRY_RUN") or flag("EVA_FAKE_HAPTICS") then return true end
   local ring = feedback()
-  return ring ~= nil and ring.trigger(event)
+  return ring ~= nil and ring.trigger ~= nil and ring.trigger(event)
 end
 
 --- Plays every press of a kit control: `control` is lib.kit.control.
