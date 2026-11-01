@@ -2,7 +2,9 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import sys
 import tempfile
+import types
 import unittest
 from unittest.mock import patch
 
@@ -54,6 +56,34 @@ class HandoffTest(unittest.TestCase):
             self.assertEqual(len(calls), 2, "return to greetd generated over the user's selection")
             self.assertNotEqual(handoff.greet(cfg, self.state, "boot-two"), latest)
             self.assertEqual(len(calls), 4)
+
+    def test_publish_writes_the_pictures_dominant_colour(self):
+        class Picture:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def thumbnail(self, size): self.size = size
+            def convert(self, mode): return self
+            def quantize(self, colours): return self
+            def getcolors(self, limit): return [(3, (1, 2, 3)), (9, (16, 32, 48))]
+        pil = types.ModuleType("PIL")
+        pil.Image = types.SimpleNamespace(open=lambda path: Picture())
+        with patch.dict(sys.modules, {"PIL": pil}):
+            handoff.publish(self.state, self.image, self.palette)
+        self.assertEqual((self.state / "dominant").read_text(), "#102030\n")
+        self.assertEqual((self.state / "dominant").stat().st_mode & 0o777, 0o644)
+
+    def test_dominant_falls_back_to_the_palettes_background(self):
+        with patch.dict(sys.modules, {"PIL": None}):
+            handoff.publish(self.state, self.image, dict(self.palette, special={"background": "#0a0b0c"}))
+            self.assertEqual((self.state / "dominant").read_text(), "#0a0b0c\n")
+            handoff.publish(self.state, self.image, self.palette)
+            self.assertEqual((self.state / "dominant").read_text(), "#111111\n")
+
+    def test_a_palette_without_a_colour_leaves_the_last_dominant(self):
+        (self.state / "dominant").write_text("#222222\n")
+        with patch.dict(sys.modules, {"PIL": None}):
+            handoff.publish(self.state, self.image, dict(self.palette, colors=["none", "none"]))
+        self.assertEqual((self.state / "dominant").read_text(), "#222222\n")
 
     def test_failed_generation_does_not_replace_last_valid_wallpaper(self):
         image = handoff.publish(self.state, self.image, self.palette)

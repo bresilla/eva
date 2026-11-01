@@ -77,7 +77,8 @@ local kb=require("themes.auth_keyboard").new {
 }
 local content_height=kb.content_height
 local form
-local function sheet_h() return form and form.height() or 1 end
+local formed=morf.signal("greet.formed."..OUTPUT,0)
+local function sheet_h() formed:get() return form and form.height() or 1 end
 
 local BUD_W, BUD_H = s(132), s(16)
 local function up()
@@ -100,6 +101,8 @@ end
 local GROW = skin.grow or { duration = 420, easing = "out_back" }
 local SETTLE = skin.settle or { duration = 340, easing = "out_cubic" }
 local function showing() return stage:get() == "rest" or stage:get() == "sheet" end
+local function leaving() return stage:get() == "leaving" or stage:get() == "left" end
+local function opened() return stage:get() == "closed" or leaving() end
 
 -- ------------------------------------------------------------- the frame --
 
@@ -110,11 +113,12 @@ local frame = ui.Sdf {
     fill_color = function() return C.surface end,
   },
   ui.SdfShape {
+    id = "greet-opening",
     shape = "box", operation = "subtract", radius = ROUND,
-    x = function() return stage:get() == "closed" and 0 or BORDER end,
-    y = function() return stage:get() == "closed" and 0 or BORDER end,
-    width = function() return stage:get() == "closed" and W or W - 2 * BORDER end,
-    height = function() return stage:get() == "closed" and content_height() or content_height() - 2 * BORDER end,
+    x = function() return opened() and 0 or BORDER end,
+    y = function() return opened() and 0 or BORDER end,
+    width = function() return opened() and W or W - 2 * BORDER end,
+    height = function() return opened() and content_height() or content_height() - 2 * BORDER end,
     behavior = { x = SETTLE, y = SETTLE, width = SETTLE, height = SETTLE },
   },
 }
@@ -152,7 +156,7 @@ local band = ui.Item {
   },
 }
 
-local backdrop=require("themes.auth_backdrop")(ctx,s,"greet")
+local backdrop=require("themes.auth_backdrop")(setmetatable({scene_leaving=leaving},{__index=ctx}),s,"greet")
 
 -- ---------------------------------------------------------------- pieces --
 
@@ -259,9 +263,14 @@ for index, p in ipairs(people) do
 end
 
 local CLOCK_Y = geometry.clock_y
+-- Hidden under the sheet, and through the fade that follows it.
+local covered=false
 local glance = ui.Column {
   id = "greet-glance",
-  visible=function() return not main() or stage:get()~="sheet" end,
+  visible=function()
+    if stage:get()=="sheet" then covered=true elseif not leaving() then covered=false end
+    return not main() or not covered
+  end,
   width=math.max(1,W-s(64)),
   anchors = { horizontal_center = true }, gap = s(6), align = "center",
   y = function()
@@ -399,14 +408,21 @@ form=require("themes.auth_form").sheet {
   session=session_chip,
 }
 local sheet=form.node
+formed:set(formed:get()+1)
 
 local root = ui.Item {
   anchors = { fill = true },
   clip=true,
   kb.content {
     backdrop,
-    skin.chrome and skin.chrome(W, H, s, "greet") or ui.Item {},
-    frame,band,glance,choosing,hint,sheet,power_row,host_label,
+    ui.Item {
+      id = "greet-scene", anchors = { fill = true },
+      visible = function() return stage:get() ~= "left" end,
+      opacity = function() return leaving() and 0 or 1 end,
+      behavior = { opacity = require("themes.reveal").MOTION },
+      skin.chrome and skin.chrome(W, H, s, "greet") or ui.Item {},
+      frame,band,glance,choosing,hint,sheet,power_row,host_label,
+    },
   },
   not kb.embedded and kb.node or ui.Item {}, kb.edge,
   kb.surface {

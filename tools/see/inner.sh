@@ -3,6 +3,9 @@
 # scenario, which has these at hand:
 #
 #   start shell | lock | greet     the role, in preview where it has one
+#   start held                     the lock under ext-session-lock; skipped
+#                                  when the host has a reader stack, and it
+#                                  takes no keys: a held lock asks real PAM
 #   stop                           ends the role
 #   shot NAME                      a screenshot, $SEE_OUT/NAME.png
 #   ipc VERB ARGS                  `morf ipc call` on the role
@@ -30,26 +33,41 @@ export SWAYSOCK WAYLAND_DISPLAY
 swaymsg output HEADLESS-1 mode "$SEE_SCREEN@60Hz" > /dev/null
 
 ROLE=""
+HELD=""
 start() {
   stop
-  local args=()
+  local args=() file=$1
   case "$1" in
     lock) args=(-- window preview) ;;
     greet) args=(-- preview) ;;
+    held)
+      file=lock HELD=1
+      for stack in eva-lock-finger eva-lock-face eva-lock-reader; do
+        if [ -e "/etc/pam.d/$stack" ]; then
+          echo "tools/see: /etc/pam.d/$stack exists, no held lock here" >&2
+          exit 0
+        fi
+      done
+      ;;
   esac
-  morf "$1/init.lua" "${args[@]}" > "$SEE_OUT/$1.log" 2>&1 &
+  morf "$file/init.lua" "${args[@]}" > "$SEE_OUT/$1.log" 2>&1 &
   ROLE=$!
   sleep "${BOOT:-3}"
 }
 stop() {
   [ -n "$ROLE" ] && kill "$ROLE" 2>/dev/null
   [ -n "$ROLE" ] && wait "$ROLE" 2>/dev/null
-  ROLE=""
+  ROLE="" HELD=""
+}
+unheld() {
+  [ -z "$HELD" ] && return
+  echo "tools/see: a held lock takes no keys" >&2
+  exit 1
 }
 shot() { grim "$SEE_OUT/$1.png"; }
 ipc() { timeout 10 morf ipc call "$@"; }
-key() { wtype -s 200 -k "$1"; }
-text() { wtype -s 200 "$1"; }
+key() { unheld; wtype -s 200 -k "$1"; }
+text() { unheld; wtype -s 200 "$1"; }
 pause() { sleep "$1"; }
 point() { swaymsg seat seat0 cursor set "$1" "$2" > /dev/null; }
 click() {

@@ -48,7 +48,7 @@ local HOST=[[
 local function load(style,w,h)
   test.load("../shell/init.lua",{source=HOST,size={w or 1280,h or 800},env={EVA_STYLE=style,
     TEST_WIDTH=tostring(w or 1280),TEST_HEIGHT=tostring(h or 800)}})
-  test.advance(400)
+  test.advance(1000)
 end
 local function shot(name)
   if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end

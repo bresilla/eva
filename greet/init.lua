@@ -10,14 +10,16 @@
 -- (a chip; F2), what greetd says, and on a phone the on-screen keyboard.
 -- Escape on an empty field sinks it back to choose someone else.
 --
--- greetd runs it inside cage, as the user `greeter`:
+-- greetd runs it on a Hyprland of its own, as the user `greeter`: the NixOS
+-- module writes that compositor's configuration and its default_session.
+-- Elsewhere any compositor with the layer shell does:
 --
 --     [default_session]
---     command = "cage -m last -s -- /usr/bin/morf greet -c eva"      (or a bundle of it)
+--     command = "Hyprland --config /etc/greetd/hyprland.lua"      (it runs `morf greet`)
 --     user = "greeter"
 --
 -- Nested, in a session already logged into, it draws the same and says there
--- is no greetd to ask:   cage -- morf -c eva/greet
+-- is no greetd to ask:   morf -c eva/greet
 --
 -- Its own file. What it shares with the lock is in the library: lib.auth
 -- (greetd's conversation), lib.accounts, lib.sessions, lib.material, lib.osk.
@@ -26,6 +28,7 @@ local morf = require("morf")
 local accounts = require("lib.services.accounts")
 local sessions = require("lib.services.sessions")
 local auth = require("lib.shell.auth")
+local reveal = require("themes.reveal")
 require("themes.ui_scale").apply()
 
 -- `-- preview`: never talks to greetd, for pictures and tests.
@@ -76,7 +79,7 @@ local message = morf.signal("greet.message", "")
 local bad = morf.signal("greet.bad", false)
 local shake = morf.signal("greet.shake", 0)
 -- "closed" (coming in), "rest" (choosing), "sheet" (the way in is open),
--- "leaving" (the session is starting).
+-- "leaving" (the password was right), "left" (only the wallpaper is drawn).
 local stage = morf.signal("greet.stage", "closed")
 local pull = morf.signal("greet.pull", 0)
 local outputs
@@ -90,6 +93,24 @@ local function say(words, wrong)
 end
 local clear = password.clear
 
+-- The dots go at once and everything fades off the wallpaper. Then nothing but
+-- the picture is drawn, and `after` runs once that is on screen.
+local function depart(after)
+  clear()
+  stage:set("leaving")
+  morf.time.timer(reveal.LEAVE, function()
+    stage:set("left")
+    morf.time.timer(reveal.SETTLE, after, false)
+  end, false)
+end
+
+-- Ends the compositor with this frame still mapped, then this process.
+local function leave()
+  local exit = morf.env("EVA_GREETER_EXIT")
+  if not exit or exit == "" then morf.quit() return end
+  morf.process.run({ exit }, { timeout_ms = 1000, max_output = 256 }, function() morf.quit() end)
+end
+
 local door = auth.greeter {
   enabled = not PREVIEW and morf.env("EVA_DRY_RUN") ~= "1",
   user = person().name,
@@ -97,6 +118,7 @@ local door = auth.greeter {
   on_busy = function(b) if b then busy:set(true) end end,
   on_info = function(words, wrong) say(words, wrong) end,
   on_failed = function(why)
+    if stage:get() == "leaving" or stage:get() == "left" then stage:set("sheet") end
     say(why ~= "" and why or "Wrong password", true)
     clear()
     shake:set(1)
@@ -109,9 +131,8 @@ local door = auth.greeter {
     clear()
     if outputs then outputs.release() end
   end,
-  -- The session is starting: everything sinks away while greetd replaces
-  -- this process with it.
-  on_open = function() stage:set("leaving") end,
+  on_verified = depart,
+  on_open = leave,
 }
 local NOT_GREETD = "Not started by greetd: nothing to log in to"
 
@@ -205,7 +226,7 @@ local function key(keysym, typed_text)
       local LEFT, RIGHT, F2 = 0xff51, 0xff53, 0xffbf
       local st = stage:get()
       -- A real compositor key event proves this surface has the keyboard.
-      -- Cage may focus a different output before delivering pointer entry.
+      -- The compositor may focus a different output before pointer entry.
       if outputs and not outputs.main() then outputs.claim() end
       if st ~= "rest" and st ~= "sheet" then return end
       if busy:get() then return end
@@ -232,7 +253,7 @@ do
   local ok, name = pcall(morf.fs.read, "/proc/sys/kernel/hostname")
   if ok and type(name) == "string" then hostname = name:match("^%s*(.-)%s*$") end
 end
--- Cage owns one fullscreen login window on its main output. Authentication
+-- One fullscreen login surface on the compositor's main output. Authentication
 -- and keyboard focus stay here; pointer movement never transfers ownership.
 outputs = require("models.greet_canvas_outputs") {
   busy=function(value) busy:set(value) end,
@@ -284,9 +305,8 @@ local ui=require("morf.ui")
 local root=ui.Item {id="greet-output",anchors={fill=true}}
 local child,built
 morf.effect("greet.geometry",function()
-  -- xdg_toplevel.configure is the authority for this window's logical size.
-  -- Do not reconstruct a desktop from output metadata: it may arrive before
-  -- Cage finishes disabling secondary monitors and disagree with this view.
+  -- The surface's configure is the authority for its logical size. Output
+  -- metadata may arrive before the compositor has settled and disagree.
   local width,height=root.layout_width or W,root.layout_height or H
   if width<=0 or height<=0 then return end
   width,height=math.floor(width+.5),math.floor(height+.5)
@@ -306,6 +326,7 @@ end,{owner=root})
 -- For a test or a picture: `morf ipc call stage sheet`.
 morf.ipc.stage = function(to)
   if to == "sheet" then stage:set("rest") open_sheet() elseif to == "rest" then stage:set("rest") end
+  if to == "leaving" and PREVIEW then depart(function() end) end
   return stage:get()
 end
 

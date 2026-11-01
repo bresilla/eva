@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -31,6 +32,22 @@ def read_palette(path):
     return data
 
 
+def dominant(image, palette):
+    """The picture's most common colour, else the palette's background."""
+    try:
+        from PIL import Image
+        with Image.open(image) as picture:
+            picture.thumbnail((64, 64))
+            colours = picture.convert("RGB").quantize(8).convert("RGB").getcolors(64 * 64)
+        return "#%02x%02x%02x" % max(colours)[1]
+    except (ImportError, OSError, ValueError, TypeError):
+        pass
+    special = palette.get("special")
+    background = special.get("background") if isinstance(special, dict) else None
+    background = background or palette["colors"][0]
+    return background if re.fullmatch("#[0-9a-fA-F]{6}", str(background)) else None
+
+
 def publish(state, image, palette):
     image = Path(image)
     if not image.is_file() or image.stat().st_size > 64 * 1024 * 1024:
@@ -46,6 +63,9 @@ def publish(state, image, palette):
     # Commit the complete image first. Both users see either the old pair or
     # the new pair, never a JSON pointer to an unfinished image.
     atomic(state / "colors.json", json.dumps(palette))
+    colour = dominant(target, palette)
+    if colour:
+        atomic(state / "dominant", colour + "\n")
     # Retain the previous image too: a desktop may still be displaying it.
     images = sorted(state.glob("image-*"), key=lambda p: p.stat().st_mtime, reverse=True)
     keep = {target, *images[:3]}
