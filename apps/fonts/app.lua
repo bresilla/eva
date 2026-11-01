@@ -4,9 +4,9 @@ local morf = require("morf")
 local frame = require("common.frame")
 local model = require("model")
 
-if morf.operands[1] then
+if morf.args[1] then
   frame.quiet()
-  model.job(morf.operands, require("lib.shell.tool_job").finish)
+  model.job(morf.args, require("lib.shell.tool_job").finish)
   return
 end
 

@@ -5,7 +5,7 @@ local morf = require("morf")
 local frame = require("common.frame")
 local model = require("model")
 
-local how = morf.operands[1]
+local how = morf.args[1]
 if how then
   frame.quiet()
   model.start_up(false, false)

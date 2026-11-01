@@ -241,6 +241,26 @@ test.it("lists the families", function()
   test.contains(job { "list" }, "0\nIBM Plex Mono\nJetBrains Mono\nNoto Sans\nNoto Serif\nRubik")
 end)
 
+test.it("lists the monospace ones alone, the flag reaching the tool", function()
+  local state = fresh("mono")
+  local out = state .. "/job.out"
+  test.clear_stubs()
+  test.load("../apps/fonts/app.lua", { env = environment(state, nil, { EVA_JOB_OUT = out }), args = { "list", "--mono" },
+    source = [[
+      local morf = require("morf")
+      local real = morf.process.run
+      morf.process.run = function(argv, options, done)
+        if argv[1] ~= "fc-list" then return real(argv, options, done) end
+        local mono = argv[2] == ":spacing=mono"
+        done { ok = true, stdout = mono and "IBM Plex Mono\n" or "Rubik\nIBM Plex Mono\n" }
+      end
+      require("common.frame").quiet()
+      require("model").job(morf.args, require("lib.shell.tool_job").finish)
+    ]] })
+  test.advance(400)
+  test.eq(morf.fs.read(out), "0\nIBM Plex Mono\n")
+end)
+
 test.it("sets a family it has, and refuses one it has not", function()
   local answer, state = job { "set", "IBM", "Plex", "Mono" }
   test.contains(answer, "Saved IBM Plex Mono")
