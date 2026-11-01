@@ -232,7 +232,6 @@ local config = settings.open {
       classes = {
         { "kitty", "dev" }, { "foot", "dev" }, { "alacritty", "dev" }, { "wezterm", "dev" }, { "ghostty", "dev" },
         { "org.wezfurlong.wezterm", "dev" }, { "com.mitchellh.ghostty", "dev" },
-        { "eva.phone", "phone" },
       },
     },
     services = {

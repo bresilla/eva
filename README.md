@@ -494,9 +494,9 @@ typing in the tools turns all of it off by hand. Emoji picked stay in memory
 until the shell stops.
 
 The window's class stands in for the field: `keyboard.classes` says a terminal
-wants the `dev` board and `eva.phone` the dial pad, and a tool of eva's own can
-say `keyboard purpose phone`. When the engine reports a field's purpose, that
-goes first, with no change to anything that asks.
+wants the `dev` board, and a tool of eva's own can say `keyboard purpose phone`.
+When the engine reports a field's purpose, that goes first, with no change to
+anything that asks.
 
 The clipboard strip reads what `eva-clipboard` holds and never writes to it. It
 lives in the shell's own view: the lock screen and the greeter share only the
