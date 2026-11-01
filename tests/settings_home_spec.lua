@@ -156,6 +156,17 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 end
 
+test.it("Settings reaches eva-info and eva-update, now that they exist", function()
+  test.load("../shell/init.lua", { size = { 300, 200 }, env = { EVA_DRY_RUN = "1" }, source = HOST .. [[
+    morf.ipc.tools = function()
+      local about = require("about_model")
+      return { info = about.about().can_info(), update = about.updates().available() }
+    end
+  ]] })
+  test.advance(100)
+  test.eq(test.ipc("tools"), { info = true, update = true })
+end)
+
 test.it("a records field keeps its tables through one line of words", function()
   test.load("../shell/init.lua", { size = { 300, 200 }, env = { EVA_DRY_RUN = "1" }, source = HOST .. [[
     morf.ipc.records = function()
