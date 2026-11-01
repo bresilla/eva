@@ -55,7 +55,7 @@ test.it("mobile settings and bar follow late hardware and removal without reload
   test.ipc("available",false) test.advance(50)
   test.eq(test.ipc("read").status,"No modem")
   test.eq(test.ipc("read").technology,"")
-  test.eq(test.ipc("read").bars,"signal_cellular_nodata")
+  test.eq(test.ipc("read").bars,"")
   test.ipc("available",true) test.ipc("disable") test.advance(50)
   test.eq(test.ipc("read").calls,1)
   test.eq(test.ipc("read").status,"Off")

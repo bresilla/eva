@@ -4,10 +4,13 @@ local bank = morf.reloadable("eva.theme.session", {})
 local saved = bank:get()
 local M = { restoring = saved.switching == true, target = saved.target, font = saved.font, transition = saved.transition }
 local readers = {}
+local kept = {}
 function M.keep(name, initial)
+  if kept[name] then return kept[name] end
   local value = saved[name]
   if value == nil then value = initial end
   local signal = morf.signal(name, value)
+  kept[name] = signal
   readers[name] = function() return signal:get() end
   return signal
 end
