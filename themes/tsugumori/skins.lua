@@ -97,12 +97,23 @@ return function(theme, M, hud)
     local function natural_width()
       return math.max(1, measure.layout_width or utf8.len(caption()) * theme.typography.menu * .62)
     end
-    local function width() return get(spec.width) or natural_width()+(spec.icon and 36 or 16) end
-    local function available() return math.max(0, width() - (spec.icon and 36 or 16)) end
-    local function label_size()
-      return math.max(9, math.min(theme.typography.menu, theme.typography.menu * available() / natural_width()))
+    local pad = spec.icon and 36 or 16
+    local function width() return get(spec.width) or natural_width()+pad end
+    -- Room for the words at their natural width, and the size that fits them there.
+    local function fitted(natural)
+      local room = math.max(0, (get(spec.width) or natural+pad) - pad)
+      local menu = theme.typography.menu
+      return room, math.max(9, math.min(menu, menu * room / natural))
     end
-    local function text_width() return math.min(available(), natural_width() * label_size() / theme.typography.menu + 2) end
+    local function label_size()
+      local _, size = fitted(natural_width())
+      return size
+    end
+    local function text_width()
+      local natural = natural_width()
+      local room, size = fitted(natural)
+      return math.min(room, natural * size / theme.typography.menu + 2)
+    end
     local strip = ui.Column { y = -36, gap = 0,
       M.menu_label { text = "/ / / / / /", height = 18, color = ink },
       M.menu_label { text = "+ | + | + |", height = 18, color = ink },
