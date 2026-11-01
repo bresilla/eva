@@ -15,7 +15,20 @@ local HOST = ([[
   }
 ]]):format(LONG)
 
+local NOTE = "Camera and commands ask for the password first"
+local CAPTION = ([[
+  local P = require("themes.layouts.page")
+  P.section { id = "noted", width = 408, title = "Shortcuts", note = %q }
+]]):format(NOTE)
+
 for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. ": a caption's note stands in full on the card's width", function()
+    test.load("../shell/init.lua", { source = CAPTION, size = { 500, 200 }, env = { EVA_STYLE = style } })
+    test.settle(1000)
+    local note = test.get(function(node) return (node.text or ""):lower() == NOTE:lower() end)
+    test.truthy(note.width > 200, "as wide as its words")
+    test.truthy(note.x + note.width <= test.get("noted").x + 408 + 1, "inside the card's width")
+  end)
   test.it(style .. ": a long note wraps and pushes down what follows", function()
     test.load("../shell/init.lua", { source = HOST, size = { 400, 400 }, env = { EVA_STYLE = style } })
     test.settle(1000)
