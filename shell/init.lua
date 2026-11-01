@@ -171,6 +171,7 @@ morf.effect("eva.keyboard.focus", function()
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "hotspot")
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "notifications")
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "focus/mode")
+    or notifs.covered:get()
     or (sidebar.drawer.open:get() and require("utilities").tiles.editing:get())
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)

@@ -29,6 +29,27 @@ pause 1
 note ipc notifications reply "$ID" "Yes, at noon"
 pause 0.5
 
+note echo "== A themed icon, found in an icon theme"
+ICONS=$XDG_DATA_HOME/icons/hicolor
+mkdir -p "$ICONS/48x48/apps"
+printf '[Icon Theme]\nName=Hicolor\nDirectories=48x48/apps\n\n[48x48/apps]\nSize=48\nType=Fixed\n' > "$ICONS/index.theme"
+cp "$SEE_EVA/tests/fixtures/wallpaper.png" "$ICONS/48x48/apps/eva-test-icon.png"
+ID=$(BUS call $SERVICE Notify susssasa{sv}i Themed 0 eva-test-icon "A themed icon" "By its name" 0 1 urgency y 2 0 | awk '{print $2}')
+pause 1.2
+shot popup-icon
+note ipc notifications dismiss "$ID"
+pause 0.6
+
+note echo "== Raw pixels in the image-data hint"
+ID=$(BUS call $SERVICE Notify susssasa{sv}i Pixels 0 "" "Raw pixels" "An (iiibiiay) over the bus" 0 \
+  2 urgency y 2 image-data "(iiibiiay)" 2 2 8 true 8 4 16 \
+  255 64 64 255 64 255 64 255 64 64 255 255 255 255 64 255 0 | awk '{print $2}')
+note echo "id=$ID"
+pause 1.2
+shot popup-pixels
+note ipc notifications dismiss "$ID"
+pause 0.6
+
 note echo "== Replacement keeps its id and updates history"
 ID=$(BUS call $SERVICE Notify susssasa{sv}i Files 0 "" "Copying" "2 files" 0 1 value i 10 -1 | awk '{print $2}')
 pause 0.4

@@ -2,6 +2,7 @@
 # history that keeps them, the settings that rule them and the Focus pages.
 export BOOT=4
 export EVA_FAKE_SOUND=$SEE_OUT/sound.log
+export EVA_SETTINGS=$SEE_OUT/settings.json
 PICTURE=$SEE_EVA/tests/fixtures/wallpaper.png
 start shell
 BUS() { local verb=$1; shift; busctl --address="$DBUS_SESSION_BUS_ADDRESS" "$verb" -- "$@"; }
@@ -64,5 +65,12 @@ ipc focus on work 3600; pause 2.2; shot focus-on
 ipc settings focus/mode; pause 1.6; shot settings-mode
 ipc focus off; pause 0.6
 ipc close; pause 0.4
+
+# The edge lights, sounds ask to play, and the ring mode says no.
+printf '{"notifications":{"edge_light":true,"sounds":true}}\n' > "$EVA_SETTINGS"
+pause 0.6
+SEND Doorbell 0 "" "Someone at the door" "Front camera" 0 0 0 > /dev/null
+pause 0.12; shot edge-light
+pause 1
 note cat "$SEE_OUT/sound.log"
 stop
