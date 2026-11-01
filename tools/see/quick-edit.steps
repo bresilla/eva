@@ -1,0 +1,5 @@
+# The tile editor, settled, and the session row.
+start shell
+ipc sidebar open settings; pause 1.5; shot quick
+ipc quick edit; pause 3; shot edit-settled
+ipc quick done; pause 1; shot edit-done
