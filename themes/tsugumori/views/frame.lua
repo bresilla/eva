@@ -66,7 +66,7 @@ end
 
 function V.build(model)
   local reveal = require("themes.reveal")
-  local hidden, rest = reveal.opening(model.desk, theme.LEFT, theme.BORDER)
+  local hidden, rest = reveal.opening(model.desk, theme.LEFT, theme.BORDER, 2 * theme.ROUNDING)
   local opening = reveal.part(ui.SdfShape, { id = "frame-opening", shape = "box", operation = "subtract", radius = 0,
     x = function() local x = model.desk() return x + theme.LEFT end,
     y = function() local _, y = model.desk() return y + theme.BORDER end,

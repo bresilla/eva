@@ -54,12 +54,12 @@ function M.part(make,props,order,hidden,rest)
   return node
 end
 
---- `hidden` and `rest` for the frame's opening: the whole screen, then the
---- desk less the frame.
-function M.opening(desk,left,border)
+--- `hidden` and `rest` for the frame's opening: past the screen's edges by
+--- `reach`, then the desk less the frame.
+function M.opening(desk,left,border,reach)
   return function()
     local screen=morf.screens[1] or {}
-    return {x=0,y=0,width=screen.width or 1920,height=screen.height or 1080}
+    return {x=-reach,y=-reach,width=(screen.width or 1920)+2*reach,height=(screen.height or 1080)+2*reach}
   end,function()
     local x,y,width,height=desk()
     return {x=x+left,y=y+border,width=width-left-border,height=height-2*border}
