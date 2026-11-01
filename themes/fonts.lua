@@ -69,7 +69,7 @@ end
 
 local function named(family) return family ~= "" and family or "the theme's own font" end
 
--- A font file on this shell: it wins over a family, and takes a reload to build.
+-- A font file in the shell: it clears the family, and takes a reload to build.
 local function set_file(path, done)
   path = path:gsub("^~/", morf.fs.home() .. "/")
   if path ~= "" and not morf.fs.is_file(path) then return done(false, "No font file at " .. path) end
