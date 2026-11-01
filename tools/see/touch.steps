@@ -1,7 +1,7 @@
 # The Touch gestures page, on a stand-in touchscreen: lines as libinput prints
 # them come in through `touch feed`, so the fingers show without a device.
-# EVA_FAKE_TOUCH=none, missing or denied show what it says on such a machine.
-export EVA_FAKE_TOUCH=${EVA_FAKE_TOUCH:-1}
+# touch-denied.steps shows what it says on a machine that may not read.
+export EVA_FAKE_TOUCH=1
 export EVA_SETTINGS="$SEE_OUT/settings.json"
 down() { ipc touch feed " event99  TOUCH_DOWN                   +0.100s	$1 ($1) $2/$3 (1.00/1.00mm)"; }
 frame() { ipc touch feed " event99  TOUCH_FRAME                  +0.100s	"; }

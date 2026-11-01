@@ -13,20 +13,19 @@ local WORDS = {
   running = { "Reading the touchscreen", "Gestures work everywhere on this screen" },
   starting = { "Starting", "Opening the touchscreen" },
   none = { "No touchscreen", "Gestures begin when one is plugged in" },
-  missing = { "libinput is not installed", "Install libinput, or libinput-tools on Debian and Ubuntu" },
-  denied = { "This session may not read the touchscreen",
-    "It needs a udev rule, which on NixOS is programs.eva.touch.enable; the README has the rule" },
+  missing = { "libinput is not installed", "Install libinput, or libinput-tools on Debian" },
+  denied = { "May not read the touchscreen", "programs.eva.touch.enable, or the README's rule" },
 }
 
 --- Why it is not reading, once the reader says "off".
 local function stopped()
-  if config.get("gestures.enabled") == false then return "Off", "Apps keep every touch, and the edges still pull panels" end
+  if config.get("gestures.enabled") == false then return "Off", "The edges still pull panels" end
   if morf.env("EVA_GESTURE_DRIVER") == "lisgd" then return "Off", "The phone's lisgd driver has the gestures" end
   if driver.locked() then return "Stopped", "It stays stopped while the session is locked" end
   if driver.away() then return "Stopped", "Another session has the screen" end
   local gesture = require("phone_gestures")
   if gesture.blocked() or not gesture.global_allowed() then
-    return "Stopped", "It stays stopped while a password or the capture editor is on screen"
+    return "Stopped", "While a password or the capture editor shows"
   end
   if #(morf.screens or {}) > 1 and not driver.panel() then
     return "Which screen is it on?", "Choose the screen the touchscreen sits on"
