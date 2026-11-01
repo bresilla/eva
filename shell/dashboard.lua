@@ -6,8 +6,9 @@ local model = require("dashboard_model")
 local M = { TERMINAL_TAB=6, tab=state.tab, month=model.month, month_offset=model.month_offset }
 local visual = require("themes").view("dashboard").build(model)
 M.size, M.bud = visual.size, visual.bud
--- On a phone it rises from the bottom edge (the top is quick settings').
-local EDGE = require("responsive").portrait() and "bottom" or (visual.edge or "top")
+-- Over a sheet's screen it rises from the bottom edge (the top is quick
+-- settings').
+local EDGE = require("responsive").sheets() and "bottom" or (visual.edge or "top")
 M.drawer = require("drawer").new {
   name="dashboard",edge=EDGE,width=visual.width,height=visual.height,
   content=visual.content,props=visual.props,close_policy="escape+outside",

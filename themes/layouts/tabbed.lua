@@ -29,7 +29,7 @@ M.PAD = 11
 local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
 
 function M.new(spec)
-  local phone=require("responsive").portrait()
+  local phone=require("responsive").sheets()
   local page_wipe=theme.motion.page_wipe and not phone
   local W, PAD, TABS_H = spec.width, spec.pad or M.PAD, M.TABS_H
   local tabs = spec.tabs

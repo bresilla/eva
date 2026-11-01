@@ -22,10 +22,9 @@ local V = {}
 local SIGNALS = { logout = "info", shutdown = "alert", hibernate = "accent", reboot = "warn" }
 
 function V.build(M)
-  -- Upright (a phone) it takes most of the width, and taller rows: a
-  -- finger, not a pointer.
+  -- Under a finger it takes most of the width, and taller rows.
   local responsive = require("responsive")
-  local TOUCH = responsive.portrait()
+  local TOUCH = responsive.sheets()
   local WIDTH, PAD, GAP = TOUCH and responsive.fit(560, 24) or 300, 12, 8
   local RW = WIDTH - 2 * PAD
   local LABEL_H = L.lh(L.role_size("label"))

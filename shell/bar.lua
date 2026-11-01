@@ -23,7 +23,7 @@ function M.on()
   if wanted == "on" or wanted == true then return true end
   if wanted == "off" or wanted == false then return false end
   local w, h = screen()
-  return w < 1000 or h > w
+  return w < 1000 or h > w or require("responsive").sheets()
 end
 
 --- Which edge it is on.

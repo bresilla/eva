@@ -31,10 +31,10 @@ function M.handoff(enabled)
 end
 
 -- The drawer a pull from `edge` drags: the one hanging from that edge in
--- this layout, the one hovering the edge opens on a desk. Portrait leaves
--- the side edges to the launcher.
+-- this layout, the one hovering the edge opens on a desk. Sheets leave the
+-- side edges to the launcher.
 local function drawer_at(edge)
-  local names=require("responsive").portrait() and {"sidebar","dashboard"}
+  local names=require("responsive").sheets() and {"sidebar","dashboard"}
     or {"dashboard","bottom","sidebar","leftbar"}
   for _,name in ipairs(names) do
     local drawer=require(name).drawer
@@ -291,7 +291,7 @@ function M.attach(root)
     root.on_panned=function(phase,dx,dy,vx,vy,x)
       if phase=="begin" then
         rail=nil
-        if not M.global_allowed() or blocked() or require("responsive").portrait() then return false end
+        if not M.global_allowed() or blocked() or require("responsive").sheets() then return false end
         if math.abs(dy)<=math.abs(dx)*1.2 or not x then return false end
         -- From the rail itself, or a finger's width in from a bare side.
         local width=(morf.screens[1] or {}).width or morf.surface.width

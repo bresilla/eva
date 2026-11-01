@@ -4,19 +4,20 @@ local ui = require("morf.ui")
 local theme = require("theme")
 local V = {}
 function V.build(model)
-  -- From the top (a phone's quick settings) it is a sheet the desk's width
-  -- and four fifths of its height, its tabs icons alone; from a side, the
-  -- side's height.
+  -- From the top it is a sheet: on a phone held upright the desk's width and
+  -- four fifths of its height, its tabs icons alone; elsewhere a panel under
+  -- the status. From a side, the side's height.
+  local responsive = require("responsive")
   local top = model.edge == "top"
   local function height()
     local _, h = model.desk_size()
-    -- A sheet leaves a fifth of the desk below it, to tap it shut.
-    if top then return math.floor((h - 2 * theme.BORDER) * 0.8) end
+    -- A sheet leaves the desk below it, to tap it shut.
+    if top then return responsive.panel_height(h) end
     return h - 2 * theme.BORDER
   end
   local function page_width()
     if not top then return theme.SIDE_W end
-    return require("responsive").sheet_width()
+    return responsive.panel_width()
   end
   local tabs = {}
   for i, tab in ipairs(model.tabs) do
@@ -28,7 +29,7 @@ function V.build(model)
     tab = model.tab, publish = false,
     close = function() require(model.id).drawer.set(false) end,
     dismiss = ({ top = "up", left = "left", right = "right" })[model.edge],
-    on_present = model.present, icons_only = top,
+    on_present = model.present, icons_only = top and responsive.compact(),
   }
   morf.effect("material." .. model.id .. ".shown", function() panel.shown(model.opened:get()) end)
   local content = panel.content
@@ -37,7 +38,7 @@ function V.build(model)
   end
   if top then
     return { width = page_width(), height = height, edge = "top",
-      content = content, props = { anchors = { top = true, horizontal_center = true } } }
+      content = content, props = { anchors = responsive.panel_anchors() } }
   end
   return { width = theme.SIDE_W + theme.STRIP, height = height, edge = model.edge,
     content = content, props = { anchors = { top = true, [model.edge] = true } } }
