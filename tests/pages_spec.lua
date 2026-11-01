@@ -67,8 +67,7 @@ end
 
 -- The launcher's rows for the shell's own pages: `!NAME`, and Return runs the first.
 local function launch(query)
-  test.ipc("launcher", "open") test.settle(700)
-  test.type(query) test.settle(500)
+  test.ipc("launcher", "query", query) test.settle(1200)
 end
 
 for _, form in ipairs(SHEETED) do

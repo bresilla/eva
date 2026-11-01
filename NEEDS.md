@@ -118,6 +118,22 @@ whether the compositor can hold one (docs/IO.md, "Idle").
 - Escape reaches a drawer's close policy as well as a focused field's
   `on_escape`, so a search field cannot take the first Escape to clear itself.
 
+## The launcher: open
+
+- A key a text field would use, before the field uses it. `on_key_pressed` hears only
+  what the field has no use for, so quick look on Space takes the character back out
+  of `on_text_changed`. A `on_key_filter(keysym, text, modifiers)` that can swallow a
+  key would do it cleanly.
+- A second finger that lands on nothing. `pan::down` cancels a pan only for a contact
+  in `input.touches`, and a contact is recorded only when it hits a node, so a
+  second finger on bare desk does not cancel an edge pull.
+- A clipboard offer of several types. `morf.clipboard.set(data, mime)` offers one, so
+  text cannot be marked `x-kde-passwordManagerHint` beside its `text/plain`. eva hands
+  secrets to `wl-copy --sensitive`, on stdin.
+- Leaving stderr out of a run. `morf.process.run` keeps stdout and stderr under one
+  `max_output`, and `nix search` writes 8 MiB of progress to stderr. An option to send
+  stderr to /dev/null would replace the `sh -c '... 2>/dev/null'` the Nix mode uses.
+
 ## Seamless login: open
 
 - Custom shaders on a held lock. Every renderer calls `register_shaders` except

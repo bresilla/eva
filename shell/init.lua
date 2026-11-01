@@ -133,6 +133,11 @@ require("quick_hardware").nightlight()
 -- ---------------------------------------------------------------- drawers --
 
 local launcher = require("launcher")
+require("providers")
+require("launcher_modes.shell").sync_scripts()
+require("launcher_plugins").load()
+require("text_expansion").start()
+require("timers_model")
 local dashboard = require("dashboard")
 local session = require("session")
 local polkit = require("polkit")
@@ -329,13 +334,43 @@ local function verb(d)
   end
 end
 
--- `launcher [how]`, or `launcher apps` / `launcher web`: the launcher on
--- one of the author's own menus (menus.lua: appy's apps, browsy's web).
-ipc.launcher = function(how)
+-- `launcher [how]`; `launcher apps` or `launcher web`: the launcher on one of its
+-- menus (menus.lua); `launcher mode WORD`: on a mode; `launcher query TEXT`: with
+-- that typed; `launcher selection`: with the selection typed; `launcher dmenu IN OUT
+-- [PROMPT]`: the lines of file IN to choose from, the choice written to file OUT.
+ipc.launcher = function(how, ...)
+  local rest = { ... }
   if how == "apps" or how == "web" then
     if not here() then return nil end
     require("menus").open(how)
     launcher.drawer.set(true)
+    return true
+  end
+  if how == "mode" or how == "query" then
+    if not here() then return nil end
+    local text = rest[1] or ""
+    if how == "mode" then
+      local mode = require("lib.shell.launcher.registry").by_word(text)
+      if not mode then error("No such mode: " .. text) end
+      text = require("lib.shell.launcher.registry").entry(mode)
+    end
+    launcher.open_on(text)
+    return true
+  end
+  if how == "selection" then
+    if not here() then return nil end
+    morf.process.run({ "wl-paste", "--primary", "--no-newline" }, { timeout_ms = 1000 }, function(result)
+      launcher.open_on((tostring(result and result.stdout or ""):gsub("%s+", " ")))
+    end)
+    return true
+  end
+  if how == "dmenu" then
+    if not here() then return nil end
+    local input, output = rest[1], rest[2]
+    local lines = {}
+    for line in tostring(morf.fs.read(input) or ""):gmatch("[^\n]+") do lines[#lines + 1] = line end
+    require("menus").dmenu(lines, rest[3], function(line) morf.fs.write(output, line and (line .. "\n") or "") end)
+    launcher.open_on("")
     return true
   end
   return verb(launcher.drawer)(how)

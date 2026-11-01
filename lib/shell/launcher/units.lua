@@ -53,6 +53,7 @@ local TABLES = {
     kib = 1024, mib = 1024 ^ 2, gib = 1024 ^ 3, tib = 1024 ^ 4,
     kbit = 125, mbit = 125e3, gbit = 125e6,
   }),
+  kind("px", { px = 1, rem = 16, em = 16 }),
 }
 
 local TEMPERATURE = {

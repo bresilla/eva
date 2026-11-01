@@ -296,8 +296,51 @@ local config = settings.open {
       },
     },
     launcher = {
+      -- How many rows a picker lists, and how many a search may list.
       max_shown = 7,
+      max_results = 40,
       action_prefix = ">",
+      -- The icon grid: "auto" on a phone or a tablet, "grid" everywhere, "list"
+      -- nowhere.
+      layout = "auto",
+      -- What a plain search reaches, by name (universal.lua).
+      sources = { "apps", "settings", "windows", "system", "actions", "app_actions", "places", "modes", "snippets",
+        "recent", "bookmarks", "files" },
+      -- Whether a plain search goes through the files; folders it leaves out.
+      search_files = true,
+      exclude = { ".git", "node_modules", ".cache", "target", ".direnv" },
+      -- Whether what is picked is remembered, for ranking and history.
+      remember = true,
+      -- Whether the last search comes back with the launcher.
+      keep_query = false,
+      -- A pane beside the results for files and pictures, where there is room.
+      preview_pane = true,
+      -- A trigger typed anywhere expands its snippet (text_expansion.lua).
+      expansion = true,
+      -- Plugins from ~/.config/eva/plugin (launcher_plugins.lua).
+      plugins = true,
+      -- The terminal things run in, as words; empty uses $TERMINAL.
+      terminal = {},
+      -- What the person has pinned, hidden, filed and named.
+      favourites = {}, hidden = {}, folders = {}, aliases = {},
+      -- Their own search engines ({ bang, name, url }, %s for the words), links
+      -- ({ name, url }, {query} for the words) and bookmarks ({ name, url }).
+      engines = {}, quicklinks = {}, bookmarks = {},
+      -- The file `note` adds to ("" for ~/.local/share/eva/notes.md), the language
+      -- a translation goes to, Wikipedia's language, and the folders of projects.
+      notes_file = "",
+      translate_to = "en",
+      wiki_language = "en",
+      projects = { "~/code", "~/src", "~/projects" },
+      -- What `launcher apps` and `launcher web` read.
+      menus = {
+        -- Folders of AppImages.
+        appimages = { "~/Applications", "~/AppImages", "~/.local/share/AppImages" },
+        -- The `bookmark` tool's folder.
+        bookmarks = "~/.local/share/bookmark",
+        -- What plays a playlist's address.
+        player = { "mpv" },
+      },
     },
     -- The on-screen displays, and where the notification popups stand ("" for
     -- the default).

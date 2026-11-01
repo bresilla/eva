@@ -1,0 +1,85 @@
+# The launcher: its home, one box for everything, the action panel, quick look, a
+# QR code, modes, and the grid where a finger is the way in.
+#
+#   tools/see.sh launcher
+#   SCREEN=868x1932 TOUCH=1 tools/see.sh launcher
+mkdir -p "$XDG_DATA_HOME/applications" "$HOME/.config/eva/scripts" "$HOME/.config/eva/plugin" "$HOME/Documents"
+cat > "$XDG_DATA_HOME/applications/see-browser.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=Atlas Browser
+Comment=Reads the web
+Exec=true
+Icon=web-browser
+Categories=Network;WebBrowser;
+Actions=new-window;private;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=true
+
+[Desktop Action private]
+Name=New Private Window
+Exec=true
+DESKTOP
+for pair in "Files:Utility" "Terminal:System" "Notes:Office" "Paint:Graphics" "Player:AudioVideo" "Mail:Network" \
+  "Chess:Game" "Editor:Development" "Calendar:Office" "Photos:Graphics" "Music:AudioVideo" "Maps:Utility"; do
+  name=${pair%%:*}; category=${pair##*:}
+  printf '[Desktop Entry]\nType=Application\nName=%s\nComment=The %s app\nExec=true\nCategories=%s;\n' "$name" "$name" "$category" \
+    > "$XDG_DATA_HOME/applications/see-$name.desktop"
+done
+printf 'A file to look at\nwith a second line\nand a third.\n' > "$HOME/Documents/notes.txt"
+cp tests/fixtures/wallpaper.png "$HOME/Documents/picture.png"
+mkdir -p "$XDG_STATE_HOME/eva/clipboard"
+cp tests/fixtures/wallpaper.png "$XDG_STATE_HOME/eva/clipboard/shot.png"
+now=$(date +%s)000
+printf '[{"id":"1","kind":"text","text":"Keep this one","pinned":true,"time":%s},{"id":"2","kind":"text","text":"https://example.org/a/page","time":%s},{"id":"3","kind":"image","path":"%s","mime":"image/png","time":%s},{"id":"4","kind":"text","text":"#7c3aed","time":%s}]' \
+  "$now" "$now" "$XDG_STATE_HOME/eva/clipboard/shot.png" "$now" "$now" > "$XDG_STATE_HOME/eva/clipboard/history.json"
+printf '#!/bin/sh\n# @eva.title Restart the audio\n# @eva.description A script of yours\n# @eva.icon restart_alt\n' > "$HOME/.config/eva/scripts/restart-audio.sh"
+chmod +x "$HOME/.config/eva/scripts/restart-audio.sh"
+cat > "$HOME/.config/eva/plugin/shout.lua" <<'PLUGIN'
+local launcher = require("eva.launcher")
+launcher.mode { id = "shout", name = "Shout", material = "campaign", words = { "shout" },
+  hint = "shout hello  ·  a plugin of yours", search = function(term)
+    return { launcher.copy("shout", term:upper(), "From a plugin", "campaign") }
+  end }
+PLUGIN
+BOOT=9
+start shell
+ipc launcher open; pause 2.5
+ipc close; pause 1
+ipc launcher open; pause 1.5; shot home
+ipc close; pause 0.6
+ipc launcher query 'power'; pause 1.2; shot universal
+ipc close; pause 0.6
+ipc launcher query 'atlas'; pause 1; shot apps
+ipc close; pause 0.6
+ipc launcher query 'atlas browser'; pause 1.2
+key F10; pause 0.8; shot actions
+ipc close; pause 0.6
+ipc launcher query ';'; pause 1.2; shot clipboard
+ipc close; pause 0.6
+ipc launcher query '~/Documents/n'; pause 1.4; shot files
+ipc close; pause 0.6
+ipc launcher query '~/Documents/p'; pause 1.6; shot picture
+ipc close; pause 0.6
+ipc launcher query '> qr https://github.com/bresilla/eva'; pause 1.6; shot qr
+ipc close; pause 0.6
+ipc launcher query '> '; pause 1.2; shot modes
+ipc close; pause 0.6
+ipc launcher query '> pw 24'; pause 1; shot password
+ipc close; pause 0.6
+ipc launcher query '> time'; pause 1; key space; pause 1; shot clocks
+ipc close; pause 0.6
+ipc launcher query '> timer 12m pasta'; pause 1; shot timer
+ipc close; pause 0.6
+ipc launcher query '> b64 hello world'; pause 1; shot encode
+ipc close; pause 0.6
+ipc launcher query '> plugins '; pause 1; shot plugins
+ipc close; pause 0.6
+ipc launcher query 'shout hello'; pause 1; shot plugin
+ipc close; pause 0.6
+ipc launcher query '10:00 utc in tokyo'; pause 1; shot inline
+ipc close; pause 0.6
+ipc launcher query 'time in oslo'; pause 1; shot world
+ipc close; pause 0.6

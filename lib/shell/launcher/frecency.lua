@@ -101,7 +101,9 @@ function frecency.open(opts)
   --- reordered with frecency. `opts`: `key` (as fuzzy's), `id` (the field
   --- naming an item's id, or a function of the item; the item itself when
   --- it is a string), `limit`, `weight` (how much frecency counts against
-  --- match quality, 0.15).
+  --- match quality, 0.15), `boost` (a function of the item multiplying its
+  --- match quality: how much its kind counts), `best` (how many of the best
+  --- matches to consider at all: the rest cost no Lua).
   function store.rank(query, items, rank_opts)
     rank_opts = rank_opts or {}
     local id_of = rank_opts.id
@@ -110,7 +112,7 @@ function frecency.open(opts)
       if id_of then return item[id_of] end
       return item
     end
-    local hits = morf.text.fuzzy(query or "", items, { key = rank_opts.key })
+    local hits = morf.text.fuzzy(query or "", items, { key = rank_opts.key, limit = rank_opts.best })
     local t = now()
     version:get()
     local blend = rank_opts.weight or 0.15
@@ -126,6 +128,7 @@ function frecency.open(opts)
         -- the frecency that levels off: a few launches matter, hundreds
         -- do not matter a hundred times more.
         local quality = best > 0 and (hit.score or 0) / best or 0
+        if rank_opts.boost then quality = quality * rank_opts.boost(hit.item) end
         hit.rank = quality + blend * (1 - 1 / (1 + hit.frecency))
       end
     end

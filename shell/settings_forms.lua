@@ -9,6 +9,7 @@
 --   text                 one line
 --   words                a command: a list of words, edited as one line
 --   list                 a list of names, edited as one line
+--   records              a list of tables of `fields`, edited as one line of words
 local M = {}
 
 local function commands(prefix, rows)
@@ -24,10 +25,45 @@ M.PAGES = {
     { title = "Results", fields = {
       { key = "launcher.max_shown", kind = "number", title = "Results shown", icon = "format_list_numbered",
         from = 3, to = 15, step = 1 },
+      { key = "launcher.max_results", kind = "number", title = "Results listed", icon = "format_list_numbered",
+        from = 10, to = 100, step = 5 },
+      { key = "launcher.layout", kind = "choice", title = "Layout", items = {
+        { "auto", "devices", "Auto" }, { "grid", "apps", "Grid" }, { "list", "view_list", "List" } } },
+      { key = "launcher.preview_pane", kind = "bool", title = "Preview beside the results", icon = "preview",
+        note = "Files and pictures, where there is room" },
+      { key = "launcher.keep_query", kind = "bool", title = "Keep the last search", icon = "history" },
+      { key = "launcher.remember", kind = "bool", title = "Remember what is picked", icon = "star",
+        note = "For ranking and history" },
+    } },
+    { title = "What a search reaches", fields = {
+      { key = "launcher.sources", kind = "list", title = "Sources", icon = "manage_search",
+        note = "apps settings windows system actions app_actions places modes snippets recent bookmarks files" },
+      { key = "launcher.search_files", kind = "bool", title = "Search files", icon = "folder_open" },
+      { key = "launcher.exclude", kind = "list", title = "Folders left out", icon = "folder_off" },
+      { key = "launcher.projects", kind = "list", title = "Project folders", icon = "folder_code" },
     } },
     { title = "Actions", fields = {
       { key = "launcher.action_prefix", kind = "text", title = "Action prefix", icon = "keyboard_command_key",
         note = "Typed first, it turns the launcher to actions" },
+      { key = "launcher.terminal", kind = "words", title = "Terminal", icon = "terminal", note = "Empty uses $TERMINAL" },
+      { key = "launcher.expansion", kind = "bool", title = "Expand snippets anywhere", icon = "short_text" },
+      { key = "launcher.plugins", kind = "bool", title = "Load plugins", icon = "extension",
+        note = "From ~/.config/eva/plugin" },
+    } },
+    { title = "Web", fields = {
+      { key = "launcher.engines", kind = "records", title = "Search engines", icon = "travel_explore",
+        fields = { "bang", "name", "url" }, note = "bang, name, address with %s, one after another" },
+      { key = "launcher.quicklinks", kind = "records", title = "Quick links", icon = "link",
+        fields = { "name", "url" }, note = "name, address with {query}, one after another" },
+      { key = "launcher.translate_to", kind = "text", title = "Translate to", icon = "translate" },
+      { key = "launcher.wiki_language", kind = "text", title = "Wikipedia language", icon = "language" },
+    } },
+    { title = "Files", fields = {
+      { key = "launcher.notes_file", kind = "text", title = "Notes file", icon = "edit_note",
+        note = "Empty for the shell's own" },
+      { key = "launcher.menus.appimages", kind = "list", title = "AppImage folders", icon = "deployed_code" },
+      { key = "launcher.menus.bookmarks", kind = "text", title = "Bookmark folder", icon = "bookmark" },
+      { key = "launcher.menus.player", kind = "words", title = "Player", icon = "play_circle" },
     } },
   } },
   rail = { sections = {
@@ -147,6 +183,26 @@ function M.split(line)
     else word[#word + 1] = c end
   end
   if #word > 0 or had then out[#out + 1] = table.concat(word) end
+  return out
+end
+
+--- The records in `list` as one line, each one's `fields` as words.
+function M.join_records(list, fields)
+  local flat = {}
+  for _, record in ipairs(list or {}) do
+    for _, name in ipairs(fields) do flat[#flat + 1] = record[name] or "" end
+  end
+  return M.join(flat)
+end
+
+--- The records on `line`, each `#fields` words. A record left short is dropped.
+function M.split_records(line, fields)
+  local flat, out = M.split(line), {}
+  for first = 1, #flat - #fields + 1, #fields do
+    local record = {}
+    for offset, name in ipairs(fields) do record[name] = flat[first + offset - 1] end
+    out[#out + 1] = record
+  end
   return out
 end
 

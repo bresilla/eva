@@ -125,6 +125,16 @@ function M.active(key)
   end
 end
 
+do
+  local KEYWORDS = { settings = "quick tiles toggles", notifications = "history alerts", tasks = "taskwarrior todo",
+    calendar = "agenda dates schedule", assistant = "ai chat ask", drop = "share files send" }
+  local index = require("lib.shell.launcher.search_index")
+  for key, page in pairs(M.all) do
+    index.register { id = "page:" .. key, name = page.name, keywords = KEYWORDS[key], material = page.icon, tag = "Panel",
+      description = "Panel", kind = "menu", run = function() return M.open(key) and "close" or "keep" end }
+  end
+end
+
 --- The pages the panel on `edge` holds, as side panel tabs (`key`, `name`,
 --- `icon`, `fit`, `build(w, h)` once `bind(model)` has given them their
 --- panel). `fit()` is how tall a page wants to stand, or nil for all there is.

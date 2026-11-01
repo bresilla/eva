@@ -12,6 +12,20 @@ M.tabs = {
   { key = "weather", name = "Weather", icon = "cloud" },
   { key = "terminal", name = "Terminal", icon = "terminal" },
 }
+do
+  local KEYWORDS = { performance = "cpu memory gpu load", media = "music lyrics player", weather = "forecast temperature",
+    battery = "charge power", terminal = "shell console" }
+  local index = require("lib.shell.launcher.search_index")
+  for position, tab in ipairs(M.tabs) do
+    index.register { id = "dashboard:" .. tab.key, name = tab.key == "performance" and "Performance" or tab.name,
+      keywords = KEYWORDS[tab.key], material = tab.icon, tag = "Dashboard", description = "Dashboard", kind = "menu",
+      run = function()
+        M.tab:set(position)
+        require("dashboard").drawer.set(true)
+        return "close"
+      end }
+  end
+end
 M.month_offset = require("themes.session").keep("eva.dashboard.month", 0)
 function M.month(offset, today)
   today = today or morf.time.date()

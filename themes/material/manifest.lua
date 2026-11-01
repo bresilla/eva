@@ -27,6 +27,8 @@ return {
     session = "themes.layouts.views.session",
     window_menu = "themes.layouts.views.window_menu",
     launcher = "themes.layouts.views.launcher",
+    launcher_grid = "themes.layouts.views.launcher_grid",
+    launcher_preview = "themes.layouts.views.launcher_preview",
     assistant = "themes.layouts.views.assistant",
     drop = "themes.layouts.views.drop",
     lule_page = "themes.layouts.views.lule_page",

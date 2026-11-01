@@ -3,10 +3,15 @@
 -- (lib/util/frecency.lua); and, after the action prefix (">"), the shell's own
 -- actions, and the pickers some of them open: "> scheme " (source
 -- colours), "> variant " (Material 3 scheme variants), "> wallpaper " (the
--- pictures in ~/Pictures/Wallpapers) and "> calc " (calc.lua).
+-- pictures in the Lule folder) and "> calc " (calc.lua). A plain search goes
+-- to universal.lua.
 
 local morf = require("morf")
 local frecency = require("lib.shell.launcher.frecency")
+local history = require("lib.shell.launcher.history")
+local pins = require("lib.shell.launcher.pins")
+local run = require("lib.shell.launcher.run")
+local rowkit = require("lib.shell.launcher.rows")
 local config = require("config")
 local calc = require("calc")
 
@@ -14,9 +19,67 @@ local M = {}
 
 local index
 local rows = {}
+local by_id = {}
+-- Whether the entries may have changed since they were last read.
+local dirty = true
+local watchers = {}
 
---- Reads the desktop entries again; true when they changed.
-function M.refresh()
+local function origin_of(entry)
+  local source = entry.source or ""
+  if source:find("flatpak", 1, true) then return "Flatpak" end
+  if (entry.exec or ""):lower():find("%.appimage") then return "AppImage" end
+  if source:find("snapd", 1, true) then return "Snap" end
+  if source:find("/nix/", 1, true) or source:find(".nix-profile", 1, true) then return "Nix" end
+  return nil
+end
+M.origin_of = origin_of
+
+-- The ids seen before, so what appears after that wears a badge for a week.
+local KNOWN_FOR = 7 * 86400
+local known
+
+local function read_known()
+  if known then return known end
+  known = {}
+  local ok, text = pcall(morf.fs.read, morf.paths.state("eva-launcher-known.json"))
+  local fine, data = pcall(morf.json.decode, ok and text or "")
+  if fine and type(data) == "table" then known = data end
+  return known
+end
+
+local function note_new(ids)
+  local seen = read_known()
+  local empty = next(seen) == nil
+  local now, changed = morf.time.now(), false
+  for _, id in ipairs(ids) do
+    if not seen[id] then
+      seen[id] = empty and 0 or now
+      changed = true
+    end
+  end
+  if changed then
+    morf.fs.write(morf.paths.state("eva-launcher-known.json"), morf.json.encode(seen), { atomic = true, parents = true })
+  end
+end
+
+local function is_new(id)
+  local at = read_known()[id]
+  return at ~= nil and at > 0 and morf.time.now() - at < KNOWN_FOR
+end
+
+--- Rings when an applications folder changes, so a launcher opening reads them
+--- only then.
+local function watch(folder)
+  if watchers[folder] or not morf.fs.watch then return end
+  local ok, handle = pcall(morf.fs.watch, folder, function() dirty = true end)
+  if ok and handle then watchers[folder] = handle end
+end
+
+--- Reads the desktop entries again if something changed; `force` reads them
+--- whatever. True when they changed.
+function M.refresh(force)
+  if not dirty and not force then return false end
+  dirty = false
   if not index then
     local ok, made = pcall(morf.apps.entries)
     if not ok then
@@ -26,26 +89,44 @@ function M.refresh()
     index = made
   else
     local ok, changed = pcall(index.refresh, index)
-    if not ok or not changed then return false end
+    if (not ok or not changed) and not force then return false end
   end
-  local list, seen = {}, {}
+  local list, seen, ids = {}, {}, {}
   local ok, all = pcall(index.applications, index)
   if not ok or type(all) ~= "table" then return false end
   for _, entry in ipairs(all) do
     local name = (entry.name or ""):match("^%s*(.-)%s*$")
     if not entry.no_display and name ~= "" and not seen[entry.id] then
       seen[entry.id] = true
+      ids[#ids + 1] = entry.id
       local comment = (entry.comment or ""):match("^%s*(.-)%s*$")
       if comment == "" then comment = entry.generic_name or "" end
-      list[#list + 1] = {
+      if entry.source and entry.source ~= "" then watch(entry.source) end
+      local origin = origin_of(entry)
+      local row = {
         kind = "app",
         id = entry.id,
         name = name,
         description = comment,
         icon = entry.icon or "",
         keywords = table.concat(entry.keywords or {}, " "),
+        pin = "app:" .. entry.id,
+        origin = origin,
+        categories = entry.categories or {},
+        desktop_actions = entry.actions or {},
+        command = entry.command or {},
+        terminal = entry.run_in_terminal == true,
+        window_class = entry.startup_class ~= "" and entry.startup_class or nil,
+        source = entry.source,
       }
+      if not pins.hidden(entry.id) then list[#list + 1] = row end
+      by_id[entry.id] = row
     end
+  end
+  note_new(ids)
+  for _, row in ipairs(list) do
+    row.fresh = is_new(row.id)
+    row.tag = row.fresh and "New" or row.origin
   end
   table.sort(list, function(a, b) return a.name:lower() < b.name:lower() end)
   rows = list
@@ -55,6 +136,214 @@ end
 M.refresh()
 
 local used = frecency.open { path = morf.paths.state("eva-launches.json") }
+M.used = used
+M.history = history.open { path = morf.paths.state("eva-launcher-history.json") }
+
+--- The applications, by name.
+function M.rows() return rows end
+
+--- The application `id`, or nil.
+function M.row(id) return by_id[id] end
+
+local function launch(row)
+  if run.dry() then
+    morf.log("info", "eva: launcher (dry run): launch " .. row.id)
+    return
+  end
+  if row.terminal and #row.command > 0 then
+    run.terminal(row.command)
+    return
+  end
+  local ok, err = pcall(index.launch, index, row.id)
+  if not ok then morf.log("warn", "eva: could not launch " .. row.id .. ": " .. tostring(err)) end
+end
+
+--- Opens `path` with `row`'s application.
+function M.open_file(row, path)
+  local argv = {}
+  for i, word in ipairs(row.command) do argv[i] = word end
+  argv[#argv + 1] = path
+  run.start(argv)
+  return "close"
+end
+
+--- `row`'s application as root, through polkit, on the session's display.
+local function as_root(row)
+  local argv = { "pkexec", "env" }
+  for _, name in ipairs { "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "DISPLAY", "XAUTHORITY" } do
+    local value = morf.env and morf.env(name)
+    if value and value ~= "" then argv[#argv + 1] = name .. "=" .. value end
+  end
+  for _, word in ipairs(row.command) do argv[#argv + 1] = word end
+  run.start(argv)
+  return "close"
+end
+
+--- The open window `row`'s application has, as a row of the windows mode, or nil.
+local function running(row)
+  local class = (row.window_class or row.id:gsub("%.desktop$", "")):lower()
+  for _, window in ipairs((require("launcher_modes.windows").window_rows())) do
+    if tostring(window.keywords or ""):lower() == class then return window end
+  end
+end
+
+--- What `row`'s application can do: its desktop file's actions first.
+function M.actions_for(row)
+  local out = {}
+  local window = running(row)
+  if window then
+    out[#out + 1] = { name = "Switch to its window", material = "open_in_browser", run = window.run }
+    out[#out + 1] = { name = "Open another", material = "open_in_new", run = function() launch(row) return "close" end }
+  else
+    out[#out + 1] = { name = "Open", material = "open_in_new", run = function() launch(row) return "close" end }
+  end
+  for _, action in ipairs(row.desktop_actions) do
+    local id = action.id
+    out[#out + 1] = { name = action.name ~= "" and action.name or id, material = "bolt", icon = action.icon,
+      run = function() return M.run_action(row, id) end }
+  end
+  out[#out + 1] = { name = "Run as root", material = "admin_panel_settings", run = function() return as_root(row) end }
+  if row.source and row.source ~= "" then
+    out[#out + 1] = { name = "Open containing folder", material = "folder_open",
+      run = function() return require("providers").reveal(row.source .. "/" .. row.id) end }
+  end
+  out[#out + 1] = { name = "Put it in a folder…", material = "create_new_folder",
+    run = function() return require("launcher_modes.shell").file(row.id) end }
+  out[#out + 1] = { name = "Hide it", material = "visibility_off", run = function()
+    pins.set_hidden(row.id, true)
+    M.refresh(true)
+    rowkit.bump()
+    return "keep"
+  end }
+  out[#out + 1] = { name = "Copy its command", material = "content_copy",
+    run = function() return run.copy(table.concat(row.command, " ")) end }
+  if row.origin == "Flatpak" then
+    local app_id = row.id:gsub("%.desktop$", "")
+    out[#out + 1] = { name = "Uninstall it", material = "delete",
+      run = function() return run.shell_terminal("flatpak uninstall " .. app_id) end }
+  end
+  return out
+end
+
+--- Runs the desktop action `id` of `row`'s application.
+function M.run_action(row, id)
+  if run.dry() then
+    morf.log("info", "eva: launcher (dry run): action " .. id .. " of " .. row.id)
+    return "close"
+  end
+  local ok, err = pcall(index.launch_action, index, row.id, id)
+  if not ok then morf.log("warn", "eva: could not run " .. id .. ": " .. tostring(err)) end
+  return "close"
+end
+
+local action_rows
+
+--- Every desktop action, as a row of its own: "Firefox: New Private Window".
+function M.action_rows()
+  if action_rows and action_rows.of == rows then return action_rows end
+  action_rows = { of = rows }
+  for _, row in ipairs(rows) do
+    for _, action in ipairs(row.desktop_actions) do
+      local id = action.id
+      action_rows[#action_rows + 1] = rowkit.row {
+        id = "app-action:" .. row.id .. ":" .. id, name = row.name .. ": " .. action.name, description = row.description,
+        icon = action.icon ~= "" and action.icon or row.icon, tag = "App action",
+        run = function() return M.run_action(row, id) end,
+      }
+    end
+  end
+  return action_rows
+end
+
+local CATEGORIES = {
+  { "Internet", { "Network", "WebBrowser", "Email" } }, { "Media", { "AudioVideo", "Audio", "Video", "Player" } },
+  { "Office", { "Office", "Publishing" } }, { "Graphics", { "Graphics", "Photography" } },
+  { "Games", { "Game" } }, { "Development", { "Development", "IDE" } }, { "Education", { "Education", "Science" } },
+  { "Utilities", { "Utility", "Accessibility" } }, { "System", { "System", "Settings", "Monitor" } },
+}
+
+--- The category `row` falls in, or "Other".
+function M.category_of(row)
+  for _, category in ipairs(CATEGORIES) do
+    for _, name in ipairs(category[2]) do
+      for _, have in ipairs(row.categories or {}) do
+        if have == name then return category[1] end
+      end
+    end
+  end
+  return "Other"
+end
+
+--- The categories that hold something, in their order, and the apps of each.
+function M.categories()
+  local out, by_name = {}, {}
+  for _, category in ipairs(CATEGORIES) do by_name[category[1]] = {} end
+  by_name.Other = {}
+  for _, row in ipairs(rows) do
+    local list = by_name[M.category_of(row)]
+    list[#list + 1] = row
+  end
+  for _, category in ipairs(CATEGORIES) do
+    if #by_name[category[1]] > 0 then out[#out + 1] = { name = category[1], apps = by_name[category[1]] } end
+  end
+  if #by_name.Other > 0 then out[#out + 1] = { name = "Other", apps = by_name.Other } end
+  return out
+end
+
+--- What the grid shows: a list of `{ name, rows }`. Inside `folder`, its apps;
+--- within `category`, that category's; else the favourites, what is used most,
+--- the folders, and every app.
+function M.grid(folder, category)
+  if folder ~= "" then
+    for _, f in ipairs(pins.folders()) do
+      if f.name == folder then
+        local list = {}
+        for _, id in ipairs(f.apps) do
+          if by_id[id] then list[#list + 1] = by_id[id] end
+        end
+        return { { rows = list } }
+      end
+    end
+    return {}
+  end
+  if category ~= "" then
+    for _, c in ipairs(M.categories()) do
+      if c.name == category then return { { rows = c.apps } } end
+    end
+    return {}
+  end
+  local out = {}
+  local favourites = {}
+  local providers = require("providers")
+  local shown = {}
+  for _, name in ipairs(pins.favourites()) do
+    local r = providers.resolve(name)
+    if r then
+      r.pinned = true
+      shown[r.id] = true
+      favourites[#favourites + 1] = r
+    end
+  end
+  if #favourites > 0 then out[#out + 1] = { name = "Favourites", rows = favourites } end
+  local suggested = {}
+  for _, hit in ipairs(used.rank("", rows, { key = "name", id = "id" })) do
+    if (hit.frecency or 0) <= 0 or #suggested >= 4 then break end
+    if not shown[hit.item.id] then suggested[#suggested + 1] = hit.item end
+  end
+  if #suggested > 0 then out[#out + 1] = { name = "Suggested", rows = suggested } end
+  local filed, folders = {}, {}
+  for _, f in ipairs(pins.folders()) do
+    folders[#folders + 1] = { kind = "folder", id = f.name, name = f.name, count = #f.apps, material = "folder" }
+    for _, id in ipairs(f.apps) do filed[id] = true end
+  end
+  local loose = {}
+  for _, row in ipairs(rows) do
+    if not filed[row.id] then loose[#loose + 1] = row end
+  end
+  if #folders > 0 then out[#out + 1] = { name = "Folders", rows = folders } end
+  out[#out + 1] = { name = #out > 0 and "All apps" or nil, rows = loose }
+  return out
+end
 
 -- ---------------------------------------------------------------- actions --
 
@@ -121,21 +410,19 @@ M.VARIANTS = {
     description = "Greys only, with no colour at all." },
 }
 
-local PICTURE = { jpg = true, jpeg = true, png = true, webp = true, gif = true }
+--- The folder the wallpapers are in: the one Lule uses.
+function M.wallpaper_folder()
+  local current = require("wallpaper").current:get()
+  return require("lib.integrations.lule").folder(config.get("lule.folder"), current)
+end
 
---- The pictures in ~/Pictures/Wallpapers (and the current one), by name:
---- `{ path, name }` each.
+--- The pictures in that folder (and the current one), by name: `{ path, name }`
+--- each.
 function M.wallpapers()
-  local dir = morf.fs.home() .. "/Pictures/Wallpapers"
-  local ok, entries = pcall(morf.fs.list, dir)
   local out, seen = {}, {}
-  if ok and type(entries) == "table" then
-    for _, e in ipairs(entries) do
-      if e.is_file and PICTURE[(e.extension or ""):lower()] and not seen[e.path] then
-        seen[e.path] = true
-        out[#out + 1] = { path = e.path, name = e.name or e.path:match("([^/]+)$") }
-      end
-    end
+  for _, picture in ipairs(require("lib.integrations.lule").pictures(M.wallpaper_folder()) or {}) do
+    seen[picture.path] = true
+    out[#out + 1] = picture
   end
   local current = require("wallpaper").current:get()
   if current ~= "" and not seen[current] then
@@ -221,31 +508,24 @@ function M.search(query, limit)
       } }, "calc"
     end
     local term = rest:match("^%s*(.-)%s*$")
-    local hits = morf.text.fuzzy(term, M.ACTIONS, { key = { "name", { "description", 0.3 } } })
+    local pool, named = {}, {}
+    for _, action in ipairs(M.ACTIONS) do
+      pool[#pool + 1] = action
+      named[action.name] = true
+    end
+    for _, mode in ipairs(providers.mode_rows()) do
+      if not named[mode.name] then pool[#pool + 1] = mode end
+    end
+    local hits = morf.text.fuzzy(term, pool, { key = { "name", { "keywords", 0.6 }, { "description", 0.3 } } })
     local out = {}
     for _, hit in ipairs(hits) do out[#out + 1] = hit.item end
+    out.cap = #out
     return out, "actions"
   end
-  local hits = used.rank(query, rows, {
-    key = { "name", { "keywords", 0.4 }, { "description", 0.2 } },
-    id = "id",
-  })
-  -- An answer first (a sum, a conversion, an address), the apps, then
-  -- what else to do with the words: search the web or the files.
-  providers.revision:get()
-  local answer = providers.inline(query)
-  local fallbacks = providers.fallbacks(query)
-  local room = limit and math.max(1, limit - #fallbacks - (answer and 1 or 0)) or nil
-  local out = {}
-  if answer then out[1] = answer end
-  local apps_found = 0
-  for _, hit in ipairs(M.strict(query, hits)) do
-    out[#out + 1] = hit.item
-    apps_found = apps_found + 1
-    if room and apps_found >= room then break end
-  end
-  for _, f in ipairs(fallbacks) do out[#out + 1] = f end
-  return out, "apps"
+  local universal = require("universal")
+  local cap = config.get("launcher.max_results")
+  if query == "" then return universal.home(cap), "apps" end
+  return universal.search(query, cap), "apps"
 end
 
 --- Whether a match's characters are one unbroken run (bytes in order,
@@ -311,11 +591,11 @@ end
 function M.activate(row)
   if not row then return "keep" end
   if row.kind == "app" then
-    used.record(row.id)
-    local ok, err = pcall(index.launch, index, row.id)
-    if not ok then morf.log("warn", "eva: could not launch " .. row.id .. ": " .. tostring(err)) end
+    if config.get("launcher.remember") then used.record(row.id) end
+    launch(row)
     return "close"
   end
+  if row.pin and not row.private and config.get("launcher.remember") then used.record(row.pin) end
   return row.run() or "close"
 end
 

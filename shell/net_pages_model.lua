@@ -119,6 +119,14 @@ function M.new(kind,active)
     end
   end
   function model.row(target) return find(snapshot:get(),type(target)=="table" and target.key or target) end
+  --- Every connection the page lists.
+  function model.list()
+    local value,out=snapshot:get(),{}
+    for _,name in ipairs {"network_rows","app_rows"} do
+      for _,row in ipairs(value[name]) do out[#out+1]=row end
+    end
+    return out
+  end
   function model.toggle(target,on)
     if not active() or dry_run() then return false end
     local key=type(target)=="table" and target.key or target

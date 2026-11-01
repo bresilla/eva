@@ -84,6 +84,7 @@ local HOST = [[
       "shell/appearance_model.lua", "shell/wallpaper_model.lua", "shell/desktop_model.lua", "shell/island.lua", "shell/standby_model.lua",
       "shell/profiles_model.lua", "shell/focus_model.lua", "shell/focus_page.lua", "shell/notification_settings.lua",
       "shell/notification_rules.lua", "shell/bar_store.lua", "shell/bar_page.lua", "shell/bar_custom.lua", "shell/panels_board.lua",
+      "lib/shell/launcher/pins.lua", "shell/launcher_modes/web.lua",
       "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",
       "themes/layouts/views/notification_settings.lua" } do
@@ -145,6 +146,21 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(test.find { id = "utilities-session-suspend", visible = true }, "challenge means polkit asks, so it stays")
   end)
 end
+
+test.it("a records field keeps its tables through one line of words", function()
+  test.load("../shell/init.lua", { size = { 300, 200 }, env = { EVA_DRY_RUN = "1" }, source = HOST .. [[
+    morf.ipc.records = function()
+      local forms = require("settings_forms")
+      local fields = { "name", "url" }
+      local line = forms.join_records({ { name = "Two words", url = "https://a/{query}" }, { name = "b", url = "https://b" } }, fields)
+      return { line = line, back = forms.split_records(line .. " short", fields) }
+    end
+  ]] })
+  test.advance(100)
+  local said = test.ipc("records")
+  test.eq(said.line, '"Two words" https://a/{query} b https://b')
+  test.eq(said.back, { { name = "Two words", url = "https://a/{query}" }, { name = "b", url = "https://b" } })
+end)
 
 test.it("every key the forms name is a real key", function()
   test.load("../shell/init.lua", { size = { 300, 200 }, env = { EVA_DRY_RUN = "1" }, source = HOST })

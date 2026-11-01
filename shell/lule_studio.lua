@@ -28,7 +28,6 @@ M.preview_error = require("themes.session").keep("eva.lule.preview_error", "")
 M.source = require("themes.session").keep("eva.lule.source", config.get("lule.source"))
 M.logo = require("themes.session").keep("eva.lule.logo", config.get("lule.logo"))
 M.logo_size = require("themes.session").keep("eva.lule.logo-size", tostring(config.get("lule.logo_size")))
-local pictures = { png = true, jpg = true, jpeg = true, webp = true, bmp = true, gif = true, avif = true }
 local function message(text, failed) M.failed:set(failed or false) M.message:set(text) end
 function M.set_source(value)
   if M.busy:get() or (value ~= "files" and value ~= "generate") then return false end
@@ -75,30 +74,9 @@ function M.generate(apply)
   if not ok or not child then M.busy:set(false) message(tostring(not ok and child or why or "Could not start Lule."), true) return false end
   return true
 end
-local LIST_DEPTH, LIST_MOST = 4, 4000
 --- The pictures in `path`, by name; with `deep`, its folders' too. Nil and why
 --- for a folder that cannot be read.
-function M.list(path, deep)
-  path = expand(path or "")
-  if not morf.fs.is_dir(path) then return nil, "That wallpaper folder does not exist." end
-  local files = {}
-  local function walk(folder, depth)
-    local ok, entries = pcall(morf.fs.list, folder, { follow = true })
-    if not ok or type(entries) ~= "table" then return false end
-    for _, entry in ipairs(entries) do
-      if #files >= LIST_MOST then break end
-      if entry.is_file and pictures[(entry.extension or ""):lower()] then
-        files[#files + 1] = { path = entry.path, name = entry.name, modified = entry.modified }
-      elseif deep and entry.is_dir and depth < LIST_DEPTH then
-        walk(entry.path, depth + 1)
-      end
-    end
-    return true
-  end
-  if not walk(path, 1) then return nil, "Cannot read that wallpaper folder." end
-  table.sort(files, function(a, b) return a.name:lower() < b.name:lower() end)
-  return files
-end
+M.list = lule.pictures
 function M.scan(path)
   path = expand(path or "")
   local files, why = M.list(path)
@@ -213,10 +191,7 @@ local restoring = require("themes.session").restoring
 morf.effect("eva.lule.open", function()
   if not M.active:get() then scanned = false return end
   if M.source:get() == "generate" then return end
-  local folder = config.get("lule.folder")
-  if folder == "" then folder = morf.env("LULE_W") or "" end
-  if folder == "" then folder = (M.selected:get():match("^(.*)/") or (morf.fs.home() .. "/Pictures/Wallpapers")) end
-  folder = expand(folder)
+  local folder = lule.folder(config.get("lule.folder"), M.selected:get())
   if scanned and M.folder:get() == folder then return end
   local page = M.page:get()
   scanned = M.scan(folder)

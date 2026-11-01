@@ -26,8 +26,22 @@ M.ENGINES = {
   { id = "translate", bang = "tr", name = "Translate", url = "https://translate.google.com/?sl=auto&tl=en&text=%s" },
 }
 
+--- The engines: the setting `launcher.engines` (each `{ bang, name, url }`, %s
+--- standing for the words), then the built-in ones.
+function M.engines()
+  local out = {}
+  local ok, own = pcall(function() return require("config").get("launcher.engines") end)
+  for _, e in ipairs(ok and type(own) == "table" and own or {}) do
+    if type(e) == "table" and e.bang and e.url then
+      out[#out + 1] = { id = e.id or e.bang, bang = e.bang, name = e.name or e.bang, url = e.url }
+    end
+  end
+  for _, e in ipairs(M.ENGINES) do out[#out + 1] = e end
+  return out
+end
+
 function M.engine(id_or_bang)
-  for _, e in ipairs(M.ENGINES) do
+  for _, e in ipairs(M.engines()) do
     if e.id == id_or_bang or e.bang == id_or_bang then return e end
   end
   return nil

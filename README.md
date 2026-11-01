@@ -460,6 +460,166 @@ rigid to liquid, and the **Island**: a pill grown out of the top of the frame th
 shows the music or the time, opens on a press and walks its faces on a right
 press (`morf ipc call island [on|off|toggle|next]`).
 
+## The launcher
+
+`Ctrl+Space`, or `eva launcher`. One box finds apps, Settings pages and the
+controls inside them, quick tiles, open windows, files, recent files, bookmarks,
+snippets, your scripts and the shell's own actions, ranked together, with no prefix.
+Answers come inline as you type: `2^10`, `10ft in m`, `16px in rem`, `20% off 80`,
+`255 in hex`, `100 usd in eur`, `time in tokyo`, `10am utc in oslo`, `days until
+2027-01-01`. Files land when they land; the list and the highlight stay put.
+
+| Prefix | Mode |
+|---|---|
+| `=` | the calculator |
+| `$` | run a command, or a program from your PATH; `sudo` goes to a terminal |
+| `/` `~` | files by name, or a path to browse: `/etc/`, `~/Doc` |
+| `?` | the web; a bang picks the engine: `?gh`, `?yt`, `?aur`, `?nix` |
+| `@` | open windows |
+| `!` | the system, and the shell's panels |
+| `:` | emoji, the last ones first |
+| `;` | the clipboard, from eva-clipboard's store: `; img`, `; link`, `; pinned` |
+| `#` | a colour in every notation |
+| `>` | the shell's actions and every mode below |
+
+A mode also answers to its word at the start of a plain search, next to whatever
+else that search finds: `timer 12m pasta` starts from the same box as `> timer 12m
+pasta`.
+
+| Word | What it does |
+|---|---|
+| `task` | adds to and finds in Taskwarrior: `task buy milk due:friday +home` |
+| `timer` `alarm` | `timer 12m pasta`, `alarm tomorrow 7:30 standup` |
+| `note` | adds a line to `launcher.notes_file` |
+| `agenda` | what is planned for a day |
+| `tr` | translates: `tr es hello`, `tr french good morning`; `trans` if it is installed, else MyMemory |
+| `define` `spell` `wiki` | a dictionary (`dict`, else dictionaryapi.dev), spelling (`aspell`, `hunspell`), a Wikipedia summary |
+| `pw` | a password or a passphrase: `pw 24`, `pw 16 nosym`, `pw words 6`; shown as dots, copied with a password manager's mark |
+| `uuid` `hash` `b64` `url` `case` `json` `jwt` `char` | encoders, digests and naming styles; `hash` takes a file's path too |
+| `date` `time` `week` `duration` | `date next friday`, `date 1700000000`, `time 10am utc in jst`, `duration 55h` |
+| `qr` | a QR code of any text, up to 400 bytes |
+| `lorem` `roll` `rand` `kao` `gitmoji` `font` | placeholder text, dice, kaomoji, gitmoji, the installed fonts |
+| `kill` `port` | ends a process of yours, or whatever listens on a port |
+| `man` `unit` `keys` | manual pages, systemd units (start, stop, enable, logs), key bindings |
+| `ssh` `tmux` | hosts from `~/.ssh/config` and `known_hosts`, terminal sessions |
+| `nix` | searches nixpkgs; Return is `nix run` |
+| `vault` | names from `pass` or `rbw`; the tool does the copying |
+| `wifi` `bt` `vpn` `audio` `mic` | joins, connects, switches, through the Settings pages' own models |
+| `vol` `bright` `media` | the volume, the brightness, what is playing |
+| `window` `ws` | float, pin or move the window you are in, go to a workspace |
+| `recent` `dir` `grep` `places` `project` `usb` | recent files, folders, words inside files, named folders, repositories, removable drives |
+| `snip` | snippets: `snip add sig ;sig: Kind regards, {date}` |
+| `mark` `link` | bookmarks from Firefox, Chromium and `launcher.bookmarks`; `launcher.quicklinks` |
+| `game` | your Steam library |
+
+`> ` lists them all, `> plugins` says what loaded, `> history` searches what you
+picked, `> hidden` brings an app back, and `> alias add ff firefox` gives anything a
+short word.
+
+Keys: `Ctrl+1`..`9` and `Alt+1`..`9` pick a result. `Tab` completes what can be
+completed (a mode from its first letters, a path, a bang) and otherwise lists the
+result's actions, as do `Ctrl+K`, `F10`, a right click and a long press. `Up` in the
+empty box walks back through past searches. `Space` once you have walked the list,
+or `F1` any time, is quick look: a pane beside the list where there is room, over it
+where there is not. `Ctrl+J` and `Ctrl+P` walk the list, `Ctrl+Tab` the modes,
+`Ctrl+U` clears, `Ctrl+G` turns the grid on and off.
+
+Every result has an action panel. An app's lists what its desktop file offers, then
+pin to favourites, run as root through polkit, open containing folder, file it in a
+folder, hide it, and uninstall for a Flatpak.
+
+On a phone or a tablet the launcher opens as a grid: favourites, what you use most,
+your folders, then every app, with chips for the categories and an alphabet down the
+side. A long press lists a tile's actions. The on-screen keyboard waits until you
+press the field. `launcher.layout` is `auto`, `grid` or `list`.
+
+Settings live under `launcher` in the settings file, `launcher.sources` choosing what
+a plain search reaches. Pages and tiles register themselves: anything added to
+`settings_model.DETAILS` or `TOGGLES` is found as it stands, and
+`lib/shell/launcher/search_index.lua` takes an entry from anywhere else.
+
+`launcher apps` lists Flatpaks and the AppImages in `launcher.menus.appimages`.
+`launcher web` lists browser history, bookmarks and search, and shows the pages of
+the `bookmark` tool's files when they are in `launcher.menus.bookmarks`. A person
+with their AppImages elsewhere and their own player sets, in the settings file:
+
+```json
+{ "launcher": { "menus": { "appimages": ["/env/app"], "player": ["~/.local/sbin/play"] } } }
+```
+
+`eva open launcher/timer` opens on a mode and `eva launcher query TEXT` with text
+typed, for a key to bind. `eva launcher selection` opens on what is selected.
+`printf 'a\nb\n' | eva dmenu -p Pick` is a menu for scripts: the choice on stdout,
+exit 1 with none.
+
+### Script commands
+
+Every executable in `~/.config/eva/scripts` is a command that plain search finds.
+Comments at its head describe it:
+
+```sh
+#!/bin/sh
+# @eva.title Restart the audio
+# @eva.description Brings PipeWire back
+# @eva.icon restart_alt
+# @eva.mode silent
+systemctl --user restart pipewire
+```
+
+`@eva.mode` is `silent`, `terminal`, `copy` (what it prints goes to the clipboard) or
+`notify`. `@eva.argument a name` asks for an argument first, `@eva.confirm true` wants
+Return twice. The folder is watched.
+
+### Plugins
+
+A plugin is a Lua file that registers with the launcher and returns nothing. It runs
+in the shell, as you, with everything the shell can do: put there only what you would
+run yourself. Roots are searched in order, the folders of `EVA_PLUGIN_PATH` and then
+`~/.config/eva`, and each is laid out the same way:
+
+```
+plugin/*.lua         run at start, by name
+lua/*.lua            for require, never run by themselves
+pack/*/start/*/      a package: a root of its own
+after/plugin/*.lua   run last, to override the rest
+```
+
+```lua
+-- ~/.config/eva/plugin/ip.lua
+local launcher = require("eva.launcher")
+
+launcher.mode {
+  id = "ip", name = "Address", material = "public", words = { "ip" },
+  hint = "ip  ·  this machine's addresses",
+  search = function(term)
+    local answer = launcher.ask("ip", "all", { "hostname", "-I" }, function(stdout) return stdout end)
+    if not answer then return { launcher.note("ip", "Looking…", "", "public") } end
+    local rows = {}
+    for address in answer:gmatch("%S+") do
+      rows[#rows + 1] = launcher.copy("ip:" .. address, address, "Return copies it", "public")
+    end
+    return rows
+  end,
+}
+```
+
+A mode's `search(term, query)` gives rows. A row is `{ name, description, material,
+run, actions }`; `run` returns `"close"`, `"keep"`, or a new query for the box.
+
+| Call | |
+|---|---|
+| `launcher.mode { id, name, material, shape, prefix, words, hint, search, bare, hidden }` | adds a mode, or replaces the one with that `id` |
+| `launcher.entry { id, name, keywords, description, material, tag, run, actions }` | adds something plain search finds |
+| `launcher.on.chosen(fn)` | `fn(row, query)` runs after a result is chosen |
+| `launcher.row(t)`, `launcher.copy(id, name, description, material, value)`, `launcher.note(id, name, description, material)`, `launcher.file(path, folder)` | build rows |
+| `launcher.fuzzy(list, term, key)` | filters a list as the box does |
+| `launcher.ask(slot, question, argv, parse, options)` | runs a program without holding the search: nil until it answers, and the search runs again when it does |
+| `launcher.start(argv)`, `launcher.open(target)`, `launcher.browse(url)`, `launcher.terminal(argv)`, `launcher.clip(text)`, `launcher.paste()` | do things; each that ends a row returns `"close"` |
+
+One plugin raising is reported in `> plugins` and the rest still load. `EVA_NO_PLUGINS=1`
+or `launcher.plugins` off starts without them, which answers whether a problem is a
+plugin's.
+
 ## Phone, tablet and desk
 
 Each output is classed from its logical size: compact below 600 wide, medium to

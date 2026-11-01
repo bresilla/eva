@@ -71,7 +71,12 @@ local function words(field, inner)
     function(value) config.set(field.key, forms.split(value)) end)
 end
 
-local KINDS = { bool = bool, choice = choice, number = number, text = text, words = words, list = words }
+local function records(field, inner)
+  return line(field, inner, function() return forms.join_records(config.get(field.key), field.fields) end,
+    function(value) config.set(field.key, forms.split_records(value, field.fields)) end)
+end
+
+local KINDS = { bool = bool, choice = choice, number = number, text = text, words = words, list = words, records = records }
 
 --- The sections of form `name` as blocks, for a page to place.
 function M.sections(name, w)
