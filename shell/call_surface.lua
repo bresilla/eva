@@ -1,6 +1,6 @@
--- The call screen's own surface: the compositor's overlay layer, there while a
--- call is, and on this output only when it is the primary one. A phone or
--- tablet gets the whole screen, a desk a card along the top.
+-- The phone's own surface: the compositor's overlay layer, there while a call
+-- is or while the SIM asks, on this output only when it is the primary one. A
+-- phone or tablet gets the whole screen, a desk a card along the top.
 local morf = require("morf")
 local ui = require("morf.ui")
 local M = {}
@@ -23,16 +23,30 @@ local function shield(owner)
   }
 end
 
+local function look()
+  local kit, theme = require("kit"), require("theme")
+  local bounce = theme.bounce and theme.bounce.spatial or {}
+  return { C = theme.color, text = kit.text, icon = kit.icon, action = kit.action, round = kit.round,
+    bounce = { duration = bounce.duration or 300, easing = bounce.easing or "out_back" } }
+end
+
 function M.start(owner)
   local layer
+  local model, sim = owner.model, owner.sim
+  local function calling() return model.stage:get() ~= "idle" end
   local function open()
-    local compact = not require("responsive").sheets()
+    local compact = not require("responsive").sheets() and not sim.asking()
     local function width() local w = size() return compact and CARD_W or w end
-    local function height() local _, h = size() return compact and CARD_H or h end
-    local screen = require("themes").view("call").build {
-      phone = owner.model, width = width, height = height, compact = compact,
+    local function height() local _, h = size() return h end
+    local call = require("themes").view("call").build {
+      phone = model, width = width, height = height, compact = compact,
     }
-    local root = ui.Item { id = "call-root", anchors = { fill = true }, screen, shield(owner) }
+    local root = ui.Item { id = "call-root", anchors = { fill = true },
+      ui.Item { id = "phone-sim", anchors = { fill = true }, z = 10,
+        visible = function() return sim.asking() and not calling() end,
+        require("themes.sim_prompt").build { sim = sim, look = look(), width = width, height = height } },
+      ui.Item { id = "phone-call", anchors = { fill = true }, z = 20, visible = calling, call },
+      shield(owner) }
     layer = morf.window.layer {
       blend = "srgb", namespace = "eva-call", layer = "overlay", exclusive_zone = -1, keyboard_focus = "none",
       anchors = compact and { top = true } or { top = true, bottom = true, left = true, right = true },
@@ -42,7 +56,7 @@ function M.start(owner)
     M.layer = layer
   end
   morf.effect("eva.phone.surface", function()
-    local up = owner.model.stage:get() ~= "idle"
+    local up = calling() or sim.asking()
     local primary = not morf.window.primary or morf.window.primary()
     if up and primary and not layer then open()
     elseif not up and layer then

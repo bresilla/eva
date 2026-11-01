@@ -69,6 +69,7 @@ local function start()
       return not (person and person.favourite)
     end,
   }
+  M.sim = require("models.phone_sim").new { mobile = mobile }
   require("call_surface").start(M)
   require("call_posture").start(M, { screen = screen, dry = dry, flag = flag })
 end
@@ -77,6 +78,14 @@ morf.effect("eva.phone.start", function()
   local mobile = services.modem
   if M.model or not (mobile and mobile.voice and mobile.voice.present:get()) then return end
   start()
+end)
+
+-- What the lock reads, it having no way to the settings.
+morf.effect("eva.phone.lock-settings", function()
+  local contacts, country = config.get("phone.contacts"), config.get("phone.country")
+  local state = morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")
+  pcall(morf.fs.write, state .. "/eva/phone/lock.json",
+    morf.json.encode { contacts = contacts, country = country }, { atomic = true, parents = true, mode = 384 })
 end)
 
 local function need()

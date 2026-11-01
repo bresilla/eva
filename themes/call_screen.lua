@@ -19,9 +19,6 @@ local M = {}
 M.AVATAR = 96
 local ROUND = 72        -- a round button
 local ORB = 80          -- the orb and its rail's height
-local KEYS = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#" }
-local LETTERS = { ["2"] = "ABC", ["3"] = "DEF", ["4"] = "GHI", ["5"] = "JKL", ["6"] = "MNO",
-  ["7"] = "PQRS", ["8"] = "TUV", ["9"] = "WXYZ", ["0"] = "+" }
 -- How far along the rail a pull commits, of the way to its end.
 local COMMIT = 0.7
 
@@ -133,27 +130,11 @@ local function rail(look, phone, width)
 end
 
 local function keypad(look, phone, width)
-  local C = look.C
-  local cell = S.TOUCH + S.xl
-  local function press(key)
-    return look.action {
-      id = "call-key-" .. key, accessible_name = key, width = cell, height = cell, cursor = "pointer",
-      on_clicked = function() phone.tone(key) end,
-      ui.Rect { anchors = { fill = true }, radius = look.round(cell / 2),
-        color = function() return C.surfaceContainerHigh end },
-      ui.Column { anchors = { center_in = true }, gap = 0, align = "center",
-        look.text { text = key, font_size = S.xl + S.xs },
-        look.text { text = LETTERS[key] or " ", font_size = S.m - S.xxs,
-          color = function() return C.onSurfaceVariant end },
-      },
-    }
-  end
-  local grid = { columns = 3, column_gap = S.l, row_gap = S.m }
-  for _, key in ipairs(KEYS) do grid[#grid + 1] = press(key) end
-  return ui.Item { id = "call-keypad", width = width, height = 4 * cell + 3 * S.m,
+  local pad = require("themes.phone_pad").build { look = look, prefix = "call-key",
+    on_key = function(key) phone.tone(key) end }
+  return ui.Item { id = "call-keypad", width = width, height = pad.height,
     visible = function() return phone.keypad:get() end,
-    ui.Item { width = 3 * cell + 2 * S.l, height = 4 * cell + 3 * S.m,
-      anchors = { horizontal_center = true }, ui.Grid(grid) },
+    ui.Item { width = pad.width, height = pad.height, anchors = { horizontal_center = true }, pad.node },
   }
 end
 

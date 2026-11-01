@@ -1,0 +1,10 @@
+# A locked phone: at rest with its emergency button, a call over the lock, the
+# SIM asking and emergency dialling, against the modem stand-in.
+export EVA_FAKE_MODEM=1 EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging}
+export EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
+start lock
+pause 1.4; shot rest
+ipc phone ring +31612345678; pause 1.2; shot incoming
+ipc phone hang_up; pause 2.4
+ipc phone lock sim-pin; pause 1; shot sim-pin
+ipc phone lock sim-puk; pause 1; shot sim-puk
