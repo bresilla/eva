@@ -161,6 +161,7 @@ return function(theme, M)
     if widget == "area" or widget == "segment" then
       return { indicator = ring(t, function() return math.min(16, t.height / 2) end) }
     end
+    if require("lib.kit.archetypes.press").has(spec, "flat") then return S.flat(t, spec) end
     if widget == "switch" then return switch(t)
     elseif widget == "icon" then return icon(t, spec)
     elseif widget == "checkbox" or widget == "check_menu_item" then return checkbox(t)

@@ -10,6 +10,38 @@ function M.new(ctx)
     reading=morf.signal("eva.bar.reading",{network_icon="",mobile_icon="",battery=battery.NONE,percentage="",
       indicators={},icons={},technology=""}) }
   function model.titles() return require("config").get("edgebar.titles")~="off" and not model.vertical() end
+  -- The tray on a desk, up while the bar is and its setting says so.
+  local config=require("config")
+  function model.tray_on() return config.get("edgebar.tray")~="off" end
+  if require("responsive").form()=="desk" then
+    model.tray=require("tray_model").new()
+    morf.effect("eva.bar.tray",function()
+      if model.on() and model.tray_on() then model.tray.start() else model.tray.stop() end
+    end)
+  end
+  -- The wheel over the bar, each with its setting: `volume` or `workspace`.
+  function model.wheel_on(kind) return config.get("edgebar.wheel_"..kind)==true end
+  local VOLUME_STEP=0.05
+  function model.wheel_volume(steps)
+    if not (model.on() and model.wheel_on("volume")) then return end
+    local volume=require("osd").volume()
+    require("settings_model").levels.set_volume(math.max(0,math.min(1,volume-steps*VOLUME_STEP)))
+  end
+  -- A touchpad turns in fractions: a workspace goes by for each whole notch.
+  local turned=0
+  function model.wheel_workspace(steps)
+    if not (model.on() and model.wheel_on("workspace")) then return end
+    turned=turned+steps
+    if math.abs(turned)<1 then return end
+    local delta=turned>0 and 1 or -1
+    turned=0
+    local dry=morf.env("EVA_DRY_RUN")
+    if dry and dry~="" and dry~="0" then
+      morf.log("info","eva: workspace "..delta.." (dry run)")
+      return
+    end
+    services.workspace.step(delta)
+  end
   -- What collapses, in `room` pixels: status_model.arrange.
   function model.arrange(room,sizes)
     local r=model.reading:get()

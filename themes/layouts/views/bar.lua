@@ -110,7 +110,7 @@ function V.build(model)
   -- scroll along it, a wheel notch a window at a time.
   local CLOCK_W, CLOCK_H, PAD = 190, 64, responsive.corner()
   local LEFT_CLOCK_W = TABLET and 168 or 64
-  local tail_row
+  local tail_row, tail_column
   local function windows(as)
     if PHONE then return ui.Item { width = 0, height = 0 } end
     local vertical = as == "column"
@@ -157,6 +157,17 @@ function V.build(model)
   end
   local function ink() return C.onSurface end
   local function reading() return model.reading:get() end
+  -- Under a desk's press area: the wheel's own way in, with its setting. A
+  -- touchpad turns no notches, only pixels: this many are one.
+  local NOTCH_PX = 15
+  local function wheel(kind, turned)
+    if not DESK then return ui.Item {} end
+    return ui.MouseArea { id = "bar-wheel-" .. kind, anchors = { fill = true }, z = -1,
+      visible = function() return model.wheel_on(kind:match("^%a+")) end,
+      on_wheel = function(_, _, _, pixels, _, steps)
+        turned((steps and steps ~= 0) and steps or (pixels or 0) / NOTCH_PX)
+      end }
+  end
   local function plan_room(vertical)
     if vertical then
       local _, h = model.screen()
@@ -231,6 +242,7 @@ function V.build(model)
       width = function() return vertical and ITEM or (row.layout_width or 160) + S.l end,
       height = function() return vertical and (row.layout_height or 160) + S.l or ITEM end,
       on_clicked = model.open_settings,
+      wheel("volume" .. v, model.wheel_volume),
       ui.Item { anchors = { center_in = true },
         width = function() return row.layout_width or 0 end,
         height = function() return row.layout_height or 0 end,
@@ -243,6 +255,54 @@ function V.build(model)
       end, 10)
     end
     return area, row
+  end
+
+  -- ------------------------------------------------------------ tray --
+  -- The system tray beside the status: the kit's tray item in the theme's
+  -- skin, the program's own picture on it. A press activates it, a right
+  -- press opens its menu. It stands down where it would run into the clock.
+  local TRAY = 28
+  local function tray_picture(row)
+    local spec = { anchors = { center_in = true }, width = 20, height = 20 }
+    if row.pixmap then spec.source = row.pixmap spec.fill_mode = "preserve_aspect_fit" return ui.Image(spec) end
+    if row.file ~= "" then spec.source = row.file spec.fill_mode = "preserve_aspect_fit" return ui.Image(spec) end
+    if row.icon ~= "" then spec.name, spec.source_width, spec.source_height = row.icon, 40, 40 return ui.Icon(spec) end
+    return kit.icon("apps", 20, ink, { anchors = { center_in = true } })
+  end
+  local function tray_delegate(row, suffix)
+    local node, item = require("lib.kit.composites.tray_item") {
+      id = "bar-tray-item" .. suffix .. "-" .. tostring(row.address), address = row.address, size = TRAY, icon = " ",
+      title = row.title, on_activated = function() model.tray.activate(row.address) end }
+    ui.reparent(tray_picture(row), node)
+    -- The kit's press takes the left button alone: the right one comes here.
+    ui.reparent(ui.MouseArea { anchors = { fill = true }, accepted_buttons = { "right" },
+      on_pressed = function() item.open_menu() end }, node)
+    return node
+  end
+  local function tray(vertical)
+    if not model.tray then return ui.Item {}, function() return 0 end end
+    local suffix = vertical and "-v" or ""
+    local list = ui.Repeater { as = vertical and "column" or "row", gap = S.xs, model = model.tray.rows,
+      delegate = function(row) return tray_delegate(row, suffix) end }
+    local function size()
+      if not model.tray_on() or model.tray.rows:len() == 0 then return 0 end
+      return (vertical and list.layout_height or list.layout_width) or 0
+    end
+    local function fits()
+      if size() == 0 then return false end
+      local status = (vertical and tail_column or tail_row)
+      local used = (status and status[vertical and "layout_height" or "layout_width"] or 0) + S.l + S.xs + size()
+      if vertical then
+        local _, h = model.screen()
+        return used <= (h or 0) / 2 - CLOCK_H / 2 - PAD
+      end
+      local w = model.screen()
+      return used <= lanes().right - (w or 0) / 2 - CLOCK_W / 2
+    end
+    local node = ui.Item { id = "bar-tray" .. (vertical and "-v" or ""), visible = fits,
+      width = function() return fits() and (list.layout_width or 0) or 0.01 end,
+      height = function() return fits() and (list.layout_height or 0) or 0.01 end, list }
+    return node, function() return fits() and size() + S.xs or 0 end
   end
 
   -- ------------------------------------------------------------ time --
@@ -266,6 +326,7 @@ function V.build(model)
       id = "bar-clock" .. (vertical and "-v" or ""), cursor = "pointer",
       width = vertical and ITEM + 4 or 190, height = vertical and 64 or ITEM,
       on_clicked = model.toggle_dashboard,
+      wheel("workspace" .. (vertical and "-v" or ""), model.wheel_workspace),
       vertical and ui.Column {
         anchors = { center_in = true }, gap = 0, align = "center",
         kit.text { text = function() return (stamp:get()[1]:sub(1, 2)) end, font_weight = 700 },
@@ -297,11 +358,14 @@ function V.build(model)
   end
   local tail_h, row_h = tail(false)
   tail_row = row_h
+  local tail_v, row_v = tail(true)
+  tail_column = row_v
+  local tray_h, tray_w = tray(false)
+  local tray_v, tray_tall = tray(true)
   local head_h = PHONE and ui.Row { gap = 8, align = "center", status_clock() }
     or TABLET and ui.Row { gap = 8, align = "center", logo(""), status_clock(), windows("row") }
     or ui.Row { gap = 8, align = "center", logo(""), windows("row") }
   local head_v = ui.Column { gap = 8, align = "center", logo("-v"), windows("column") }
-  local tail_v, row_v = tail(true)
   return ui.Item {
     id = "bar",
     visible = function() return model.on() end,
@@ -322,6 +386,11 @@ function V.build(model)
         width = function() return (row_h.layout_width or 160) + S.l end,
         tail_h,
       },
+      ui.Item {
+        x = function() return lanes().right - ((row_h.layout_width or 160) + S.l) - tray_w() end,
+        anchors = { vertical_center = true }, height = TRAY, width = function() return math.max(1, tray_w()) end,
+        tray_h,
+      },
     },
     ui.Item {
       visible = function() return model.vertical() end,
@@ -332,6 +401,15 @@ function V.build(model)
         anchors = { bottom = true, bottom_margin = PAD, horizontal_center = true }, width = ITEM,
         height = function() return (row_v.layout_height or 160) + S.l end,
         tail_v,
+      },
+      ui.Item {
+        anchors = { horizontal_center = true }, width = TRAY,
+        y = function()
+          local _, _, _, h = strip()
+          return h - PAD - ((row_v.layout_height or 160) + S.l) - tray_tall()
+        end,
+        height = function() return math.max(1, tray_tall()) end,
+        tray_v,
       },
     },
   }

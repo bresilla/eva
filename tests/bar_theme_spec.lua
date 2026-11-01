@@ -4,7 +4,7 @@ local HOST=[[
   local W,H=tonumber(morf.env("TEST_WIDTH")),tonumber(morf.env("TEST_HEIGHT"))
   morf.surface.height=H
   morf.time.now=function() return 1790584200 end
-  local prefs=morf.state {enabled="off",side="top",titles="on"}
+  local prefs=morf.state {enabled="off",side="top",titles="on",tray="off",wheel_volume=false,wheel_workspace=false}
   local original=require("config")
   package.loaded.config={get=function(key)
     local name=key:match("^edgebar%.(.+)$")

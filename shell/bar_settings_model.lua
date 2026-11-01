@@ -28,6 +28,14 @@ function M.new(active)
   function model.set_mode(value) return select(model.shows,"edgebar.enabled",value) end
   function model.set_side(value) return select(model.sides,"edgebar.side",value) end
   function model.set_titles(value) return select(model.title_modes,"edgebar.titles",value) end
+  -- The desk's own: the tray, and the wheel over the bar.
+  model.desk=require("responsive").form()=="desk"
+  function model.tray() return config.get("edgebar.tray")~="off" end
+  function model.set_tray(on) if active() then config.set("edgebar.tray",on and "on" or "off") end end
+  function model.wheel_volume() return config.get("edgebar.wheel_volume")==true end
+  function model.set_wheel_volume(on) if active() then config.set("edgebar.wheel_volume",on==true) end end
+  function model.wheel_workspace() return config.get("edgebar.wheel_workspace")==true end
+  function model.set_wheel_workspace(on) if active() then config.set("edgebar.wheel_workspace",on==true) end end
   return model
 end
 return M
