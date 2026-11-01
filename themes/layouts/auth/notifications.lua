@@ -3,15 +3,8 @@
 -- one mark per app. Everything drawn here comes from the model; a sender's
 -- icon is never loaded, only the first letter of its name.
 local unicase = require("lib.util.unicase")
+local ago = require("themes.notification_text").ago
 local M = {}
-
-local function ago(time, now)
-  local seconds = math.max(0, now - (time or 0))
-  if seconds < 60 then return "now" end
-  if seconds < 3600 then return ("%dm"):format(seconds // 60) end
-  if seconds < 86400 then return ("%dh"):format(seconds // 3600) end
-  return ("%dd"):format(seconds // 86400)
-end
 
 --- `view`: `{ ui, s, C, icon, text }`. `spec`: `model`, `style`, `width`, `rows`
 --- (at most this many), `now` (fn), `visible`.

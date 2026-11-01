@@ -53,25 +53,8 @@ return function(S, theme, M)
     return TONES[h % #TONES + 1]
   end
   local function initial(name) return unicase.initial(tostring(name or "?")) end
-  local function show(v)
-    if type(v) ~= "number" then return tostring(v == nil and "" or v) end
-    if v == math.floor(v) and math.abs(v) < 1e15 then
-      local sign, digits = ("%d"):format(v):match("^(-?)(%d+)$")
-      digits = digits:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
-      return sign .. digits
-    end
-    return ("%.1f"):format(v)
-  end
-  local function bytes(n)
-    if type(n) ~= "number" then return n and tostring(n) or "" end
-    local units, i = { "B", "kB", "MB", "GB", "TB" }, 1
-    while n >= 1000 and i < #units do n, i = n / 1000, i + 1 end
-    return i == 1 and ("%d %s"):format(n, units[i]) or ("%.1f %s"):format(n, units[i])
-  end
-  local function date(v)
-    if type(v) == "number" then return os.date("%d %b %H:%M", v) end
-    return v and tostring(v) or ""
-  end
+  local common = require("themes.kit_common")
+  local show, bytes, date = common.grouped, common.decimal_bytes, common.stamp
   local EXT = { png = "image", jpg = "image", jpeg = "image", svg = "image", gif = "image", webp = "image",
     mp4 = "movie", mkv = "movie", webm = "movie", mov = "movie", mp3 = "music_note", flac = "music_note",
     ogg = "music_note", wav = "music_note", pdf = "picture_as_pdf", zip = "folder_zip", gz = "folder_zip",

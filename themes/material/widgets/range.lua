@@ -11,9 +11,8 @@ local ui = require("morf.ui")
 return function(S, theme, M)
   local function C() return theme.color end
   local arc = morf.geometry.arc
-  local function get(v) if type(v) == "function" then return v() end return v end
-  local function clamp01(v) v = tonumber(v) or 0 return v < 0 and 0 or (v > 1 and 1 or v) end
-  local function num(v, d) v = get(v) return type(v) == "number" and v or d end
+  local common = require("themes.kit_common")
+  local get, clamp01, num, trim = common.get, common.clamp01, common.num, common.trim_number
   local function motion() return { duration = theme.duration.small, easing = theme.ease.standard } end
   -- Things under a hand move on a spring with a little give (M3 expressive).
   local function travel() return M.spring(380, 26) end
@@ -47,7 +46,6 @@ return function(S, theme, M)
     props.vertical_alignment = props.vertical_alignment or "center"
     return M.text(props)
   end
-  local function trim(v) local s = ("%.2f"):format(v) s = s:gsub("0+$", ""):gsub("%.$", "") return s end
   local function hz(v)
     if v >= 1000 then return trim(v / 1000) .. " kHz" end
     return ("%d Hz"):format(math.floor(v + 0.5))

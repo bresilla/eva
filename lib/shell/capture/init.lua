@@ -8,7 +8,7 @@ local live_folders={}
 local run
 function M.expand(path)
   local home=morf.fs.home()
-  return tostring(path or ""):gsub("^~/",function() return home.."/" end):gsub("%$HOME",function() return home end)
+  return (tostring(path or ""):gsub("^~/",function() return home.."/" end):gsub("%$HOME",function() return home end))
 end
 function M.kind()
   if morf.env("HYPRLAND_INSTANCE_SIGNATURE") then return "hyprland" end

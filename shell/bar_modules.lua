@@ -43,10 +43,7 @@ end
 
 local function percent(value) return ("%d%%"):format(math.floor((value or 0) + 0.5)) end
 
-local function size_text(bytes)
-  local text, unit = require("performance_model").bytes(bytes or 0)
-  return text .. " " .. unit
-end
+local function size_text(bytes) return require("performance_model").size_text(bytes) end
 
 -- A rate, short enough for a bar.
 local function rate_text(bytes)

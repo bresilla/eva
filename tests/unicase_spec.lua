@@ -53,7 +53,7 @@ test.it("a capital has its small letter back", function()
   test.eq(test.ipc("lower", "ẞ"), "ß")
 end)
 
-test.it("one letter stays one letter, which the keyboard's keys rely on", function()
+test.it("one letter stays one letter", function()
   load()
   test.eq(test.ipc("upper", "straße"), "STRAßE")
   test.eq(test.ipc("upper", "ŉ"), "ŉ")

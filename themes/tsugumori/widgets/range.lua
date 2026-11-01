@@ -14,9 +14,8 @@ local stroke = require("themes.tsugumori.strokes")
 return function(S, theme, M, hud)
   local C = theme.color
   local arc = morf.geometry.arc
-  local function get(v) if type(v) == "function" then return v() end return v end
-  local function clamp01(v) v = tonumber(v) or 0 return v < 0 and 0 or (v > 1 and 1 or v) end
-  local function num(v, d) v = get(v) return type(v) == "number" and v or d end
+  local common = require("themes.kit_common")
+  local get, clamp01, num, trim = common.get, common.clamp01, common.num, common.trim_number
   local quick = { duration = 140, easing = "out_cubic" }
   local follow = { duration = 90, easing = "out_cubic" }
 
@@ -57,7 +56,6 @@ return function(S, theme, M, hud)
       return ("%03d"):format(math.floor(clamp01(t.position) * 100 + 0.5))
     end
   end
-  local function trim(v) local s = ("%.2f"):format(v) s = s:gsub("0+$", ""):gsub("%.$", "") return s end
   local function hz(v)
     if v >= 1000 then return trim(v / 1000) .. "K HZ" end
     return ("%d HZ"):format(math.floor(v + 0.5))

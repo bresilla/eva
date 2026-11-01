@@ -26,10 +26,7 @@ local function dry_run()
   local v = morf.env("EVA_DRY_RUN")
   return v and v ~= "" and v ~= "0"
 end
-local function expand(word)
-  local home = morf.fs.home()
-  return (tostring(word):gsub("^~/", function() return home .. "/" end):gsub("%$HOME", function() return home end))
-end
+local expand = backend.expand
 function M.folder() return expand(config.get("capture.folder") or "~/Pictures/Captures") end
 local function fail(message)
   M.message:set(message)

@@ -15,10 +15,7 @@ M.PARALLAX = { { 0, "Off" }, { 0.05, "Subtle" }, { 0.12, "Clear" }, { 0.2, "Stro
 M.target = morf.signal("eva.wallpaper.target", "all")
 
 local function studio() return require("lule_studio") end
-local function expand(path)
-  if path:sub(1, 2) == "~/" then return morf.fs.home() .. path:sub(2) end
-  return path
-end
+local expand = require("lib.integrations.lule").expand
 
 --- The places a picture can go on this machine: `{ id, name }`.
 function M.targets()

@@ -10,9 +10,8 @@ local ui = require("morf.ui")
 
 return function(S, theme, M)
   local function C() return theme.color end
-  local function get(v) if type(v) == "function" then return v() end return v end
-  local function clamp01(v) v = tonumber(v) or 0 return v < 0 and 0 or (v > 1 and 1 or v) end
-  local function num(v, d) v = get(v) return type(v) == "number" and v or d end
+  local common = require("themes.kit_common")
+  local get, clamp01, num = common.get, common.clamp01, common.num
   local function squish() return ui.spring { stiffness = 520, damping = 18 } end
 
   local function full(slots)
