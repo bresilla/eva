@@ -100,6 +100,9 @@ local HOST = [[
     local path = morf.paths.state("eva-keyboard-words.json")
     return morf.fs.exists(path) and morf.fs.read(path) or ""
   end
+  morf.ipc.learned_mode = function() return morf.fs.stat(morf.paths.state("eva-keyboard-words.json")).mode end
+  morf.ipc.note = function(word) require("keyboard_learn").note(word) end
+  morf.ipc.forget = function() require("keyboard_learn").forget() end
   morf.ipc.haptics = function()
     local haptics = require("haptics")
     return { last = haptics.last:get(), count = haptics.count:get() }
@@ -578,8 +581,23 @@ test.it("learning, once on, keeps words at the owner's eyes only and spares a pr
   test.eq(words(state().offers)[1], "Zorblat")
   test.advance(3000)
   test.truthy(test.ipc("learned"):find("Zorblat", 1, true))
-  test.ipc("field", "Sekret", "password") test.ipc("type", " ") test.advance(3000)
+  test.eq(test.ipc("learned_mode") & 63, 0, "the learned words are readable by others")
+  test.ipc("field", "Sekret", "password") test.ipc("type", " ")
+  test.ipc("note", "Sekrettwo") test.advance(3000)
   test.falsy(test.ipc("learned"):find("Sekret", 1, true), "a password was learned")
+  test.ipc("field", "Masked") test.advance(500)
+  test.ipc("control", "private", "on")
+  test.ipc("note", "Sekretthree") test.advance(3000)
+  test.falsy(test.ipc("learned"):find("Sekretthree", 1, true), "private typing was learned")
+end)
+
+test.it("forgetting takes the learned words off the disk", function()
+  up()
+  test.ipc("set", "learn", "true")
+  test.ipc("note", "Zorblat") test.advance(3000)
+  test.truthy(test.ipc("learned"):find("Zorblat", 1, true))
+  test.ipc("forget") test.advance(100)
+  test.eq(test.ipc("learned"), "")
 end)
 
 test.it("autocorrect waits to be asked, and a backspace takes it back", function()
