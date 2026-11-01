@@ -1,7 +1,7 @@
--- A month and the selected day's Taskwarrior agenda, in the page template
+-- A month and the selected day's agenda, in the page template
 -- (themes/layouts/page.lua): the month in one card with its buttons, the
--- day's tasks in the next, the work calendar in the last. Work-calendar
--- events can be added here later; no account or meeting data is invented.
+-- day's forecast, events and tasks in the next, what comes next and which
+-- calendars are read in the last.
 local morf = require("morf")
 local ui = require("morf.ui")
 local kit = require("kit")
@@ -38,10 +38,29 @@ function M.build(model, w, h)
   local plan = P.button { id = "planner-add", label = "Plan a task", icon = "add", tone = "primary",
     width = function() return inner - (today.layout_width or 0) - 8 end, on_clicked = model.plan }
 
+  local function join_button(id, link)
+    return P.button { id = id, label = "Join", icon = "videocam", tone = "primary",
+      on_clicked = function() model.join(link) end }
+  end
+
   local day = { id = "planner-day", caption_id = "planner-day-title", width = w, title = model.day_title,
     note = function() return tostring(agenda:len()) .. " planned" end,
+    P.row { id = "planner-weather", width = inner, height = 48,
+      icon = function() local f = model.weather() return f and f.symbol or "cloud" end,
+      title = function() local f = model.weather() return f and f.words or "" end,
+      subtitle = function() local f = model.weather() return f and f.condition or "" end,
+      visible = function() return model.weather() ~= nil end },
     ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = agenda,
       delegate = function(item)
+        if item.event then
+          local parts = {}
+          for _, part in ipairs { item.time or "", item.project or "", item.kind or "" } do
+            if part ~= "" then parts[#parts + 1] = part end
+          end
+          return P.row { id = "planner-event-" .. item.uuid, width = inner, icon = "groups",
+            title = item.description, subtitle = table.concat(parts, " · "),
+            trailing = item.link ~= "" and join_button("planner-join-" .. item.uuid, item.link) or nil }
+        end
         return P.row { id = "planner-task-" .. item.uuid, width = inner, icon = "event",
           title = item.description,
           subtitle = (function()
@@ -54,9 +73,10 @@ function M.build(model, w, h)
           trailing = P.chevron(), on_clicked = function() model.edit(item.uuid) end }
       end },
     P.row { id = "planner-empty", width = inner, icon = "event_available", on = function() return false end,
-      title = "Nothing planned yet", subtitle = "Tasks due or scheduled that day show here.",
+      title = "Nothing planned yet", subtitle = "Events and tasks due or scheduled that day show here.",
       visible = function() return agenda:len() == 0 end },
   }
+  local function next_up() return model.next_up() end
 
   local failure = widgets.message(function() return model.error:get() end, w, 64)
   failure.visible = function() return (model.error:get() or "") ~= "" end
@@ -68,8 +88,19 @@ function M.build(model, w, h)
     },
     P.section(day),
     P.section { id = "planner-work", caption_id = "planner-work-title", width = w, title = "Work calendar",
-      P.row { id = "planner-work-row", width = inner, icon = "calendar_month", on = function() return false end,
-        title = "Not connected", subtitle = "Connect an account to see meetings." },
+      P.row { id = "planner-next", width = inner, icon = "schedule", on = function() return next_up() ~= nil end,
+        title = function() local n = next_up() return n and n.title or "" end,
+        subtitle = function() local n = next_up() return n and n.when or "" end,
+        visible = function() return next_up() ~= nil end,
+        trailing = P.button { id = "planner-join-next", label = "Join", icon = "videocam", tone = "primary",
+          visible = function() local n = next_up() return n ~= nil and n.link ~= "" end,
+          on_clicked = function() local n = next_up() if n then model.join(n.link) end end } },
+      P.row { id = "planner-work-row", width = inner, icon = "calendar_month", on = model.connected,
+        title = function() return model.connected() and model.sources.summary() or "No calendars yet" end,
+        subtitle = function()
+          return model.connected() and "Files, vdirs and addresses" or "Add an .ics file, a vdir or an address."
+        end,
+        trailing = P.chevron(), on_clicked = model.settings },
     },
     failure,
   }
