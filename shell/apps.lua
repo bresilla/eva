@@ -319,6 +319,33 @@ function M.activate(row)
   return row.run() or "close"
 end
 
+--- The desktop entry a window's class names, or nil.
+function M.entry_for(class)
+  if not index or not class or class == "" then return nil end
+  local ok, entry = pcall(index.heuristic_lookup, index, class)
+  if ok and type(entry) == "table" then return entry end
+  return nil
+end
+
+--- The desktop entry `id`, or nil.
+function M.entry(id)
+  if not index then return nil end
+  local ok, entry = pcall(index.by_id, index, id)
+  if ok and type(entry) == "table" then return entry end
+  return nil
+end
+
+--- Starts the application `id`, as the launcher does.
+function M.launch(id) return M.activate { kind = "app", id = id } end
+
+--- Runs a desktop action of the application `id`.
+function M.launch_action(id, action)
+  if not index then return false end
+  local ok, err = pcall(index.launch_action, index, id, action)
+  if not ok then morf.log("warn", "eva: could not run " .. tostring(action) .. ": " .. tostring(err)) end
+  return ok
+end
+
 -- ------------------------------------------------------------------ icons --
 
 local found = {}

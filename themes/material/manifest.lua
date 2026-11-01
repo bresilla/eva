@@ -26,6 +26,7 @@ return {
     window_switcher = "themes.layouts.views.window_switcher",
     snap = "themes.layouts.views.snap",
     kill_mode = "themes.layouts.views.kill_mode",
+    dock = "themes.material.views.dock",
     launcher = "themes.layouts.views.launcher",
     assistant = "themes.layouts.views.assistant",
     drop = "themes.layouts.views.drop",

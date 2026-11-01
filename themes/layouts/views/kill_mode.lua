@@ -37,6 +37,7 @@ function V.build(model)
       font_size = L.SIZE.body, color = kit.ink("hi") } }
   local keys = ui.Item { id = "kill-keys", width = 1, height = 1, tab_navigation = false, on_key_pressed = model.key }
   local area = ui.MouseArea { id = "kill-area", anchors = { fill = true }, cursor = "crosshair",
+    accepted_buttons = { "left", "right" },
     accessible_role = "dialog", accessible_name = "Kill mode",
     on_position_changed = function(x, y) model.aim(x, y) end,
     on_pressed = function(x, y) model.aim(x, y) end,

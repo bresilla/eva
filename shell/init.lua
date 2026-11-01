@@ -164,6 +164,7 @@ local overview = require("overview")
 local window_switcher = require("window_switcher")
 local snap = require("snap")
 local kill_mode = require("kill_mode")
+local dock = require("dock")
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
@@ -250,6 +251,7 @@ require("prek_controls").attach(frame_root)
 frame_root.accessible_name = "Eva"
 ui.reparent(capture.editor.node,frame_root)
 -- The focused window's menu, over it: in the screen's own coordinates.
+ui.reparent(dock.node,frame_root)
 ui.reparent(window_menu.node,frame_root)
 ui.reparent(overview.node,frame_root)
 ui.reparent(window_switcher.node,frame_root)
@@ -266,7 +268,9 @@ end)
 
 -- Windows keep inside the opening: the frame, and the bar when it is up.
 morf.effect("eva.bar.reserve", function()
-  morf.surface.reserve = frame_view.insets(bar.insets())
+  local insets = frame_view.insets(bar.insets())
+  insets[dock.edge()] = (insets[dock.edge()] or 0) + dock.reserve()
+  morf.surface.reserve = insets
 end)
 
 if config.get("wallpaper.draw") then wallpaper.open_layer() end

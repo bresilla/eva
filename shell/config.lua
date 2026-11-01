@@ -200,6 +200,25 @@ local config = settings.open {
       },
       small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "nightlight", "powersaver" } },
     },
+    dock = {
+      -- "auto" keeps it down on a desk, and a taskbar on a tablet; "on" puts
+      -- it up on a desk; "off" takes it away. A phone never has one.
+      enabled = "auto",
+      -- bottom, left or right.
+      edge = "bottom",
+      -- How big an icon is, in logical pixels.
+      size = 48,
+      -- Icons swell near the pointer.
+      magnify = true,
+      -- "off", "on", or "windows": it hides only while a window lies under it.
+      autohide = "windows",
+      -- The taskbar slides away until it is reached for.
+      taskbar_hide = false,
+      -- Only the windows on this screen.
+      isolate = false,
+      -- The pinned applications: desktop entry ids, in order.
+      pins = {},
+    },
     windows = {
       switcher = {
         -- What Alt+Tab walks: "all", "workspace" or "output".
