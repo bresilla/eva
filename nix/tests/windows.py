@@ -468,9 +468,7 @@ def remap_section():
             return machine.execute(f"ls /tmp/{name}")[0] == 0
 
         def press(*keys):
-            for key in keys:
-                machine.succeed(f"YDOTOOL_SOCKET=/tmp/ydotool ydotool key {key}")
-                machine.sleep(0.4)
+            machine.succeed(f"YDOTOOL_SOCKET=/tmp/ydotool ydotool key {' '.join(keys)}")
 
         check("nothing reads the keyboards until something is chosen", active() != "active", active())
         print("UNIT", machine.succeed("systemctl cat kanata-eva.service | grep -E 'DynamicUser|CapabilityBoundingSet|SupplementaryGroups|PrivateNetwork|ExecCondition'"))
@@ -492,8 +490,8 @@ def remap_section():
         machine.sleep(1)
         check("a tap on Caps Lock is Escape", fired("esc-fired"))
         machine.succeed("rm -f /tmp/esc-fired")
-        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 58:1")
-        machine.sleep(0.6)
+        press("58:1")
+        machine.sleep(1)
         press("21:1", "21:0", "58:0")
         machine.sleep(1)
         check("held, Caps Lock is Control", fired("ctrl-fired"))
@@ -503,9 +501,7 @@ def remap_section():
         machine.sleep(5)
         print("RENDERED", machine.succeed("cat /run/eva-remap/kanata.kbd"))
         check("a change takes", eventually(lambda: active() == "active", 30), active())
-        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 58:1")
-        machine.sleep(0.4)
-        press("21:1", "21:0", "58:0")
+        press("58:1", "21:1", "21:0", "58:0")
         machine.sleep(1)
         check("Caps Lock as Hyper holds all four", fired("hyper-fired"))
 

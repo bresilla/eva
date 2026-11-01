@@ -61,6 +61,7 @@ function M.register(ipc)
     local row = overview.cards:get(tonumber(index) or 1)
     if row then overview.menu_for:set(row.address) end
   end
+  ipc.overview_desk_menu = function(id) overview.desk_menu:set(tonumber(id) or 0) end
   local switcher = require("window_switcher")
   -- `switcher next|prev|same [free]`: a press of the key, Alt held unless
   -- `free` says it is not. `commit`, `cancel`, `state`.
@@ -151,6 +152,7 @@ function M.register(ipc)
     end
     if how == "remove" then rules.remove(value) return true end
     if how == "on" or how == "off" then rules.set_enabled(value, how == "on") return true end
+    if how == "edit" then rules.edit(rules.get(value)) return true end
     error("`" .. tostring(how) .. "`: list, add, set, remove, on, off or from")
   end
   local spaces = require("workspaces_model")
