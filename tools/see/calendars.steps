@@ -1,8 +1,0 @@
-# The calendars the shell draws: the dashboard's card and the planner's month.
-start shell
-drawn
-ipc dashboard open; pause 4; shot dashboard
-ipc close; pause 0.6
-ipc calendar open; pause 2; shot planner
-ipc close; pause 0.6
-stop

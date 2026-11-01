@@ -45,6 +45,7 @@ local HOST=[[
   end
   model.username,model.face="preview",""
   model.clock=function(format) return format=="%H:%M" and "08:24" or (format=="%I" or format=="%H") and "08" or format=="%M" and "24" or "MONDAY, 28 SEPTEMBER" end
+  model.calendar=function() return model.month(model.month_offset:get(),{year=2026,month=9,day=28}) end
   local page_sizes={{840,439},{1000,350},{1400,760},{1000,680},{870,650},{960,489}}
   local page_cache={}
   model.page=function(index)

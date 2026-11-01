@@ -368,11 +368,10 @@ return function(S, theme, M, hud)
               border_color = function() return stroke(C, "quiet") end } }
         end
         local n = tonumber(text)
-        local ink = type(value) == "table" and value.ink or function() end
         return ui.Item { anchors = { fill = true },
           frame(t, s),
           caps(n and ("%02d"):format(n) or text, { anchors = { center_in = true },
-            color = function() return s.current() and C.onPrimary or ink() or C.onSurface end }) }
+            color = function() return s.current() and C.onPrimary or C.onSurface end }) }
       end,
     })
   end

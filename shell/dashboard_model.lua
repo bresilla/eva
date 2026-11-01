@@ -27,11 +27,38 @@ do
   end
 end
 M.month_offset = require("themes.session").keep("eva.dashboard.month", 0)
---- The month the calendar shows, as a month index: this one and the offset.
-function M.calendar_month()
+function M.month(offset, today)
+  today = today or morf.time.date()
+  local year, month = today.year, today.month + (offset or 0)
+  while month > 12 do month = month - 12 year = year + 1 end
+  while month < 1 do month = month + 12 year = year - 1 end
+  local weeks = morf.time.month(year, month, 7)
+  local days = {}
+  for _, week in ipairs(weeks) do
+    for column, d in ipairs(week) do
+      days[#days + 1] = {
+        day = d.day,
+        current = d.current,
+        today = d.year == today.year and d.month == today.month and d.day == today.day,
+        weekend = column == 1 or column == 7,
+      }
+    end
+  end
+  -- Six rows always, as the reference's grid: the next month runs on.
+  local last = weeks[#weeks][7]
+  local n = last.current and 0 or last.day
+  while #days < 42 do
+    n = n + 1
+    local column = #days % 7 + 1
+    days[#days + 1] = { day = n, current = false, today = false, weekend = column == 1 or column == 7 }
+  end
+  local title = morf.time.format("%B %Y", morf.time.time { year = year, month = month, day = 1, hour = 12 })
+  return { title = title, days = days }
+end
+
+function M.calendar()
   morf.time.minute_clock:get()
-  local today = morf.time.date()
-  return today.year * 12 + today.month - 1 + M.month_offset:get()
+  return M.month(M.month_offset:get())
 end
 function M.shift_month(delta) M.month_offset:set(M.month_offset:get() + delta) end
 function M.select(index)

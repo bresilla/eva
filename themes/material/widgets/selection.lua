@@ -402,14 +402,13 @@ return function(S, theme, M)
       indicator = plate(track, round, function() return C().primary end),
       item = function(_, value, s)
         if label_of(value) == "" or (type(value) == "table" and value.blank) then return ui.Item {} end
-        local ink = type(value) == "table" and value.ink or function() end
         return ui.Item { anchors = { fill = true },
           ui.Rect { anchors = { center_in = true }, width = size, height = size, radius = 999,
             color = function() return (s.hovered() and not s.current()) and C().onSurface:alpha(0.08) or C().onSurface:alpha(0) end,
             border_width = function() return t.visual_focus and s.current() and 2 or 0 end,
             border_color = function() return C().secondary end },
           M.text { anchors = { center_in = true }, text = label_of(value), font_size = theme.size.small,
-            color = function() return s.current() and C().onPrimary or ink() or C().onSurface end, behavior = { color = quick() } } }
+            color = function() return s.current() and C().onPrimary or C().onSurface end, behavior = { color = quick() } } }
       end,
     })
   end

@@ -3,7 +3,7 @@ local morf = require("morf")
 local ui = require("morf.ui")
 local state = require("dashboard_state")
 local model = require("dashboard_model")
-local M = { TERMINAL_TAB=6, tab=state.tab, month_offset=model.month_offset }
+local M = { TERMINAL_TAB=6, tab=state.tab, month=model.month, month_offset=model.month_offset }
 local visual = require("themes").view("dashboard").build(model)
 M.size, M.bud = visual.size, visual.bud
 -- Over a sheet's screen it rises from the bottom edge (the top is quick
