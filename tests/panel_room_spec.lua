@@ -11,6 +11,7 @@ local SOURCE = [[
     for _, d in ipairs(require("drawer").all) do if d.is_open() then open[d.name] = true end end
     return open
   end
+  morf.ipc.capture_panel = function() require("capture").panel:set(true) end
   morf.ipc.place = function(opening, left, right, want, least)
     local x, width = room.place(tonumber(opening), tonumber(left), tonumber(right), tonumber(want), tonumber(least))
     return { x = x, width = width }
@@ -63,6 +64,22 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(open.launcher and open.sidebar, "what opened last stays")
     test.falsy(open.leftbar, "the older panel stayed open")
     apart("drawer-launcher", "drawer-sidebar")
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it(style .. " the capture panel shuts a side panel it would stand in", function()
+    load(style, 1280, 720)
+    test.ipc("sidebar", "open", "settings") test.settle(1000)
+    test.ipc("capture_panel") test.settle(800)
+    test.falsy(test.ipc("open_set").sidebar, "the two overlap")
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it(style .. " on a wide desk the capture panel leaves the side panels", function()
+    load(style, 1920, 1080)
+    test.ipc("sidebar", "open", "settings") test.settle(1000)
+    test.ipc("capture_panel") test.settle(800)
+    test.truthy(test.ipc("open_set").sidebar, "it had room")
     test.eq(#test.logs("error"), 0)
   end)
 

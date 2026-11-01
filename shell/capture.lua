@@ -13,6 +13,8 @@ local M = {
   target = morf.signal("eva.capture.target", "region"),
 }
 local started, pid, ticker = 0, nil, nil
+-- The tool's panel, on a desk.
+local PANEL_W = 480
 
 local function dry_run()
   local v = morf.env("EVA_DRY_RUN")
@@ -124,6 +126,12 @@ end
 
 M.watch = morf.fs.watch(state_path(), read)
 read()
+
+-- A side panel the tool's panel would stand in shuts as it opens.
+morf.effect("eva.capture.room", function()
+  if not M.panel:get() or require("responsive").sheets() then return end
+  morf.time.timer(1, function() require("panel_room").clear(PANEL_W) end, false)
+end)
 
 -- The clock while a recording runs, and the tool's going noticed.
 morf.effect("eva.capture.clock", function()
