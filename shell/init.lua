@@ -347,7 +347,15 @@ require("standby").start()
 -- that acted.
 -- Every verb is kept here as well as given to `morf.ipc` (which only
 -- takes them), so the shell's keyboard shortcuts can call the same ones.
-local ipc = setmetatable({}, { __newindex = function(t, k, v) rawset(t, k, v) morf.ipc[k] = v end })
+-- `morf.ipc` hears a nil as an answer, so a verb's nil goes out as no answer.
+local function answering(fn)
+  return function(...)
+    local out = table.pack(fn(...))
+    if out.n == 1 and out[1] == nil then return end
+    return table.unpack(out, 1, out.n)
+  end
+end
+local ipc = setmetatable({}, { __newindex = function(t, k, v) rawset(t, k, v) morf.ipc[k] = answering(v) end })
 local here = require("services").here
 local function verb(d)
   return function(how)
