@@ -84,11 +84,14 @@ function V.row(M, entry, columns, ctx)
       if button == "right" then M.act_on(tile.key) return end
       M.activate(M.tile_row(tile.key))
     end,
-    on_long_pressed = function(_, _, x)
+    on_long_pressed = function(sx, sy, x)
       local tile = tile_at(x)
-      if tile then M.act_on(tile.key) end
+      if tile then ctx.carrier.lift(tile, sx, sy) end
     end,
-    on_position_changed = function(_, _, _, _, x)
+    on_released = function(sx, sy) ctx.carrier.drop(sx, sy) end,
+    on_touch_moved = function(_, sx, sy) ctx.carrier.carry(sx, sy) end,
+    on_position_changed = function(sx, sy, _, _, x)
+      ctx.carrier.carry(sx, sy)
       local tile, i = tile_at(x)
       if not tile then return end
       local at = ctx.index_of(bound.entry.key)
@@ -107,6 +110,54 @@ function V.row(M, entry, columns, ctx)
     row.id = "launcher-tiles-" .. next_entry.key
     refill()
   end
+end
+
+--- What a held app becomes: a chip under the finger and a place over the grid
+--- to drop it on, `width` wide. Let go where it was, its actions open; dropped
+--- on the place, it is pinned. Returns `node`, `held`, `lift(tile, x, y)`,
+--- `carry(x, y)`, `drop(x, y)`, points being the surface's.
+function V.carrier(M, width)
+  local held = morf.signal("eva.launcher.held", false)
+  local C_H = S.TARGET
+  local holding = function() return held:get() ~= false end
+  local target, root
+  local function over(y) return y < (target.layout_y or 0) + (target.layout_height or 0) end
+  target = kit.surface { id = "launcher-pin-target", width = width, height = S.TOUCH, radius = kit.round(S.m),
+    visible = holding,
+    color = function()
+      local now = held:get()
+      return now and now.moved and over(now.y) and C.primaryContainer or C.surfaceContainerHigh
+    end,
+    ui.Row { anchors = { center_in = true }, gap = S.xs, align = "center",
+      kit.icon("keep", 18, function() return C.primary end),
+      kit.text { text = "Pin to favourites", font_size = theme.size.small, color = function() return C.onSurface end } } }
+  local chip = kit.surface { id = "launcher-held", z = 1, width = S.xxl * 4, height = C_H, radius = C_H / 2, visible = holding,
+    x = function() local now = held:get() return now and now.x - (root.layout_x or 0) - S.xxl * 2 or 0 end,
+    y = function() local now = held:get() return now and now.y - (root.layout_y or 0) - C_H or 0 end,
+    color = function() return C.secondaryContainer end,
+    kit.text { anchors = { center_in = true }, width = S.xxl * 4 - 2 * S.s, horizontal_alignment = "center", elide = "right",
+      font_size = theme.size.small, color = function() return C.onSecondaryContainer end,
+      text = function() local now = held:get() return now and now.name or "" end } }
+  root = ui.Item { anchors = { fill = true }, z = 20, target, chip }
+  local carrier = { node = root, target = target, held = holding }
+  function carrier.lift(tile, x, y)
+    require("haptics").fire("long")
+    held:set { key = tile.key, name = tile.name, x = x, y = y, from_x = x, from_y = y, moved = false }
+  end
+  function carrier.carry(x, y)
+    local now = held:get()
+    if not now then return end
+    local moved = now.moved or math.max(math.abs(x - now.from_x), math.abs(y - now.from_y)) >= S.s
+    held:set { key = now.key, name = now.name, x = x, y = y, from_x = now.from_x, from_y = now.from_y, moved = moved }
+  end
+  function carrier.drop(_, y)
+    local now = held:get()
+    if not now then return end
+    held:set(false)
+    if not now.moved then M.act_on(now.key)
+    elseif over(y) and M.pin(now.key) then require("haptics").fire("commit") end
+  end
+  return carrier
 end
 
 --- The chips over the grid: every app, the modes, and each category; inside a
@@ -143,10 +194,12 @@ function V.chips(M, width)
         chip.icon and kit.icon(chip.icon, 16, function() return C.onSurfaceVariant end) or nil, label },
     }
   end
-  return ui.Flickable {
-    id = "launcher-chips", width = width, height = V.CHIPS_H, clip = true,
-    ui.Repeater { as = "row", gap = S.s, model = model, delegate = delegate },
-  }
+  local row = ui.Repeater { as = "row", gap = S.s, model = model, delegate = delegate }
+  local flick = ui.Flickable { id = "launcher-chips", width = width, height = V.CHIPS_H, clip = true, row }
+  -- Pulled past either end the chips run on elastically.
+  return ui.Item { width = width, height = V.CHIPS_H, flick,
+    on_panned = require("overscroll").new { flick = flick, sideways = true,
+      room = function() return (row.layout_width or 0) - (flick.layout_width or 0) end }.on_panned }
 end
 
 --- The alphabet down the grid's side: a press or a drag goes to a letter.

@@ -202,6 +202,8 @@ function V.build(M)
     end
 
     local results
+    local carrier = grid_view.carrier(M, TILES)
+    carrier.target.x, carrier.target.y = PAD, body_top
     local function header(entry)
       return ui.Item {
         id = "launcher-header-" .. entry.key,
@@ -341,7 +343,9 @@ function V.build(M)
     local function delegate(entry)
       if entry.kind == "header" then return header(entry) end
       if entry.kind == "hero" then return hero(entry) end
-      if entry.kind == "tiles" then return grid_view.row(M, entry, COLUMNS, { index_of = index_of, cell = CELL }) end
+      if entry.kind == "tiles" then
+        return grid_view.row(M, entry, COLUMNS, { index_of = index_of, cell = CELL, carrier = carrier })
+      end
       return plain_row(entry)
     end
 
@@ -518,6 +522,7 @@ function V.build(M)
       clip = true,
       on_panned = function(phase, dx, dy, vx, vy, x, y)
         if phase == "begin" then
+          if carrier.held() then return false end
           -- Sideways the grid turns to the next category, if there is one;
           -- past the last, or down from the top, the launcher shuts.
           if math.abs(dy) < math.abs(dx) then
@@ -724,6 +729,7 @@ function V.build(M)
       on_key_pressed = M.key,
       on_key_released = M.release,
     }
+    require("themes.kit.text_touch").attach(field)
     local clear = kit.action {
       id = "launcher-clear",
       width = 32, height = 32, cursor = "pointer",
@@ -773,7 +779,10 @@ function V.build(M)
       anchors = { fill = true },
       -- Pulled down, or back toward the side it came from, it follows the
       -- finger and shuts.
-      on_panned = function(...) return M.swipe.on_panned(...) end,
+      on_panned = function(phase, ...)
+        if phase == "begin" and carrier.held() then return false end
+        return M.swipe.on_panned(phase, ...)
+      end,
       -- The sheet's empty parts take presses too.
       ui.MouseArea { anchors = { fill = true }, z = -1 },
       -- An instrument's panel: a hairline frame, and L-brackets on its corners.
@@ -787,6 +796,7 @@ function V.build(M)
       results,
       alphabet,
       pane,
+      carrier.node,
       ui.Loader {
         anchors = { fill = true }, keep = true,
         active = function() return walls:get() end,

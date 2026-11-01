@@ -137,7 +137,8 @@ end
 -- Over the press area: what ends the rings for a finger.
 local function finger_end()
   return ui.Item {
-    id = "find-end-box", anchors = { fill = true }, visible = responsive.sheets(),
+    id = "find-end-box", anchors = { fill = true },
+    visible = responsive.sheets() or require("models.touchscreens").attached(),
     pill.new {
       id = "find-controls", cells = {
         L.icon_button {

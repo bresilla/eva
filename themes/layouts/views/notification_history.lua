@@ -98,9 +98,15 @@ function V.build(state, width, height)
     end
     local function at(part) return function() return below(part) end end
     local function whole() return below("end") + S.xs end
-    return ui.Item {
+    local entry
+    entry = ui.Item {
       width = IW, height = whole,
       visible = function() return n_of() ~= nil end,
+      -- A finger holds it for its tools, or swipes it away.
+      ui.MouseArea { anchors = { fill = true }, z = -1, on_long_pressed = act(function(n)
+        require("haptics").fire("long")
+        model.toggle_tools(n.id)
+      end) },
       kit.surface { anchors = { fill = true }, radius = kit.round(12),
         color = function() return C.surfaceContainerHigh:mix(signal(), .05) end },
       kit.label { x = 12, y = 8, width = IW - 24 - 70, elide = "right", color = signal,
@@ -137,6 +143,15 @@ function V.build(state, width, height)
       N.tools { id = "sidebar-tool-" .. tag, x = PART_X, y = at("tools"), width = PART_W, n = n_of, model = model,
         shown = tooled },
     }
+    local swipe
+    swipe = require("swipe_dismiss").new { id = "history." .. tag, node = entry, ways = { left = true, right = true },
+      on_dismiss = function()
+        local n = n_of()
+        if n then state.forget(n.id) end
+        morf.time.timer(theme.duration.normal, swipe.reset, false)
+      end }
+    entry.on_panned = swipe.on_panned
+    return entry
   end
 
   -- An application's card: its head (picture, name, word and time, the
@@ -260,10 +275,20 @@ function V.build(state, width, height)
         P.button { id = "sidebar-clear-silent", width = 150, height = BTN_H, label = "Clear silent",
           on_clicked = state.clear_silent } },
     }
+    local group_card = P.section { id = "sidebar-group-" .. i, width = W, visible = function() return g() ~= nil end,
+      head, L.rule { width = INNER }, ui.Column(lines), items_column, paged }
     return ui.Column { id = "sidebar-slot-" .. i, width = W, gap = S.xs, visible = function() return g() ~= nil end,
       shelf,
-      P.section { id = "sidebar-group-" .. i, width = W, visible = function() return g() ~= nil end,
-        head, L.rule { width = INNER }, ui.Column(lines), items_column, paged },
+      ui.Item { width = W, height = function() return group_card.layout_height or 0 end,
+        -- Two fingers spreading on a group open it, closing shut it.
+        ui.MouseArea { anchors = { fill = true }, on_pinched = function(scale, phase)
+          local x = g()
+          if phase ~= "end" or not x or scale == 1 or (scale > 1) == state.is_open(x.key) then return end
+          require("haptics").fire("commit")
+          state.toggle(x.key)
+          if state.is_open(x.key) then kit.bud(item_nodes, true, { delay = 30, stagger = 40 }) end
+        end },
+        group_card },
     }
   end
 

@@ -478,6 +478,16 @@ function M.act_on(key)
   M.set_query("")
 end
 
+--- Pins the row at `key`, or takes it off. Whether it could be.
+function M.pin(key)
+  local row = by_key[key]
+  local name = row and (row.pin or row.id)
+  if not name then return false end
+  require("lib.shell.launcher.pins").toggle(name)
+  require("lib.shell.launcher.rows").bump()
+  return true
+end
+
 --- Tab: the chosen row's completion, or the mode a word begins. True when it
 --- completed something.
 local function complete()
