@@ -45,8 +45,9 @@ ipc settings screen_time; pause 2; shot screen-time
 ipc settings software; pause 2; shot software
 ipc settings lock/fingerprint; pause 2; shot fingerprint
 ipc close; pause 0.6
+ipc screen-time warn see-Browser; pause 1.2; shot warning
 stop
 start lock
-key a
-pause 2
+pause 3
+ipc stage sheet; pause 2
 shot pin

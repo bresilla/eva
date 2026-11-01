@@ -25,7 +25,11 @@ end
 function V.build(status, w, h)
   local inner = P.inner(w)
   local indicators = { id = "bar-fold-indicators", width = w, title = "Status icons",
-    note = "A microphone or camera in use always shows" }
+    P.row { id = "bar-fold-about", width = inner, icon = "info", title = "When room runs out",
+      subtitle = "First goes into the dot first, Last goes last, Keep stays, Never does not show" },
+    P.row { id = "bar-fold-always", width = inner, icon = "mic", title = "Always shown",
+      subtitle = "A microphone, camera or screen share in use" },
+  }
   local with_hide = {}
   for i, rule in ipairs(status.RULES) do with_hide[i] = rule end
   with_hide[#with_hide + 1] = status.HIDE
@@ -34,7 +38,7 @@ function V.build(status, w, h)
       read = function() return status.rule(row.key) end, set = function(rule) status.set_rule(row.key, rule) end }
   end
 
-  local on_bar = { id = "bar-fold-modules", width = w, title = "On the bar", note = "Folds first, or stays to the last",
+  local on_bar = { id = "bar-fold-modules", width = w, title = "On the bar",
     visible = function() return #foldable() > 0 end }
   for index = 1, MODULES do
     local function module() return foldable()[index] end

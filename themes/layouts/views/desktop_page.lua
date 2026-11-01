@@ -74,8 +74,8 @@ function V.build(desktop, w, h)
       on_clicked = function() config.set("desktop.home.columns", count[1]) end }
   end
   return P.page { id = "desktop-page", width = w, height = h,
-    P.section { id = "desktop-home", width = w, title = "Home screen", note = "A phone and a tablet. A desk keeps its widgets",
-      home_switch("enabled", "home", "Pages of apps and widgets", "Hold the wallpaper to arrange them"),
+    P.section { id = "desktop-home", width = w, title = "Home screen",
+      home_switch("enabled", "home", "Pages of apps and widgets", "On a phone and a tablet. Hold the wallpaper to arrange them"),
       home_switch("dock", "dock_to_bottom", "Dock on a phone", "A row of pinned apps on the home screen"),
       home_switch("labels", "label", "Names under icons"),
       home_switch("locked", "lock", "Lock the layout", "A hold no longer starts arranging"),

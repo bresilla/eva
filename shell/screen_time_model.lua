@@ -375,9 +375,14 @@ function M.start()
   M.sample()
 end
 
---- `screen-time status|today|bedtime on|off`.
+--- `screen-time status|today|bedtime on|off`; `screen-time warn ID` shows the
+--- warning for the app ID, to look at.
 function M.verb(how, value)
   how = how or "status"
+  if how == "warn" then
+    raise("limit", value)
+    return true
+  end
   if how == "bedtime" then
     if value == "on" or value == "off" then M.set_bedtime(value == "on") end
     return M.bedtime()
@@ -391,7 +396,7 @@ function M.verb(how, value)
     return { enabled = config.get("wellbeing.enabled"), total = total, app = held and held.key or "",
       downtime = M.downtime(), bedtime = M.bedtime(), notice = M.notice:get() }
   end
-  error("`" .. tostring(how) .. "`: status, today or bedtime")
+  error("`" .. tostring(how) .. "`: status, today, bedtime or warn")
 end
 
 return M
