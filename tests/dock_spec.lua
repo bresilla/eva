@@ -142,6 +142,26 @@ test.it("pins come first, and reorder", function()
   test.eq(test.ipc("dock_order"), { "beta", "alpha", "zzterm", "zzweb" })
 end)
 
+test.it("its ends hold the launcher and the overview, and a pin dragged counts past them", function()
+  load()
+  test.ipc("dock", "on")
+  test.ipc("dock_clear", "buttons")
+  test.ipc("dock", "pin", "alpha")
+  test.ipc("dock", "pin", "beta")
+  test.ipc("dock", "peek")
+  test.advance(300)
+  test.eq(test.ipc("dock_order"), { "eva:launcher", "alpha", "beta", "zzterm", "zzweb", "eva:overview" })
+  local from, to = test.get("dock-icon-area-2"), test.get("dock-icon-area-3")
+  local y = from.y + from.height / 2
+  test.drag({ from.x + from.width / 2, y }, { to.x + to.width / 2 + 6, y }, { steps = 6 })
+  test.advance(100)
+  test.eq(test.ipc("dock_order"), { "eva:launcher", "beta", "alpha", "zzterm", "zzweb", "eva:overview" })
+  local rows = test.accessible({ name = "Overview", role = "button" })
+  test.truthy(rows[1], "the overview's button has no name")
+  test.click(rows[1].id) test.advance(100)
+  test.truthy(test.ipc("overview", "state"), "the overview's button")
+end)
+
 test.it("past what a field can hold the rest are counted", function()
   local clients = {}
   for i = 1, 18 do clients[i] = ('{"class":"app%d","title":"t","workspace":1}'):format(i) end

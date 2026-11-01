@@ -57,10 +57,24 @@ function M.split_with(address)
   return true
 end
 
---- Moves the divider between the two by `delta`, a fraction of the screen.
+--- Moves the divider between the two by `delta`, a fraction of the screen. The
+--- compositor's ratio runs 0 to 2, so 0.1 of the screen is 0.2 of it.
 function M.nudge(delta)
-  return windows.send(("hl.dispatch(hl.dsp.layout(%q))"):format(("splitratio %+.3f"):format(delta)),
-    "layoutmsg", ("splitratio %+.3f"):format(delta))
+  local message = ("splitratio %+.3f"):format(delta * 2)
+  return windows.send(("hl.dispatch(hl.dsp.layout(%q))"):format(message), "layoutmsg", message)
+end
+
+--- The stops a let-go divider rests on, as the first window's share.
+M.STOPS = { .3, .5, .7 }
+
+--- Rests the divider on the stop nearest `share`, from where it stands now.
+function M.settle_divider(share, now)
+  local best = M.STOPS[1]
+  for _, stop in ipairs(M.STOPS) do
+    if math.abs(stop - share) < math.abs(best - share) then best = stop end
+  end
+  if math.abs(best - now) < .01 then return false end
+  return M.nudge(best - now)
 end
 
 --- The two tiled windows sharing this workspace, or nil.
@@ -80,10 +94,12 @@ function M.divider()
   local ra, rb = windows.rect(a), windows.rect(b)
   if rb.x < ra.x then ra, rb = rb, ra end
   if ra.x + ra.width <= rb.x + 1 then
-    return { vertical = true, x = (ra.x + ra.width + rb.x) / 2, y = ra.y, length = ra.height, total = ra.width + rb.width }
+    return { vertical = true, x = (ra.x + ra.width + rb.x) / 2, y = ra.y, length = ra.height,
+      first = ra.width, total = ra.width + rb.width }
   end
   if rb.y < ra.y then ra, rb = rb, ra end
-  return { vertical = false, x = ra.x, y = (ra.y + ra.height + rb.y) / 2, length = ra.width, total = ra.height + rb.height }
+  return { vertical = false, x = ra.x, y = (ra.y + ra.height + rb.y) / 2, length = ra.width,
+    first = ra.height, total = ra.height + rb.height }
 end
 
 -- ------------------------------------------------------------------ floating --
@@ -196,6 +212,23 @@ morf.effect("eva.windows.pip.gone", function()
   if address ~= "" and not windows.get(address) then
     M.pip:set("")
     M.controls:set(false)
+  end
+end)
+
+-- With its setting on, leaving the workspace a playing video is on takes the
+-- video along, small.
+local was_on
+morf.effect("eva.windows.pip.auto", function()
+  local here = windows.int(services.workspace.active())
+  local left = was_on
+  was_on = here
+  if left == nil or left == here or require("config").get("windows.pip_auto") ~= true then return end
+  if M.pip:get() ~= "" or not services.player().playing then return end
+  for _, c in ipairs(windows.on(left)) do
+    if M.is_video(c) then
+      morf.time.timer(1, function() M.toggle_pip(c.address) end, false)
+      return
+    end
   end
 end)
 

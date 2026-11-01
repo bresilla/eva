@@ -401,8 +401,15 @@ function V.build(model)
     end
   end
 
+  morf.effect("eva.overview.typed", function()
+    local text = model.typed:get()
+    if text ~= "" then
+      input.text = text
+      model.typed:set("")
+    end
+  end)
   return { node = root, shown = function(open)
-    input.text = ""
+    if not open or model.query:get() == "" then input.text = "" end
     input.focus = open
     if open then
       track.translate_x = 0

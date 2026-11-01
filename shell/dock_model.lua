@@ -130,9 +130,17 @@ function M.entries()
       icon = entry and entry.icon or "", count = count, active = active, urgent = urgent, pinned = pinned,
       missing = pinned and not entry and not run, unread = unread(name, class) }
   end
+  if config.get("dock.buttons") ~= false then
+    out[1] = { key = "eva:launcher", name = "Launcher", class = "", initial_class = "", glyph = "apps", icon = "",
+      count = 0, active = false, urgent = false, pinned = false, missing = false, unread = 0 }
+  end
   for _, key in ipairs(pins()) do add(key, true) end
   local pinned_count = #out
   for _, key in ipairs(order) do add(key, false) end
+  if config.get("dock.buttons") ~= false then
+    out[#out + 1] = { key = "eva:overview", name = "Overview", class = "", initial_class = "", glyph = "grid_view", icon = "",
+      count = 0, active = false, urgent = false, pinned = false, missing = false, unread = 0 }
+  end
   return out, pinned_count
 end
 
@@ -163,6 +171,11 @@ end)
 
 --- A press: starts the application, or goes to its window, or to the next.
 function M.activate(key)
+  if key == "eva:launcher" then
+    local launcher = require("launcher").drawer
+    return launcher.set(not launcher.open:get())
+  end
+  if key == "eva:overview" then return require("overview").toggle() end
   local list = M.windows_of(key)
   if #list == 0 then return M.launch(key) end
   local focused = (services.hyprland.state.active_window or {}).address
@@ -218,6 +231,16 @@ function M.toggle_pin(key)
   return not had
 end
 
+--- Where the pin `key` stands among the pins, or nil.
+function M.pin_index(key)
+  for i, k in ipairs(pins()) do if k == key then return i end end
+end
+
+--- The pin a place along the row falls on: the row starts with the launcher.
+function M.pin_at(row_index)
+  return row_index - (config.get("dock.buttons") ~= false and 1 or 0)
+end
+
 --- Moves the pin at `from` to `to`.
 function M.reorder(from, to)
   local list = {}
@@ -230,6 +253,7 @@ end
 
 --- What the right button offers: `{ label, run }`.
 function M.menu(key)
+  if key:sub(1, 4) == "eva:" then return {} end
   local items, list = {}, M.windows_of(key)
   local entry = require("apps").entry(key)
   items[#items + 1] = { label = "New window", icon = "add", run = function() M.launch(key) end }

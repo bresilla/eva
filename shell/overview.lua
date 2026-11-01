@@ -19,6 +19,8 @@ local M = {}
 M.opened = morf.signal("eva.overview.opened", false)
 M.pull = morf.signal("eva.overview.pull", 0)
 M.query = morf.signal("eva.overview.query", "")
+-- What the search field is told to hold.
+M.typed = morf.signal("eva.overview.typed", "")
 -- The window the keys are on.
 M.selected = morf.signal("eva.overview.selected", "")
 -- The workspace whose windows are spread out.
@@ -216,6 +218,13 @@ end
 
 --- Looks at workspace `id`.
 function M.view(id) M.viewing:set(id) end
+
+--- Fills the search with `text`.
+function M.search(text)
+  M.typed:set(text)
+  M.query:set(text)
+  return true
+end
 
 --- Goes to workspace `id`, closing the overview.
 function M.enter(id)

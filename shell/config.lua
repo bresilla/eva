@@ -216,6 +216,8 @@ local config = settings.open {
       taskbar_hide = false,
       -- Only the windows on this screen.
       isolate = false,
+      -- The launcher's and the overview's buttons at its ends.
+      buttons = true,
       -- The pinned applications: desktop entry ids, in order.
       pins = {},
     },
@@ -233,6 +235,8 @@ local config = settings.open {
       },
       -- The other windows are offered for the room a snapped one leaves.
       snap_assist = true,
+      -- Leaving a playing video's workspace takes it along, small.
+      pip_auto = false,
       -- Each workspace's name and how it tiles, by id.
       workspaces = { names = {}, layouts = {} },
       -- The scratchpads: `name`, `command` to start, `icon`.

@@ -137,11 +137,11 @@ function M.build(model, style)
         else model.activate(key) end
       end,
       on_wheel = function(_, _, _, _, _, step) model.cycle(key, step) end,
-      on_drag_started = function() if state.pinned then dragging = index:get() end end,
+      on_drag_started = function() if state.pinned then dragging = model.pin_index(key) end end,
       on_dragged = function(x, y)
         if not dragging then return end
         local at = vertical() and y or x
-        local to = math.max(1, math.floor((at - start()) / (size() + gap)) + 1)
+        local to = model.pin_at(math.floor((at - start()) / (size() + gap)) + 1)
         if to ~= dragging and model.reorder(dragging, to) then dragging = to end
       end,
       on_released = function() dragging = nil end }
@@ -158,8 +158,9 @@ function M.build(model, style)
       ui.Item { anchors = { fill = true, margins = S.xs }, id = "dock-glyph-" .. math.floor(row.index),
         ui.Icon { anchors = { fill = true }, name = row.icon ~= "" and row.icon or "application-x-executable",
           source_width = 96, source_height = 96, visible = row.icon ~= "" },
-        ui.Item { anchors = { center_in = true }, width = size() - 2 * S.xs, height = size() - 2 * S.xs,
-          visible = row.icon == "", card.icon(row.class, row.initial_class, size() - 2 * S.xs) } },
+        row.glyph and kit.icon(row.glyph, size() - 2 * S.s, kit.ink("hi"), { anchors = { center_in = true } })
+          or ui.Item { anchors = { center_in = true }, width = size() - 2 * S.xs, height = size() - 2 * S.xs,
+            visible = row.icon == "", card.icon(row.class, row.initial_class, size() - 2 * S.xs) } },
       style.mark and style.mark(function() return index:get() end, state) or nil,
       dots[1], dots[2], dots[3], badge, area }
     return node, function(next_row)

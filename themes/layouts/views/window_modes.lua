@@ -34,7 +34,10 @@ function V.build(model)
       if not drag_from or not d then return end
       local moved = d.vertical and x - drag_from.x or y - drag_from.y
       drag_from = nil
-      if math.abs(moved) > S.s then model.nudge(moved / math.max(1, d.total)) end
+      if math.abs(moved) > S.s then
+        local total = math.max(1, d.total)
+        model.settle_divider(d.first / total + moved / total, d.first / total)
+      end
     end,
     grip_shape }
 
@@ -79,6 +82,11 @@ function V.build(model)
     end,
     on_clicked = function() model.toggle_controls() end,
     on_double_clicked = function() model.resize_pip() end,
+    on_pinched = function(scale, phase)
+      if phase == "end" and (scale > 1.1) ~= model.pip_large:get() and (scale > 1.1 or scale < .9) then
+        model.resize_pip()
+      end
+    end,
     on_swiped = function(direction, _, vy)
       if direction == "down" and (vy or 0) >= THROW then model.close_pip() end
     end }

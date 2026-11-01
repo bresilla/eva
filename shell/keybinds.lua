@@ -30,6 +30,8 @@ M.BINDS = {
   { keys = "SUPER + SHIFT + V", verb = "float", label = "Float the window, or tile it" },
   { keys = "SUPER + SHIFT + E", verb = "split", label = "Split the screen with the last window" },
   { keys = "SUPER + BackSpace", verb = "show_desktop", label = "Show the desktop" },
+  { keys = "SUPER + SHIFT + N", verb = "workspace_empty", label = "Go to an empty workspace" },
+  { keys = "SUPER + SHIFT + Tab", verb = "overview app", label = "Show this application's windows" },
   { keys = "SUPER + SHIFT + L", verb = "workspace_layout next", label = "Next layout on this workspace" },
   { keys = "SUPER + grave", verb = "scratchpad scratch", label = "Show the scratchpad" },
   { keys = "SUPER + SHIFT + grave", verb = "scratchpad send scratch", label = "Send the window to the scratchpad" },

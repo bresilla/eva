@@ -32,10 +32,17 @@ function M.register(ipc)
   end
   local here = require("services").here
   local overview = require("overview")
-  -- `overview [open|close|toggle|state]`.
+  -- `overview [open|close|toggle|state]`, or `overview app`: only the focused
+  -- application's windows, wherever they are.
   ipc.overview = function(how)
     how = how or "toggle"
     if how == "close" then overview.close() end
+    if how == "app" then
+      if not here() then return end
+      local c = windows.active()
+      overview.open()
+      return overview.search(c and c.class or "")
+    end
     if how == "close" or how == "state" then
       if here() then return overview.opened:get() end
       return
@@ -75,6 +82,9 @@ function M.register(ipc)
   ipc.snap = function(how, key)
     if how == "drag" then return snap.drag() end
     if how == "drop" then return snap.drop() end
+    if how == "state" then
+      return { dragging = snap.dragging:get(), zone = snap.zone:get(), assisting = snap.assisting:get() }
+    end
     if not here() then return end
     if how == "picker" then snap.toggle_pick() return snap.picking:get() end
     if how == "layout" then return snap.tile(key) end
@@ -91,7 +101,11 @@ function M.register(ipc)
     elseif how == "peek" then dock.entered() end
     return { mode = dock.mode(), shown = dock.shown(), rows = dock.rows:len(), overflow = dock.overflow:get() }
   end
-  ipc.dock_clear = function() require("config").set("dock.pins", {}) end
+  ipc.dock_clear = function(buttons)
+    local config = require("config")
+    config.set("dock.pins", {})
+    config.set("dock.buttons", buttons == "buttons")
+  end
   -- `dock_magnify [AT]`: the swell as if the pointer were AT along the row.
   ipc.dock_magnify = function(at) require("dock").pointer:set(tonumber(at) or -1) end
   ipc.dock_menu = function(index)
@@ -108,6 +122,10 @@ function M.register(ipc)
   ipc.dock_reorder = function(from, to) return require("dock").reorder(tonumber(from), tonumber(to)) end
   local spaces = require("workspaces_model")
   local function shown_workspace() return windows.int(require("services").workspace.active()) end
+  -- `workspace_empty`: the first workspace with nothing on it.
+  ipc.workspace_empty = function()
+    return windows.send('hl.dispatch(hl.dsp.focus({ workspace = "empty" }))', "workspace", "empty")
+  end
   -- `workspace_name [NAME [ID]]`: names a workspace, this one by default;
   -- with no name it says what it is called.
   ipc.workspace_name = function(name, id)
