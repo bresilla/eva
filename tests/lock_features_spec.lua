@@ -151,8 +151,7 @@ test.it("the lock is given up in one place, reached only through the door or the
   local source=morf.fs.read("lock/init.lua")
   local _,gives=source:gsub("session_lock%s*=%s*false","")
   test.eq(gives,1,"one place sets the session free")
-  -- Everything that calls lift: the door's answer, the preview's fake door,
-  -- and the window, which goes through the door when it can.
+  -- What calls lift: the door's answer, the preview's fake door, the window.
   local names={}
   for line in source:gmatch("[^\n]+") do
     if line:find("%f[%w_]lift%f[^%w_]") and not line:find("^%s*%-%-") then names[#names+1]=line:match("^%s*(.-)%s*$") end

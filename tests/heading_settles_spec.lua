@@ -1,6 +1,6 @@
 -- A Tsugumori title decodes once and lands on its word: the month's over the
--- dashboard's calendar was seen scrambled in a shot, so its whole read is
--- filmed here, and the ways a read can be cut short.
+-- dashboard's calendar is filmed through its whole read, and the ways a read
+-- can be cut short.
 local test = morf.test
 local SOURCE = [[
   require("init")

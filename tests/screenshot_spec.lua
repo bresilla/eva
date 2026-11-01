@@ -1,6 +1,6 @@
--- eva-screenshot: its command line against stand-in programs, and what the
--- editor gained (solid redaction, the last region, a picture from a file,
--- reading a picture). The tool itself is tests/capture_tool_spec.lua.
+-- eva-screenshot: its command line against stand-in programs, and the editor:
+-- solid redaction, the last region, a picture from a file, reading a picture.
+-- The tool itself is tests/capture_tool_spec.lua.
 --
 --     morf test --no-dbus tests/screenshot_spec.lua
 

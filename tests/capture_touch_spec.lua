@@ -1,4 +1,4 @@
--- The tool under a finger, on a phone: the selection, the panel's new way in, and
+-- The tool under a finger, on a phone: the selection, the panel's history, and
 -- a thumbnail pressed.
 --
 --     morf test --no-dbus tests/capture_touch_spec.lua

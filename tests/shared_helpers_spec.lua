@@ -1,5 +1,5 @@
--- Helpers that were written twice, each now in one place: what they answer, and
--- no second copy left beside them.
+-- Helpers the shell shares, each in one place: what they answer, and no second
+-- copy beside them.
 --
 --     morf test --no-dbus tests/shared_helpers_spec.lua
 local test = morf.test

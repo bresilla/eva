@@ -80,7 +80,6 @@ test.describe("ical", function()
   end)
 
   test.it("places a time in its own zone, across the clock change", function()
-    -- Amsterdam: +2 in summer, +1 from 25 October 2026.
     local text = event { "DTSTART;TZID=Europe/Amsterdam:20260701T100000", "DTEND;TZID=Europe/Amsterdam:20260701T110000" }
     test.eq(test.ipc("times", text, utc(2026, 6, 30, 0), utc(2026, 7, 2, 0))[1].at, utc(2026, 7, 1, 8))
     text = event { "DTSTART;TZID=Europe/Amsterdam:20261102T100000" }
