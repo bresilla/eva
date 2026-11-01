@@ -165,6 +165,12 @@ local config = settings.open {
       -- Mobile data in a calendar month, in megabytes, before a warning; 0
       -- for none.
       data_limit = 0,
+      -- The power key ends a call that is up.
+      power_ends_call = false,
+      -- What pressing power twice runs: a command, as a list.
+      double_power = {},
+      -- Five presses of power count down to an emergency call.
+      sos = false,
     },
     -- The shell as the session's polkit agent (polkit.lua): "on", or "off"
     -- to leave the job to another (hyprpolkitagent, polkit-gnome).

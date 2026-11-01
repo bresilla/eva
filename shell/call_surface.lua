@@ -35,8 +35,10 @@ function M.start(owner)
   local model, sim, alerts = owner.model, owner.sim, owner.alerts
   local function calling() return model.stage:get() ~= "idle" end
   local function alerting() return alerts ~= nil and alerts.active() end
+  local keys = require("hardware_keys")
+  local function counting() return keys.sos:get() > 0 end
   local function open()
-    local compact = not require("responsive").sheets() and not sim.asking() and not alerting()
+    local compact = not require("responsive").sheets() and not sim.asking() and not alerting() and not counting()
     local function width() local w = size() return compact and CARD_W or w end
     local function height() local _, h = size() return h end
     local call = require("themes").view("call").build {
@@ -50,6 +52,9 @@ function M.start(owner)
         visible = function() return alerting() and not calling() end,
         require("themes.alert_sheet").build { alerts = alerts, look = look(), width = width, height = height } } or nil,
       ui.Item { id = "phone-call", anchors = { fill = true }, z = 20, visible = calling, call },
+      ui.Item { id = "phone-sos", anchors = { fill = true }, z = 30, visible = counting,
+        require("themes.sos_sheet").build { left = keys.sos, cancel = keys.cancel, look = look(),
+          width = width, height = height } },
       shield(owner) }
     layer = morf.window.layer {
       blend = "srgb", namespace = "eva-call", layer = "overlay", exclusive_zone = -1, keyboard_focus = "none",
@@ -60,7 +65,7 @@ function M.start(owner)
     M.layer = layer
   end
   morf.effect("eva.phone.surface", function()
-    local up = calling() or sim.asking() or alerting()
+    local up = calling() or sim.asking() or alerting() or counting()
     local primary = not morf.window.primary or morf.window.primary()
     if up and primary and not layer then open()
     elseif not up and layer then

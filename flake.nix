@@ -62,6 +62,13 @@
           module = machine { };
           module-plymouth = machine { programs.eva.seamless.plymouth = true; };
           module-plain = machine { programs.eva.seamless.enable = false; };
+          module-phone = machine {
+            programs.eva.phone = {
+              enable = true;
+              suspendTimeout = 900;
+              wakeDevices = [ "/sys/devices/platform/modem" ];
+            };
+          };
         };
         devShells.default = pkgs.mkShell {
           packages = [

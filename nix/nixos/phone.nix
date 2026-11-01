@@ -56,6 +56,12 @@ let
           on-timeout = ${screen}/bin/phone-screen off
         }
       ''}
+      ${lib.optionalString (config.programs.eva.phone.suspendTimeout > 0) ''
+        listener {
+          timeout = ${toString config.programs.eva.phone.suspendTimeout}
+          on-timeout = ${pkgs.systemd}/bin/systemctl suspend
+        }
+      ''}
     '';
   idleConfig = makeIdleConfig config.programs.eva.phone.idleTimeout;
   greeterIdleConfig = makeIdleConfig 60;
@@ -79,6 +85,20 @@ let
       timeout 3 morf -i "$WAYLAND_DISPLAY" ipc call phone-gesture "$1" >/dev/null
     '';
   };
+  phoneKey = pkgs.writeShellApplication {
+    name = "phone-key";
+    runtimeInputs = [ config.programs.eva.package pkgs.coreutils ];
+    text = ''
+      exec timeout 3 morf -i "$WAYLAND_DISPLAY" ipc call phone key "$1" >/dev/null
+    '';
+  };
+  keyConfig = lib.concatMapStrings (entry: ''
+    hl.bind("${entry.key}", hl.dsp.exec_cmd("${phoneKey}/bin/phone-key ${entry.name}"), { locked = true })
+  '') [
+    { key = "XF86AudioLowerVolume"; name = "volume-down"; }
+    { key = "XF86AudioRaiseVolume"; name = "volume-up"; }
+    { key = "XF86PowerOff"; name = "power"; }
+  ];
   gestureRunner = pkgs.writeShellApplication {
     name = "phone-gestures";
     runtimeInputs = [
@@ -103,6 +123,36 @@ in
     default = 60;
     description = "Seconds before locking and blanking a phone session; zero disables automatic locking.";
   };
+  options.programs.eva.phone.calls = lib.mkOption {
+    type = lib.types.bool;
+    default = true;
+    description = ''
+      Calls and texts: ModemManager, callaudiod, feedbackd and iio-sensor-proxy.
+      The user joins `networkmanager`, whose polkit rule lets a session use
+      ModemManager's Voice and Messaging without asking for a password that
+      nothing on a locked screen could answer, and `feedbackd`.
+    '';
+  };
+  options.programs.eva.phone.suspendTimeout = lib.mkOption {
+    type = lib.types.ints.unsigned;
+    default = 0;
+    description = ''
+      Idle seconds before suspending; zero keeps the phone awake. Leave it at zero
+      until a call has been seen to wake this phone from suspend: whether one does
+      is up to its kernel and its modem, and `wakeDevices` must name what rings it.
+      A call in progress holds suspend off through logind.
+    '';
+  };
+  options.programs.eva.phone.wakeDevices = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ ];
+    example = [ "/sys/devices/platform/soc/4080000.remoteproc/wakeup" ];
+    description = ''
+      Sysfs device folders whose `power/wakeup` is turned on at boot, so the modem
+      can wake a sleeping phone. There is no general answer: on a USB modem it is
+      the USB device, on a Qualcomm SoC the modem's remoteproc or its IPC channel.
+    '';
+  };
   options.programs.eva.phone.gestureDriver = lib.mkOption {
     type = lib.types.enum [ "native" "lisgd" ];
     default = "native";
@@ -118,11 +168,19 @@ in
       )
       {
         services.logind.settings.Login.HandlePowerKey = "lock";
+        networking.modemmanager.enable = lib.mkIf config.programs.eva.phone.calls (lib.mkDefault true);
+        programs.feedbackd.enable = lib.mkIf config.programs.eva.phone.calls (lib.mkDefault true);
+        hardware.sensor.iio.enable = lib.mkIf config.programs.eva.phone.calls (lib.mkDefault true);
+        services.dbus.packages = lib.optional config.programs.eva.phone.calls pkgs.callaudiod;
+        systemd.tmpfiles.rules = map (device: "w ${device}/power/wakeup - - - - enabled")
+          config.programs.eva.phone.wakeDevices;
         # Only lisgd reads /dev/input; native gestures come over Wayland.
         users.users.${config.programs.eva.user}.extraGroups =
-          lib.optional (config.programs.eva.phone.gestureDriver == "lisgd") "input";
+          lib.optional (config.programs.eva.phone.gestureDriver == "lisgd") "input"
+          ++ lib.optionals config.programs.eva.phone.calls [ "networkmanager" "feedbackd" ];
         environment.systemPackages = [ screen ]
-          ++ lib.optional (config.programs.eva.phone.gestureDriver == "lisgd") pkgs.lisgd;
+          ++ lib.optional (config.programs.eva.phone.gestureDriver == "lisgd") pkgs.lisgd
+          ++ lib.optional config.programs.eva.phone.calls pkgs.callaudiod;
         # Shared by the user's lockscreen and the separate greeter process.
         environment.etc."eva/phone-screen.json".text = builtins.toJSON {
           command = "${screen}/bin/phone-screen";
@@ -130,7 +188,8 @@ in
         };
         environment.etc."xdg/hypr/hypridle.conf".source = lib.mkForce idleConfig;
         environment.etc."xdg/hypr/hypridle.conf".text = lib.mkForce null;
-        programs.eva.hyprland.extraConfig = deliberateWakeConfig + pointerConfig + workspaceConfig;
+        programs.eva.hyprland.extraConfig = deliberateWakeConfig + pointerConfig + workspaceConfig
+          + lib.optionalString config.programs.eva.phone.calls keyConfig;
         programs.eva.greeter = {
           environment.EVA_PHONE_GREETER = "1";
           sessionSetup = ''

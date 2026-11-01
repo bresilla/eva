@@ -151,6 +151,8 @@ local FAKES = {
 
 --- `phone VERB ARGS`, over IPC.
 function M.ipc(verb, ...)
+  if verb == "key" then return require("hardware_keys").press(M, (...)) end
+  if verb == "sos-cancel" then require("hardware_keys").cancel() return true end
   if verb == "fake" then
     local what = ...
     local act = FAKES[what]

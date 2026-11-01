@@ -1,7 +1,7 @@
 set -euo pipefail
 
-action=${1:?expected off, wake or toggle}
-case "$action" in off|wake|toggle) ;; *) exit 2 ;; esac
+action=${1:?expected off, wake, toggle, blank or unblank}
+case "$action" in off|wake|toggle|blank|unblank) ;; *) exit 2 ;; esac
 state="${XDG_RUNTIME_DIR:?}/phone-screen-${HYPRLAND_INSTANCE_SIGNATURE:?}"
 exec 9>"$state.lock"
 flock 9
@@ -24,7 +24,13 @@ publish() {
   mv -f "$state.status.tmp" "$state.status"
 }
 
-if [[ "$action" == wake ]]; then wake; exit; fi
+if [[ "$action" == wake || "$action" == unblank ]]; then wake; exit; fi
+# A call against the ear: dark and deaf to touch, the session left as it is.
+if [[ "$action" == blank ]]; then
+  publish off
+  phone-dpms off || publish on
+  exit
+fi
 if [[ "$action" == toggle ]]; then
   if [[ "$powered" == false ]]; then wake; exit; fi
   # Ignore a duplicate power signal immediately after waking the display.
