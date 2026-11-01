@@ -157,6 +157,7 @@ end
 local keyboard = require("keyboard")
 local bar = require("bar")
 local window_menu = require("window_menu")
+require("calendar_reminders").start()
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
@@ -169,6 +170,7 @@ morf.effect("eva.keyboard.focus", function()
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "theme/lule")
     or (sidebar.drawer.open:get() and require("utilities").displayed:get() == "hotspot")
     or (sidebar.drawer.open:get() and require("utilities").tiles.editing:get())
+    or require("pages").typing()
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
 
@@ -424,6 +426,15 @@ end
 ipc.assistant = function(how)
   if here() and how ~= "close" then bottom.panel.select("assistant") end
   return verb(bottom.drawer)(how or "open")
+end
+-- `ask QUESTION`: the assistant opens and answers it, as the launcher's `ai`.
+ipc.ask = function(question)
+  if here() then require("assistant_model").ask(question) end
+  return true
+end
+-- `page KEY`: the page `KEY` (shell/pages.lua), wherever a panel holds it.
+ipc.page = function(key)
+  if here() then return require("pages").open(key) end
 end
 -- `keyboard [how]`: the on-screen keyboard, for a key to bind. `how` is
 -- open, close, toggle or state, or a mode to open it in: full, dev,

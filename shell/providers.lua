@@ -369,6 +369,7 @@ local function system(term)
       run = function() local n = require("notifs") n.dnd:set(not n.dnd:get()) return "close" end },
     { id = "session", name = "Session menu", material = "power", run = drawer("session") },
   }
+  for _, entry in ipairs(require("launcher_words").system()) do SYSTEM[#SYSTEM + 1] = entry end
   local out = {}
   for _, s in ipairs(fuzzy(SYSTEM, term)) do
     out[#out + 1] = row {

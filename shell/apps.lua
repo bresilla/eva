@@ -163,6 +163,8 @@ function M.search(query, limit)
   local providers = require("providers")
   local routed, routed_mode = providers.search(query)
   if routed then return routed, routed_mode end
+  local worded = require("launcher_words").search(query)
+  if worded then return worded, "apps" end
   local prefix = config.get("launcher.action_prefix")
   if query:sub(1, #prefix) == prefix then
     local rest = query:sub(#prefix + 1):gsub("^%s+", "")

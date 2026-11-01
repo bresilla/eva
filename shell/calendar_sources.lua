@@ -86,9 +86,11 @@ end
 local function discovered()
   local out, seen = {}, {}
   if config.get("calendar.discover") == false then return out end
-  local home = morf.fs.home()
-  local roots = { home .. "/.local/share/khal/calendars", home .. "/.local/share/vdirsyncer", home .. "/.calendars" }
-  for _, file in ipairs { home .. "/.config/khal/config", home .. "/.config/vdirsyncer/config" } do
+  local function env(name) local value = morf.env and morf.env(name) return value and value ~= "" and value or nil end
+  local home = env("HOME") or morf.fs.home()
+  local data, settings = env("XDG_DATA_HOME") or (home .. "/.local/share"), env("XDG_CONFIG_HOME") or (home .. "/.config")
+  local roots = { data .. "/khal/calendars", data .. "/vdirsyncer", home .. "/.calendars" }
+  for _, file in ipairs { settings .. "/khal/config", settings .. "/vdirsyncer/config" } do
     for _, path in ipairs(configured_paths(file)) do roots[#roots + 1] = path end
   end
   for _, root in ipairs(roots) do calendar_folders(root, out, seen) end

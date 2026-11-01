@@ -108,15 +108,14 @@ test.it("Tsugumori compact bottom keeps all content reachable and uses the suppl
   load("tsugumori",500,720) open()
   local panel=test.get("drawer-bottom")
   test.truthy(panel.x>=0 and panel.x+panel.width<=500,"the drawer overflows the screen")
-  for _,id in ipairs {"bottom-tab-assistant","bottom-tab-drop","assistant-welcome","assistant-connection"} do
+  for _,id in ipairs {"bottom-tab-assistant","bottom-tab-drop","assistant-setup","assistant-open-settings"} do
     local n=test.get(id)
     test.truthy(n.x>=panel.x and n.x+n.width<=panel.x+panel.width,id.." overflows")
   end
   shot("bottom-compact-assistant")
   local viewport=test.get("assistant-page")
-  test.wheel(0,2500,{x=viewport.x+100,y=viewport.y+100}) test.advance(500)
-  local last=test.get("assistant-context")
-  test.truthy(last.y>=viewport.y and last.y+last.height<=viewport.y+viewport.height,"the last row is out of reach")
+  local last=test.get("assistant-open-settings")
+  test.truthy(last.y>=viewport.y and last.y+last.height<=viewport.y+viewport.height,"the settings button is out of reach")
   test.click("bottom-tab-drop") test.advance(2400)
   viewport=test.get("drop-page")
   local card=test.get("drop-placeholder")

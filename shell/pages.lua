@@ -26,9 +26,61 @@ M.all = {
   tasks = { name = "Tasks", icon = "checklist", title_id = "tasks-title", build = function(_, w, h) return require("tasks_page").build(w, h) end },
   calendar = { name = "Calendar", icon = "calendar_month", title_id = "planner-title",
     build = function(_, w, h) return require("calendar_page").build(w, h) end },
-  assistant = { name = "Assistant", icon = "auto_awesome", title_id = "assistant-title", build = workspace("assistant", "Assistant") },
-  drop = { name = "Drop", icon = "forum", title_id = "drop-title", build = workspace("drop", "Drop") },
+  assistant = { name = "Assistant", icon = "auto_awesome", title_id = "assistant-title", typed = true, build = workspace("assistant", "Assistant") },
+  drop = { name = "Drop", icon = "forum", title_id = "drop-title", typed = true, build = workspace("drop", "Drop") },
+  notes = { name = "Notes", icon = "sticky_note_2", title_id = "notes-title", typed = true,
+    build = function(panel, w, h) return require("notes_page").build(M.showing(panel, "notes"), w, h) end },
+  phone = { name = "Phone", icon = "smartphone", title_id = "phone-title", typed = true,
+    build = function(panel, w, h) return require("phone_page").build(M.showing(panel, "phone"), w, h) end },
 }
+
+--- Whether `key` is on show in `panel`; nil, a settings page: its route.
+function M.showing(panel, key)
+  if panel then return function() return panel.opened:get() and panel.showing(key) end end
+  return require("presentation").active("settings." .. key)
+end
+
+-- Settings pages with a text field that no page of `M.all` shares a key with.
+local TYPED_SETTINGS = { "calendars" }
+
+--- Whether a page that takes typing is on show in an open panel.
+function M.typing()
+  local presentation = require("presentation")
+  for key, page in pairs(M.all) do
+    if page.typed then
+      for _, holder in ipairs { "sidebar", "leftbar", "bottom", "settings" } do
+        if presentation.active(holder .. "." .. key)() then return true end
+      end
+    end
+  end
+  for _, key in ipairs(TYPED_SETTINGS) do
+    if presentation.active("settings." .. key)() then return true end
+  end
+  return false
+end
+
+--- Opens the settings page `route`.
+function M.settings(route)
+  local settings, sidebar = require("utilities"), require("sidebar")
+  settings.request(route)
+  sidebar.select("settings")
+  sidebar.drawer.set(true)
+  return true
+end
+
+--- Opens the page `key` where a panel holds it, or as a settings page.
+function M.open(key)
+  local order = require("responsive").sheets() and { "sidebar", "bottom", "leftbar" } or { "bottom", "leftbar", "sidebar" }
+  for _, name in ipairs(order) do
+    local holder = require(name)
+    if holder.panel and holder.panel.index(key) then
+      holder.panel.select(key)
+      holder.drawer.set(true)
+      return true
+    end
+  end
+  return M.settings(key)
+end
 
 --- The pages the panel on `edge` holds, as side panel tabs (`key`, `name`,
 --- `icon`, `fit`, `build(w, h)` once `bind(model)` has given them their

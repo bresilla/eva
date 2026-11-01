@@ -21,7 +21,7 @@ for _,style in ipairs {"material","tsugumori"} do
     load(style,"calendar")
     -- (The page template has no page title: a day's row names it.)
     test.eq(test.get("planner-empty-title").text,"Nothing planned yet")
-    test.eq(test.get("planner-empty-subtitle").text,"Tasks due or scheduled that day show here.")
+    test.eq(test.get("planner-empty-subtitle").text,"Events and tasks due or scheduled that day show here.")
     local top=test.get("planner-month").y
     if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-planner-title.png") end
     test.wheel(0,3000,{x=400,y=300}) test.advance(200)

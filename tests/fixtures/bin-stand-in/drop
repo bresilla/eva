@@ -1,0 +1,134 @@
+#!/bin/sh
+# Stands in for termworks/drop 0.6.2: no key, no network. Output follows the
+# formats of its source. As the real one does, any subcommand on a machine that
+# has never run drop makes a key first, logged as MINTED, so a spec can catch a
+# page that runs it uninvited. STUB_LOG collects every call.
+#
+#   DROP_FAKE_SERVING=1   drop serve is up from the start
+#   DROP_FAKE_EMPTY=1     nobody is known
+#   DROP_FAKE_MACHINE=x   this machine's name
+: "${XDG_CONFIG_HOME:?the stand-in refuses to guess: it never touches a real ~/.config}"
+config=$XDG_CONFIG_HOME/drop
+state=$XDG_CONFIG_HOME/drop-stand-in
+mkdir -p "$state"
+printf 'drop %s\n' "$*" >> "${STUB_LOG:-/dev/null}"
+
+case "$1" in
+  --version | -v) echo "drop version 0.6.2"; exit 0 ;;
+  --help | -h | '') echo "stand-in for drop"; exit 0 ;;
+esac
+
+if [ ! -e "$config/badge" ]; then
+  mkdir -p "$config"
+  : > "$config/badge"
+  printf 'MINTED %s\n' "$*" >> "${STUB_LOG:-/dev/null}"
+fi
+
+here=${DROP_FAKE_MACHINE:-tron}
+id=8c4d031fa62eca685be2f2ecf784843c42075e7a9935c3fa84b09983d3d10ca5
+
+serving() { [ -n "${DROP_FAKE_SERVING:-}" ] || [ -e "$state/serving" ]; }
+no_daemon() {
+  echo 'drop: nothing is running here to reach the network: start `drop serve`, or open `drop`' >&2
+  exit 1
+}
+
+case "$1 ${2:-}" in
+  "me id")
+    if [ "${3:-}" = --short ]; then echo "9983d3d10ca5"; else echo "$id"; fi
+    ;;
+  "me log")
+    if [ -n "${3:-}" ]; then
+      case "$3" in
+        laptop)
+          printf '09:12 ← %-12s are you around later?\n' "$3"
+          printf '09:14 → %-12s yes, after the meeting\n' "$3"
+          printf '09:20 ← %-12s file  thesis.pdf (2.1 MB)\n' "$3"
+          printf '\n1 message(s) still waiting to be delivered\n'
+          ;;
+        *) printf 'nothing said to %s yet\n' "$3" ;;
+      esac
+    elif [ -n "${DROP_FAKE_EMPTY:-}" ]; then
+      echo "no conversations yet"
+    else
+      printf '  %-16s %3d  %s\n' laptop 3 'file  thesis.pdf (2.1 MB)'
+    fi
+    ;;
+  "person ls" | "person ")
+    printf '  me\n      %s (this one)\n      orin\n' "$here"
+    if [ -z "${DROP_FAKE_EMPTY:-}" ]; then
+      printf '  bob  trusted\n      laptop\n      phone\n'
+      printf '  carol\n      desk\n'
+    fi
+    ;;
+  "person add")
+    if [ -n "${3:-}" ]; then
+      printf '\npaired with %s\n  %s\n' "$3" "$id"
+    else
+      printf '\n  code:    brisk-lantern-42\n  link:    drop://pair/brisk-lantern-42\n\nwaiting...\n'
+      exec sleep 20
+    fi
+    ;;
+  "machine ls" | "machine ")
+    printf '  %-5s  %-8s  %s\n' "$here" "this one" "$id"
+    printf '  %-5s  %-8s  %s\n' orin paired 39ce1a4bee9e4275e641045f9b867c6f60dbd4e801f1719029fc1ba8a4ed1a91
+    ;;
+  "topic kinds")
+    printf '  %-10s %s\n' chat "a conversation" inbox "files handed over, landing in a folder"
+    ;;
+  "topic ls" | "topic ")
+    if [ -n "${3:-}" ]; then
+      case "$3" in
+        *desk) echo "drop: desk is off" >&2; exit 1 ;;
+        *)
+          printf '\n%s  9983d3d10ca5\n\n' "$3"
+          printf '  %-8s %-6s %s\n' /inbox share "files handed over" /chat chat "a conversation" /papers files "a folder to walk through"
+          printf '\n'
+          ;;
+      esac
+    else
+      inbox=$XDG_CONFIG_HOME/inbox
+      mkdir -p "$inbox"
+      [ -e "$inbox/agenda.pdf" ] || printf 'agenda' > "$inbox/agenda.pdf"
+      echo "no config file; serving the defaults"
+      echo
+      printf '  %-24s %-6s %-8s %-22s %s\n' /inbox share default "anyone paired" "$inbox"
+      printf '  %-24s %-6s %-8s %-22s %s\n' /chat chat default "anyone paired" ""
+      printf '  %-24s %-6s %-8s %-22s %s\n' /open link default "anyone trusted" ""
+    fi
+    ;;
+  "topic add") printf '/%s is a %s on this machine now\n' "$3" "$4" ;;
+  "topic rm") printf '/%s is gone from this machine\n' "$3" ;;
+  "nearby ")
+    serving || no_daemon
+    printf '  phone-of-dana asks to pair with you — check 4821\n    drop nearby yes phone-of-dana\n\n'
+    printf '  %-20s %s\n' lab-printer 1ba8a4ed1a91aa2e0b421c044d39ce1a4bee9e4275e641045f9b867c6f60dbd4e8
+    printf '\n  drop nearby mine <name>   make one of them yours\n  drop nearby pair <name>   pair with whoever owns it\n'
+    ;;
+  "nearby pair" | "nearby mine" | "nearby join")
+    serving || no_daemon
+    printf 'connected with %s\n' "$3"
+    ;;
+  "nearby yes" | "nearby no") serving || no_daemon ;;
+  "file ls")
+    case "$3" in
+      *deep) printf '\n%s  9983d3d10ca5\n\n  %-12s  %10s  %s\n\n' "$3" inner.txt "12 B" "2026-10-30 09:00" ;;
+      *)
+        printf '\n%s  9983d3d10ca5\n\n' "$3"
+        printf '  %-12s  %10s  %s\n' deep/ "" "2026-10-30 09:00" thesis.pdf "2.1 MB" "2026-10-29 17:40"
+        printf '\n'
+        ;;
+    esac
+    ;;
+  "file get") printf 'fetched\n' ;;
+  "serve "*)
+    : > "$state/serving"
+    exec sleep 60
+    ;;
+  "connect "*)
+    case "$2" in
+      *desk*) echo "drop: desk is off" >&2; exit 1 ;;
+    esac
+    ;;
+  *) echo "drop: stand-in does not know: $*" >&2; exit 1 ;;
+esac

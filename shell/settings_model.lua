@@ -540,6 +540,8 @@ M.DETAILS = {
   {key="sound",name="Sound"}, {key="microphone",name="Microphone"},
   {key="power",name="Power"}, {key="eva",name="Eva"}, {key="bar",name="Bar",parent="eva"}, {key="wired",name="Wired"},
   {key="osd",name="On-screen displays",parent="eva"},
+  {key="assistant",name="Assistant",parent="eva"}, {key="calendars",name="Calendars",parent="eva"},
+  {key="notes",name="Notes"}, {key="phone",name="Phone"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
   {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},

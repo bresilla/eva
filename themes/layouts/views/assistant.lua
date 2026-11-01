@@ -121,10 +121,24 @@ function M.build(model, w, h)
   local list_w = function() return wide() and LIST_W or get(w) end
   local none = kit.text { id = "assistant-no-chats", text = "Nothing saved yet.", font_size = P.SUB, color = kit.ink("lo"),
     x = S.s, visible = function() return model.conversations:len() == 0 end }
-  local list_node = kit.scroll { id = "assistant-chats", width = list_w, height = h, clip = true,
+  local back = P.button { id = "assistant-back", label = "Back to the chat", icon = "arrow_back",
+    visible = function() return not wide() end, on_clicked = function() model.browsing:set(false) end }
+  local list_h = function() return get(h) - (wide() and 0 or P.BUTTON_H + P.GAP) end
+  local list_node = kit.scroll { id = "assistant-chats", width = list_w, height = list_h, clip = true,
     ui.Column { width = list_w, gap = S.xs, none, conversations } }
-  local list = ui.Item { id = "assistant-list", width = list_w, height = h,
-    visible = function() return ready() and (wide() or model.browsing:get()) end, list_node }
+  local list = ui.Column { id = "assistant-list", width = list_w, height = h, gap = P.GAP,
+    visible = function() return ready() and (wide() or model.browsing:get()) end, back, list_node }
+
+  -- ------------------------------------------------------------- its bar --
+  local bar = ui.Item { id = "assistant-bar", width = chat_w, height = P.BUTTON_H,
+    kit.text { id = "assistant-summary", text = model.summary, font_size = P.SUB, color = kit.ink("lo"), elide = "right",
+      anchors = { vertical_center = true }, width = function() return math.max(1, chat_w() - 3 * P.BUTTON_H) end },
+    ui.Row { anchors = { right = true, vertical_center = true }, gap = S.xs,
+      tool { id = "assistant-browse", name = "Conversations", icon = "forum", visible = function() return not wide() end,
+        on_clicked = function() model.browsing:set(true) end },
+      tool { id = "assistant-new", name = "New conversation", icon = "add", on_clicked = model.new_conversation },
+      tool { id = "assistant-settings", name = "Assistant settings", icon = "settings", on_clicked = model.open_settings },
+    } }
 
   -- ---------------------------------------------------------------- chat --
   local input_node, input = kit.text_field("text_area", {
@@ -172,7 +186,7 @@ function M.build(model, w, h)
     visible = function() return model.notice:get() ~= "" end }
 
   local foot = ui.Column { width = chat_w, gap = S.s, notice, chip_row, well, actions }
-  local log_h = function() return math.max(0, get(h) - (foot.layout_height or 0) - P.GAP) end
+  local log_h = function() return math.max(0, get(h) - (foot.layout_height or 0) - P.BUTTON_H - 2 * P.GAP) end
 
   local welcome = P.empty { id = "assistant-welcome", width = chat_w, icon = "auto_awesome", title = "Room to think.",
     text = function() return "Ask anything. " .. model.summary() .. " answers here." end,
@@ -197,26 +211,13 @@ function M.build(model, w, h)
 
   local chat = ui.Column { id = "assistant-chat", width = chat_w, height = h, gap = P.GAP,
     x = function() return wide() and LIST_W + P.GAP or 0 end,
-    visible = function() return ready() and not browsing() end, log, foot }
+    visible = function() return ready() and not browsing() end, bar, log, foot }
 
   local root = ui.Item { id = "assistant-page", width = w, height = h, setup, list, chat }
   morf.effect("assistant.shown", function()
     local shown = model.active()
     if shown then morf.time.timer(1, function() model.begin() end, false) end
   end, { owner = root })
-
-  return root, {
-    subtitle = function() return model.summary() end,
-    keep = function() return true end,
-    actions = {
-      P.button { id = "assistant-browse", label = "Chats", icon = "forum",
-        visible = function() return ready() and not wide() end,
-        selected = function() return model.browsing:get() end,
-        on_clicked = function() model.browsing:set(not model.browsing:get()) end },
-      P.button { id = "assistant-new", label = "New chat", icon = "add",
-        visible = ready, on_clicked = model.new_conversation },
-      P.button { id = "assistant-settings", label = "Settings", icon = "settings", on_clicked = model.open_settings },
-    },
-  }
+  return root
 end
 return M

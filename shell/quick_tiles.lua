@@ -93,6 +93,19 @@ function M.list(model, gamemode)
       on = keyboard_open,
       set = function(now) model.close_panel() require("keyboard").set(now) end,
     },
+    {
+      id = "notes", icon = "sticky_note_2", name = "Notes", detail = "notes",
+      on = function() return false end,
+      set = function() require("pages").open("notes") end,
+      status = function() return "Plain files" end,
+    },
+    {
+      id = "phone", icon = "smartphone", name = "Phone", detail = "phone",
+      present = function() return require("phone_model").present() end,
+      on = function() return false end,
+      set = function() require("pages").open("phone") end,
+      status = function() return "KDE Connect" end,
+    },
   }
 end
 
