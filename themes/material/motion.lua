@@ -61,7 +61,7 @@ return function(theme)
   end
 
   -- The frame's working panels share one seam group: where two meet they melt
-  -- into one surface. A shut one has no layer, so nothing needs switching.
+  -- into one surface.
   local NEIGHBOURS = { dashboard = true, sidebar = true, leftbar = true, bottom = true,
     session = true, capture = true, notifications = true }
   function M.seam_group(name, own) return NEIGHBOURS[name] and 900 or own end

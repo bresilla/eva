@@ -120,7 +120,7 @@ function M.new(spec)
   local near, far = 0, theme.ROUNDING
   local e = spec.edge
   local function r(a, b) return (e == a or e == b) and near or far end
-  -- It reaches past the frame's edge, so a spring's overshoot opens no gap.
+  -- It reaches past the frame's edge, under the frame.
   local backing = panel
   if not floating then
     local reach = { fill = true }

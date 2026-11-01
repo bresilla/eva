@@ -1,0 +1,19 @@
+# The motion work on a real session: drawers, the launcher, the Eva page, and
+# a reversal caught mid-flight in real time.
+start shell
+shot rest
+ipc dashboard open; pause 0.05; ipc close; pause 0.05; shot reversal-out
+ipc dashboard open; pause 1.4; shot dashboard
+ipc close; pause 0.7
+ipc launcher open; pause 1; shot launcher
+text calc; pause 0.5; shot launcher-mode
+key Escape; pause 0.7
+ipc sidebar open settings; pause 1.2; shot quick-settings
+ipc settings eva; pause 1.4; shot eva-page
+ipc close; pause 0.7
+ipc bottom open; ipc sidebar open; pause 1.2; shot seams
+ipc close; pause 0.8
+start lock
+shot lock-rest
+start greet
+shot greet-rest

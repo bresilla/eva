@@ -148,7 +148,7 @@ function M.new(spec)
     if wipe or phone then
       for _,page in ipairs(pages) do page.opacity,page.translate_x,page.translate_y=1,0,0 end
     else
-      -- Out of the calling effect: a bud reads values that are moving.
+      -- The bud runs outside the calling effect.
       local page = pages[tab:get()]
       budding = morf.time.timer(1, function()
         budding = nil

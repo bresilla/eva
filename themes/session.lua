@@ -3,6 +3,8 @@ local morf = require("morf")
 local bank = morf.reloadable("eva.theme.session", {})
 local saved = bank:get()
 local M = { restoring = saved.switching == true, target = saved.target, font = saved.font, transition = saved.transition }
+-- What `hold` kept lasts one reload.
+if saved.held then bank:set({ target = saved.target, font = saved.font }) end
 local readers = {}
 function M.keep(name, initial)
   local value = saved[name]
@@ -20,6 +22,12 @@ function M.snapshot() return bank:get() end
 function M.register(name, reader) readers[name] = reader end
 function M.capture(target, font, transition)
   local values = { switching = true, target = target, font = font, transition = transition }
+  for name, read in pairs(readers) do values[name] = read() end
+  bank:set(values)
+end
+--- Keeps what is open and where it stands through the next reload.
+function M.hold()
+  local values = { held = true, target = M.target, font = M.font }
   for name, read in pairs(readers) do values[name] = read() end
   bank:set(values)
 end

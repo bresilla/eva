@@ -77,8 +77,7 @@ function V.build(model)
 
   -- The blob: the active pill, a spring along the rail that stretches with
   -- its speed. It is the pills' field's last layer, joined to them by a seam
-  -- that opens only while it travels, so it pulls each neighbour it passes
-  -- into itself and at rest sits apart from them, a pill among pills.
+  -- that opens while it travels and closes when it rests.
   local function stop_at() return slot_y(V.geometry(model), model.active(), base) end
   local function slot_length() return V.geometry(model).item end
   local head = ui.Item { id = "rail-head", stretch = theme.stretch.blob,

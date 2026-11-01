@@ -77,6 +77,25 @@ local SHELL = [[
   end
 ]]
 
+for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. " has nothing moving at rest, with a drawer open or shut", function()
+    test.load("../shell/init.lua", { source = SHELL, size = { 1920, 1080 },
+      env = { EVA_STYLE = style, EVA_DRY_RUN = "1", EVA_WALLPAPER = "" } })
+    -- Finite decoration may finish first; what never stops runs every settle out.
+    local function comes_to_rest()
+      for _ = 1, 20 do
+        if test.settle(1000) < 3 * FRAME then return true end
+      end
+      return false
+    end
+    test.truthy(comes_to_rest(), "something animates with every drawer shut")
+    test.ipc("sidebar", "open")
+    test.truthy(comes_to_rest(), "something animates with a drawer open")
+    test.ipc("close")
+    test.truthy(comes_to_rest(), "something animates after closing")
+  end)
+end
+
 test.describe("drawer seams", function()
   local NEIGHBOURS = { "dashboard", "sidebar", "leftbar", "bottom", "session", "capture" }
   local APART = { "launcher", "polkit", "keyring", "authsteps", "headphones" }

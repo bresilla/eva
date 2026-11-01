@@ -180,7 +180,7 @@ return function(S, theme, M, hud)
     for _, node in ipairs(o.over or {}) do ground[#ground + 1] = node end
     local body = o.content
     if body == nil then body = legend(t, spec, ink, o) end
-    -- Claims give a built caption its spring and leave its size to it.
+    -- The built caption sinks with the plate, on the press spring.
     if body then
       ui.claims(body, { motion = theme.spring.press,
         held = { when = function() return t.down end, set = { translate_x = sink, translate_y = sink } },

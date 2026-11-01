@@ -139,8 +139,8 @@ return function(theme)
       return ctx.tucked()
     end
     if ctx.floating then d.shape.opacity = d.open:get() and 1 or 0 end
-    -- The panel's travel, on this theme's own spring. Whether it belongs out
-    -- is the choreography's to say: closing covers before it withdraws.
+    -- The panel's travel, on this theme's own spring. `out` follows the
+    -- choreography: closing covers, then withdraws.
     local out = morf.signal(id .. ".out", d.open:get())
     local arrive
     local axis = require("themes.drawer_axis").new {

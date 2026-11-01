@@ -1,6 +1,5 @@
--- Reduce motion: everything lands at once. The desktop's own setting is the
--- engine's; eva's switch has no way to reach that, so it comes through here,
--- where every behavior, entrance, exit, spring, claim and play passes.
+-- Reduce motion: everything lands at once. Every behavior, entrance, exit,
+-- spring, claim and play passes through here and lands.
 local morf = require("morf")
 local ui = require("morf.ui")
 local M = {}

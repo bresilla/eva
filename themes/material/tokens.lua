@@ -59,7 +59,7 @@ M.springs = {
 }
 
 -- Squash and stretch by how much of a surface moves: a whole panel leans a few
--- percent and relaxes at once, near critical damping, so it never wobbles.
+-- percent, near critical damping; small things stretch far and settle.
 M.stretch = {
   drawer = { stiffness = 520, damping = 42, scale = 0.022, max = 0.05 },
   thumb = { stiffness = 420, damping = 26, scale = 0.9, max = 0.3 },

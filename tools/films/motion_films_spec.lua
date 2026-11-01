@@ -88,6 +88,30 @@ test.describe("motion films", function()
     test.snapshot("morph-after.png")
   end)
 
+  take("eva-page", function()
+    local size = morf.env("FILM_PHONE") == "1" and { 868, 1932 } or nil
+    load(size)
+    test.ipc("sidebar", "open", "settings")
+    test.settle(1500)
+    test.click("utilities-toggle-eva")
+    test.advance(2500)
+    test.snapshot("eva-page.png", { surface = "screen" })
+  end)
+
+  take("lock-clock", function()
+    test.load("../../lock/init.lua", { args = { "window", "preview" }, size = { 1280, 800 },
+      env = { EVA_STYLE = STYLE, EVA_DRY_RUN = "1", EVA_THEME_MODE = morf.env("FILM_MODE") or "dark" } })
+    test.settle(2000)
+    local before = test.get("lock-clock-5-digit") or test.get("lock-clock")
+    local from = before.text
+    local waited = 0
+    while waited < 62000 and (test.find("lock-clock-5-digit") or test.get("lock-clock")).text == from do
+      test.advance(16)
+      waited = waited + 16
+    end
+    film("lock-morph", 8, 24)
+  end)
+
   take("stretch", function()
     load()
     test.ipc("sidebar", "open")
