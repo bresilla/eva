@@ -102,6 +102,8 @@ function M.build(model, w, h)
   calendars[#calendars + 1] = F.fact { id = "event-calendar-held", width = inner, icon = "calendar_month",
     title = function() return model.calendar_name:get() end, subtitle = "This calendar keeps it",
     visible = function() return model.mode:get() == "edit" end }
+  calendars[#calendars + 1] = F.note(inner, "Addresses and read-only calendars are left out: they cannot be written.",
+    { id = "event-calendar-note", visible = function() return model.mode:get() == "new" and model.read_only() > 0 end })
 
   local actions = P.buttons { width = w,
     { id = "event-delete", icon = "delete",
@@ -147,6 +149,10 @@ function M.build(model, w, h)
     if revision == shown then return end
     shown = revision
     for name, input in pairs(inputs) do input.text = tostring(model.draft[name] or "") end
+  end, { owner = root })
+  morf.effect("calendar.event.ends", function()
+    if model.ends:get() == 0 then return end
+    inputs.to_day.text, inputs.to_time.text = tostring(model.draft.to_day), tostring(model.draft.to_time)
   end, { owner = root })
   morf.effect("calendar.event.focus", function()
     model.revision:get()

@@ -220,7 +220,7 @@ local function network_page(model, w, h)
         title = function() return ap().ssid or "" end,
         subtitle = function()
           local a = ap()
-          if a.in_use then return "Connected" end
+          if a.in_use then return model.sign_in_needed() and "Connected · Needs you to sign in" or "Connected" end
           return a.secure and "Secured" or "Open"
         end,
         trailing = ui.Row { gap = 4, align = "center",

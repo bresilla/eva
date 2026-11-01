@@ -407,6 +407,12 @@ function M.writable()
   return out
 end
 
+--- How many calendars can only be read.
+function M.read_only()
+  M.revision:get()
+  return M.sources:len() - #M.writable()
+end
+
 -- ---------------------------------------------------------------- the events --
 
 local PREVIEW = "Calendar changes are disabled in this preview."

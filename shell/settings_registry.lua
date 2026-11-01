@@ -165,7 +165,8 @@ M.PAGES = {
   { key = "focus/mode", name = "Mode", icon = "tune", parent = "focus", keywords = "schedule allowed apps people" },
   { key = "notifications", name = "Notifications", icon = "notifications", parent = "eva", category = "shell",
     summary = "Sounds, popups, history, each app's rules", keywords = "sound popup history rules mute badge lock previews" },
-  { key = "notifications/app", name = "App", icon = "apps", parent = "notifications", keywords = "rules mute urgency" },
+  { key = "notifications/app", name = "App", icon = "apps", parent = "notifications",
+    keywords = "rules mute urgency summary digest scheduled hold" },
 
   { key = "apps", name = "Default apps", icon = "apps", category = "apps", summary = "What opens what",
     keywords = "browser mail music video pdf editor terminal file manager mime type association" },

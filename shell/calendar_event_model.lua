@@ -76,6 +76,7 @@ function M.new(ctx)
   local model = { REPEATS = M.REPEATS, REMINDERS = M.REMINDERS, DAY_REMINDERS = M.DAY_REMINDERS, SCOPES = M.SCOPES,
     mode = morf.signal("eva.calendar.event.mode", ""), error = morf.signal("eva.calendar.event.error", ""),
     deleting = morf.signal("eva.calendar.event.deleting", false), revision = morf.signal("eva.calendar.event.revision", 0),
+    ends = morf.signal("eva.calendar.event.ends", 0),
     draft = morf.state(BLANK), locked_why = morf.signal("eva.calendar.event.locked", ""),
     calendar_name = morf.signal("eva.calendar.event.calendar", ""), repeating = morf.signal("eva.calendar.event.repeating", false) }
   local item, original = nil, {}
@@ -140,14 +141,9 @@ function M.new(ctx)
     model.mode:set("")
   end
 
-  function model.set(name, value)
-    if BLANK[name] == nil then return end
-    model.draft[name] = value
-    model.deleting:set(false)
-  end
-
-  --- The calendars a new event can go in.
+  --- The calendars a new event can go in, and how many it cannot.
   function model.calendars() return sources.writable() end
+  function model.read_only() return sources.read_only() end
   --- Whether it is the whole of a repeating event being changed, or a single one.
   function model.single() return model.repeating:get() and model.draft.scope == "one" end
   --- Whether this rule is one the form cannot say.
@@ -182,6 +178,33 @@ function M.new(ctx)
     local to = morf.time.time { year = to_day.year, month = to_day.month, day = to_day.day, hour = eh, minute = en }
     if to < from then return nil, "It ends before it starts." end
     return { from = from, to = to }
+  end
+
+  -- The end follows a start that moves, the event keeping its length.
+  local function follow_start(span)
+    local d, first = model.draft, day_of(model.draft.from_day)
+    if not span or not first then return end
+    if d.all_day then
+      local last = plus_days(first, span.days)
+      d.to_day = ("%04d-%02d-%02d"):format(last.year, last.month, last.day)
+    else
+      local h, n = clock_of(d.from_time)
+      if not h then return end
+      local from = morf.time.time { year = first.year, month = first.month, day = first.day, hour = h, minute = n }
+      local ends = from + (span.to - span.from)
+      d.to_day, d.to_time = day_text(ends), clock_text(ends)
+    end
+    model.ends:set(model.ends:get() + 1)
+  end
+
+  function model.set(name, value)
+    if BLANK[name] == nil then return end
+    local moving = name == "from_day" or name == "from_time"
+    local span = moving and times() or nil
+    model.draft[name] = value
+    if name == "all_day" then model.draft.reminder = "default" end
+    if moving then follow_start(span) end
+    model.deleting:set(false)
   end
 
   -- The start and end to write. Moving a whole repeating event moves its first
@@ -247,7 +270,11 @@ function M.new(ctx)
     if next(change) == nil then model.close() return true end
     local done, failed
     if item then done, failed = sources.change(item, change, model.single())
-    else done, failed = sources.create(model.draft.calendar ~= "" and model.draft.calendar or nil, change) end
+    else
+      local first = sources.writable()[1]
+      local calendar = model.draft.calendar ~= "" and model.draft.calendar or (first and first.id) or nil
+      done, failed = sources.create(calendar, change)
+    end
     if not done then model.error:set(tostring(failed)) return false end
     model.close()
     return true

@@ -28,7 +28,7 @@ M.SERVER_ORDER = { "gnome", "mozilla", "google" }
 M.SPEED = { name = "Cloudflare", host = "speed.cloudflare.com", base = "https://speed.cloudflare.com",
   down_bytes = 25000000, up_bytes = 10000000, pings = 5 }
 
-M.PROBE_MS, M.SPEED_MS = 6000, 60000
+M.PROBE_MS, M.SPEED_MS, M.PROBE_BYTES = 6000, 60000, 2 * 1024 * 1024
 
 M.STEPS = { { "link", "Link", "wifi" }, { "address", "Address", "lan" }, { "gateway", "Router", "router" },
   { "dns", "Names (DNS)", "dns" }, { "internet", "Internet", "public" } }
@@ -53,7 +53,7 @@ end
 
 --- Asks `server` once: `done(state, login)`. Gives what `cancel` stops it.
 function M.probe(server, done)
-  return host.http({ url = server.url, timeout_ms = M.PROBE_MS, max_bytes = 65536 }, function(response)
+  return host.http({ url = server.url, timeout_ms = M.PROBE_MS, max_bytes = M.PROBE_BYTES }, function(response)
     done(M.read_answer(server, response))
   end)
 end
@@ -130,6 +130,10 @@ function M.diagnose(net, server, step, done)
   end
 
   local function dns(gateway_unsure, servers)
+    if not host.installed("getent") then
+      step("dns", "unsure", "getent is not installed, so names were not tried.")
+      return internet()
+    end
     step("dns", "running", "Looking up " .. server.host .. "…")
     host.read({ "getent", "ahostsv4", server.host }, function(text)
       if stopped then return end
@@ -175,7 +179,12 @@ function M.diagnose(net, server, step, done)
     step("address", "running", "Reading the address…")
     host.read({ "nmcli", "-t", "-f", "IP4.ADDRESS,IP4.GATEWAY,IP4.DNS", "device", "show", device }, function(text)
       if stopped then return end
-      local raw = connection.parse_terse(text or "")
+      if not text then
+        step("address", "unsure", "nmcli did not answer, so the address was not read.")
+        step("gateway", "skipped", "Not tried.")
+        return dns(nil, "")
+      end
+      local raw = connection.parse_terse(text)
       local value = address_of(raw)
       if value == "" then
         fail("address", "This machine got no address. The router did not hand one out over DHCP.")

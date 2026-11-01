@@ -253,6 +253,8 @@ function M.new(kind,active)
         return source.connect(ssid,password~="" and password or nil,nil,done)
       end)
     end
+    --- Whether the network in use wants a sign-in.
+    function model.sign_in_needed() return require("net_portal").asking:get()~=false end
     --- The page about the asked network's saved connection.
     function model.details(row)
       return require("connection_model").open(require("settings_model"),row.ssid)

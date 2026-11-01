@@ -35,7 +35,7 @@ local HOST = [[
       error = model.events.error:get(), writable = sources.writable(), repeats = model.events.draft.repeats,
       reminder = model.events.draft.reminder, until_day = model.events.draft.until_day, scope = model.events.draft.scope,
       summary = model.events.draft.summary, deleting = model.events.deleting:get(), why = model.events.locked_why:get(),
-      to_day = model.events.draft.to_day, from_time = model.events.draft.from_time }
+      to_day = model.events.draft.to_day, to_time = model.events.draft.to_time, from_time = model.events.draft.from_time }
   end
   morf.ipc.select = function(day) model.select(day) end
   morf.ipc.today = function() return morf.time.format("%Y-%m-%d") end
@@ -50,7 +50,10 @@ local HOST = [[
     return model.events.open(row.uid, row.at)
   end
   morf.ipc.draft = function(json)
-    for key, value in pairs(morf.json.decode(json)) do model.events.set(key, value) end
+    local values, names = morf.json.decode(json), {}
+    for key in pairs(values) do names[#names + 1] = key end
+    table.sort(names)
+    for _, key in ipairs(names) do model.events.set(key, values[key]) end
   end
   morf.ipc.save = function() return model.events.save() end
   morf.ipc.delete = function() return model.events.delete() end
@@ -271,6 +274,10 @@ test.describe("calendar events", function()
     test.truthy(s.sources[1].locked ~= "", "an address is read-only")
     test.eq(#s.writable, 0)
     test.eq(#test.runs(), 0, "nothing was run")
+    test.ipc("create", test.ipc("day_after", 1))
+    test.advance(50)
+    test.truthy(test.get("event-calendar-note").visible, "the form says what it leaves out")
+    test.truthy(test.get("event-calendar-new").visible, "and where this one goes")
   end)
 
   test.it("a file the disk will not let us write opens read-only", function()
@@ -376,6 +383,25 @@ test.describe("calendar events", function()
     local note = test.ipc("notes")[1]
     test.eq(note.summary, "Holiday")
     test.truthy(note.body:find("All day", 1, true), note.body)
+  end)
+
+  test.it("the end follows a start that moves, keeping the length", function()
+    load()
+    read_file { "UID:a", "SUMMARY:Other", "DTSTART:" .. test.ipc("stamp", 60, 8) }
+    local day, later = test.ipc("day_after", 5), test.ipc("day_after", 7)
+    test.ipc("create", day)
+    test.ipc("draft", json { from_time = "09:00", to_time = "10:30" })
+    test.ipc("draft", json { from_time = "14:00" })
+    test.advance(20)
+    local s = state()
+    test.eq(s.to_time, "15:30")
+    test.eq(test.get("event-to_time").text, "15:30")
+    test.ipc("draft", json { from_day = later })
+    test.advance(20)
+    test.eq(state().to_day, later)
+    test.ipc("draft", json { all_day = true })
+    test.ipc("draft", json { from_day = day })
+    test.eq(state().to_day, day)
   end)
 
   test.it("refuses what does not read, and keeps the form open", function()
