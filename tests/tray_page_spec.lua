@@ -46,7 +46,7 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 end
 
-test.it("a tablet and a phone have no tray, so no page", function()
+test.it("a phone has no tray, so no page", function()
   load("material", { 412, 915 })
   test.falsy(test.ipc("present", "bar/tray"))
 end)

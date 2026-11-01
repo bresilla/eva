@@ -1,5 +1,5 @@
--- The bar under a finger, on a phone, a tablet and a desk with a touchscreen:
--- a slide along a module turns it, a pull off the bar brings out what hangs
+-- The bar under a finger, on a phone and a desk with a touchscreen: a slide
+-- along a module turns it, a pull off the bar brings out what hangs
 -- there, and a long press gives each module its menu.
 
 local test = morf.test

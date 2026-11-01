@@ -1,5 +1,5 @@
--- Lists under a finger, on a phone, a tablet and a desk with a touchscreen, in
--- both themes: a pull past an end is a rubber band that springs back, a pull
+-- Lists under a finger, on a phone and a desk with a touchscreen, in both
+-- themes: a pull past an end is a rubber band that springs back, a pull
 -- past the top refreshes where the page has that, and a scroll leaves the
 -- panel alone until the list is at its end.
 

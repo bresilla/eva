@@ -104,8 +104,8 @@ end
 
 -- ------------------------------------------------------------------ floating --
 
---- Floats a window in the middle of the screen, a touch over the others:
---- a tablet's windows, or a phone's pop-up. Again, it goes back to the tiles.
+--- Floats a window in the middle of the screen, a touch over the others: a
+--- phone's pop-up. Again, it goes back to the tiles.
 function M.toggle_float(address)
   local c = windows.get(address)
   if not c then return false end

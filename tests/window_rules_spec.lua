@@ -167,7 +167,7 @@ test.it("a rule that cannot be sent stays on the page, and says why", function()
   test.eq(test.ipc("keyboard"), "on_demand", "its fields can be typed in")
 end)
 
-test.it("a phone has no rules page or dimming, a tablet has both", function()
+test.it("a phone has no rules page or dimming", function()
   load("phone", "material", { 412, 915 })
   test.falsy(test.ipc("present", "windows/rules"))
   test.ipc("utilities", "open") test.settle(600)

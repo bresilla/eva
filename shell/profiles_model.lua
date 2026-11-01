@@ -9,9 +9,9 @@ M.KEYS = { "theme.source", "theme.variant", "theme.hue", "theme.follow_song",
   "appearance.density", "appearance.corners", "appearance.glass", "appearance.glass_clarity", "appearance.pure_black",
   "wallpaper.path", "wallpaper.pin", "wallpaper.fit", "wallpaper.parallax", "wallpaper.transition.kind",
   "desktop.chrome", "desktop.quiet_clock",
-  "desktop.widgets.desk", "desktop.widgets.tablet", "desktop.widgets.phone",
-  "desktop.small.desk", "desktop.small.tablet", "desktop.small.phone",
-  "desktop.place.desk", "desktop.place.tablet", "desktop.place.phone" }
+  "desktop.widgets.desk", "desktop.widgets.phone",
+  "desktop.small.desk", "desktop.small.phone",
+  "desktop.place.desk", "desktop.place.phone" }
 
 --- The saved looks: `{ name, values }`.
 function M.list() return config.get("appearance.profiles") end

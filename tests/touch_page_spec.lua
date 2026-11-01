@@ -58,7 +58,7 @@ end)
 
 test.it("has a real field for every gesture on every form",function()
   load("material")
-  for _,form in ipairs {"desk","tablet","phone"} do
+  for _,form in ipairs {"desk","phone"} do
     press("touch-form-"..form) test.advance(200)
     for _,key in ipairs(test.ipc("gesture_keys")) do
       test.truthy(test.get("touch-gesture-"..key),key)

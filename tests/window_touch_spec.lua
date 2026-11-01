@@ -1,5 +1,5 @@
--- What a finger does to windows on a phone and a tablet, through the real touch
--- path, on the window stand-in; and the settings pages that go with them.
+-- What a finger does to windows on a phone, through the real touch path, on the
+-- window stand-in; and the settings pages that go with them.
 local test = morf.test
 
 local SCENE = [[{"focus":1,"clients":[
@@ -130,7 +130,7 @@ test.it("a tap on the picture shows its controls, a double tap resizes, a throw 
 end)
 
 test.it("split shares the workspace, and the divider moves it", function()
-  load(1280, 800)
+  load(1932, 868)
   test.ipc("workspace", "1") test.advance(100)
   test.truthy(test.get("split-divider").visible, "two tiled windows, no divider")
   test.eq(test.ipc("split"), true)
@@ -145,15 +145,12 @@ test.it("split shares the workspace, and the divider moves it", function()
 end)
 
 test.it("what lies over a window gives way to an open panel", function()
-  load(1280, 800)
+  load(1932, 868)
   test.ipc("workspace", "1") test.advance(100)
-  test.ipc("dock", "auto")
   test.advance(300)
   test.truthy(test.get("split-divider").visible)
-  test.truthy(test.ipc("dock", "state").shown, "a tablet's taskbar stays out")
   test.ipc("settings", "dock") test.advance(600)
   test.falsy(test.find({ id = "split-divider", visible = true }), "the divider lies over the sheet")
-  test.falsy(test.ipc("dock", "state").shown, "the taskbar lies over the sheet")
   test.ipc("close") test.advance(800)
   test.truthy(test.get("split-divider").visible, "the divider did not come back")
 end)

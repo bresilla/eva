@@ -1,5 +1,5 @@
--- StandBy: a phone or a tablet on charge, turned sideways, becomes a bedside
--- screen. State only: when it shows, which view, and whether it is night.
+-- StandBy: a phone on charge, turned sideways, becomes a bedside screen.
+-- State only: when it shows, which view, and whether it is night.
 local morf = require("morf")
 local config = require("config")
 local M = {}

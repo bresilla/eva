@@ -1,12 +1,12 @@
--- The grid on a phone and a tablet, quick look, and what a person adds to the
--- launcher: plugins and script commands.
+-- The grid on a phone, quick look, and what a person adds to the launcher:
+-- plugins and script commands.
 --
 --     morf test --no-dbus tests/launcher_grid_spec.lua
 
 local test = morf.test
 local host = assert(load(morf.fs.read(morf.env("PWD") .. "/tests/fixtures/launcher_host.lua")))()
 
-local PHONE, TABLET = { 620, 1380 }, { 1280, 800 }
+local PHONE, DESK = { 620, 1380 }, { 1280, 800 }
 local TOUCH = morf.env("PWD") .. "/tests/fixtures/input-devices-touch"
 
 local function phone(options)
@@ -40,10 +40,9 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.truthy(panel.x >= 0 and panel.x + panel.width <= PHONE[1], "wider than the phone")
     end)
 
-    test.it("opens as a grid on a tablet too", function()
-      host.load { style = style, size = TABLET, env = { EVA_INPUT_DEVICES = TOUCH } }
-      test.eq(test.ipc("state").mode, "grid")
-      test.truthy(test.find { text = "Fixture Browser", visible = true })
+    test.it("stays a list on a wide touchscreen with no keyboard", function()
+      host.load { style = style, size = DESK, env = { EVA_INPUT_DEVICES = TOUCH } }
+      test.eq(test.ipc("state").mode, "apps")
     end)
 
     test.it("stays a list on a desk, until asked", function()
@@ -158,7 +157,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     end)
 
     test.it("walks the tiles with the arrows", function()
-      host.load { style = style, size = TABLET, settings = { launcher = { layout = "grid" } } }
+      host.load { style = style, size = DESK, settings = { launcher = { layout = "grid" } } }
       local function at()
         local state = test.ipc("state")
         return { state.selected, state.cell }
@@ -195,8 +194,8 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.truthy(panel.x >= 0 and panel.x + panel.width <= 360, "wider than the phone")
     end)
 
-    test.it("types straight away on a tablet with a keyboard", function()
-      host.load { style = style, size = TABLET, settings = { launcher = { layout = "grid" } } }
+    test.it("types straight away on a desk with a keyboard", function()
+      host.load { style = style, size = DESK, settings = { launcher = { layout = "grid" } } }
       test.truthy(test.get("launcher-search").focused)
       test.type("fix")
       test.advance(300)

@@ -6,7 +6,7 @@ local morf = require("morf")
 local keybinds = require("keybinds")
 local M = {}
 
--- On a phone and a tablet, where the panels are sheets and the edges gestures.
+-- On a phone, where the panels are sheets and the edges gestures.
 local SHEET = {
   { "south", "Swipe down from the top", "Quick settings and notifications" },
   { "north", "Swipe up from the bottom", "The dashboard" },

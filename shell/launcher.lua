@@ -87,8 +87,8 @@ end
 
 -- ------------------------------------------------------------------- grid --
 
---- Whether the launcher is showing its icon grid: on a phone or a tablet, before
---- anything is typed, unless the setting says otherwise.
+--- Whether the launcher is showing its icon grid: on a phone, before anything
+--- is typed, unless the setting says otherwise.
 function M.grid_on()
   if not (M.opened and M.opened:get()) then return false end
   local layout = config.get("launcher.layout")

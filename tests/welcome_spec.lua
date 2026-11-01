@@ -123,7 +123,7 @@ test.describe("what it says on each device", function()
     test.truthy(rows[1][2]:find("Swipe down from the top", 1, true), rows[1][2])
   end)
 
-  test.it("a tablet with a keyboard keeps the keys step", function()
+  test.it("a touchscreen with a keyboard keeps the keys step", function()
     logic({ EVA_INPUT_DEVICES = KEYBOARD }, { 1280, 800 })
     test.eq(test.ipc("steps")[4], "keys")
   end)

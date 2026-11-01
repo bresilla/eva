@@ -366,18 +366,6 @@ return function(model, ROW1, ROW2, GAP)
   --- The overview for a page `W` wide: the node and its height.
   function K.page(W)
     local G = P.GAP
-    if responsive.compact() and responsive.form() == "tablet" then
-      -- A tablet held upright: pairs across the page, the calendar between.
-      local ROW, TALL, LOW = 150, 310, 340
-      local half, half2 = P.cols(W, 2)
-      local side, cal = P.cols(W, 2, { 1, 2.4 })
-      local node = ui.Column { width = W, gap = G,
-        ui.Row { gap = G, K.user(half, ROW), K.weather(half2, ROW) },
-        ui.Row { gap = G, K.clock(side, TALL), K.calendar(cal, TALL) },
-        ui.Row { gap = G, K.resources(half, LOW), K.media(half2, LOW) },
-      }
-      return node, ROW + TALL + LOW + 2 * G
-    end
     if responsive.compact() then
       local ROW, TALL = 150, 330
       -- (Wide enough, the player's cover stands beside the rest.)

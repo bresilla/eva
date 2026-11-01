@@ -6,8 +6,8 @@ cat > "$EVA_SETTINGS" <<JSON
   "island": { "enabled": true },
   "wallpaper": { "draw": true },
   "desktop": { "chrome": "stencil", "quiet_clock": true,
-    "widgets": { "desk": ["clock", "date", "orb", "visualiser"], "tablet": ["clock", "date"], "phone": ["clock", "date", "orb"] },
-    "small": { "desk": ["visualiser"], "tablet": [], "phone": [] } } }
+    "widgets": { "desk": ["clock", "date", "orb", "visualiser"], "phone": ["clock", "date", "orb"] },
+    "small": { "desk": ["visualiser"], "phone": [] } } }
 JSON
 start shell
 pause 3

@@ -4,9 +4,9 @@ local morf = require("morf")
 local ui = require("morf.ui")
 local notifs = require("notifs")
 local history = require("notification_history")
--- Its pages are the `panels.right` setting's (shell/pages.lua); on a phone or
--- a tablet it comes down from the top, as quick settings do, with
--- `panels.top`'s -- the side edges are the workspaces' there.
+-- Its pages are the `panels.right` setting's (shell/pages.lua); on a phone it
+-- comes down from the top, as quick settings do, with `panels.top`'s -- the
+-- side edges are the workspaces' there.
 local SHEET = require("responsive").sheets()
 local tabs, bind = require("pages").tabs(SHEET and "top" or "right")
 local model = require("side_panel_model").new {

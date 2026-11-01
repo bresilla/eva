@@ -189,25 +189,25 @@ local config = settings.open {
       enabled = false,
     },
     -- The widgets on the desktop (shell/desktop_model.lua): which are shown on
-    -- each kind of machine, which small, and where a desk or a tablet has
-    -- them, as `{ id, x, y }` in fractions of the screen.
+    -- each kind of machine, which small, and where a desk has them, as
+    -- `{ id, x, y }` in fractions of the screen.
     desktop = {
-      widgets = { desk = {}, tablet = {}, phone = {} },
-      small = { desk = {}, tablet = {}, phone = {} },
-      place = { desk = {}, tablet = {}, phone = {} },
-      -- The pages past the first on a phone's and a tablet's home: lists of what
-      -- stands on each, widgets by id, `app:ID` and `folder:NAME`.
-      pages = { desk = {}, tablet = {}, phone = {} },
-      -- A phone's and a tablet's home: whether it has pages of apps, the phone's
-      -- row of pinned apps on it, the names under the icons, how many icons
-      -- stand across (0 chooses), and whether a hold is kept from arranging.
+      widgets = { desk = {}, phone = {} },
+      small = { desk = {}, phone = {} },
+      place = { desk = {}, phone = {} },
+      -- The pages past the first on a phone's home: lists of what stands on
+      -- each, widgets by id, `app:ID` and `folder:NAME`.
+      pages = { desk = {}, phone = {} },
+      -- A phone's home: whether it has pages of apps, the row of pinned apps on
+      -- it, the names under the icons, how many icons stand across (0 chooses),
+      -- and whether a hold is kept from arranging.
       home = { enabled = false, dock = false, labels = true, columns = 0, locked = false },
       -- What a widget stands on: "glass", "solid", "none", or "stencil", the
       -- clock's digits cut through a veil onto the picture.
       chrome = "glass",
       -- The clock keeps to the quietest part of the picture.
       quiet_clock = false,
-      -- A phone or tablet on charge, turned sideways, is a bedside screen.
+      -- A phone on charge, turned sideways, is a bedside screen.
       standby = true,
       -- The custom command, run through `sh -c`, and how often, in seconds.
       command = { title = "Command", run = "", interval = 60 },
@@ -246,11 +246,9 @@ local config = settings.open {
       modules = {
         desk = { start = { "logo", "windows" }, centre = { "live", "clock" },
           ["end"] = { "tray", "privacy", "notifications", "status" } },
-        tablet = { start = { "logo", "clock", "windows" }, centre = { "live" },
-          ["end"] = { "privacy", "status" } },
         phone = { start = { "clock", "notifications" }, centre = { "live" }, ["end"] = { "privacy", "status" } },
       },
-      small = { desk = {}, tablet = {}, phone = { "clock", "notifications" } },
+      small = { desk = {}, phone = { "clock", "notifications" } },
       -- A screen's own choices, by its output's name: `{ name, on, modules,
       -- small }`, `on` being "on", "off" or "" for the bar's own setting and
       -- `modules` this screen's zones, absent to follow the form's.
@@ -277,8 +275,8 @@ local config = settings.open {
       hover = true,
     },
     -- Which pages each edge's panel holds (shell/pages.lua): a desk's right,
-    -- left and bottom panels, and the sheet from the top on a phone or a
-    -- tablet. A page moves by moving its key.
+    -- left and bottom panels, and the sheet from the top on a phone. A page
+    -- moves by moving its key.
     panels = {
       right = { "settings", "notifications" },
       left = { "tasks", "calendar" },
@@ -339,8 +337,7 @@ local config = settings.open {
       max_shown = 7,
       max_results = 40,
       action_prefix = ">",
-      -- The icon grid: "auto" on a phone or a tablet, "grid" everywhere, "list"
-      -- nowhere.
+      -- The icon grid: "auto" on a phone, "grid" everywhere, "list" nowhere.
       layout = "auto",
       -- What a plain search reaches, by name (universal.lua).
       sources = { "apps", "settings", "windows", "system", "actions", "app_actions", "places", "modes", "snippets",
@@ -520,7 +517,6 @@ local config = settings.open {
       output = "",
       commands = require("touch_bindings").commands(),
       desk = require("touch_bindings").defaults("desk"),
-      tablet = require("touch_bindings").defaults("tablet"),
       phone = require("touch_bindings").defaults("phone"),
     },
     phone = {
@@ -551,7 +547,7 @@ local config = settings.open {
     polkit = { agent = "on" },
     keyboard = {
       -- Up by itself when a program asks for text and no real keyboard
-      -- is attached (a tablet, a detached keyboard); by hand either way.
+      -- is attached (a detached keyboard); by hand either way.
       auto = true,
     },
     services = {
@@ -628,13 +624,11 @@ local config = settings.open {
       tiles = {
         desk = { "wifi", "bluetooth", "wired", "mobile", "mesh", "tunnel", "airplane", "hotspot", "sound", "mic",
           "nightlight", "powersaver", "battery", "focus", "theme", "eva", "notes", "linked_phone" },
-        tablet = { "wifi", "bluetooth", "rotation", "keyboard", "autobrightness", "airplane", "hotspot", "sound", "mic",
-          "nightlight", "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva", "notes", "linked_phone" },
         phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "autobrightness", "nfc", "airplane",
           "nightlight", "powersaver", "location", "datasaver", "sound", "mic", "battery", "mesh", "tunnel", "focus",
           "theme", "eva", "camera", "calculator", "voicenote", "alarm", "notes", "linked_phone" },
       },
-      small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "autobrightness", "nfc", "nightlight",
+      small = { desk = {}, phone = { "flashlight", "rotation", "autobrightness", "nfc", "nightlight",
         "powersaver", "location", "datasaver", "camera", "calculator", "voicenote", "alarm" } },
     },
     -- The night light (hyprsunset): whether it is on, how warm, in kelvin, and
@@ -720,7 +714,8 @@ local config = settings.open {
     -- an empty chord for none (shell/keys_model.lua).
     keys = { overrides = {} },
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
-    -- keeps it, a phone or a tablet follows the accelerometer).
+    -- with its keyboard keeps it, a phone or a touchscreen alone follows the
+    -- accelerometer).
     rotation = { lock = "auto" },
     -- Screen time (shell/screen_time_model.lua): whether it counts, each app's
     -- daily limit as `{ app, minutes }`, and the hours of downtime and bedtime.

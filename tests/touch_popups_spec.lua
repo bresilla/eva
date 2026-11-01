@@ -1,5 +1,5 @@
--- What comes and goes under a finger, on a phone, a tablet and a desk with a
--- touchscreen, in both themes: popups swipe away, latch open on their snooze and
+-- What comes and goes under a finger, on a phone and a desk with a touchscreen,
+-- in both themes: popups swipe away, latch open on their snooze and
 -- expand under two fingers, OSDs swipe away, and a meter keeps its own drag.
 
 local test = morf.test

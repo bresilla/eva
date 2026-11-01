@@ -6,7 +6,7 @@ WALLS=$SEE_EVA/tests/fixtures/wallpapers
 cat > "$EVA_SETTINGS" <<JSON
 { "wallpaper": { "draw": true },
   "appearance": { "glass": true },
-  "desktop": { "widgets": { "desk": ["clock", "date"], "tablet": ["clock", "date"], "phone": ["clock", "date", "weather"] } } }
+  "desktop": { "widgets": { "desk": ["clock", "date"], "phone": ["clock", "date", "weather"] } } }
 JSON
 start shell
 pause 3

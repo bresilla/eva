@@ -15,7 +15,7 @@ local SOURCE = [[
   end
 ]]
 local loads = 0
-local FORMS = { phone = { 868, 1932, true }, tablet = { 800, 1280, true }, desk = { 1920, 1080, false } }
+local FORMS = { phone = { 868, 1932, true }, ["touchscreen alone"] = { 1280, 800, true }, desk = { 1920, 1080, false } }
 local function load(style, form, stdout)
   test.stub_run("task", { code = 0, stdout = stdout or "[]" })
   loads = loads + 1
@@ -31,7 +31,7 @@ local function shown() return test.ipc("open_list") end
 
 local VERBS = { { "settings" }, { "notifications" }, { "tasks" }, { "calendar" }, { "assistant" }, { "drop" } }
 for _, style in ipairs { "material", "tsugumori" } do
-  for _, form in ipairs { "desk", "tablet", "phone" } do
+  for _, form in ipairs { "desk", "touchscreen alone", "phone" } do
     test.it(style .. " " .. form .. ": Escape and a press outside shut every panel", function()
       load(style, form)
       local w, h = FORMS[form][1], FORMS[form][2]

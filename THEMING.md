@@ -748,7 +748,7 @@ window overflow, geometry, hover and entry motion. They never read compositor
 or device services, issue commands, or start polling timers.
 
 `responsive.form()` chooses the bar's form: `desk` keeps the framed bar, `phone`
-and `tablet` a status bar with presses `responsive.target()` tall. The model's
+a status bar with presses `responsive.target()` tall. The model's
 `arrange(room, sizes)` says what fits (`status_model.arrange`) and `reading`
 carries one normalised battery (`battery_status_model.lua`), drawn by
 `kit.battery`, a display function each theme draws itself. `responsive.lanes()`

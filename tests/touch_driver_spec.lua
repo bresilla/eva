@@ -27,7 +27,8 @@ local SOURCE=[[
     return {fired=fired,switches=switches,shown=shown,keyboard=keyboard.active(),keyboard_manual=keyboard.drawer.manual==true,
       preview=preview.active,preview_offset=preview.offset,launcher=launcher.drawer.open:get(),menu=require("menus").source:get(),
       overview=require("overview").opened:get(),pull=require("overview").pull:get(),
-      dashboard=require("dashboard").drawer.open:get(),haptic=require("haptics").last:get(),haptics=require("haptics").count:get(),
+      dashboard=require("dashboard").drawer.open:get(),bottom=require("bottom").drawer.open:get(),
+      haptic=require("haptics").last:get(),haptics=require("haptics").count:get(),
       trying=require("touch_driver").trying:get()}
   end
   morf.ipc.lock_signal=function() require("models.logind").connect().fire("lock") end
@@ -99,7 +100,7 @@ end
 local TWO={{640,770},{720,700}}
 local THREE={{900,300},{980,320},{1060,300}}
 
-test.it("reads on a desk with a keyboard attached: gestures do not ask for a tablet",function()
+test.it("reads on a desk with a keyboard attached: gestures do not ask for it to go",function()
   load()
   local state=touch()
   test.eq(state.state,"running") test.eq(state.form,"desk") test.eq(state.reading,true)
@@ -236,7 +237,7 @@ test.describe("the bindings",function()
     test.eq(test.ipc("bound","three_up","phone"),"recents")
     test.ipc("touch","set","three_down","lock")
     test.eq(test.ipc("bound","three_down","desk"),"lock")
-    test.eq(test.ipc("bound","three_down","tablet"),"show_desktop")
+    test.eq(test.ipc("bound","three_down","phone"),"show_desktop")
     stroke(THREE,0,200,20)
     test.eq(spy().fired,{"lock"})
     test.ipc("reset_bindings","desk")
@@ -273,9 +274,10 @@ test.describe("every action",function()
     "volume","brightness","none","command"}
   local DEVICES=morf.env("EVA_INPUT_DEVICES")
   for _,form in ipairs {
-    {"desk",{1280,800},DEVICES},{"tablet",{1280,800},DEVICES.."-touch"},{"phone",{868,1932},DEVICES.."-touch"},
+    {"desk",{1280,800},DEVICES},{"desk",{1280,800},DEVICES.."-touch"," with no keyboard"},
+    {"phone",{868,1932},DEVICES.."-touch"},
   } do
-    test.it("runs on a "..form[1].." with no error, each way the fingers go",function()
+    test.it("runs on a "..form[1]..(form[4] or "").." with no error, each way the fingers go",function()
       load({EVA_INPUT_DEVICES=form[3]},form[2])
       test.eq(touch().form,form[1])
       for _,action in ipairs(ALL) do
@@ -533,12 +535,13 @@ end)
 
 test.describe("a panel under the fingers",function()
   local DEVICES=morf.env("EVA_INPUT_DEVICES")
-  -- A tablet: the dashboard hangs from the bottom edge, over the edge band.
-  local function on_tablet()
+  -- A touchscreen alone, a desk: the bottom panel stands over the edge band, the
+  -- dashboard hangs from the top.
+  local function on_panel(name)
     load({EVA_INPUT_DEVICES=DEVICES.."-touch"},{1280,800})
-    test.eq(touch().form,"tablet")
-    test.ipc("dashboard","open") test.settle(1200)
-    test.truthy(spy().dashboard)
+    test.eq(touch().form,"desk")
+    test.ipc(name,"open") test.settle(1200)
+    test.truthy(spy()[name])
   end
   local ON_PANEL={{640,770},{720,700}}
   -- Fingers on the shell as well as read: what a real touch does, both at once.
@@ -556,7 +559,7 @@ test.describe("a panel under the fingers",function()
     lift(from) test.settle(1000)
   end
   test.it("two fingers from the edge band on an open panel are the panel's",function()
-    on_tablet()
+    on_panel("bottom")
     both(ON_PANEL,0,-300,8)
     local s=spy()
     test.falsy(s.keyboard,"the driver left it alone")
@@ -580,23 +583,23 @@ test.describe("a panel under the fingers",function()
     test.truthy(spy().keyboard,"and the driver's again once it has gone")
   end)
   test.it("one finger on a panel never reaches the driver's bindings",function()
-    on_tablet()
+    on_panel("bottom")
     both({{640,560}},0,200,14)
     test.eq(#spy().fired,0)
     test.falsy(spy().keyboard)
   end)
   test.it("three fingers are global: the panel's own pull lets go",function()
-    on_tablet()
+    on_panel("dashboard")
     local before=test.ipc("dashboard_tab")
     -- The first finger on the panel drags its pages; the others land on an app.
-    test.touch("down",1,700,560) test.advance(16)
-    for i=1,5 do test.touch("move",1,700-i*20,560) test.advance(16) end
-    local three={{700,560},{780,300},{860,300}}
+    test.touch("down",1,700,250) test.advance(16)
+    for i=1,5 do test.touch("move",1,700-i*20,250) test.advance(16) end
+    local three={{700,250},{780,600},{860,600}}
     land(three)
     move(three,-500,0,16,1)
     test.truthy(spy().preview,"the workspaces follow the fingers")
-    for i=6,20 do test.touch("move",1,700-i*20,560) test.advance(16) end
-    test.touch("up",1,300,560) lift(three) test.settle(1200)
+    for i=6,20 do test.touch("move",1,700-i*20,250) test.advance(16) end
+    test.touch("up",1,300,250) lift(three) test.settle(1200)
     test.eq(test.ipc("dashboard_tab"),before,"its page did not turn as well")
     test.eq(spy().switches[1],2)
     test.eq(#test.logs("error"),0)

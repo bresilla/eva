@@ -1,6 +1,6 @@
 -- The phone's own surface: the compositor's overlay layer, there while a call
--- is, or the SIM asks, or a warning stands. A phone or tablet gets the whole
--- screen, a desk a card along the top, and a call left running a small chip.
+-- is, or the SIM asks, or a warning stands. A phone gets the whole screen, a
+-- desk a card along the top, and a call left running a small chip.
 local morf = require("morf")
 local ui = require("morf.ui")
 local M = {}

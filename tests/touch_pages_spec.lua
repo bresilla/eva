@@ -1,5 +1,5 @@
--- What a page does under a finger, on a phone, a tablet and a desk with a
--- touchscreen, in both themes: boards arrange from a long press, the calendar
+-- What a page does under a finger, on a phone and a desk with a touchscreen, in
+-- both themes: boards arrange from a long press, the calendar
 -- turns its months, a Settings detail goes back from its edge with the page
 -- behind it peeking in, pictures zoom, text fields take a long press, and a pull
 -- past the top of a page refreshes it.

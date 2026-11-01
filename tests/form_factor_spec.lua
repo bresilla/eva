@@ -34,9 +34,9 @@ local CASES={
   {"a phone on its side at two times",915,412,true,"phone","expanded","compact"},
   {"a phone at its panel's pixels",1116,2484,true,"phone","compact","expanded"},
   {"a phone-shaped output without a touchscreen",868,1932,false,"phone","compact","expanded"},
-  {"a tablet held upright",800,1280,true,"tablet","medium","expanded"},
-  {"a tablet held wide",1280,800,true,"tablet","expanded","medium"},
-  {"a small tablet",600,960,true,"tablet","medium","expanded"},
+  {"a wide touchscreen with no keyboard",1280,800,true,"desk","expanded","medium"},
+  {"an upright touchscreen too narrow for a desk's sides",800,1280,true,"phone","medium","expanded"},
+  {"a small upright touchscreen",600,960,true,"phone","medium","expanded"},
   {"a narrow upright window",500,720,false,"phone","compact","medium"},
   {"a narrow upright screen without a touchscreen",800,1280,false,"phone","medium","expanded"},
   {"a laptop",1280,800,false,"desk","expanded","medium"},
@@ -67,6 +67,11 @@ test.it("a touchscreen is the main input only without a real keyboard",function(
   test.truthy(load(1280,800,true).touch)
   test.falsy(load(1280,800,false).touch)
 end)
+test.it("a keyboard coming or going changes what the layout is built for, not the form",function()
+  local alone,keyed=load(1280,800,true),load(1280,800,false)
+  test.eq(alone.form,keyed.form)
+  test.truthy(alone.layout~=keyed.layout)
+end)
 test.it("a docked phone is a desk on its monitor and a phone on its panel",function()
   local monitor=load(1920,1080,true,{TEST_OUTPUT="DP-1"})
   test.eq(monitor.form,"desk") test.falsy(monitor.touch) test.falsy(monitor.sheets)
@@ -84,8 +89,8 @@ test.it("the sheet is the desk on a phone upright and a panel elsewhere",functio
   local phone=test.ipc("panel")
   test.truthy(phone.width>560) test.truthy(phone.anchors.horizontal_center)
   load(800,1280,true)
-  local tablet=test.ipc("panel")
-  test.eq(tablet.width,560) test.truthy(tablet.anchors.right) test.falsy(tablet.anchors.horizontal_center)
+  local upright=test.ipc("panel")
+  test.eq(upright.width,560) test.truthy(upright.anchors.right) test.falsy(upright.anchors.horizontal_center)
   load(1932,868,true)
   test.eq(test.ipc("panel").width,560)
 end)

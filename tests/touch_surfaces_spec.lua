@@ -1,5 +1,5 @@
--- The shell's surfaces under a finger, on a phone, a tablet and a desk with a
--- touchscreen, in both themes: panels, pages, popups and OSDs follow and let go;
+-- The shell's surfaces under a finger, on a phone and a desk with a touchscreen,
+-- in both themes: panels, pages, popups and OSDs follow and let go;
 -- what already owns a drag keeps it.
 
 local test = morf.test

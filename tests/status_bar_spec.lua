@@ -6,7 +6,7 @@ local HOST=[[
   local W,H=tonumber(morf.env("TEST_WIDTH")),tonumber(morf.env("TEST_HEIGHT"))
   morf.surface.height=H
   morf.time.now=function() return 1790584200 end
-  local prefs=morf.state {enabled="on",side="top",titles="on"}
+  local prefs=morf.state {enabled="on",side="top",titles="on",tray="off",tray_items={},tray_limit=8,wheel_volume=false,wheel_workspace=false}
   local original=require("config")
   package.loaded.config={get=function(key)
     local name=key:match("^edgebar%.(.+)$")
@@ -240,11 +240,11 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(up("bar-clock-v"))
   end)
 end
-test.it("a tablet's bar has the date, its windows' lane and the status at a finger's height",function()
+test.it("a wide touchscreen with no keyboard has a desk's bar",function()
   load("material",1280,800)
-  test.eq(state().form,"tablet")
+  test.eq(state().form,"desk")
   test.truthy(up("bar-logo")) test.truthy(test.find {id="bar-windows",visible=true}~=nil)
-  test.eq(test.get("bar-status").height,48)
+  test.eq(test.get("bar-status").height,34)
 end)
 test.it("a landscape phone keeps its status bar",function()
   load("material",1932,868)

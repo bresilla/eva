@@ -1,11 +1,11 @@
--- The forms a finger meets eva on, for the touch specs: a phone, a tablet, and a
--- Surface with its Type Cover on, which reads as a desk.
+-- The forms a finger meets eva on, for the touch specs: a phone, a touchscreen
+-- with no keyboard, and a Surface with its Type Cover on. The last two are desks.
 local test = morf.test
 local M = {}
 
 M.FORMS = {
   { name = "phone", size = { 620, 1380 }, devices = "tests/fixtures/input-devices-touch", sheet = true },
-  { name = "tablet", size = { 1280, 800 }, devices = "tests/fixtures/input-devices-touch", sheet = true },
+  { name = "touchscreen alone", size = { 1280, 800 }, devices = "tests/fixtures/input-devices-touch" },
   { name = "desk with a touchscreen", size = { 1440, 900 }, devices = "tests/fixtures/input-devices-cover" },
 }
 

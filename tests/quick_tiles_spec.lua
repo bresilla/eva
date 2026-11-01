@@ -99,16 +99,16 @@ test.it("each kind of machine has its own defaults, and a tile without hardware 
   test.eq(#test.logs("error"),0)
 end)
 
-test.it("a wide touchscreen with no keyboard is a tablet, with a tablet's tiles",function()
-  local devices=morf.env("XDG_CACHE_HOME").."/quick-tablet-devices"
+test.it("a wide touchscreen with no keyboard is a desk, with a desk's tiles",function()
+  local devices=morf.env("XDG_CACHE_HOME").."/quick-touch-devices"
   morf.fs.write(devices,"N: Name=\"Goodix Capacitive TouchScreen\"\nH: Handlers=event5\nB: PROP=2\nB: EV=b\n")
   load({size={1280,800},fake=true,env={EVA_INPUT_DEVICES=devices}})
-  test.eq(test.ipc("q_form"),"tablet")
+  test.eq(test.ipc("q_form"),"desk")
   open()
   local shown=test.ipc("q_shown")
-  test.truthy(has(shown,"rotation"),"a tablet has its rotation at hand")
-  test.truthy(has(shown,"keyboard"),"a tablet has its keyboard at hand")
-  test.eq(test.get("drawer-sidebar").width,560,"a tablet keeps a panel, not a phone's sheet")
+  test.falsy(has(shown,"rotation"),"rotation is no tile of a desk's")
+  test.falsy(has(shown,"keyboard"),"the keyboard is no tile of a desk's")
+  test.truthy(has(shown,"wifi"))
   test.eq(#test.logs("error"),0)
 end)
 

@@ -21,7 +21,7 @@ local function clean()
   test.eq(#test.logs("error"), 0)
 end
 
-local FORMS = { { "desk", { 1920, 1080 } }, { "tablet", { 1280, 800 } }, { "phone", { 868, 1932 } } }
+local FORMS = { { "desk", { 1920, 1080 } }, { "laptop", { 1280, 800 } }, { "phone", { 868, 1932 } } }
 
 -- Scrolls the Notifications page until the node `id` is in sight.
 local function reach(id)

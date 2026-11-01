@@ -1,10 +1,10 @@
 -- A Surface: a touchscreen, a pen, and a Type Cover that comes off. Its keyboard
--- counts while it is on, the form flips as it detaches, and gestures read on
--- every form all the same. /proc/bus/input/devices stands in as a fixture.
+-- counts while it is on, it is a desk with the cover on, off or folded back, and
+-- gestures read all the same. /proc/bus/input/devices stands in as a fixture.
 local test=morf.test
 local ROOT=morf.fs.join(morf.env("PWD"),"")
 local COVER=morf.fs.read(ROOT.."tests/fixtures/input-devices-surface")
-local TABLET=morf.fs.read(ROOT.."tests/fixtures/input-devices-surface-tablet")
+local BARE=morf.fs.read(ROOT.."tests/fixtures/input-devices-surface-tablet")
 local SOURCE=[[
   local heard={}
   morf.udev={subscribe=function(_,fn) heard[#heard+1]=fn end}
@@ -52,32 +52,32 @@ test.it("with the cover on it is a desk, and the touchscreen still reads",functi
   local touch=test.ipc("touch")
   test.eq(touch.state,"running") test.eq(touch.reading,true)
 end)
-test.it("with the cover off it is a tablet",function()
-  load(TABLET)
+test.it("with the cover off it is a desk, the touchscreen its main input",function()
+  load(BARE)
   local m=machine()
-  test.eq(m.form,"tablet") test.truthy(m.touch)
+  test.eq(m.form,"desk") test.truthy(m.touch)
   test.eq(#m.keyboards,0)
   test.eq(test.ipc("touch").state,"running")
 end)
-test.it("flips as the cover detaches, told by udev, and back as it clips on",function()
+test.it("rebuilds as the cover detaches, told by udev, and back as it clips on, a desk throughout",function()
   local path=load(COVER)
   test.eq(machine().form,"desk")
-  morf.fs.write(path,TABLET)
+  morf.fs.write(path,BARE)
   test.ipc("plug") test.settle(400)
   local off=machine()
-  test.eq(off.form,"tablet") test.eq(off.reloads,1)
+  test.eq(off.form,"desk") test.truthy(off.touch) test.eq(off.reloads,1)
   test.eq(test.ipc("touch").reading,true)
   morf.fs.write(path,COVER)
   test.ipc("plug") test.settle(400)
   local on=machine()
-  test.eq(on.form,"desk") test.eq(on.reloads,2)
+  test.eq(on.form,"desk") test.falsy(on.touch) test.eq(on.reloads,2)
 end)
-test.it("with the cover folded behind the screen it is a tablet too",function()
+test.it("with the cover folded behind the screen it is a desk too",function()
   load(COVER,{EVA_FAKE_TABLET="on"})
   test.ipc("tablet","pin","on") test.settle(800)
   local m=machine()
   test.falsy(m.external) test.falsy(m.attached)
-  test.eq(m.form,"tablet")
+  test.eq(m.form,"desk") test.truthy(m.touch)
 end)
 test.it("a keyboard plugged in from outside still counts, folded",function()
   local usb=[[I: Bus=0003 Vendor=046d Product=c31c Version=0110
@@ -93,7 +93,7 @@ B: MSC=10
 B: LED=7
 
 ]]
-  load(usb..TABLET,{EVA_FAKE_TABLET="on"})
+  load(usb..BARE,{EVA_FAKE_TABLET="on"})
   test.ipc("tablet","pin","on") test.settle(800)
   test.truthy(machine().external)
   test.eq(machine().form,"desk")

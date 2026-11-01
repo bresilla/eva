@@ -1,8 +1,8 @@
 -- The bar, supplied with shared readings and actions: three zones of modules
 -- along an edge, each module placed by bar_layout.lua and arranged on the board
 -- in the Bar page. A desk has it framed, with the clock in the middle. A phone
--- and a tablet have a status bar: the time at the left and the status at the
--- right, unframed, with a finger's height to press.
+-- has a status bar: the time at the left and the status at the right, unframed,
+-- with a finger's height to press.
 --
 -- A module is built once, the first time it is on the board, and kept; its place
 -- and size follow on springs, so rearranging moves what is there.

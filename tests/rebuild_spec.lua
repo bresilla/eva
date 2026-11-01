@@ -1,5 +1,5 @@
 -- A change of layout rebuilds the output in place: a keyboard docked on a
--- tablet here, as a turn of the screen does, and what was open stays open.
+-- touchscreen here, as a turn of the screen does, and what was open stays open.
 local test=morf.test
 local DEVICES=morf.env("EVA_INPUT_DEVICES")
 local DOCK=[[

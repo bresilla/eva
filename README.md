@@ -373,8 +373,8 @@ The pencil in the page's head edits the tiles: drag to rearrange, by mouse or
 finger (Alt with the arrows from the keyboard), the minus badge hides a tile,
 **Available** adds one back, the corner badge makes it a small icon-only tile,
 two to a slot, and **Reset** restores the machine's defaults. Order and sizes are
-kept per kind of machine, in `quick.tiles` and `quick.small` for `desk`, `tablet`
-and `phone`. `morf ipc call quick edit` and `quick done` do the same.
+kept per kind of machine, in `quick.tiles` and `quick.small` for `desk` and
+`phone`. `morf ipc call quick edit` and `quick done` do the same.
 
 A tile is offered only where the machine can back it. **Hotspot** needs a Wi-Fi
 radio that can be an access point; NetworkManager keeps its password, and turning
@@ -614,9 +614,9 @@ digits are distance fields that melt into the next.
 
 **Arrange** (or a right-click or long press on the desktop) is the tile board's
 edit: drag to move, snapped to an 8 px grid, remove at a tile's top corner,
-resize at its bottom, and spare widgets wait in the tray. A desk and a tablet
-place freely; a phone's home flows down the screen in the board's order, two
-small ones to a row. Each form keeps its own board.
+resize at its bottom, and spare widgets wait in the tray. A desk places freely;
+a phone's home flows down the screen in the board's order, two small ones to a
+row. Each form keeps its own board.
 
 Where Eva paints, widgets live on the wallpaper's own layer, so their glass reads
 the picture. Otherwise they have a layer just above the wallpaper tool's. Ink
@@ -627,8 +627,8 @@ picture itself is the time.
 
     morf ipc call desktop edit               # or done, state, add ID, hide ID, size ID
 
-**StandBy**: a phone or tablet on charge, turned sideways, becomes a bedside
-screen with a great clock, the folder's pictures, two stacks of widgets, the
+**StandBy**: a phone on charge, turned sideways, becomes a bedside screen with a
+great clock, the folder's pictures, two stacks of widgets, the
 cities of `eva-clock` or the next thing to ring, the screen awake while it shows.
 A swipe turns the view and a touch shows the way out. At night it is a dim red,
 and it drifts so nothing burns in. `morf ipc call standby [on|off|toggle|VIEW]`.
@@ -745,7 +745,7 @@ Every result has an action panel. An app's lists what its desktop file offers, t
 pin to favourites, run as root through polkit, open containing folder, file it in a
 folder, hide it, and uninstall for a Flatpak.
 
-On a phone or a tablet the launcher opens as a grid: favourites, what you use most,
+On a phone the launcher opens as a grid: favourites, what you use most,
 your folders, then every app, with chips for the categories and an alphabet down the
 side. A long press lists a tile's actions. The on-screen keyboard waits until you
 press the field. `launcher.layout` is `auto`, `grid` or `list`.
@@ -920,21 +920,21 @@ display with `uaccess`, so it takes no group. This path has run against stand-in
 only: `lib/services/host_fake.lua` and a fake `ddcutil` in a VM, which has no
 monitor on an I2C bus.
 
-## Phone, tablet and desk
+## Phone and desk
 
-Each output is classed from its logical size: compact below 600 wide, medium to
-839, expanded from 840, with a height class to match. A touchscreen is the main
-input while no real keyboard is attached and the output is the machine's own
-panel, so a docked phone is a desk on its monitor and a phone on its panel.
-Turning the screen or docking a keyboard rebuilds that output in place, and
-what was open stays open.
+There are two forms. Each output is classed from its logical size: compact below
+600 wide, medium to 839, expanded from 840, with a height class to match. A
+touchscreen with no keyboard is a desk: same panels, same layout. A touchscreen
+is the main input while no real keyboard is attached and the output is the
+machine's own panel, so a docked phone is a desk on its monitor and a phone on
+its panel. Turning the screen or docking a keyboard rebuilds that output in
+place, and what was open stays open.
 
-A phone and a tablet have a status bar with the clock at the left and mobile,
-Wi-Fi and battery at the right. Rare statuses, then Bluetooth, then VPN and Do
-not disturb fold into a dot when the row runs out, then the percentage if the
-battery is above 20%. Set `edgebar.corner` and `edgebar.cutout` for a screen's
-rounded corners and cutout. Quick settings comes down from the top, under the
-status on a tablet, and the dashboard rises from the bottom.
+A phone has a status bar with the clock at the left and mobile, Wi-Fi and battery
+at the right. Rare statuses, then Bluetooth, then VPN and Do not disturb fold into
+a dot when the row runs out, then the percentage if the battery is above 20%. Set
+`edgebar.corner` and `edgebar.cutout` for a screen's rounded corners and cutout.
+Quick settings comes down from the top, and the dashboard rises from the bottom.
 
 A desk's bar has the system tray, and optionally the wheel over the status for
 volume and over the clock for the workspace (Eva, Bar). The tray serves a
@@ -949,11 +949,11 @@ stand-in also takes `wireless`, `fast`, `slow`, `watts=N` and `limit=N`.
 
 ### Convertibles
 
-A convertible folded back reads as a tablet with its keyboard still attached:
-sheets, a finger's targets, the on-screen keyboard, and the screen following
-the accelerometer. libinput ignores the keyboard and touchpad by itself while
-the switch is on. Opened again the rotation is held by the hinge and the panel
-stands upright. A keyboard plugged in or paired still counts while folded.
+A convertible folded back stays a desk, its keyboard no longer counted: the same
+panels and layout, the on-screen keyboard, and the screen following the
+accelerometer. libinput ignores the keyboard and touchpad by itself while the
+switch is on. Opened again the rotation is held by the hinge and the panel stands
+upright. A keyboard plugged in or paired still counts while folded.
 
 The state comes from the kernel's `SW_TABLET_MODE`, found through
 `/proc/bus/input/devices` and read with `evtest`: its events as a stream, and
@@ -999,7 +999,7 @@ lets a call be taken there. `programs.eva.phone.calls = false` leaves all of it
 out.
 
 A call comes up on a surface of its own in the overlay layer: the whole screen on
-a phone or tablet, a card on a desk. Pull the orb to a side of its rail, or press
+a phone, a card on a desk. Pull the orb to a side of its rail, or press
 that side. A locked session shows only the lock's surfaces, so the lock hosts the
 same screen (`themes/phone_lock.lua`), along with the SIM's PIN and PUK and
 emergency dialling, which takes only numbers that reach the emergency services:
@@ -1296,7 +1296,7 @@ every page: `EVA_FAKE_SYSTEM=1 tools/see.sh settings`.
 ## Welcome
 
 The first login opens **Welcome** in Settings, wherever Settings stands on that
-form: the right panel on a desk, the sheet on a tablet or phone. It is four short
+form: the right panel on a desk, the sheet on a phone. It is four short
 steps, three without a keyboard: dark or light, getting online, the gestures
 this device answers to, and the keys to learn first. Each step leads to the real
 page, and Back returns to the step. Skip leaves it. It comes once; Settings has

@@ -67,7 +67,6 @@ test.it("keeps a list per form",function()
   test.ipc("bar","add","memory","centre") test.advance(300)
   test.truthy(has(test.ipc("q_saved","desk","centre"),"memory"))
   test.falsy(has(test.ipc("q_saved","phone","centre"),"memory"))
-  test.falsy(has(test.ipc("q_saved","tablet","centre"),"memory"))
 end)
 
 test.it("draws a small module as its icon alone",function()
@@ -243,7 +242,7 @@ test.describe("each screen",function()
   end)
 end)
 
-test.it("a phone and a tablet take the same modules, on boards of their own",function()
+test.it("a phone takes the same modules, on a board of its own",function()
   load {size={868,1932},env={EVA_INPUT_DEVICES=morf.env("EVA_INPUT_DEVICES").."-touch"}}
   test.eq(test.ipc("q_form"),"phone")
   test.ipc("bar","add","cpu","start") test.settle(900)

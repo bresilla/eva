@@ -171,7 +171,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(test.ipc("activate",":1.5/StatusNotifierItem"))
     test.eq(#state().calls,before)
   end)
-  test.it(style.." hides where it does not fit, and on a phone or a tablet",function()
+  test.it(style.." hides where it does not fit, and on a phone",function()
     load(style,1000,700)
     test.ipc("items","5,6") test.advance(100)
     local fits=test.find {id="bar-tray",visible=true}
@@ -179,7 +179,7 @@ for _,style in ipairs {"material","tsugumori"} do
     load(style,868,1932,false,{EVA_INPUT_DEVICES=DEVICES.."-touch"})
     test.falsy(state().has) test.eq(test.find {id="bar-tray",visible=true},nil)
     load(style,1280,800,false,{EVA_INPUT_DEVICES=DEVICES.."-touch"})
-    test.falsy(state().has)
+    test.truthy(state().has,"a wide touchscreen is a desk, with a desk's tray")
   end)
   test.it(style.." follows its setting, and serves no watcher while it is down",function()
     load(style,1920,1080)

@@ -1,4 +1,4 @@
--- StandBy: on charge and sideways, a phone or tablet is a bedside screen.
+-- StandBy: on charge and sideways, a phone is a bedside screen.
 --
 --     morf test --no-dbus tests/standby_spec.lua
 local test = morf.test

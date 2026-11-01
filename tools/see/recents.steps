@@ -1,6 +1,5 @@
 # Windows under a finger: recents and what its cards offer, on the window
-# stand-in. `SCREEN=868x1932 TOUCH=1` is a phone, `SCREEN=1280x800 TOUCH=1` a
-# tablet, whose taskbar shows here too.
+# stand-in. `SCREEN=868x1932 TOUCH=1` is a phone.
 export EVA_FAKE_WINDOWS=${EVA_FAKE_WINDOWS:-$SEE_EVA/tests/fixtures/windows.json}
 export EVA_SETTINGS="$SEE_OUT/settings.json"
 echo '{ "dock": { "pins": ["files"] } }' > "$EVA_SETTINGS"

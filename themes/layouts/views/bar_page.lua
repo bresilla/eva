@@ -127,7 +127,7 @@ function M.build(model, w, h)
     sections[#sections + 1] = P.section { id = "bar-screen-" .. name:gsub("%W", "-") .. "-own", width = w, own }
   end
   sections[#sections + 1] = kit.subtitle { id = "bar-note", width = w, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
-    text = "Auto puts the bar up on a phone, a tablet or a narrow screen, and keeps it down on a desk." }
+    text = "Auto puts the bar up on a phone or a narrow screen, and keeps it down on a desk." }
   return P.page(sections)
 end
 

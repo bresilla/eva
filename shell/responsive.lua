@@ -4,8 +4,8 @@
 -- `compact()` stack what sits side by side.
 --
 -- Each output has a width and a height class from its logical size, and a
--- form: phone, tablet or desk. `sheets()` is the one policy the panels share:
--- they come down over a screen a finger reaches, and hang off a desk's sides.
+-- form: phone or desk. `sheets()` is the one policy the panels share: they come
+-- down over a phone's screen, and hang off a desk's sides.
 local morf = require("morf")
 local M = {}
 
@@ -111,7 +111,8 @@ end
 
 --- What a layout is built for: a change rebuilds the output's shell in place.
 function M.layout()
-  return table.concat({ M.form(), M.width_class(), M.height_class(), M.portrait() and "upright" or "wide" }, "/")
+  return table.concat({ M.form(), M.width_class(), M.height_class(), M.portrait() and "upright" or "wide",
+    M.touch() and "touch" or "keys" }, "/")
 end
 
 --- How wide a sheet from the top is: the desk on a phone held upright, a

@@ -1,6 +1,6 @@
 -- Which panel holds which page: every verb, shortcut and launcher row lands a
--- page in the panel that holds it on this form; on a phone or a tablet that is
--- the sheet, and the desk's left and bottom panels are not built at all.
+-- page in the panel that holds it on this form; on a phone that is the sheet,
+-- and the desk's left and bottom panels are not built at all.
 local test = morf.test
 local SOURCE = [[
   require("init")
@@ -23,8 +23,8 @@ local SOURCE = [[
 ]]
 local loads = 0
 local FORMS = {
-  phone = { 868, 1932, true }, ["tablet upright"] = { 800, 1280, true }, ["tablet wide"] = { 1280, 800, true },
-  desk = { 1920, 1080, false },
+  phone = { 868, 1932, true }, desk = { 1920, 1080, false },
+  ["touchscreen alone"] = { 1280, 800, true },
 }
 local function load(style, form, panels)
   test.stub_run("task", { code = 0, stdout = "[]" })
@@ -41,7 +41,7 @@ end
 local function where() return test.ipc("where") end
 local function shut() test.ipc("close") test.settle(700) end
 
-local SHEETED = { "phone", "tablet upright", "tablet wide" }
+local SHEETED = { "phone" }
 for _, style in ipairs { "material", "tsugumori" } do
   for _, form in ipairs(SHEETED) do
     test.it(style .. " " .. form .. " has no desk panels, and every verb lands on the sheet", function()
@@ -63,6 +63,23 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.eq(#test.logs("error"), 0)
     end)
   end
+end
+
+for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. " a touchscreen alone has a desk's panels, and each verb lands in its own", function()
+    load(style, "touchscreen alone")
+    test.eq(where().form, "desk")
+    test.truthy(where().left, "no left drawer")
+    test.truthy(where().bottom, "no bottom drawer")
+    for _, case in ipairs { { "tasks", "leftbar" }, { "calendar", "leftbar" }, { "assistant", "bottom" },
+      { "drop", "bottom" }, { "notifications", "sidebar" } } do
+      test.ipc(case[1]) test.settle(900)
+      test.eq(where().open, case[2], case[1])
+      test.eq(where().showing, case[1])
+      shut()
+    end
+    test.eq(#test.logs("error"), 0)
+  end)
 end
 
 -- The launcher's rows for the shell's own pages: `!NAME`, and Return runs the first.
@@ -206,16 +223,14 @@ test.it("Settings pages reach whichever panel holds Settings", function()
   test.eq(where().open, "leftbar")
 end)
 
-for _, form in ipairs { "phone", "tablet upright" } do
-  test.it(form .. " sheet fits what each page holds", function()
-    load("material", form)
-    local most = form == "phone" and 1400 or 1100
-    for _, verb in ipairs { "drop", "assistant", "notifications" } do
-      test.ipc(verb) test.settle(1500)
-      test.truthy(test.ipc("sheet_h") < most, verb .. " left the sheet tall: " .. test.ipc("sheet_h"))
-      shut()
-    end
-    test.ipc("settings", "panels") test.settle(1500)
-    test.truthy(test.ipc("sheet_h") < most, "a Settings page took the whole sheet: " .. test.ipc("sheet_h"))
-  end)
-end
+test.it("phone sheet fits what each page holds", function()
+  load("material", "phone")
+  local most = 1400
+  for _, verb in ipairs { "drop", "assistant", "notifications" } do
+    test.ipc(verb) test.settle(1500)
+    test.truthy(test.ipc("sheet_h") < most, verb .. " left the sheet tall: " .. test.ipc("sheet_h"))
+    shut()
+  end
+  test.ipc("settings", "panels") test.settle(1500)
+  test.truthy(test.ipc("sheet_h") < most, "a Settings page took the whole sheet: " .. test.ipc("sheet_h"))
+end)

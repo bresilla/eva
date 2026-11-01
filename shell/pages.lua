@@ -1,8 +1,8 @@
 -- The pages a panel can hold, by key. Which panel holds which is a setting
 -- (`panels.<edge>`: a list of keys), so a page can move from panel to panel
 -- -- Settings, Eva, Panels moves it -- while each page is built the one way.
--- A desk arranges its right, left and bottom panels; a phone or a tablet has
--- the one sheet from the top.
+-- A desk arranges its right, left and bottom panels; a phone has the one sheet
+-- from the top.
 --
 -- A page: `name`, `icon`, `build(panel, w, h)` -- `panel` is the side panel
 -- model it is built in (its `opened` and `showing`, for a page that works

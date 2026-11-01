@@ -3,7 +3,7 @@
 -- chose. Plain data at the head, so config.lua can read it while it loads.
 local M = {}
 
-M.FORMS = { "desk", "tablet", "phone" }
+M.FORMS = { "desk", "phone" }
 
 -- Each gesture's `key` is what touch_gestures.key names it; `name` says it
 -- whole, `short` under its group's heading on the page; `icon` is the motion.
@@ -56,7 +56,7 @@ local COMMON = {
   four_up = "app_grid", four_left = "switch_app", four_right = "switch_app", four_tap = "launcher",
   five_pinch_in = "launcher", five_pinch_out = "show_desktop",
 }
-local BY_FORM = { phone = { three_up = "recents" }, tablet = { three_up = "recents" } }
+local BY_FORM = { phone = { three_up = "recents" } }
 
 --- The stored defaults for `form`, a value for every gesture.
 function M.defaults(form)

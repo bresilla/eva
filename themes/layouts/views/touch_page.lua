@@ -14,7 +14,7 @@ local M = {}
 -- As many fingers as the small screen shows, and how big each is.
 local FINGERS, DOT = 10, S.l
 
-local WORDS = { desk = "Desk", tablet = "Tablet", phone = "Phone" }
+local WORDS = { desk = "Desk", phone = "Phone" }
 
 --- The small screen: a dot where each finger is.
 local function screen(model, w)

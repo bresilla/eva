@@ -1,4 +1,4 @@
-# The phone and tablet pieces on a stand-in NixOS: the grid with a folder and a
+# The phone pieces on a stand-in NixOS: the grid with a folder and a
 # hidden app, what an app can and cannot have done to it, the quick settings'
 # catalogue, the bar's rules, Screen time and its warning, Software, Fingerprints,
 # and the lock's scrambled pad. Nothing here is installed, removed or enrolled.
