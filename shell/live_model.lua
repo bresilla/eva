@@ -24,7 +24,7 @@ local function catalogue(bar)
       subtitle = function() return services().call.muted() and "Muted" or "On a call" end,
       short = function()
         morf.time.clock:get()
-        return clock.elapsed(morf.time.now() - services().call.started())
+        return services().duration(morf.time.now() - services().call.started())
       end,
       controls = function()
         return { { id = "mute", name = "Mute", icon = services().call.muted() and "mic_off" or "mic",
@@ -35,7 +35,7 @@ local function catalogue(bar)
       on = function() return bar.recording() end,
       title = function() return "Recording" end,
       subtitle = function() return "Screen" end,
-      short = function() return clock.elapsed(require("capture").elapsed:get()) end,
+      short = function() return services().duration(require("capture").elapsed:get()) end,
       controls = function()
         return { { id = "stop", name = "Stop recording", icon = "stop", tone = "alert",
           press = function() require("capture").record() end } }
@@ -61,7 +61,7 @@ local function catalogue(bar)
       end,
       short = function()
         morf.time.clock:get()
-        return clock.elapsed(services().alarm.timer().ends - morf.time.now())
+        return services().duration(services().alarm.timer().ends - morf.time.now())
       end,
       progress = function()
         morf.time.clock:get()

@@ -72,12 +72,4 @@ function M.days_to(date, now)
   return math.floor((at - (now or morf.time.now())) / 86400 + 0.5)
 end
 
---- A duration of `seconds`, as a timer shows it.
-function M.elapsed(seconds)
-  seconds = math.max(0, math.floor(seconds or 0))
-  local h, m, s = seconds // 3600, (seconds % 3600) // 60, seconds % 60
-  if h > 0 then return ("%d:%02d:%02d"):format(h, m, s) end
-  return ("%d:%02d"):format(m, s)
-end
-
 return M

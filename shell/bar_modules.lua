@@ -390,7 +390,7 @@ function M.list(bar)
     tooltip = function()
       local b = bar.reading:get().battery
       local words = require("battery_status_model").describe(b)
-      if (b.remaining or 0) > 0 then words = words .. ", " .. clock.elapsed(b.remaining // 60 * 60):gsub(":%d%d$", "") .. " left" end
+      if (b.remaining or 0) > 0 then words = words .. ", " .. services().duration(b.remaining) .. " left" end
       return words
     end,
     press = dashboard_tab("battery"), menu = function() return { item("Power settings", "bolt", settings_page("power")) } end }
@@ -645,7 +645,7 @@ function M.list(bar)
   -- What is going on.
   add { id = "recording", name = "Recording", icon = "fiber_manual_record", tier = 0,
     active = function() return bar.recording() end,
-    text = function() return clock.elapsed(require("capture").elapsed:get()) end,
+    text = function() return services().duration(require("capture").elapsed:get()) end,
     tone = function() return "alert" end,
     tooltip = function() return "Recording. Press to stop" end,
     press = function() require("capture").record() end }
