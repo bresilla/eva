@@ -113,7 +113,7 @@ function V.eva_page(model,w,h)
       P.row {id="settings-eva-osd",width=inner,icon="picture_in_picture",title="On-screen displays",
         subtitle="Where each one appears, and for how long",
         trailing=P.chevron(),on_clicked=function() model.request("osd") end},
-      P.row {id="settings-eva-island",width=inner,icon="capsule",title="Island",
+      P.row {id="settings-eva-island",width=inner,icon="music_note",title="Island",
         subtitle="A pill out of the top of the frame, for music and the time",
         on=function() return require("island").enabled() end,
         trailing=P.switch {id="utilities-toggle-island",name="Island",on=function() return require("island").enabled() end,
