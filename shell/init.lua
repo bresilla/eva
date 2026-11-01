@@ -388,6 +388,17 @@ ipc.settings = function(page)
   sidebar.drawer.set(true)
   return page or ""
 end
+-- `tablet on` or `tablet off`: the hinge moved, as Hyprland's switch binds say;
+-- the kernel is asked before it counts. `tablet pin on|off` holds the posture
+-- whatever the switch says, `tablet auto` lets it go, `tablet state` reads it.
+ipc.tablet = function(how, value)
+  local posture = require("models.posture")
+  if how == "on" or how == "off" then posture.report(how == "on")
+  elseif how == "pin" and (value == "on" or value == "off") then posture.pin(value == "on")
+  elseif how == "auto" then posture.pin(nil)
+  elseif how ~= nil and how ~= "state" then error("`" .. tostring(how) .. "`: on, off, pin on|off, auto or state") end
+  return posture.state()
+end
 -- `quick edit` or `quick done`: the quick settings' tiles being arranged.
 ipc.quick = function(how)
   if how ~= "edit" and how ~= "done" then error("`" .. tostring(how) .. "`: edit or done") end

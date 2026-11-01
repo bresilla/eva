@@ -131,14 +131,21 @@ M.rotation = lazily(function()
   end
   local r = { sensors = sensors }
   function r.present() return sensors.state.accelerometer == true end
+  --- Whether the hinge holds the screen: a convertible open as a laptop.
+  function r.hinged()
+    return require("models.posture").present() and require("responsive").form_factor() == "desk"
+  end
   --- Whether the screen keeps its rotation.
   function r.on()
     local lock = config.get("rotation.lock")
     if lock == "auto" then return require("responsive").form_factor() == "desk" end
-    return lock == "on"
+    return lock == "on" or r.hinged()
   end
   function r.set(now) config.set("rotation.lock", now and "on" or "off") end
-  function r.status() return r.on() and "Locked" or "Auto" end
+  function r.status()
+    if r.hinged() and config.get("rotation.lock") ~= "on" then return "Held by the hinge" end
+    return r.on() and "Locked" or "Auto"
+  end
   return r
 end)
 

@@ -43,14 +43,21 @@ local function read_input()
 end
 local input = morf.signal("eva.input.touch", read_input())
 
---- Reads the input devices again as they come and go.
+--- Reads the input devices again as they come and go, and as the machine
+--- folds (models.posture, which this panel's shell starts).
 function M.watch_input()
+  local posture = require("models.posture")
+  if not external() then posture.start() end
+  morf.effect("eva.input.posture", function() input:set(read_input()) end)
   if not (morf.udev and morf.udev.subscribe) then return end
-  pcall(morf.udev.subscribe, "input", function() input:set(read_input()) end)
+  pcall(morf.udev.subscribe, "input", function()
+    input:set(read_input())
+    if not external() then posture.refresh() end
+  end)
 end
 
 --- Whether a touchscreen is this output's main input: one is attached, no
---- real keyboard is, and the output is the machine's own panel.
+--- keyboard is in reach, and the output is the machine's own panel.
 function M.touch() return input:get() and not external() end
 
 --- Whether the output is a phone's panel, in either orientation and at any

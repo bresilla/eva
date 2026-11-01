@@ -246,10 +246,13 @@ local HOST=[[
     eq(auto.apply("undefined","eDP-1"),false)
     return true
   end
-  morf.ipc.rotate_start=function()
-    rotation_rig().start{rotation=rotate.device,name="eDP-1"}
+  morf.ipc.rotate_start=function(how)
+    local auto=rotation_rig()
+    if how=="hinged" then rotate.device.hinged=function() return rotate.hinge end end
+    auto.start{rotation=rotate.device,name="eDP-1"}
     return true
   end
+  morf.ipc.rotate_hinge=function(on) rotate.hinge=on=="yes" end
   morf.ipc.rotate_legacy=function()
     rotation_rig()
     rotate.lua=false
@@ -428,6 +431,15 @@ test.it("auto-rotate turns the output and the touchscreen, and the lock stops it
   read=test.ipc("rotate_read")
   test.eq(read.calls,{"claim","release","claim"})
   test.eq(read.evals[evals+1],'hl.monitor({output="eDP-1", transform=2})')
+end)
+test.it("a convertible opened into a laptop stands upright again",function()
+  load()
+  test.ipc("rotate_start","hinged") test.advance(50)
+  test.ipc("rotate_turn","left-up") test.advance(50)
+  test.ipc("rotate_hinge","yes") test.ipc("rotate_lock","yes") test.advance(50)
+  local read=test.ipc("rotate_read")
+  test.eq(read.calls,{"claim","release"})
+  test.eq(read.evals[#read.evals-1],'hl.monitor({output="eDP-1", transform=0})',"it stayed on its side")
 end)
 test.it("on a Hyprland without Lua it falls back to keywords",function()
   load()
