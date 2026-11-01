@@ -10,6 +10,8 @@
 --   words                a command: a list of words, edited as one line
 --   list                 a list of names, edited as one line
 --   records              a list of tables of `fields`, edited as one line of words
+-- `clean` (words, list) turns the words typed into what is kept; the field then
+-- shows what was.
 local M = {}
 
 local function commands(prefix, rows)
@@ -20,7 +22,31 @@ local function commands(prefix, rows)
   return out
 end
 
+-- The session's actions by id, named and drawn as the menu has them.
+local function session_commands(ids)
+  local rows = {}
+  for index, id in ipairs(ids) do
+    local action = require("models.session_actions").BY_ID[id]
+    rows[index] = { id, action.name, action.icon }
+  end
+  return commands("session.commands.", rows)
+end
+
 M.PAGES = {
+  ["backups/more"] = { sections = {
+    { title = "Which tool", fields = {
+      { key = "backups.tool", kind = "choice", title = "Use", items = {
+        { "", "auto_mode", "First found" }, { "snapper", "backup", "Snapper" }, { "btrbk", "backup", "btrbk" }, { "restic", "backup", "restic" } } },
+      { key = "backups.snapper_config", kind = "text", title = "Snapper config", icon = "settings",
+        note = "The config to show: root, home, or one of your own" },
+    } },
+    { title = "restic", note = "The password stays in its file, and only the file's path reaches restic.", fields = {
+      { key = "backups.restic_repository", kind = "text", title = "Repository", icon = "storage",
+        note = "A folder, or sftp:, s3:, rest: and the like" },
+      { key = "backups.restic_password_file", kind = "text", title = "Password file", icon = "key" },
+      { key = "backups.restic_paths", kind = "list", title = "What to back up", icon = "folder" },
+    } },
+  } },
   launcher = { sections = {
     { title = "Results", fields = {
       { key = "launcher.max_shown", kind = "number", title = "Results shown", icon = "format_list_numbered",
@@ -84,6 +110,10 @@ M.PAGES = {
       { key = "capture.save_dialog", kind = "bool", title = "Ask where to save", icon = "save_as" },
       { key = "capture.copy_on_save", kind = "bool", title = "Copy when saved", icon = "content_copy" },
       { key = "capture.copy_to_disk", kind = "bool", title = "Also save when copied", icon = "save" },
+      { key = "capture.thumbnail", kind = "bool", title = "Show a thumbnail", icon = "picture_in_picture",
+        note = "A small picture after a shot: press it to edit, or leave it to fade" },
+      { key = "capture.thumbnail_seconds", kind = "number", title = "Thumbnail stays for", icon = "timer",
+        from = 2, to = 30, step = 1, unit = " s" },
     } },
     { title = "Editor", fields = {
       { key = "capture.blur", kind = "number", title = "Blur strength", icon = "blur_on", from = 2, to = 100, step = 2 },
@@ -94,13 +124,45 @@ M.PAGES = {
       { key = "capture.upload_endpoint", kind = "text", title = "Upload address", icon = "cloud_upload",
         note = "Where More, Upload sends a capture" },
     } },
+    { title = "Recordings", fields = {
+      { key = "capture.replay_seconds", kind = "number", title = "Replay keeps", icon = "replay", from = 5, to = 600, step = 5, unit = " s",
+        note = "The seconds the replay buffer holds" },
+      { key = "capture.gif_fps", kind = "number", title = "GIF frame rate", icon = "gif_box", from = 2, to = 30, step = 1, unit = " fps" },
+      { key = "capture.gif_width", kind = "number", title = "GIF width", icon = "width", from = 240, to = 1920, step = 40, unit = " px" },
+    } },
     { title = "Capture commands", note = "$FILE is the file to write", fields = commands("capture.commands.", {
       { "record_region", "Record a region", "screen_record" },
       { "record_window", "Record a window", "select_window" },
       { "record_screen", "Record the screen", "monitor" },
       { "record_portal", "Record through the portal", "cast" },
+      { "record_replay", "Replay buffer", "replay" },
+      { "trim", "Trim a recording", "content_cut" },
+      { "gif", "Make a GIF", "gif_box" },
       { "open", "Open a capture", "open_in_new" },
     }) },
+  } },
+  ["input/remap"] = { status = "remap_model", sections = {
+    { title = "Caps Lock", fields = {
+      { key = "remap.caps", kind = "choice", title = "It acts as", per_row = 2, items = {
+        { "", "keyboard_capslock", "Caps Lock" }, { "escape", "keyboard", "Escape" },
+        { "control", "keyboard_control_key", "Control" }, { "hyper", "star", "Hyper" },
+        { "tap_escape_hold_control", "touch_app", "Tap Esc, hold Ctrl" },
+        { "tap_escape_hold_hyper", "touch_app", "Tap Esc, hold Hyper" } } },
+    } },
+    { title = "Hyper", note = "A key that holds Ctrl, Alt, Shift and Super at once", fields = {
+      { key = "remap.hyper", kind = "choice", title = "Hyper key", per_row = 2, items = {
+        { "", "block", "None" }, { "right_alt", "keyboard_option_key", "Right Alt" },
+        { "right_control", "keyboard_control_key", "Right Ctrl" }, { "menu", "menu", "Menu" } } },
+    } },
+    { title = "More", fields = {
+      { key = "remap.swap_alt_super", kind = "bool", title = "Swap Alt and Super", icon = "swap_horiz" },
+      { key = "remap.home_row", kind = "bool", title = "Modifiers on the home row", icon = "keyboard",
+        note = "A S D F and J K L ; type when tapped, and are Super, Alt, Shift, Ctrl when held" },
+    } },
+    { title = "Tap or hold", fields = {
+      { key = "remap.tap", kind = "number", title = "A tap lasts up to", icon = "touch_app", from = 100, to = 500, step = 10, unit = " ms" },
+      { key = "remap.hold", kind = "number", title = "A hold starts after", icon = "timer", from = 100, to = 500, step = 10, unit = " ms" },
+    } },
   } },
   ["windows/more"] = { sections = {
     { title = "Scratchpads", fields = {
@@ -153,11 +215,8 @@ M.PAGES = {
       { key = "update.flake", kind = "text", title = "Flake", icon = "account_tree",
         note = "What eva-update reads, or its folder; empty finds /etc/nixos's" },
     } },
-    { title = "Session", note = "$USER is your name", fields = commands("session.commands.", {
-      { "lock", "Lock", "lock" }, { "logout", "Log out", "logout" }, { "suspend", "Suspend", "bedtime" },
-      { "hibernate", "Hibernate", "downloading" }, { "suspend_hibernate", "Suspend, then hibernate", "hotel" },
-      { "reboot", "Restart", "restart_alt" }, { "shutdown", "Power off", "power_settings_new" },
-    }) },
+    { title = "Session", note = "$USER is your name", fields = session_commands {
+      "lock", "logout", "suspend", "hibernate", "suspend_hibernate", "reboot", "shutdown" } },
     { title = "Session menu", fields = {
       { key = "session.countdown", kind = "number", title = "Count down", icon = "timer", from = 0, to = 30, step = 1,
         unit = " s" },
@@ -236,6 +295,21 @@ function M.join_records(list, fields)
     end
   end
   return M.join(flat)
+end
+
+--- The times of day in `words`, each `HH:MM`, in order and once each. What is no
+--- time is dropped.
+function M.times(words)
+  local seen, out = {}, {}
+  for _, word in ipairs(words) do
+    for hour, minute in word:gmatch("%f[%d](%d%d?):(%d%d)%f[%D]") do
+      hour, minute = tonumber(hour), tonumber(minute)
+      if hour < 24 and minute < 60 then seen[("%02d:%02d"):format(hour, minute)] = true end
+    end
+  end
+  for time in pairs(seen) do out[#out + 1] = time end
+  table.sort(out)
+  return out
 end
 
 --- The records on `line`, each `#fields` words. A record left short is dropped.

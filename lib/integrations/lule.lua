@@ -35,6 +35,8 @@ local function expand(path)
   if path:sub(1, 2) == "~/" then return morf.fs.home() .. path:sub(2) end
   return path
 end
+--- `path` with a leading `~` as the home folder.
+lule.expand = expand
 
 --- The wallpaper folder: `chosen` (the setting `lule.folder`), then LULE_W,
 --- then the folder of `current`, then ~/Pictures/Wallpapers.

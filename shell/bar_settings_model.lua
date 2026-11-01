@@ -87,6 +87,17 @@ function M.new(active)
   model.desk=require("responsive").form()=="desk"
   function model.tray() return config.get("edgebar.tray")~="off" end
   function model.set_tray(on) if active() then config.set("edgebar.tray",on and "on" or "off") end end
+  -- The tray's items, each its place and order.
+  local function tray() local b=bar.model return b and b.tray end
+  function model.tray_items() local t=tray() return t and t.items() or {} end
+  function model.tray_next_place(id) local t=tray() if t and active() then t.next_place(id) end end
+  function model.tray_move(id,by) local t=tray() if t and active() then t.move(id,by) end end
+  function model.tray_place_name(place)
+    for _,row in ipairs(require("tray_model").PLACES) do if row[1]==place then return row[2] end end
+    return ""
+  end
+  function model.tray_limit() return tonumber(config.get("edgebar.tray_limit")) or 8 end
+  function model.set_tray_limit(value) if active() then config.set("edgebar.tray_limit",value) end end
   function model.wheel_volume() return config.get("edgebar.wheel_volume")==true end
   function model.set_wheel_volume(on) if active() then config.set("edgebar.wheel_volume",on==true) end end
   function model.wheel_workspace() return config.get("edgebar.wheel_workspace")==true end

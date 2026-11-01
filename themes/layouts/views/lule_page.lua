@@ -4,6 +4,7 @@
 -- The settings frame draws the title; shell/lule_page.lua scrolls it.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local kit = require("kit")
 local theme = require("theme")
 local C = theme.color
@@ -299,7 +300,7 @@ function M.build(state, width)
       on_clicked = function() state.set_mode(mode) end, selected = function() return state.mode:get() == mode end }
   end
   for _, method in ipairs { "pigment", "median", "histogram", "tonal" } do
-    methods[#methods + 1] = { id = "lule-method-" .. method, label = (method:gsub("^%l", string.upper)),
+    methods[#methods + 1] = { id = "lule-method-" .. method, label = unicase.capitalise(method),
       group = "lule-method", on_clicked = function() state.set_method(method) end,
       selected = function() return state.method:get() == method end }
   end

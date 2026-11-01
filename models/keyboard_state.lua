@@ -4,6 +4,7 @@
 -- stands in where there is none.
 local morf = require("morf")
 local lights = require("lib.services.key_lights")
+local unicase = require("lib.util.unicase")
 local M = {}
 
 local function compositor()
@@ -52,7 +53,7 @@ function M.new(prefix)
   function self.current()
     local list = names:get()
     if #list < 2 then return "" end
-    return (list[active:get()] or list[1]):upper()
+    return unicase.upper(list[active:get()] or list[1])
   end
 
   local function apply(index)

@@ -56,6 +56,13 @@
               wallpaper = ./tests/fixtures/wallpaper.png;
             }
           );
+          # The same: the head of the file says how to run it.
+          touch-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/touch.nix {
+              module = self.nixosModules.default;
+              wallpaper = ./tests/fixtures/wallpaper.png;
+            }
+          );
           clock-test = pkgs.testers.runNixOSTest (
             import ./nix/tests/clock.nix {
               inherit eva;
@@ -67,6 +74,14 @@
             import ./nix/tests/windows.nix {
               module = self.nixosModules.default;
               wallpaper = ./tests/fixtures/wallpaper.png;
+              only = builtins.getEnv "EVA_VM_ONLY";
+            }
+          );
+          # The same again.
+          system-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/system.nix {
+              module = self.nixosModules.default;
+              wallpaper = ./tests/fixtures/wallpaper.png;
             }
           );
         };
@@ -75,6 +90,7 @@
           module = machine { };
           module-plymouth = machine { programs.eva.seamless.plymouth = true; };
           module-plain = machine { programs.eva.seamless.enable = false; };
+          module-no-touch = machine { programs.eva.touch.enable = false; };
           module-phone = machine {
             programs.eva.phone = {
               enable = true;
@@ -88,8 +104,11 @@
               tabletSwitch = { enable = true; name = "Intel HID switches"; };
               chargeLimit = true;
               usbTether = true;
+              hotspot = true;
+              ddc.enable = true;
             };
           };
+          module-remap = machine { programs.eva.remap.enable = true; };
           module-fixed = machine {
             programs.eva.idle = {
               lockTimeout = 300;
@@ -117,6 +136,7 @@
             pkgs.wl-clipboard
             pkgs.tesseract
             pkgs.zbar
+            pkgs.ffmpeg-headless
             # The assistant's transport, and the fake provider its specs ask.
             pkgs.curl
             pkgs.python3

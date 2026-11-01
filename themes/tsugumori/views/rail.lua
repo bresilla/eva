@@ -8,6 +8,7 @@ local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
 local stripes = require("themes.tsugumori.stripes")
+local unicase = require("lib.util.unicase")
 local C = theme.color
 -- The few drawing helpers the rail uses.
 local P = {}
@@ -20,7 +21,7 @@ function P.ink(kind)
 end
 function P.label(props)
   local text = props.text
-  props.text = function() local t = type(text) == "function" and text() or text return tostring(t or ""):upper() end
+  props.text = function() local t = type(text) == "function" and text() or text return unicase.upper(tostring(t or "")) end
   props.font_family = props.font_family or theme.font
   props.color = props.color or P.ink("lo")
   return ui.Text(props)

@@ -40,6 +40,34 @@ local function screen(w, model, name)
       function() return model.output_own(name) end, function(on) model.set_output_own(name, on) end)
 end
 
+--- The tray's page: each item's place and order, and how many stand on the bar.
+function M.build_tray(model, w, h)
+  local F = require("themes.layouts.form")
+  local inner = P.inner(w)
+  local function row(index, width)
+    local function item() return model.tray_items()[index] or {} end
+    local function arrow(key, icon, name, by)
+      return kit.action { id = "tray-row-" .. index .. "-" .. key, width = S.xxl, height = S.TARGET, cursor = "pointer",
+        accessible_name = name, on_clicked = function() model.tray_move(item().id, by) end,
+        kit.icon(icon, 20, kit.ink("lo"), { anchors = { center_in = true } }) }
+    end
+    return P.row { id = "tray-row-" .. index, width = width, icon = "apps", title = function() return item().title or "" end,
+      subtitle = function() return item().here and "Running now" or "Not running" end,
+      on = function() return item().here == true end,
+      trailing = ui.Row { gap = S.xs, align = "center",
+        P.button { id = "tray-row-" .. index .. "-place", width = 120, label = function() return model.tray_place_name(item().place) end,
+          on_clicked = function() model.tray_next_place(item().id) end },
+        arrow("up", "arrow_upward", "Earlier", -1), arrow("down", "arrow_downward", "Later", 1) } }
+  end
+  return P.page { id = "bar-tray-scroll", width = w, height = h, active = model.active,
+    P.section { id = "bar-tray-items", caption_id = "bar-tray-caption", width = w, title = "Tray items",
+      F.list(inner, "tray-item-", function() return #model.tray_items() end, row, "Nothing is in the tray", 24) },
+    P.section { id = "bar-tray-limit", caption_id = "bar-tray-limit-caption", width = w, title = "On the bar",
+      F.slider { id = "bar-tray-limit-slider", width = inner, icon = "more_horiz", name = "Icons at most", from = 1, to = 16, step = 1,
+        value = model.tray_limit, set = model.set_tray_limit, format = function(value) return ("%d"):format(value) end } },
+    F.note(w, "Tucked away keeps an item behind the arrow, hidden keeps it off the bar altogether. What does not fit on the bar goes behind the arrow too.") }
+end
+
 function M.build(model, w, h)
   local sections = { id = "bar-scroll", width = w, height = h, active = model.active,
     choices(w, { group = "bar-show", caption_id = "bar-heading-show-the-bar", title = "Show the bar",
@@ -76,6 +104,8 @@ function M.build(model, w, h)
   if model.desk then
     sections[#sections + 1] = P.section { id = "bar-desk", caption_id = "bar-heading-desk", width = w, title = "On a desk",
       toggle(w, "bar-tray", "apps", "System tray", model.tray, model.set_tray),
+      P.row { id = "bar-tray-open", width = P.inner(w), icon = "tune", title = "Tray items", subtitle = "Hide, order, tuck away",
+        trailing = P.chevron(), on_clicked = function() require("utilities").request("bar/tray") end },
       toggle(w, "bar-wheel-volume-row", "volume_up", "Wheel sets volume", model.wheel_volume, model.set_wheel_volume),
       toggle(w, "bar-wheel-workspace-row", "swap_horiz", "Wheel on clock: workspace", model.wheel_workspace, model.set_wheel_workspace),
     }

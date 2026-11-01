@@ -1,0 +1,8 @@
+# The Touch gestures page where the session may not read the touchscreen.
+export EVA_FAKE_TOUCH=denied
+export EVA_SETTINGS="$SEE_OUT/settings.json"
+start shell
+pause 2
+ipc settings touch
+pause 3
+shot denied

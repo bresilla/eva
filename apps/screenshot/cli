@@ -3,15 +3,18 @@
 # and the recorder, with or without the shell.
 #
 #   eva-screenshot                                   the panel
-#   eva-screenshot region|window|screen [--edit|--copy|--save] [--delay N] [--last]
+#   eva-screenshot region|window|screen [--edit|--copy|--save|--pin] [--delay N] [--last]
 #   eva-screenshot ocr|qr [region|window|screen]     copies what it reads
-#   eva-screenshot --edit-file FILE                  the editor on a picture
+#   eva-screenshot scroll [region|window|screen]     a long picture as a window scrolls
+#   eva-screenshot --edit-file FILE                  the editor on a picture or recording
+#   eva-screenshot --pin-file FILE                   keeps a picture over the windows
+#   eva-screenshot --text FILE                       prints the text in a picture
 #   eva-screenshot --ask VERB [ARGS]                 a verb of the tool, kept ready
 #
 # Everything goes through the selection: --edit (the default) opens the editor
 # on it, --copy puts it on the clipboard, --save writes it to the captures
-# folder. --last takes the region taken last. What ocr and qr read goes to the
-# clipboard, never to a file.
+# folder, --pin keeps it over the windows until pressed. --last takes the region
+# taken last. What ocr and qr read goes to the clipboard, never to a file.
 set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
@@ -22,6 +25,7 @@ delay=""
 last=""
 reader=""
 tool=""
+long=""
 
 # A verb of the tool: the one running hears it, or a new one starts with it.
 order() {
@@ -53,15 +57,30 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     region | window | screen) target=$1 ;;
     ocr | qr) reader=$1 ;;
+    scroll) long=1 ;;
     --edit) how=edit ;;
     --copy) how=copy ;;
     --save) how=save ;;
+    --pin) how=pin ;;
     --last) last=1 ;;
     --edit-file)
       shift
       order capture-editor file "${1:?--edit-file takes a file}"
       if [ -n "$tool" ]; then wait "$tool" || true; fi
       exit 0
+      ;;
+    --pin-file)
+      shift
+      order capture-pin add "$(readlink -f -- "${1:?--pin-file takes a file}")"
+      exit 0
+      ;;
+    --text)
+      shift
+      if ! eva_has tesseract; then
+        eva_say "tesseract is not installed, so no text can be read from a shot"
+        exit 1
+      fi
+      exec tesseract "${1:?--text takes a file}" - 2> /dev/null
       ;;
     --ask)
       shift
@@ -116,6 +135,12 @@ case "$delay" in
     ;;
 esac
 
+if [ -n "$long" ]; then
+  order capture-scroll "${target:-window}"
+  if [ -n "$tool" ]; then wait "$tool" || true; fi
+  exit 0
+fi
+
 if [ -z "$target" ] && [ -z "$reader" ]; then
   order capture open
   if [ -n "$tool" ]; then wait "$tool" || true; fi
@@ -152,7 +177,8 @@ order "$@" "result=$result"
 eva_dry && exit 0
 status=1
 if outcome "$result"; then status=0; fi
-if [ -n "$tool" ]; then wait "$tool" || true; fi
+# The tool may stay a while for its thumbnail; only a failure is waited on.
+if [ "$status" -ne 0 ] && [ -n "$tool" ]; then wait "$tool" || true; fi
 if [ "$status" -ne 0 ]; then
   eva_say "${answer:-the capture did not finish}"
   exit 1

@@ -55,13 +55,14 @@ end
 
 --- The workspace on show on this screen: each monitor's bar shows its
 --- own, as the reference's do; the focused one's when this screen is not
---- among the compositor's monitors.
+--- among the compositor's monitors. A whole number: the compositor's JSON
+--- arrives as floats, which print as `2.0`.
 function M.workspace.active()
   if not hyprland.available() then return local_workspace:get() end
   local monitor = this_monitor()
   local id = monitor and monitor.active_workspace or hyprland.state.active_workspace.id
   if type(id) ~= "number" or id < 1 then return 1 end
-  return id
+  return math.floor(id)
 end
 
 function M.workspace.occupied(id)

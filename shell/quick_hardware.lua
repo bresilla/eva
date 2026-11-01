@@ -414,7 +414,7 @@ M.filters = lazily(function()
   local function set_now()
     local set = { dim = f.dim(), correction_kind = f.correction() }
     for _, id in ipairs(lib.ORDER) do set[id] = config.get("filters." .. id) == true end
-    return set
+    return lib.with(set, config.get("accessibility.filter"))
   end
   function f.present() return fake() or hyprland.available() end
   function f.on(id) return config.get("filters." .. id) == true end
@@ -605,10 +605,8 @@ M.onehanded = lazily(function()
   local function tell(top)
     if dry() or fake() then return log(("windows start %d down"):format(top)) end
     local name = output()
-    hyprland.eval(("hl.monitor({output=%q, reserved={top=%d}})"):format(name, top), function(reply)
-      if not (type(reply) == "string" and reply:match("^%s*ok%s*$")) then
-        hyprland.keyword("monitor", ("%s,addreserved,%d,0,0,0"):format(name, top))
-      end
+    require("lib.util.hypr").eval_or(hyprland, ("hl.monitor({output=%q, reserved={top=%d}})"):format(name, top), function()
+      hyprland.keyword("monitor", ("%s,addreserved,%d,0,0,0"):format(name, top))
     end)
   end
   function o.present()

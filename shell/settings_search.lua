@@ -37,6 +37,8 @@ M.CONTROLS = {
   { "Hotspot password", "hotspot", "share wifi name", "wifi_tethering" },
   { "Wallpaper", "theme/lule", "background picture image", "image" },
   { "Colour scheme", "theme/lule", "palette accent", "palette" },
+  { "Summary times", "notifications", "digest schedule when held", "schedule" },
+  { "Notification buttons keep working", "notifications", "actions expired how long", "smart_button" },
   { "Dark mode", "theme", "night appearance", "dark_mode" },
   { "Light mode", "theme", "day appearance", "light_mode" },
   { "On-screen display position", "osd", "corner where", "picture_in_picture" },
@@ -68,7 +70,8 @@ function M.register(model)
     local entry = listed[page.key] or {}
     index.register { id = "setting:" .. page.key, name = page.name, tag = "Setting",
       keywords = (M.KEYWORDS[page.key] or "") .. " " .. (entry.keywords or ""),
-      description = "Settings", material = entry.icon or "settings", kind = "menu", run = opener(page.key) }
+      description = "Settings", material = entry.icon or "settings", kind = "menu", run = opener(page.key),
+      present = function() return model.page_fits(page.key) end }
   end
   for _, control in ipairs(M.CONTROLS) do
     if page_names[control[2]] then

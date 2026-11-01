@@ -10,6 +10,7 @@
 -- to the controller.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local rubber = require("themes.rubber_band")
@@ -603,7 +604,7 @@ function V.build(M)
       for i = 1, M.results:len() do
         local entry = M.results:get(i)
         for j, tile in ipairs(entry.cells or {}) do
-          if tile.kind == "app" and tile.name:sub(1, 1):upper() >= letter then
+          if tile.kind == "app" and unicase.upper(unicase.fold(unicase.first(tile.name))) >= letter then
             M.selected:set(i)
             M.cell:set(j)
             return
@@ -639,7 +640,7 @@ function V.build(M)
         gap = 8, align = "center", height = 22,
         kit.text { text = spec[1], font_size = theme.size.small, font_weight = 700, width = 10,
           horizontal_alignment = "center", color = function() return C.primary end },
-        kit.text { text = INSTRUMENT and spec[2]:upper() or spec[2], font_size = theme.size.smaller,
+        kit.text { text = INSTRUMENT and unicase.upper(spec[2]) or spec[2], font_size = theme.size.smaller,
           color = kit.ink("lo") },
       }
     end
@@ -700,7 +701,7 @@ function V.build(M)
       return kit.caption {
         id = id,
         x = PAD + 4, y = PAD + 8, width = caption_width,
-        text = function() return INSTRUMENT and ((M.mode_name()) .. " //"):upper() or (M.mode_name()) end,
+        text = function() return INSTRUMENT and unicase.upper((M.mode_name()) .. " //") or (M.mode_name()) end,
         note = function()
           local n = 0
           for i = 1, M.results:len() do

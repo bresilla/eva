@@ -1,8 +1,8 @@
--- What accessibility asks of the compositor: a colour filter as a screen
--- shader, the screen's zoom, sticky keys as an xkb keymap whose modifiers
--- latch, and mouse keys as number pad bindings. Plans over
+-- What accessibility asks of the compositor: sticky keys as an xkb keymap whose
+-- modifiers latch, and mouse keys as number pad bindings. Plans over
 -- lib.compositor.hyprland_config, so each is tried in both of Hyprland's
--- languages and nothing writes the person's configuration.
+-- languages and nothing writes the person's configuration. The colour filters
+-- on offer here are shown by lib/services/screen_filter.lua.
 local morf = require("morf")
 local host = require("lib.services.host")
 local input = require("lib.services.input_config")
@@ -11,45 +11,6 @@ local M = {}
 
 M.FILTERS = { { "none", "block", "None" }, { "grayscale", "filter_b_and_w", "Grayscale" }, { "invert", "invert_colors", "Invert" },
   { "protanopia", "palette", "Protanopia" }, { "deuteranopia", "palette", "Deuteranopia" }, { "tritanopia", "palette", "Tritanopia" } }
-
--- The colour blindness matrices: linear RGB shifted into what a person with
--- that vision can tell apart.
-local MATRIX = {
-  protanopia = "0.152,1.053,-0.205, 0.115,0.786,0.099, -0.004,-0.048,1.052",
-  deuteranopia = "0.367,0.861,-0.228, 0.280,0.673,0.047, -0.012,0.043,0.969",
-  tritanopia = "1.256,-0.077,-0.179, -0.078,0.931,0.148, 0.005,0.691,0.304",
-}
-
---- A filter's shader source, or nil for none.
-function M.shader(filter)
-  local head = "#version 300 es\nprecision highp float;\nin vec2 v_texcoord;\nuniform sampler2D tex;\nout vec4 fragColor;\n"
-  local body
-  if filter == "grayscale" then
-    body = "float y = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));\n  fragColor = vec4(y, y, y, c.a);"
-  elseif filter == "invert" then
-    body = "fragColor = vec4(1.0 - c.rgb, c.a);"
-  elseif MATRIX[filter] then
-    body = "mat3 m = transpose(mat3(" .. MATRIX[filter] .. "));\n  fragColor = vec4(clamp(m * c.rgb, 0.0, 1.0), c.a);"
-  else
-    return nil
-  end
-  return head .. "void main() {\n  vec4 c = texture(tex, v_texcoord);\n  " .. body .. "\n}\n"
-end
-
---- Where a filter's shader is written.
-function M.shader_path(filter) return morf.paths.state("eva/shaders/" .. filter .. ".frag") end
-
---- Writes the shader and gives the step that turns it on. "none" clears it.
-function M.filter_step(filter, how)
-  local source = M.shader(filter)
-  if not source then return input.path_step("decoration:screen_shader", "", how) end
-  local path = M.shader_path(filter)
-  if not host.held("write shader " .. filter) then
-    morf.fs.mkdir((path:gsub("/[^/]+$", "")))
-    morf.fs.write(path, source)
-  end
-  return input.path_step("decoration:screen_shader", path, how)
-end
 
 -- ------------------------------------------------------------- sticky keys --
 

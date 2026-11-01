@@ -50,23 +50,19 @@ function M.disks(list)
   return order
 end
 
-function M.bytes(n)
-  n=tonumber(n) or 0
-  local units={"B","KiB","MiB","GiB","TiB","PiB"}
-  local i=1
-  while n>=1024 and i<#units do n=n/1024 i=i+1 end
-  return (n<10 and i>1) and ("%.1f"):format(n) or ("%d"):format(math.floor(n+.5)),units[i]
-end
+M.bytes = require("themes.kit_common").bytes
 --- A rate as Mission Center prints it: "83 KiB/s".
 local function rate_text(bytes)
   local text, unit = M.bytes(bytes or 0)
   return text .. " " .. unit .. "/s"
 end
 
-local function size_text(bytes)
+--- A size with its unit: "1.5 KiB".
+function M.size_text(bytes)
   local text, unit = M.bytes(bytes or 0)
   return text .. " " .. unit
 end
+local size_text = M.size_text
 
 local function ghz(mhz)
   if not mhz or mhz <= 0 then return "--" end

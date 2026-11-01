@@ -166,9 +166,13 @@ function M.progress_line(x)
   if x and x.eta and x.eta > 0 then return ("%d%% done · %s left"):format(math.floor(v * 100 + .5), M.span(x.eta)) end
   return line
 end
-function M.ago(time)
-  morf.time.minute_clock:get()
-  local seconds = math.max(0, morf.time.now() - (time or 0))
+--- How long before `now` (the clock's, as a binding, if left out) `time` was.
+function M.ago(time, now)
+  if not now then
+    morf.time.minute_clock:get()
+    now = morf.time.now()
+  end
+  local seconds = math.max(0, now - (time or 0))
   if seconds < 60 then return "now" end
   if seconds < 3600 then return ("%dm"):format(seconds // 60) end
   if seconds < 86400 then return ("%dh"):format(seconds // 3600) end

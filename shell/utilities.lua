@@ -14,7 +14,10 @@ local builders={
   microphone=function(w,h) return require("sound_page").input_page(w,h) end,
   power=function(w,h) return require("power_page").page(w,h) end,
   bar=function(w,h) return require("bar_page").page(w,h) end,
+  ["bar/tray"]=function(w,h) return require("bar_page").tray_page(w,h) end,
   osd=function(w,h) return require("osd_page").page(w,h) end,
+  touch=function(w,h) return require("touch_page").page(w,h) end,
+  ["touch/gesture"]=function(w,h) return require("touch_page").gesture_page(w,h) end,
   panels=function(w,h) return require("themes").view("panels_page").build(M,w,h) end,
   assistant=function(w,h) return require("themes").view("assistant_settings").page(require("assistant_model"),w,h) end,
   calendars=function(w,h) return require("themes").view("calendar_settings").page(require("calendar_sources"),w,h) end,
@@ -24,6 +27,9 @@ local builders={
   idle=function(w,h) return require("idle_page").page(w,h) end,
   dock=function(w,h) return require("windows_page").dock_page(w,h) end,
   windows=function(w,h) return require("windows_page").page(w,h) end,
+  ["windows/rules"]=function(w,h) return require("windows_page").rules_page(w,h) end,
+  ["windows/rule"]=function(w,h) return require("windows_page").rule_page(w,h) end,
+  ["windows/layouts"]=function(w,h) return require("windows_page").layouts_page(w,h) end,
   wired=function(w,h) return require("net_pages").wired_page(w,h) end,
   mesh=function(w,h) return require("net_pages").vpn_page("mesh",w,h,M.displayed) end,
   tunnel=function(w,h) return require("net_pages").vpn_page("tunnel",w,h,M.displayed) end,
@@ -59,7 +65,7 @@ builders["bar/fold"]=function(w,h) return themed("bar_fold").build(require("stat
 builders.home=function(w,h)
   return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
 end
-for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard","lock/more","windows/more","phone"} do
+for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard","lock/more","windows/more","phone","backups/more","input/remap"} do
   builders[name]=function(w,h) return themed("settings_form").build(name,w,h) end
 end
 
@@ -91,6 +97,11 @@ end
 builders["network/proxy"]=function(w,h)
   return themed("settings_net").proxy_page(with_request(require("connection_model").proxy()),w,h)
 end
+builders["network/help"]=function(w,h)
+  return themed("net_help").page(with_request(require("net_help_model").new()),w,h)
+end
+builders.welcome=function(w,h) return themed("welcome").page(require("welcome_model"),M,w,h) end
+builders.backups=function(w,h) return themed("backups_page").page(with_request(require("backups_model").new()),w,h) end
 function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end
 --- Whether page `key` has a builder.
 function M.has_page(key) return builders[key]~=nil end

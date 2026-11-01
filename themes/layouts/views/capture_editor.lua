@@ -4,6 +4,7 @@ local morf=require("morf")
 local kit=require("kit")
 local theme=require("theme")
 local config=require("config")
+local unicase=require("lib.util.unicase")
 local C=theme.color
 local V={}
 -- The dimming over what is outside the crop, and behind the picker.
@@ -37,19 +38,24 @@ function V.build(M)
   local handles={}
   local roles={{"nw",0,0},{"n",.5,0},{"ne",1,0},{"w",0,.5},{"e",1,.5},{"sw",0,1},{"s",.5,1},{"se",1,1}}
   for _,handle in ipairs(roles) do
-    local pressed=false
+    local pressed,finger=false,false
+    local function follow(sx,sy)
+      if pressed then local a=g() M.resize(handle[1],(sx-a.x)/a.scale,(sy-a.y)/a.scale) end
+    end
     handles[#handles+1]=ui.MouseArea {id="capture-handle-"..handle[1],width=16,height=16,
       x=function() local b=crop() return b.x+b.w*handle[2]-8 end,
       y=function() local b=crop() return b.y+b.h*handle[3]-8 end,
-      visible=editing,cursor="crosshair",on_pressed=function() pressed=M.resize_begin() end,
-      on_position_changed=function(sx,sy)
-        if pressed then local a=g() M.resize(handle[1],(sx-a.x)/a.scale,(sy-a.y)/a.scale) end
-      end,on_released=function() pressed=false M.resize_end() end,
+      visible=editing,cursor="crosshair",
+      on_touch_pressed=function() finger=true end,
+      on_pressed=function() pressed=M.resize_begin() end,
+      on_position_changed=follow,
+      on_dragged=function(sx,sy) if finger then follow(sx,sy) end end,
+      on_released=function() pressed,finger=false,false M.resize_end() end,
       kit.surface {anchors={center_in=true},width=9,height=9,radius=3,color=function() return C.primary end,
         border_width=1,border_color=function() return C.onPrimary end},
     }
   end
-  local canvas,gesture,zoom
+  local canvas,gesture,zoom,finger
   -- Where a surface point falls on the picture, as two fingers have it zoomed.
   local function picture(sx,sy)
     local x,y=zoom.point(sx,sy)
@@ -60,6 +66,7 @@ function V.build(M)
     width=function() return g().iw end,height=function() return g().ih end,cursor="crosshair",
     focus=function() return M.active:get() and not text_draft() and not M.settings:get() and not M.picker:get() and not M.upload_confirm:get() end,
     on_key_pressed=M.key,
+    on_touch_pressed=function() finger=true end,
     on_pressed=function(sx,sy,_,_,button)
       gesture=false
       if button=="right" then if not M.dismiss_tools() then M.cancel() end return end
@@ -67,7 +74,8 @@ function V.build(M)
       gesture=M.begin(picture(sx,sy))
     end,
     on_position_changed=function(sx,sy) if gesture then M.move(picture(sx,sy)) elseif not canvas.pressed then M.hover(picture(sx,sy)) end end,
-    on_released=function(sx,sy) if gesture then M.finish(picture(sx,sy)) end gesture=false end,
+    on_dragged=function(sx,sy) if gesture and finger then M.move(picture(sx,sy)) end end,
+    on_released=function(sx,sy) if gesture then M.finish(picture(sx,sy)) end gesture,finger=false,false end,
     on_wheel=function(_,_,_,_,_,steps) if editing() then M.wheel(steps) end end,
     ui.Image {id="capture-editor-image",x=function() return M.preview_geometry().x end,y=function() return M.preview_geometry().y end,
       width=function() return M.preview_geometry().w end,height=function() return M.preview_geometry().h end,source=function() return M.preview:get() end,fill_mode="stretch"},
@@ -135,11 +143,11 @@ function V.build(M)
       y=function() return math.floor((i-1)/columns())*62 end,
       width=function() return cell_width()-6 end,height=56,cursor="pointer",
       on_clicked=function() M.choose(t[1]) end,
-      on_entered=function() M.hint:set(t[2].." · "..t[3]:upper()) end,
+      on_entered=function() M.hint:set(t[2].." · "..unicase.upper(t[3])) end,
       on_exited=function() M.hint:set("") end,
       kit.icon(t[4],22,ink,{anchors={horizontal_center=true},y=7,fill=on}),
       kit.text {text=t[2],font_size=12,font_weight=500,color=ink,anchors={horizontal_center=true},y=34},
-      kit.label {text=t[3]:upper(),font_size=9,color=function() return C.onSurfaceVariant:alpha(.6) end,
+      kit.label {text=unicase.upper(t[3]),font_size=9,color=function() return C.onSurfaceVariant:alpha(.6) end,
         anchors={right=true,right_margin=8},y=5},
     }
     kit.hover(area,function(hovered) return on() and C.primaryContainer or C.primary:alpha(hovered and .10 or .025) end,12)
@@ -177,16 +185,21 @@ function V.build(M)
       color=kit.stroke("faint")},
     ui.Item {x=0,y=function() return palette_height()-82 end,width=palette_width,height=80,table.unpack(styles_items)},
   }
-  local toolbar_drag
+  local toolbar_drag,toolbar_finger
+  local function move_toolbar(sx,sy)
+    if toolbar_drag then M.toolbar:set({x=toolbar_drag.pos.x+sx-toolbar_drag.x,y=toolbar_drag.pos.y+sy-toolbar_drag.y}) end
+  end
   local function tx(x) return x*menu().w/392 end
   local toolbar=ui.Item {id="capture-editor-toolbar",visible=editing,width=function() return menu().w end,height=function() return menu().h end,
     x=function() return menu().x end,y=function() return menu().y end,
 
     shell_surface(20),
     ui.MouseArea {x=12,y=0,width=function() return menu().w-24 end,height=34,cursor="move",
+      on_touch_pressed=function() toolbar_finger=true end,
       on_pressed=function(sx,sy) toolbar_drag={x=sx,y=sy,pos=M.toolbar:get()} end,
-      on_position_changed=function(sx,sy) if toolbar_drag then M.toolbar:set({x=toolbar_drag.pos.x+sx-toolbar_drag.x,y=toolbar_drag.pos.y+sy-toolbar_drag.y}) end end,
-      on_released=function() toolbar_drag=nil end,
+      on_position_changed=move_toolbar,
+      on_dragged=function(sx,sy) if toolbar_finger then move_toolbar(sx,sy) end end,
+      on_released=function() toolbar_drag,toolbar_finger=nil,false end,
       kit.icon(function() return M.tool_info()[4] end,18,function() return C.primary end,{x=2,y=11}),
       kit.heading {id="capture-editor-title",x=28,y=8,width=function() return menu().w-148 end,height=24,
         text=function() local d=doc() return d and d.tool=="select" and not d.selected and "Capture" or M.tool_info()[2] end,
@@ -213,6 +226,7 @@ function V.build(M)
   for i,a in ipairs {{"reselect","Select again","crop_free",M.reselect},{"last","Last region","history",M.restore_last},
     {"upload","Upload","cloud_upload",function() M.more_open:set(false) M.export("upload") end},
     {"ocr","Copy text","document_scanner",reader("ocr")},{"qr","Copy QR code","qr_code_scanner",reader("qr")},
+    {"pin","Pin to screen","keep",function() M.more_open:set(false) M.export("pin") end},
     {"delete","Delete mark","delete",M.remove},{"settings","Settings","settings",function() M.more_open:set(false) M.settings:set(true) end},
     {"cancel","Cancel","close",M.cancel}} do
     local area
@@ -260,14 +274,16 @@ function V.build(M)
   reveal(tools_popup,function() return editing() and M.tools_open:get() end,6)
   reveal(more_popup,function() return editing() and M.more_open:get() end,6)
   local settings_items={}
-  local function toggle(key,label,y)
-    return kit.action {id="capture-setting-"..key,x=16,y=y,width=280,height=30,on_clicked=function() config.set("capture."..key,not config.get("capture."..key)) end,
+  local function toggle(key,label,y,x,width)
+    return kit.action {id="capture-setting-"..key,x=x or 16,y=y,width=width or 280,height=30,on_clicked=function() config.set("capture."..key,not config.get("capture."..key)) end,
       kit.icon(function() return config.get("capture."..key) and "check_box" or "check_box_outline_blank" end,20,function() return C.primary end,{y=4}),
       kit.text {x=30,y=6,text=label,font_size=13},}
   end
   for i,option in ipairs {{"save_dialog","Choose where to save"},{"copy_on_save","Copy when saving"},{"copy_to_disk","Save when copying"},{"cursor","Include pointer"}} do
     settings_items[#settings_items+1]=toggle(option[1],option[2],40+(i-1)*32)
   end
+  -- Beside the colour field: the floating thumbnail's switch.
+  settings_items[#settings_items+1]=toggle("thumbnail","Thumbnail",344,150,146)
   for i,option in ipairs {{"blur","Blur strength",1,100},{"pixelate","Pixel size",1,256},{"zoom","Zoom factor",1,10}} do
     local y=174+(i-1)*40
     settings_items[#settings_items+1]=kit.text {x=16,y=y+10,text=option[2],font_size=13}

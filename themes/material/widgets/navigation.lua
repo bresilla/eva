@@ -11,6 +11,7 @@
 -- `spec.titles[name]`, or the name itself.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 
 return function(S, theme, M)
   local function C() return theme.color end
@@ -29,7 +30,7 @@ return function(S, theme, M)
   end
   local function title_of(spec, name)
     local text = (spec.titles or {})[name] or tostring(name or "")
-    return (text:gsub("^%l", string.upper))
+    return unicase.capitalise(text)
   end
   local function weight(w, size)
     size = size or theme.size.normal

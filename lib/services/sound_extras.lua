@@ -2,6 +2,7 @@
 -- codec, through PipeWire's `pw-dump` and `wpctl`, and the event sound theme.
 local morf = require("morf")
 local host = require("lib.services.host")
+local unicase = require("lib.util.unicase")
 
 local M = {}
 
@@ -13,7 +14,7 @@ local CODECS = { sbc = "SBC", sbc_xq = "SBC XQ", aac = "AAC", aptx = "aptX", apt
 function M.codec(profile)
   local word = tostring(profile):match("^a2dp%-sink%-(.+)$") or tostring(profile):match("^a2dp%-source%-(.+)$")
     or tostring(profile):match("^headset%-head%-unit%-(.+)$")
-  if word then return CODECS[word] or word:upper() end
+  if word then return CODECS[word] or unicase.upper(word) end
   if profile == "a2dp-sink" then return "SBC" end
 end
 

@@ -8,7 +8,7 @@ local live_folders={}
 local run
 function M.expand(path)
   local home=morf.fs.home()
-  return tostring(path or ""):gsub("^~/",function() return home.."/" end):gsub("%$HOME",function() return home end)
+  return (tostring(path or ""):gsub("^~/",function() return home.."/" end):gsub("%$HOME",function() return home end))
 end
 function M.kind()
   if morf.env("HYPRLAND_INSTANCE_SIGNATURE") then return "hyprland" end
@@ -144,10 +144,10 @@ function M.binding_plan(binding,previous,flavour)
   end
   local keys,old=parts(binding),parts(previous or "Print")
   if not keys or not old then return nil,"Invalid key binding" end
-  local command="/usr/bin/morf ipc call capture open"
+  local command="morf ipc call capture open"
   if flavour=="lua" then
     local next=table.concat(keys," + ") local prev=table.concat(old," + ")
-    local bind=('hl.bind("%s", hl.dsp.exec_cmd("%s"))'):format(next,command)
+    local bind=('hl.bind("%s", hl.dsp.exec_cmd("%s"), { description = "Open the capture panel" })'):format(next,command)
     local unbind=('hl.unbind("%s")\n'):format(prev)
     if next~=prev then unbind=unbind..('hl.unbind("%s")\n'):format(next) end
     return {text=unbind..bind.."\n",binding=next,bind=bind}
@@ -167,7 +167,7 @@ function M.rebind(binding,previous,include_file,cb)
       local ok,error=morf.fs.write(path,plan.text) if not ok then cb(false,error or "Cannot write binding file") return end
     end
     local hypr=require("lib.compositor.hyprland")
-    if flavour=="lua" then hypr.eval(plan.text,function(reply,error) cb(reply and reply:match("^%s*ok%s*$")~=nil,error or reply) end)
+    if flavour=="lua" then hypr.eval(plan.text,function(reply,error) cb(require("lib.util.hypr").took(reply),error or reply) end)
     else hypr.keyword("unbind",plan.unbind,function()
       hypr.keyword("unbind",plan.new_unbind,function()
         hypr.keyword("bind",plan.bind,function(ok,error) cb(ok,error) end)
@@ -344,8 +344,10 @@ run=function(argv,options,cb)
   return ok and child or nil
 end
 function M.copy(path,cb)
+  local extension=tostring(path):lower():match("%.(%w+)$")
+  local kind=(extension=="jpg" or extension=="jpeg") and "image/jpeg" or extension=="webp" and "image/webp" or "image/png"
   -- wl-copy owns the clipboard beyond a shell reload; pass the path as $0.
-  return run({"sh","-c",'exec wl-copy --type image/png < "$0"',path},{},function(result)
+  return run({"sh","-c",'exec wl-copy --type "$1" < "$0"',path,kind},{},function(result)
     if cb then cb(result and result.ok==true,result and result.stderr or "Clipboard unavailable") end
   end)
 end

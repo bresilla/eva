@@ -396,7 +396,8 @@ function V.build(state, width, height)
     clip = true })
   local function build_rows() for i = 1, GROUPS do rows[i] = group_row(i) end end
   if kit.with_viewport then kit.with_viewport(function() return list end, build_rows) else build_rows() end
-  local col = { width = W, gap = P.GAP, silenced, undo, summary, empty }
+  local digest = require("themes").view("notification_digest").build(state, W)
+  local col = { width = W, gap = P.GAP, silenced, undo, digest, summary, empty }
   for i = 1, GROUPS do col[#col + 1] = rows[i] end
   col[#col + 1] = snoozed
   col[#col + 1] = dismissed

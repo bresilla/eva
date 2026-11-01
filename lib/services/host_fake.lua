@@ -17,7 +17,16 @@ function M.managed() return false end
 
 local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
   scanimage = not NIXOS, lpstat = not NIXOS, ["firewall-cmd"] = not NIXOS, gsettings = true, lspci = true, ["xdg-open"] = true,
-  gio = true, ["eva-battery"] = true, nix = true, flatpak = true }
+  gio = true, ["eva-battery"] = true, ping = true, getent = true, ddcutil = true, nix = true, flatpak = true }
+
+-- Which backup tools this machine has: EVA_FAKE_BACKUPS="snapper,restic". Their
+-- commands are answered below; the real ones never run.
+for tool in (morf.env("EVA_FAKE_BACKUPS") or ""):gmatch("[^,]+") do PROGRAMS[tool] = true end
+
+-- What the network does: `ok`, or how it breaks (`portal`, `no-address`,
+-- `self-assigned`, `no-gateway`, `no-dns`, `no-internet`, `quiet-router`).
+M.net = morf.env("EVA_FAKE_NET") or ""
+if M.net == "" then M.net = "ok" end
 
 function M.installed(program) return PROGRAMS[program] == true end
 function M.tool(name)
@@ -71,8 +80,41 @@ local OUTPUT = {
 
 local function joined(argv, count) return table.concat(argv, " ", 1, math.min(count, #argv)) end
 
+M.snapshots = {
+  snapper = { root = { { number = 0, type = "single", date = "", description = "current" },
+    { number = 41, type = "pre", date = "2026-10-30 09:12:00", description = "nixos-rebuild" },
+    { number = 42, type = "post", date = "2026-10-30 09:14:30", description = "nixos-rebuild" },
+    { number = 43, type = "single", date = "2026-11-01 08:00:00", description = "timeline" } } },
+  btrbk = "format=\"snapshots\" source_url='/home' source_host='' source_port='' source_subvolume='/home' "
+    .. "snapshot_subvolume='/mnt/pool/_snap/home.20261030T0900' snapshot_name='home' status='' source_rsh=''\n"
+    .. "format=\"snapshots\" source_url='/home' source_host='' source_port='' source_subvolume='/home' "
+    .. "snapshot_subvolume='/mnt/pool/_snap/home.20261101T0900' snapshot_name='home' status='' source_rsh=''\n",
+  restic = { { short_id = "1a2b3c4d", time = "2026-10-29T22:00:03.1Z", paths = { "/home/kate" }, hostname = "evabook" },
+    { short_id = "5e6f7a8b", time = "2026-10-31T22:00:01.9Z", paths = { "/home/kate" }, hostname = "evabook" } },
+}
+
+local function backup_answer(argv)
+  local line = table.concat(argv, " ")
+  if line:find("snapper --jsonout list-configs", 1, true) then
+    return { ok = true, stdout = morf.json.encode { configs = { { config = "root", subvolume = "/home" } } } }
+  end
+  if line:find("snapper --jsonout", 1, true) then return { ok = true, stdout = morf.json.encode(M.snapshots.snapper) } end
+  if line:find("btrbk list", 1, true) then
+    if argv[1] ~= "pkexec" then return { ok = false, code = 1, stderr = "ERROR: btrbk must be run as root" } end
+    return { ok = true, stdout = M.snapshots.btrbk }
+  end
+  if line:find("restic snapshots", 1, true) then return { ok = true, stdout = morf.json.encode(M.snapshots.restic) } end
+  if line:find("snapper -c root create", 1, true) then
+    table.insert(M.snapshots.snapper.root, { number = 44, type = "single", date = "2026-11-01 12:00:00", description = "Made in Settings" })
+    return { ok = true, stdout = "" }
+  end
+  return nil
+end
+
 local function answer(argv, options)
   local line = table.concat(argv, " ")
+  local backup = backup_answer(argv)
+  if backup then return backup end
   for _, take in ipairs { #argv, 3, 2, 1 } do
     local text = OUTPUT[joined(argv, take)]
     if text then return { ok = true, stdout = text } end
@@ -91,6 +133,19 @@ local function answer(argv, options)
     return { ok = true, stdout = "eva-clipboard.service loaded active running eva clipboard history\nsyncthing.service loaded active running Syncthing\nredshift.service loaded inactive dead Redshift\n" }
   end
   if argv[1] == "pw-dump" then return { ok = true, stdout = DEVICES } end
+  if argv[1] == "nmcli" and argv[2] == "-t" and argv[5] == "device" then
+    if M.net == "no-address" then return { ok = true, stdout = "IP4.GATEWAY:--\n" } end
+    if M.net == "self-assigned" then return { ok = true, stdout = "IP4.ADDRESS[1]:169.254.12.3/16\nIP4.GATEWAY:--\n" } end
+    return { ok = true, stdout = "IP4.ADDRESS[1]:192.168.1.23/24\nIP4.GATEWAY:192.168.1.1\nIP4.DNS[1]:192.168.1.1\nIP4.DNS[2]:9.9.9.9\n" }
+  end
+  if argv[1] == "ping" then
+    local quiet = M.net == "no-gateway" or M.net == "quiet-router"
+    return { ok = not quiet, code = quiet and 1 or 0, stdout = quiet and "" or "2 packets transmitted, 2 received\n" }
+  end
+  if argv[1] == "getent" then
+    local broken = M.net == "no-dns" or M.net == "no-gateway"
+    return { ok = not broken, code = broken and 2 or 0, stdout = broken and "" or "203.0.113.7 STREAM stand-in\n" }
+  end
   if argv[1] == "nmcli" and argv[2] == "-t" then
     return { ok = true, stdout = table.concat({ "connection.id:Home", "connection.uuid:u-home", "connection.type:802-11-wireless",
       "connection.metered:unknown", "connection.autoconnect:yes", "connection.dns-over-tls:-1", "ipv4.method:auto", "ipv4.addresses:",
@@ -113,15 +168,65 @@ local function answer(argv, options)
 end
 
 --- A command's result. Changes land in the fixture, so a page reads them back.
+-- One external monitor on the screen the shell is on, at 60 of 100.
+M.ddc_level = 60
+
+local function ddcutil(argv)
+  if argv[2] == "detect" then
+    local screen = (morf.screens or {})[1] or {}
+    return { ok = true, stdout = ("Display 1\n   I2C bus:  /dev/i2c-6\n   DRM connector:           card0-%s\n"
+      .. "   Monitor:                 DEL:DELL U2720Q:7H3KD\n\nInvalid display\n   I2C bus:  /dev/i2c-7\n"):format(screen.name or "DP-1") }
+  end
+  if argv[#argv - 1] == "getvcp" or argv[#argv] == "10" and argv[5] == "getvcp" then
+    return { ok = true, stdout = ("VCP 10 C %d 100\n"):format(M.ddc_level) }
+  end
+  if argv[#argv - 2] == "setvcp" then
+    M.ddc_level = tonumber(argv[#argv])
+    return { ok = true, stdout = "" }
+  end
+  return { ok = false, code = 1, stderr = "unknown" }
+end
+
 function M.run(argv, options)
   M.ran[#M.ran + 1] = argv
   M.stdin = options and options.stdin or M.stdin
+  if argv[1] == "ddcutil" then return ddcutil(argv) end
   if argv[1] == "pkexec" and argv[3] == "systemctl" then firewall_on = argv[4] == "enable" return { ok = true, stdout = "" } end
   if argv[1] == "lpadmin" or argv[1] == "cancel" or argv[1] == "cupsenable" or argv[1] == "cupsdisable" then
     printers_on[argv[#argv]] = true
     return { ok = true, stdout = "" }
   end
   return answer(argv, options) or { ok = true, stdout = "" }
+end
+
+--- A server's answer, by what the network is doing. Each request is kept in
+--- `M.asked`; no request leaves the process.
+M.asked = {}
+function M.http(spec)
+  M.asked[#M.asked + 1] = spec.url
+  if M.net == "no-internet" or M.net == "no-dns" or M.net == "no-gateway" then
+    return { ok = false, status = 0, url = spec.url, error = "no route to host" }
+  end
+  if M.net == "portal" then
+    return { ok = true, status = 200, url = "http://login.cafe.test/welcome", body = "<html>Sign in to Cafe</html>" }
+  end
+  if spec.url:find("generate_204", 1, true) then return { ok = true, status = 204, url = spec.url, body = "" } end
+  if spec.url:find("success.txt", 1, true) then return { ok = true, status = 200, url = spec.url, body = "success\n" } end
+  if spec.url:find("check_network_status", 1, true) then
+    return { ok = true, status = 200, url = spec.url, body = "NetworkManager is online\n" }
+  end
+  local size = tonumber(spec.url:match("bytes=(%d+)")) or #(spec.body or "")
+  return { ok = true, status = 200, url = spec.url, body = string.rep("0", math.min(size, 1024)), bytes = size,
+    took_ms = size == 0 and 18 or size // 12500 }
+end
+
+--- The network turning, as NetworkManager announces it.
+function M.set_net(scene)
+  M.net = scene
+  local path, name = "/org/freedesktop/NetworkManager", "org.freedesktop.NetworkManager"
+  local connectivity = scene == "portal" and 2 or 4
+  bus.props("system", name, path, name).Connectivity = connectivity
+  bus.emit("system", name, path, "org.freedesktop.DBus.Properties", "PropertiesChanged", { name, { Connectivity = connectivity }, {} })
 end
 
 -- ------------------------------------------------------------------- files --
@@ -183,8 +288,8 @@ function M.hyprland()
   end
   function double.options(_, callback)
     callback({ ["input:repeat_rate"] = { int = 25 }, ["input:repeat_delay"] = { int = 600 },
-      ["input:sensitivity"] = { float = 0 }, ["input:touchpad:tap-to-click"] = { int = 1 },
-      ["input:touchpad:natural_scroll"] = { int = 1 } })
+      ["input:sensitivity"] = { float = 0 }, ["input:touchpad:tap-to-click"] = { bool = true },
+      ["input:touchpad:natural_scroll"] = { bool = true } })
   end
   function double.devices(callback)
     callback { mice = { { name = "logitech-mx-master-3" }, { name = "pixa3854-touchpad" } },
@@ -195,7 +300,12 @@ function M.hyprland()
     table.insert(double.listeners[name], handler)
     return { off = function() end }
   end
-  function double.reload(_, callback) if callback then callback("ok") end end
+  function double.reload(_, callback)
+    double.sent[#double.sent + 1] = "/reload"
+    if callback then callback("ok") end
+  end
+  double.bound = {}
+  function double.binds(callback) callback(double.bound) end
   return double
 end
 
@@ -325,7 +435,7 @@ end
 
 local NM, NM_ROOT = "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager"
 local AP = NM_ROOT .. "/AccessPoint/1"
-bus.object(S, NM, NM_ROOT, NM, { Version = "1.50", State = 70, Connectivity = 4, NetworkingEnabled = true, WirelessEnabled = true,
+bus.object(S, NM, NM_ROOT, NM, { Version = "1.50", State = 70, Connectivity = M.net == "portal" and 2 or 4, NetworkingEnabled = true, WirelessEnabled = true,
   WirelessHardwareEnabled = true, ActiveConnections = { NM_ROOT .. "/ActiveConnection/1" }, PrimaryConnection = NM_ROOT .. "/ActiveConnection/1",
   PrimaryConnectionType = "802-11-wireless", AllDevices = { NM_ROOT .. "/Devices/1", NM_ROOT .. "/Devices/2" } }, {})
 bus.object(S, NM, NM_ROOT .. "/ActiveConnection/1", NM .. ".Connection.Active", { Id = "Home", Uuid = "u-home", Type = "802-11-wireless",

@@ -5,14 +5,14 @@
 --   keyboards.attached()        -- true while one is plugged in (or built in)
 --   keyboards.list()            -- { { name, handlers } }, the ones that count
 --
--- Read from /proc/bus/input/devices. Plenty of things there call themselves
+-- Read from lib.services.input_devices. Plenty of things there call themselves
 -- keyboards and are not: a power button, a laptop's hotkeys, a dock's audio
 -- controls, the extra interface on a gaming mouse, a virtual keyboard (an
 -- on-screen keyboard's own). A keyboard here is a device with letter keys
 -- and LEDs -- the caps lock light every real one has -- and a name that is not
 -- one of those.
 
-local morf = require("morf")
+local devices = require("lib.services.input_devices")
 
 local keyboards = {}
 
@@ -23,6 +23,12 @@ local NOT = {
   "mouse", "virtual", "ydotool", "morf", "wtype", "uinput",
 }
 
+-- A cover that clips to a tablet: on USB, and yet part of the machine. One with
+-- no caps lock light is a keyboard all the same.
+local function cover(device)
+  return (device.name or ""):lower():find("type cover", 1, true) ~= nil
+end
+
 local function counts(device)
   local name = (device.name or ""):lower()
   for _, word in ipairs(NOT) do
@@ -30,20 +36,13 @@ local function counts(device)
   end
   local handlers = device.handlers or ""
   -- Letter keys and the lights for caps and num lock.
-  return handlers:find("kbd", 1, true) ~= nil and handlers:find("leds", 1, true) ~= nil
+  return handlers:find("kbd", 1, true) ~= nil and (cover(device) or handlers:find("leds", 1, true) ~= nil)
 end
 
 --- The keyboards that count, each `{ name, handlers, bus }`.
 function keyboards.list(path)
-  local ok, text = pcall(morf.fs.read, path or "/proc/bus/input/devices")
-  if not ok or type(text) ~= "string" then return {} end
   local found = {}
-  for block in (text .. "\n\n"):gmatch("(.-)\n\n") do
-    local device = {
-      name = block:match('N: Name="([^"]*)"'),
-      handlers = block:match("H: Handlers=([^\n]*)"),
-      bus = block:match("I: Bus=(%x+)"),
-    }
+  for _, device in ipairs(devices.list(path)) do
     if device.name and counts(device) then found[#found + 1] = device end
   end
   return found
@@ -57,10 +56,11 @@ end
 -- Input buses a keyboard is plugged or paired over: USB and Bluetooth.
 local OUTSIDE = { ["0003"] = true, ["0005"] = true }
 
---- Whether one is attached from outside the machine.
+--- Whether one is attached from outside the machine: a cover folded behind
+--- the screen is no more in reach than a laptop's own keys.
 function keyboards.external(path)
   for _, device in ipairs(keyboards.list(path)) do
-    if OUTSIDE[device.bus] then return true end
+    if OUTSIDE[device.bus] and not cover(device) then return true end
   end
   return false
 end

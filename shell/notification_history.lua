@@ -3,6 +3,7 @@ local morf = require("morf")
 local config = require("config")
 local notifs = require("notifs")
 local rules = require("notification_rules")
+local digest = require("notification_digest")
 local M = { notifs = notifs }
 local expanded = morf.signal("eva.sidebar.opened", {})
 local pages = morf.signal("eva.sidebar.pages", {})
@@ -36,7 +37,7 @@ function M.groups()
     group.items[#group.items + 1] = n
     group.urgency = math.max(group.urgency, n.urgency or 1)
     group.priority = group.priority or n.priority == true
-    group.conversation = group.conversation or tostring(n.category or ""):match("^im") ~= nil
+    group.conversation = group.conversation or digest.conversation(n)
   end
   for index, group in ipairs(groups) do group.order, group.shelf = index, shelf(group) end
   table.sort(groups, function(a, b)
@@ -105,6 +106,42 @@ end
 
 function M.clear_app(key) notifs.clear_app(key) end
 function M.clear_silent() notifs.clear_silent() end
+
+-- ------------------------------------------------------------- the summary --
+
+--- The summary on show, or nil: `conversations`, `apps`, `total`, `at`.
+function M.digest() return digest.shown(notifs.records()) end
+--- What waits for the next summary: `{ count, next }`, or nil with nothing.
+function M.digest_waiting()
+  local held = digest.waiting(notifs.records())
+  if #held == 0 then return nil end
+  local due = digest.next_due(require("focus_model").now())
+  return { count = #held, next = due and morf.time.format("%H:%M", due) or nil }
+end
+function M.digest_now() digest.show_now(notifs.records()) end
+function M.digest_done() digest.done() end
+--- Clears what the summary holds, as one batch to undo, and puts it away.
+function M.digest_clear()
+  local shown, ids = M.digest(), {}
+  if not shown then return end
+  for _, list in ipairs { shown.conversations, shown.apps } do
+    for _, row in ipairs(list) do
+      for _, item in ipairs(row.items) do ids[#ids + 1] = item.id end
+    end
+  end
+  digest.done()
+  clear_with(ids, "Cleared the summary")
+end
+--- A row of the summary pressed: its sender's own action, or its group opened.
+function M.digest_open(row)
+  for _, action in ipairs(row.latest.actions or {}) do
+    if action.key == "default" and M.answers(row.latest) then
+      notifs.invoke(row.id, "default")
+      return
+    end
+  end
+  if not M.is_open(row.key) then M.toggle(row.key) end
+end
 function M.undo() return notifs.undo:get() end
 function M.restore() return notifs.restore() end
 M.snoozed, M.dismissed = notifs.asleep, notifs.recent

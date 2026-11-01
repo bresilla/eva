@@ -32,7 +32,8 @@ M.all = {
     build = function(_, w, h) return require("tasks_page").build(w, h) end,
     tall = function() return require("tasks_page").editing() end },
   calendar = { name = "Calendar", icon = "calendar_month", title_id = "planner-title", typed = true,
-    build = function(_, w, h) return require("calendar_page").build(w, h) end },
+    build = function(_, w, h) return require("calendar_page").build(w, h) end,
+    tall = function() return require("calendar_page").editing() end },
   assistant = { name = "Assistant", icon = "auto_awesome", title_id = "assistant-title", typed = true,
     build = workspace("assistant", "Assistant", "Not connected"),
     tall = function() return require("assistant_model").state() == "ready" end },
@@ -140,7 +141,8 @@ end
 
 --- Whether the settings page `route` takes text.
 function M.typed_route(route)
-  if route == "calendars" or route == "screen_time" or require("settings_forms").PAGES[route] then return true end
+  if route == "calendars" or route == "windows/rule" or route == "windows/layouts" or route == "screen_time"
+    or require("settings_forms").PAGES[route] then return true end
   return M.all[route] ~= nil and M.all[route].typed == true
 end
 

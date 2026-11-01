@@ -13,7 +13,7 @@ M.LAYOUTS = { "dwindle", "master", "scrolling", "monocle" }
 local KNOWN = {}
 for _, layout in ipairs(M.LAYOUTS) do KNOWN[layout] = true end
 
-local function quoted(text) return ("%q"):format(tostring(text)) end
+local quoted = require("lib.shell.window_dispatch").quoted
 -- Kept in the settings as a list of `{ id, value }`, handed out by id as text.
 local function stored(kind)
   local out = {}
@@ -124,6 +124,63 @@ if hyprland.on then
   hyprland.on("workspacev2", read_layouts)
 end
 morf.time.timer(50, apply_all, false)
+
+-- ------------------------------------------------------------ moving them --
+
+--- Moves workspace `id`, its windows and all, to the screen `monitor`.
+function M.to_monitor(id, monitor)
+  id = windows.int(id)
+  return windows.send(("hl.dispatch(hl.dsp.workspace.move({ workspace = %d, monitor = %q }))"):format(id, monitor),
+    "moveworkspacetomonitor", ("%d %s"):format(id, monitor))
+end
+
+--- What two screens show changes over: each keeps its own place.
+function M.swap_screens(first, second)
+  return windows.send(("hl.dispatch(hl.dsp.workspace.swap_monitors({ monitor1 = %q, monitor2 = %q }))"):format(first, second),
+    "swapactiveworkspaces", ("%s %s"):format(first, second))
+end
+
+--- Carries each workspace in `moves` (id -> id) over to its new number: its
+--- windows, its name and how it tiles.
+local function renumber(moves)
+  local names, layouts = stored("names"), stored("layouts")
+  local carried, new_names, new_layouts = {}, {}, {}
+  for from, to in pairs(moves) do
+    new_names[to], new_layouts[to] = names[tostring(from)], layouts[tostring(from)]
+    for _, c in ipairs(windows.on(from)) do carried[#carried + 1] = { address = c.address, to = to } end
+  end
+  for from in pairs(moves) do
+    store("names", from, nil)
+    store("layouts", from, nil)
+  end
+  for to in pairs(new_names) do store("names", to, new_names[to]) end
+  for to in pairs(new_layouts) do store("layouts", to, new_layouts[to]) end
+  for _, move in ipairs(carried) do windows.to_workspace(move.address, move.to, false) end
+  for to in pairs(moves) do
+    send_name(to, new_names[to] or tostring(to))
+    if new_layouts[to] then send_layout(to, new_layouts[to]) end
+  end
+  return #carried
+end
+
+--- Two workspaces change places, windows, names and layouts together.
+function M.swap(first, second)
+  first, second = windows.int(first), windows.int(second)
+  if first == second then return false end
+  renumber({ [first] = second, [second] = first })
+  return true
+end
+
+--- Workspace `from` goes to number `to`; those between shift one along.
+function M.reorder(from, to)
+  from, to = windows.int(from), windows.int(to)
+  if from == to then return false end
+  local moves = { [from] = to }
+  local step = from < to and 1 or -1
+  for id = from + step, to, step do moves[id] = id - step end
+  renumber(moves)
+  return true
+end
 
 -- -------------------------------------------------------------- scratchpads --
 

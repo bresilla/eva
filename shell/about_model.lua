@@ -82,6 +82,9 @@ function M.displays(active)
     lib.read(function(found) outputs:set(found or {}) end)
   end)
   function model.outputs() return outputs:get() end
+  model.ddc = require("ddc_model")
+  function model.ddc_on() return require("config").get("displays.ddc") ~= false end
+  function model.set_ddc(on) require("config").set("displays.ddc", on == true) end
   function model.can_open() return host.tool("displays") ~= nil end
   model.open = opener(model, "displays", "eva-displays")
   function model.summary(row)

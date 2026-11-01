@@ -1,9 +1,14 @@
 local morf=require("morf")
 local pages=require("pages")
 local M={}
+local model
+--- Whether an event's form stands on the page.
+function M.editing() return model~=nil and model.events.mode:get()~="" end
+--- The form for a new event, on `day` or the day on show.
+function M.new_event(day) return model~=nil and model.events.create(day) end
 function M.build(w,h)
   local active=pages.active("calendar")
-  local model=require("calendar_model").new {
+  model=require("calendar_model").new {
     active=active,
     can_plan=function() return pages.panel_name("tasks")~=nil end,
     edit=function(task,day)

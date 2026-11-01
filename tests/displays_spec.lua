@@ -82,6 +82,20 @@ morf.ipc.hypr_plan = function()
   d.apply({ o }, function(ok) answer = ok end)
   return { chunk = plan[1].eval, text = d.hyprland_text { o }, answer = answer, sent = table.concat(sent, "\n") }
 end
+-- The Hyprland library before its deferred start, and after: `ready` is how many
+-- asks it answers "unavailable", as it did for a tool reading as it loaded.
+morf.ipc.late_start = function(ready)
+  local asked, read = 0, {}
+  package.loaded["lib.compositor.hyprland"] = { json = function(_, cb)
+    asked = asked + 1
+    if asked <= tonumber(ready) then return cb(nil, "unavailable") end
+    cb { { id = 0, name = "DP-1", width = 1920, height = 1080, refreshRate = 60, x = 0, y = 0, scale = 1, transform = 0,
+      vrr = false, disabled = false, mirrorOf = "none", availableModes = {} } }
+  end }
+  d.read(function(outputs, why) read.count, read.why = outputs and #outputs or nil, why end)
+  morf.ipc.late_read = function() return { count = read.count, why = read.why, asked = asked } end
+  return true
+end
 morf.ipc.auto = function(x)
   local connected = { panel("A", 0, "111", "DP-1") }
   local kept = d.profile("desk", connected, true)
@@ -165,6 +179,24 @@ test.it("spells sway's commands, leaving out a refresh it does not know", functi
   test.contains(lines[1], 'output "DP-1" enable mode 1920x1080@60Hz pos 0 0 scale 1 transform 90 adaptive_sync on')
   test.contains(lines[2], "mode 1920x1080 pos 1920 0")
   test.contains(lines[3], 'output "HDMI-A-1" disable')
+end)
+
+test.it("asks Hyprland again when asked before the library has connected", function()
+  pure { EVA_SETTINGS = "/nonexistent/eva.json", HYPRLAND_INSTANCE_SIGNATURE = "test" }
+  test.ipc("late_start", "1")
+  test.advance(200)
+  local read = test.ipc("late_read")
+  test.eq(read.count, 1, "the outputs, once it answered")
+  test.eq(read.asked, 2)
+end)
+
+test.it("gives up on a Hyprland that never connects", function()
+  pure { EVA_SETTINGS = "/nonexistent/eva.json", HYPRLAND_INSTANCE_SIGNATURE = "test" }
+  test.ipc("late_start", "1000")
+  test.advance(2000)
+  local read = test.ipc("late_read")
+  test.eq(read.count, nil)
+  test.eq(read.why, "unavailable")
 end)
 
 test.it("sends Hyprland hl.monitor rules and persists them by identity", function()

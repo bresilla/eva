@@ -13,16 +13,32 @@ local function command(kind, path)
   return { "zbarimg", "--quiet", "--raw", path }
 end
 
+--- Whether `program` is on PATH.
+function M.on_path(program)
+  for folder in (morf.env("PATH") or ""):gmatch("[^:]+") do
+    if morf.fs.exists(folder .. "/" .. program) then return true end
+  end
+  return false
+end
+
 --- `{ ocr = bool, qr = bool }`: which readers are on PATH.
 function M.available()
   local found = {}
-  for kind, program in pairs(M.TOOLS) do
-    found[kind] = false
-    for folder in (morf.env("PATH") or ""):gmatch("[^:]+") do
-      if morf.fs.exists(folder .. "/" .. program) then found[kind] = true break end
-    end
-  end
+  for kind, program in pairs(M.TOOLS) do found[kind] = M.on_path(program) end
   return found
+end
+
+--- The words in the picture at `path`, on no clipboard: `cb(words)`, or
+--- `cb(nil, why)`. Empty words are not an answer.
+function M.text(path, cb)
+  morf.process.run(command("ocr", path), {}, function(result)
+    if not result or not result.ok then
+      cb(nil, result and (result.error or result.stderr) or "Could not read the picture")
+      return
+    end
+    local words = trimmed(result.stdout)
+    if words == "" then cb(nil, "No text found") else cb(words) end
+  end)
 end
 
 --- Reads `path` by `kind`, "ocr" or "qr", and copies what it found:

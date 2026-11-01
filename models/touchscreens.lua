@@ -1,19 +1,22 @@
--- Whether a touchscreen is attached, read like models.keyboards: from
--- EVA_INPUT_DEVICES in place of /proc/bus/input/devices when that is set.
-local morf = require("morf")
+-- The touchscreens attached (lib.services.input_devices).
+local devices = require("lib.services.input_devices")
 
 local M = {}
 
--- A touchscreen is a direct input device: INPUT_PROP_DIRECT, bit 1 of PROP.
-function M.attached()
-  local path = morf.env and morf.env("EVA_INPUT_DEVICES")
-  if path == false or path == "" then path = nil end
-  local ok, text = pcall(morf.fs.read, path or "/proc/bus/input/devices")
-  if not ok or type(text) ~= "string" then return false end
-  for prop in text:gmatch("B: PROP=(%x+)") do
-    if math.floor(tonumber(prop, 16) / 2) % 2 == 1 then return true end
+--- The touchscreens, each `{ name, node, multi }`: `node` the device file, `multi`
+--- whether it tells fingers apart. A touchscreen is a direct input device and no
+--- pen: a pen is direct too, and a machine with both has two devices.
+function M.list()
+  local found = {}
+  for _, device in ipairs(devices.list()) do
+    if device.direct and not device.pen and device.event then
+      found[#found + 1] = { name = device.name or "", node = "/dev/input/" .. device.event, multi = device.multitouch }
+    end
   end
-  return false
+  return found
 end
+
+--- Whether one is attached.
+function M.attached() return #M.list() > 0 end
 
 return M

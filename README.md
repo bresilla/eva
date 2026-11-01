@@ -87,6 +87,46 @@ faster releases coast farther, touching stops the coast, and slow frames do not
 change the travel distance. `phone.gestureDriver = "lisgd"` selects the
 completed-swipe fallback; the default is `"native"`.
 
+### Touch gestures
+
+On any machine with a touchscreen, whatever form it takes, gestures work
+anywhere on the screen: two fingers up from the bottom edge bring the keyboard,
+three fingers change workspace, open the overview or show the desktop, four open
+the app grid or switch apps, and a five-finger pinch opens the launcher. Settings,
+Touch gestures, lists them, chooses what each does per form, and has a small
+screen to try them on. One finger from an edge still pulls the panels, and two
+fingers in the middle of the screen stay a scroll in the app.
+
+Wayland sends a touch to the surface under it, so a shell cannot hear the rest of
+the screen. eva reads the touchscreen beside the compositor instead, by running
+`libinput debug-events` on it, and apps keep every touch: nothing is grabbed, so
+an app under a global gesture sees those fingers too. The reader stops, process
+and all, while the session is locked and while a password prompt or the capture
+editor is on screen. With no touchscreen, or no libinput, nothing runs.
+
+On NixOS `programs.eva.touch.enable` is on by default and adds libinput and a
+udev rule that gives the logged-in user the touchscreens and nothing else.
+Elsewhere, install libinput (`libinput-tools` on Debian and Ubuntu) and add the
+rule as `/etc/udev/rules.d/70-eva-touch.rules`:
+
+```
+SUBSYSTEM=="input", ENV{ID_INPUT_TOUCHSCREEN}=="1", TAG+="uaccess"
+```
+
+The number matters: the tag must be set before `73-seat-late.rules` acts on it.
+Then run `sudo udevadm control --reload && sudo udevadm trigger -s input` and log
+in again. Do not join the `input` group instead: it can read every keystroke.
+`getfacl /dev/input/eventN` on the touchscreen should list your user, and
+Settings says what it found.
+
+The gestures find the built-in panel, follow its rotation and scale, and run on
+the shell of that screen alone. On a machine with no built-in panel and several
+screens, Settings asks which one has the touchscreen. With a second monitor eva
+also binds `input:touchdevice:output` to the panel, or Hyprland would send
+touches to whichever monitor has the focus. A screen turned by hand needs
+`input:touchdevice:transform` set to the monitor's transform for apps to agree,
+as auto-rotate does.
+
 eva pins the morf release it is written against in `flake.nix`, and the engine
 comes prebuilt from the binary cache. The engine and its Lua library always
 come from that same release. The packaged shell is installed as
@@ -125,8 +165,8 @@ Launching one a second time raises the window it has open; an overlay shuts.
 |---------|--------------|
 | `eva VERB`, `eva open settings/power`, `eva commands --json` | the shell from a command line, the front door for keybindings |
 | `eva-displays` | a canvas to arrange monitors with edge snapping; mode, scale, rotation, VRR and mirroring; a countdown that reverts; profiles matched on make, model and serial that apply on hotplug |
-| `eva-screenshot`, `eva-screenshot region\|window\|screen [--edit\|--copy\|--save] [--delay N] [--last]` | the capture panel, or straight to the frozen selection, with or without the shell; `ocr` and `qr` copy what they read; `--edit-file FILE` opens the editor on a picture |
-| `eva-record region\|window\|monitor [--audio KIND] [--fps N]`, `eva-record stop`, `eva-record status` | the capture tool's recorder: the panel's Record from a command line, a region chosen on the frozen selection; with no shell a pill shows it running and stops it |
+| `eva-screenshot`, `eva-screenshot region\|window\|screen [--edit\|--copy\|--save\|--pin] [--delay N] [--last]` | the capture panel, or straight to the frozen selection, with or without the shell; `ocr` and `qr` copy what they read; `scroll [region\|window\|screen]` takes a long picture as a window scrolls; `--edit-file FILE` opens the editor on a picture or a recording's trim; `--pin-file FILE` keeps a picture over the windows; `--text FILE` prints the text in a picture |
+| `eva-record region\|window\|monitor [--audio KIND] [--fps N]`, `eva-record stop`, `eva-record pause\|resume`, `eva-record replay [--seconds N]`, `eva-record save`, `eva-record status` | the capture tool's recorder: the panel's Record from a command line, a region chosen on the frozen selection, a pause, and a replay buffer saved on demand; with no shell a pill shows it running and stops it |
 | `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
 | `eva-keys` | a searchable sheet of the live bindings and the shell's own |
 | `eva-nightlight on\|off\|toggle\|status\|temperature\|follow\|times\|auto\|daemon` | the quick settings' night light from a command line, one implementation with one state; `follow on` has the shell turn it on and off by the sun at `services.weather_location` |
@@ -411,7 +451,7 @@ monitor image and publish pixels directly, without a PNG round trip for each
 edit. Lua owns tool selection, undo history and themed controls; Rust builds
 and rasterizes the annotation geometry. Save/Copy still encode an export.
 Temporary captures/previews are cleaned when editing ends, with bounded
-undo and preview caches. There is no screenshot history or gallery.
+undo and preview caches.
 `morf ipc call capture-editor cancel` closes editing across outputs;
 `morf ipc call screenshot screen quick` goes straight through the selection
 and saves, the editor left out. Set `capture.editor = false` to do that by
@@ -423,6 +463,51 @@ Recording runs `capture.commands.record_region`, `record_window`,
 stay in the foreground (use `exec` in a wrapper) so Morf can track and stop
 them. Reopen the popup to stop the recorder it started or cancel a pending
 countdown.
+
+After a shot is saved or copied a small thumbnail floats in the corner: press
+it to edit, press its pin to keep it, or leave it to fade after
+`capture.thumbnail_seconds`. `capture.thumbnail` turns it off, in Settings and in
+the editor's preferences.
+
+The clock at the panel's title opens the history: what the capture folder holds,
+newest first, searched by name and by date (`today`, `2026-11-01`, `november`).
+Choose a row to edit, copy, read, pin or delete it; a second press on a row opens
+it, and a delete asks twice. It reads the folder each time and keeps no store of
+its own. Its small pictures are scratch, gone when it shuts.
+
+A pin keeps a picture over the windows on a surface of its own, from the editor's
+More, the thumbnail, the history or `eva-screenshot --pin-file FILE`. Drag it to
+move it; a press closes it. Pins come back after a reload.
+
+Text is read with `tesseract`, on this machine, from the history's Text or
+`eva-screenshot --text FILE`. Search narrows the lines and Copy text takes what
+is shown. What was read is kept beside no picture, in
+`$XDG_STATE_HOME/eva/capture/text`, and goes when the shot is deleted, so a search
+of the history finds it; Read N more reads the rest. Where `tesseract` is missing
+each of these says so.
+
+While a recording runs, the panel's Pause holds it and Resume takes it up, by the
+recorder's own `SIGUSR2`. Only `gpu-screen-recorder` is offered a pause: the
+signal would end most other programs. The arrow at the panel's title keeps the
+last `capture.replay_seconds` of the screen by `capture.commands.record_replay`:
+Save replay writes them to the capture folder and the buffer runs on, Stop ends it
+with nothing saved. `eva-record pause|resume|replay|save` do the same.
+
+A recording opened from the history or by `--edit-file` shows its timeline: drag
+the two edges, then Save trim or Save GIF. Each writes a new file and leaves the
+original. They run `capture.commands.trim` and `capture.commands.gif` (`ffmpeg` by
+default, with `capture.gif_fps` and `capture.gif_width`), and say so when `ffmpeg`
+is missing.
+
+The arrows at the panel's title take a long picture of the chosen target as it
+scrolls. Frames are taken while you scroll, or while Auto presses Page Down until
+the page ends; on a phone you scroll by hand. Done joins them into a picture in
+the capture folder. Rows that stand still count as a header and a footer, and
+appear once. A frame that cannot be lined up ends the capture with what is sound,
+and says so; nothing is guessed. Expect it to stop on pages that move as they
+scroll: video, or animation over most of the window, and on outputs scaled by a
+fraction, where a row does not come back pixel for pixel. A floating button low in
+the window lands in the picture at each strip.
 
 Run `morf shell`, `morf lock`, or `morf greet`. Preview without authenticating
 with `morf lock -- window preview` or `morf greet -- preview`.
@@ -441,9 +526,34 @@ such as `2026-10-01T09:00`. A repeating task needs a due date. Editing one
 occurrence does not propagate changes to its siblings. The editor also
 offers start/stop, completion, and deletion with a second click to confirm.
 
-Calendar shows a month and tasks scheduled or due on the selected day, in
-local time. “Plan a task” preselects that day. Work-mail meetings are not
-connected yet; the calendar explicitly shows that state.
+Calendar shows a month with the selected day's tasks and events, in local
+time. “Task” and “Event” preselect that day, and `eva event` or `morf ipc call
+event` open the same form from a key. An event goes in the file it came from:
+a line of a `.ics` file, or a file of its own in a vdir folder. Pressing one
+opens it to change or delete, with all-day, repeat and reminder; a repeating
+one asks whether that means this one or all of them. eva changes only the
+fields on the form, so a server's attendees and its own properties stay in the
+file. An event with no calendar to go in makes one, Personal, on this machine.
+
+What cannot be written shows the event and says why: an ICS address, a file
+without write permission, one your Nix configuration links in, and a folder
+khal or vdirsyncer marks read-only. An edit to a synced folder reaches the
+server at the next `vdirsyncer sync`; eva does not run it. Replying to an
+invitation, moving an event between calendars and changing “this and later”
+of a repeating event are not offered. A rule the form cannot say, such as every
+second Monday, stays as it is unless another is picked.
+
+An app set to “In the summary” (its page in Settings, under Notifications) makes
+no sound and no popup. What it sends waits in the history until a time in
+`notifications.digest_times`, 08:00 and 18:00 by default, unless it is critical.
+Then one notice says how many, and a card heads the history: conversations
+first, one row to a person, then each app with its last line. Pressing a row
+runs the sender's own action, or opens its group. Done puts the card away and
+keeps them in the history; Clear them can be undone. “Show now”, or `eva
+notifications digest`, gives it early.
+A time slept through comes on waking, once; a Focus holds it until it ends.
+Nothing of the summary's content reaches its file, and a hidden preview stays
+hidden on the card.
 
 Performance and battery graphs collect the latest 60 samples while their
 tabs are closed, except while a phone display is blanked. Old samples are
@@ -754,10 +864,61 @@ The compositor keys are in `shell/keybinds.lua`. A session with no
 `always` or `never`, and `eva-keys` lists the ones that are not bound with the
 verb to bind.
 
+`eva-keys` also changes them: press a row and press the new keys. Hyprland's own
+bindings stand aside while it listens, so a chord already taken still reaches the
+window; it then says what has it, and waits to be confirmed. New chords live in
+`keys.overrides` and go through the same run-time path as every other pushed
+setting, now and after each reload, so no file of yours is written. A key from
+your own configuration moves with its action intact, and Reset takes a row back.
+The shell's Ctrl shortcuts are listed, not changed. Modifier order does not matter
+when eva finds a key, but `hl.unbind` goes by text, so an alias such as `MOD4`
+written in your configuration is not found.
+
+Settings, Windows, Window rules holds what windows open with: float, size, place,
+workspace, screen, opacity and the rest, started from nothing or from a running
+window (or the window menu's Rule). A rule acts as a window opens; what it says on
+looks reaches those already open. They need a Lua-configured Hyprland, and are
+spelled as Hyprland 0.55.4 reads them. The same page dims inactive windows.
+
+Saved layouts keeps what is open under a name and puts it back, on request or
+after login. Floating windows return to their exact box, tiled ones to their
+workspace, where Hyprland tiles them. A window that is closed is started again
+from its desktop entry and placed when it shows, but what was in it is not: tabs,
+documents and terminal sessions start fresh. An app with no desktop entry cannot
+be started, one that keeps to a single window comes back as one, and the page
+says which.
+
+In the overview a desk dragged onto another takes its place, or goes to that
+screen if the desk is on another one, and a right press offers Move left and
+right, Swap with, Move to and Swap screens. Windows, name and layout go together.
+`eva workspace_move`, `workspace_swap`, `workspace_reorder` and `workspace_screens`
+do the same.
+
 `EVA_FAKE_WINDOWS=1`, or a JSON file like `tests/fixtures/windows.json`, stands in
 for Hyprland: `shell/windows_stand_in.lua` is the same library over a list of its
 own, evaluating the same `hl.*` chunks, with what the compositor really has among
 its windows. `nix build .#windows-test` runs these against a real Hyprland in a VM.
+
+### Keys and external screens
+
+`programs.eva.remap.enable` lets Settings, Keyboard, Key remapping set Caps Lock,
+a hyper key, tap versus hold and home row modifiers for every program. It is off
+by default, as it reads every keyboard. kanata does the work, chosen over keyd
+because its NixOS service has a dynamic user, no capabilities and no network, and
+its stock build cannot run a command; keyd runs as root, and a line in its
+configuration can run anything as root. Nobody joins the `input` group: only the
+service's own dynamic user is in it. Settings writes words from a fixed list, and
+root turns those into kanata's file, so a choices file written by hand cannot
+reach kanata as text. With nothing chosen, nothing starts. Caps Lock alone needs
+none of this: Settings, Keyboard has Escape and Control through xkb.
+
+`programs.eva.hardware.ddc.enable` joins external monitors to the one brightness
+level: the slider, the bar's module, the on-screen display and the keys all act on
+the screen they are on, by DDC/CI where it answers and the backlight where it does
+not. It installs ddcutil, and a udev rule tags only the buses that lead to a
+display with `uaccess`, so it takes no group. This path has run against stand-ins
+only: `lib/services/host_fake.lua` and a fake `ddcutil` in a VM, which has no
+monitor on an I2C bus.
 
 ## Phone, tablet and desk
 
@@ -810,6 +971,10 @@ programs.eva.hardware = {
   chargeLimit = true;
   # A USB network port for the USB tethering tile.
   usbTether = true;
+  # The Wi-Fi hotspot's clients reaching DHCP and DNS: the firewall opens those
+  # ports on every Wi-Fi interface, to whatever listens on them. Without it they
+  # join the network and are given no address.
+  hotspot = true;
 };
 ```
 
@@ -1127,6 +1292,67 @@ only what was changed in Settings is sent.
 `EVA_FAKE_CAN="suspend=no"` answers logind's questions. The service code above
 it runs unchanged, against `lib.testing.dbus`. `tools/see/settings.steps` walks
 every page: `EVA_FAKE_SYSTEM=1 tools/see.sh settings`.
+
+## Welcome
+
+The first login opens **Welcome** in Settings, wherever Settings stands on that
+form: the right panel on a desk, the sheet on a tablet or phone. It is four short
+steps, three without a keyboard: dark or light, getting online, the gestures
+this device answers to, and the keys to learn first. Each step leads to the real
+page, and Back returns to the step. Skip leaves it. It comes once; Settings has
+it after that (Eva, Welcome, or search), and `eva welcome` opens it too.
+
+Someone who already used eva before this page existed is not shown it: past
+notifications or reminders in the state folder, or a settings file, mark a
+returning person. The mark itself is `welcome-seen` in that folder. Only the
+shell loads it, so the lock and the greeter never can. `EVA_WELCOME=0` keeps it
+away, as the VM tests do, and `=1` brings it to `tools/see.sh`.
+
+## Connection help
+
+Network and Wired each lead to **Connection help**.
+
+**Troubleshoot** walks link, address, router, names (DNS) and internet in order
+and says in plain words which one failed. A router that ignores ping is only
+called the fault if names fail too. It runs when pressed, and asks your router
+(`ping`), your DNS servers (`getent`) and the sign-in check's server.
+
+**Sign-in pages**: when NetworkManager reports a captive portal, eva says so
+with a notice and a row on this page, and pressing either opens the login page
+in the browser. It never opens one by itself. NetworkManager only knows if its
+own connectivity check is set up, so `network.portal_probe` (off by default) has
+eva ask one server, once, each time a connection comes up: `nmcheck.gnome.org`
+(GNOME), `detectportal.firefox.com` (Mozilla) or
+`connectivitycheck.gstatic.com` (Google), by `network.portal_server`. Off, eva
+sends nothing.
+
+**Speed test** runs only when pressed, against `speed.cloudflare.com`, and uses
+about 35 MB. The page says so before it starts, and warns on mobile data.
+Everything outside goes through `lib/services/net_check.lua`, which names each
+address, and `host.http`, which a headless run and `EVA_FAKE_SYSTEM` keep off
+the network. `EVA_FAKE_NET` picks how the stand-in network breaks: `portal`,
+`no-address`, `self-assigned`, `no-gateway`, `no-dns`, `no-internet`,
+`quiet-router`.
+
+## Backups
+
+The **Backups** page works over whichever of snapper, btrbk and restic is
+installed: it lists snapshots newest first, makes one on a press, and gets one
+file back. With none installed it says so and what would do. Its settings pick
+the tool, the snapper config, and restic's repository, password file and
+folders; the password stays in its file and only that path reaches restic, in
+its environment.
+
+A restored copy lands beside the file with `.restored` on its name and
+overwrites nothing. Replacing the file itself takes a second press that names
+it. Snapper replaces through `undochange`, btrbk by copying from the snapshot,
+and restic by restoring in place. Snapshots are often root's: a copy that
+cannot read one says so. btrbk needs root even to list, so that waits for a
+press and goes through polkit; `btrbk snapshot --preserve` keeps whatever a
+retention policy would have pruned. Snapper uses your own rights, which its
+`ALLOW_USERS` grants.
+
+`EVA_FAKE_BACKUPS=snapper,btrbk,restic` puts stand-ins on the fake machine.
 
 ## Sound and nested settings
 

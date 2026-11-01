@@ -77,11 +77,16 @@ function V.build(model, w, h)
 
   local content = P.section { id = "notif-content", width = w, title = "What cards show",
     flag("actions", "smart_button", "Action buttons", "The buttons apps offer", "actions"),
+    choices(w, "notif-keep", "Their buttons keep working for", S.KEEP, setting("keep_actions"), setter("keep_actions")),
     flag("smart", "auto_fix_high", "Codes and links", "Copy a one-time code, open a link", "smart"),
     toggle(w, "notif-hide", "visibility_off", "Hide content", "Cards show only the app until opened",
       function() return model.get("previews") == "hide" end,
       function(on) model.set("previews", on and "hide" or "show") end),
     choices(w, "notif-lock", "On the lock screen", S.LOCK, setting("lock_previews"), setter("lock_previews")),
+  }
+
+  local summary = P.section { id = "notif-summary", width = w, title = "Summary",
+    require("themes").view("settings_form").field(S.DIGEST, inner),
   }
 
   local kept = P.section { id = "notif-history", width = w, title = "History",
@@ -134,7 +139,7 @@ function V.build(model, w, h)
   }
 
   return P.page { id = "notif-scroll", width = w, height = h, active = model.active,
-    sound, popups, content, kept, P.section(apps), P.section(content_rows), server }
+    sound, popups, content, summary, kept, P.section(apps), P.section(content_rows), server }
 end
 
 --- One app's rules.

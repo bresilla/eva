@@ -10,6 +10,23 @@ and why Lua cannot do it well. Work already under way elsewhere is marked
 
 Open entries are listed first; every entry before them is in the engine (below).
 
+Open, found against a real Hyprland in a VM:
+
+- `lib.compositor.hyprland` starts on a one-millisecond timer, and until then
+  `request` answers "unavailable" though `available()` says true. A tool that asks
+  as it loads is told there is no Hyprland: `eva-displays` opened with no outputs.
+  `lib.compositor.hyprland_config` asks again for its flavour, and
+  `lib/shell/displays` does the same. Holding requests until the start would save
+  each caller the loop.
+- `hyprland.getoption` documents its reply as `int|float|str|css`, but a toggle
+  answers `bool` under the Lua config manager and `int` under the legacy one, and
+  a string nobody set answers `[[EMPTY]]`. `lib/services/input_config.lua` reads
+  all of these. `hyprland.options` could answer one shape in both.
+- With two outputs `ipc call` returns the first non-empty answer, whichever output
+  it came from, so a verb answering for its own output can hide the other's.
+  `drawers` keeps quiet where nothing is open and the focus is elsewhere; a way to
+  get every output's answer would do it properly.
+
 Open, found while building notifications and Focus:
 
 - `lib.services.notifications` keeps its service to itself, so a shell cannot
@@ -289,3 +306,26 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   with selection beginning from `on_long_pressed`, would let one finger scroll.
 - A node's parent from Lua. `themes/overscroll.lua` finds an enclosing list and
   the panel under a finger by comparing rectangles, for want of `node.parent`.
+
+## Global touch: open
+
+- Reading a touchscreen. `shell/touch_driver.lua` hears every contact through a
+  `libinput debug-events` child and parses its lines, for want of an evdev API:
+  `morf.touch.open(node, handlers)` in the engine would save the process and the
+  parsing, and stop for good with the handle.
+- Output power as a signal. Nothing says an output went dark, so the driver asks
+  Hyprland's `j/monitors` as each contact sequence starts, to keep gestures from
+  firing on a dark screen. A tracked read beside `morf.output_power.set` would do.
+- `pcall` of a nil value raises rather than returning false, unlike Lua, and
+  `debug` is absent, so an effect's error names no line: `could not call a nil
+  value` from `pcall(child.pid, child)` took a spec to find.
+- Taking a contact back. Hyprland 0.55 has `sendTouchCancel` and never calls it,
+  and a libinput TOUCH_CANCEL does nothing there, so a global gesture cannot take
+  its fingers away from the app under them. Hyprland also keeps one touch focus:
+  with a finger on eva and a finger on an app, both lifts go to the app, so the
+  strip under the first finger never hears it lift.
+- Cancelling a surface's contacts. A second finger on a surface interrupts its
+  pan, but one landing on an app does not, so `phone_gestures.yield` reaches the
+  panels' pans and drawers by hand. A list's scroll or `themes/swipe_dismiss.lua`
+  under one of three fingers runs on. `morf.surface.cancel_touches()` would end
+  them all.

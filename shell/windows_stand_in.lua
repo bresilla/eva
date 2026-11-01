@@ -146,7 +146,8 @@ function M.new(scene)
       m.description, m.make, m.model, m.serial = "Stand-in", "eva", "stand-in", ""
       m.transform, m.refresh_rate, m.available_modes, m.mirror_of = 0, 60, {}, -1
       m.focused, m.disabled, m.vrr, m.dpms = m.id == 0, false, false, true
-      m.active_workspace = m.id == 0 and shown or 11
+      -- A float, as the real library's JSON hands it over.
+      m.active_workspace = (m.id == 0 and shown or 11) + 0.0
       m.active_workspace_name = m.id == 0 and ((workspaces[shown] or {}).name or tostring(shown)) or "11"
       m.special_workspace, m.special_workspace_name = 0, shown_special
       m.reserved = RESERVED
@@ -182,7 +183,7 @@ function M.new(scene)
     end
     table.sort(list, function(a, b) return a.id < b.id end)
     state.workspaces:replace(list, "id")
-    state.active_workspace.id = shown
+    state.active_workspace.id = shown + 0.0
     state.active_workspace.name = (workspaces[shown] or {}).name or tostring(shown)
     local w = by_address(active)
     state.active_window.address = w and w.address or ""
@@ -348,7 +349,15 @@ function M.new(scene)
     local id = workspace_id(a.workspace)
     if id and workspaces[id] then workspaces[id].name = a.name ~= "" and a.name or nil end
   end)
-  verb("workspace", "move", function() end)
+  verb("workspace", "move", function(a)
+    if type(a) ~= "table" then fail("hl.workspace.move: expected a table { monitor, workspace? }") end
+    if not a.monitor then fail("hl.workspace.move: 'monitor' is required") end
+  end)
+  verb("workspace", "swap_monitors", function(a)
+    if type(a) ~= "table" or not a.monitor1 or not a.monitor2 then
+      fail("hl.workspace.swap_monitors: expected a table { monitor1, monitor2 }")
+    end
+  end)
   verb("group", "toggle", function() end)
   verb("group", "lock_active", function() end)
   verb("group", "next", function() end)

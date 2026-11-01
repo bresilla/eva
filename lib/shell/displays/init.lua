@@ -21,6 +21,8 @@ for index, name in pairs(M.TRANSFORMS) do TRANSFORM_INDEX[name] = index end
 -- The rotations the tool offers, in the order the choice lists them.
 M.ROTATIONS = { { 0, "Normal" }, { 1, "90°" }, { 2, "180°" }, { 3, "270°" } }
 M.SCALES = { 1, 1.25, 1.5, 1.75, 2, 2.5, 3 }
+-- How often, and how far apart in ms, a read asks a Hyprland not yet connected.
+M.READ_TRIES, M.READ_WAIT = 10, 100
 
 function M.kind() return capture.kind() end
 
@@ -120,13 +122,23 @@ function M.from_hyprland(rows)
   return out
 end
 
---- `cb(outputs, why)`: this session's outputs, or nil and why.
+--- `cb(outputs, why)`: this session's outputs, or nil and why. The Hyprland
+--- library connects a moment after it loads, so a tool asking as it starts is
+--- told "unavailable" until then, and asks again.
 function M.read(cb)
   local kind = M.kind()
   if kind == "hyprland" then
-    require("lib.compositor.hyprland").json("monitors all", function(rows, why)
-      if rows then cb(M.from_hyprland(rows)) else cb(nil, why or "Hyprland did not answer") end
-    end)
+    local tries = 0
+    local function ask()
+      require("lib.compositor.hyprland").json("monitors all", function(rows, why)
+        if why == "unavailable" and tries < M.READ_TRIES then
+          tries = tries + 1
+          morf.time.timer(M.READ_WAIT, ask, false)
+        elseif rows then cb(M.from_hyprland(rows))
+        else cb(nil, why or "Hyprland did not answer") end
+      end)
+    end
+    ask()
   elseif kind == "sway" then
     morf.process.run({ "swaymsg", "-t", "get_outputs", "-r" }, {}, function(result)
       if not result or not result.ok then cb(nil, result and result.stderr or "sway did not answer") return end

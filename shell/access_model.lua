@@ -1,5 +1,6 @@
 -- The Accessibility page: the shell's own settings, and what the compositor
--- holds for it (lib/services/access.lua), sent again after every reload.
+-- holds for it (lib/services/access.lua), sent again after every reload. The
+-- colour filter is a setting the screen filter follows (quick_hardware.filters).
 local morf = require("morf")
 local config = require("config")
 local access = require("lib.services.access")
@@ -14,15 +15,10 @@ M.TEXT = { { 1, "text_fields", "Normal" }, { 1.15, "text_increase", "Large" }, {
 
 local function get(key) return config.get("accessibility." .. key) end
 
---- Sends the filter and the zoom.
-local function push_screen()
+--- Sends the zoom.
+local function push_zoom()
   hyprconf.apply(function(how)
-    local steps = {}
-    steps[1] = access.filter_step(get("filter"), how)
-    local zoom = tonumber(get("zoom")) or 1
-    local plan = input.plan({ chosen = { zoom = zoom } }, how)
-    for _, step in ipairs(plan or {}) do steps[#steps + 1] = step end
-    return steps
+    return input.plan({ chosen = { zoom = tonumber(get("zoom")) or 1 } }, how)
   end)
 end
 
@@ -54,7 +50,7 @@ function M.start()
   if morf.window.primary and not morf.window.primary() then return end
   if not require("input_model").available() then return end
   local function push()
-    if get("filter") ~= "none" or (tonumber(get("zoom")) or 1) ~= 1 then push_screen() end
+    if (tonumber(get("zoom")) or 1) ~= 1 then push_zoom() end
     if get("sticky_keys") then push_sticky() end
     if get("mouse_keys") then push_mouse_keys(true) end
   end
@@ -71,14 +67,11 @@ function M.new(active, settings)
   function model.contrast() return config.get("appearance.high_contrast") == true end
   function model.set_contrast(on) config.set("appearance.high_contrast", on == true) end
   function model.filter() return get("filter") end
-  function model.set_filter(name)
-    config.set("accessibility.filter", name)
-    push_screen()
-  end
+  function model.set_filter(name) config.set("accessibility.filter", name) end
   function model.zoom() return tonumber(get("zoom")) or 1 end
   function model.set_zoom(value)
     config.set("accessibility.zoom", value)
-    push_screen()
+    push_zoom()
   end
   function model.sticky() return get("sticky_keys") == true end
   function model.can_stick() return access.can_stick() end

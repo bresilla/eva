@@ -185,7 +185,9 @@ in
     ./idle.nix
     ./lock.nix
     ./phone.nix
+    ./remap.nix
     ./seamless.nix
+    ./touch.nix
   ];
 
   options.programs.eva = {

@@ -12,6 +12,7 @@
 -- an account that cannot log in.
 
 local morf = require("morf")
+local unicase = require("lib.util.unicase")
 
 local accounts = {}
 
@@ -35,7 +36,7 @@ local function entry(name, gecos, home)
   return {
     name = name,
     label = label,
-    initial = label:sub(1, 1):upper(),
+    initial = unicase.upper(unicase.first(label)),
     home = home or ("/home/" .. name),
     face = accounts.face(name, home),
   }

@@ -8,6 +8,7 @@
 -- accepted. The input is the configuration's; what it accepts, the
 -- archetype's.
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 
 return function(S, theme, M)
   local function C() return theme.color end
@@ -400,7 +401,7 @@ return function(S, theme, M)
     Left = "←", Right = "→", Up = "↑", Down = "↓" }
   local function legend(part)
     if LEGEND[part] then return LEGEND[part] end
-    if #part == 1 then return part:upper() end
+    if utf8.len(part) == 1 then return unicase.upper(part) end
     return (part:gsub("_", " "))
   end
   local function chord_parts(text)

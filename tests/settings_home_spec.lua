@@ -85,13 +85,16 @@ local HOST = [[
       "shell/profiles_model.lua", "shell/focus_model.lua", "shell/focus_page.lua", "shell/notification_settings.lua",
       "shell/notification_rules.lua", "shell/bar_store.lua", "shell/bar_page.lua", "shell/bar_custom.lua", "shell/panels_board.lua",
       "lib/shell/launcher/pins.lua", "shell/launcher_modes/web.lua",
-      "shell/assistant_model.lua", "shell/calendar_sources.lua", "shell/notes_model.lua",
+      "shell/assistant_model.lua", "shell/calendar_sources.lua", "shell/notes_model.lua", "shell/net_help_model.lua",
       "shell/charge_limit_model.lua",
       "shell/haptics.lua", "shell/mobile_model.lua", "themes/layouts/views/connectivity.lua", "shell/keyboard.lua",
       "shell/quick_tiles.lua", "shell/idle_model.lua", "shell/idle_page.lua", "shell/lock_page.lua",
       "themes/layouts/views/idle_page.lua", "themes/layouts/views/lock_page.lua",
       "shell/windows_page.lua", "themes/layouts/views/windows_page.lua",
       "shell/screen_time_model.lua", "themes/layouts/views/screen_time_page.lua",
+      "shell/touch_page.lua", "shell/touch_bindings.lua",
+      "shell/keys_model.lua", "shell/about_model.lua",
+      "shell/layouts_model.lua",
       "themes/layouts/views/assistant_settings.lua", "themes/layouts/views/calendar_settings.lua",
       "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",
@@ -104,15 +107,29 @@ local HOST = [[
     -- Kept by the shell itself: what it remembers, not what a person sets.
     -- `bar.workspaces.shown` is read by nothing.
     local kept = { "airplane.on", "airplane.was", "ringer.mode", "capture.tools", "bar.workspaces.shown", "bar.modules", "bar.small",
-      "bar.outputs", "wallpaper.fits", "notifications.digest_times", "notifications.keep_actions" }
+      "bar.outputs", "wallpaper.fits" }
     local groups = { "osd.kinds", "lule", "quick", "input", "accessibility", "sound", "power", "storage", "proxy", "nightlight",
       "edgebar", "dashboard", "sidebar", "leftbar", "bottom", "capture.tools", "appearance", "rotation", "polkit", "osd",
       "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels", "assistant", "calendar",
-      "keyboard", "filters", "phone", "idle", "lock", "dock", "windows" }
+      "keyboard", "filters", "phone", "idle", "lock", "dock", "windows", "gestures" }
+    -- Each list by the first part of its keys: a key looks only at its own.
+    local function by_head(list)
+      local out = {}
+      for _, each in ipairs(list) do
+        local head = each:match("^[^%.]+")
+        out[head] = out[head] or {}
+        out[head][#out[head] + 1] = each
+      end
+      return out
+    end
+    local kept_by_head, groups_by_head = by_head(kept), by_head(groups)
     local function covered(key)
       if reached[key] then return true end
-      for _, each in ipairs(kept) do if key == each or key:sub(1, #each + 1) == each .. "." then return true end end
-      for _, each in ipairs(groups) do
+      local head = key:match("^[^%.]+")
+      for _, each in ipairs(kept_by_head[head] or {}) do
+        if key == each or key:sub(1, #each + 1) == each .. "." then return true end
+      end
+      for _, each in ipairs(groups_by_head[head] or {}) do
         if key:sub(1, #each + 1) == each .. "." and sources:find(key:sub(#each + 2):match("[^%.]+"), 1, true) then return true end
       end
       return sources:find(key, 1, true) ~= nil
@@ -165,6 +182,20 @@ test.it("Settings reaches eva-info and eva-update, now that they exist", functio
   ]] })
   test.advance(100)
   test.eq(test.ipc("tools"), { info = true, update = true })
+end)
+
+test.it("a times field keeps each time of day once, in order, and nothing else", function()
+  test.load("../shell/init.lua", { size = { 300, 200 }, env = { EVA_DRY_RUN = "1" }, source = HOST .. [[
+    morf.ipc.times = function(line)
+      local forms = require("settings_forms")
+      return forms.times(forms.split(line))
+    end
+  ]] })
+  test.advance(100)
+  test.eq(test.ipc("times", "18:00 08:00"), { "08:00", "18:00" })
+  test.eq(test.ipc("times", "8:05,18:30"), { "08:05", "18:30" })
+  test.eq(test.ipc("times", "23:59 00:00 00:00"), { "00:00", "23:59" })
+  test.eq(test.ipc("times", "24:00 12:60 123:45 12:345 noon"), {})
 end)
 
 test.it("a records field keeps its tables through one line of words", function()

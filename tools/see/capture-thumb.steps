@@ -1,0 +1,26 @@
+# The floating thumbnail on a real layer surface: a real save writes the shot, the
+# thumbnail shows it, fades left alone, and takes the editor when pressed.
+unset EVA_DRY_RUN
+state() { toolipc state | tr -d '\\ \n' | sed 's/.*result":\["//' | cut -c1-120; }
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export BOOT=0
+
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
+toolipc screenshot screen how=save > /dev/null
+pause 1.5
+shot thumb
+note echo "surfaces: $(swaymsg -t get_outputs | jq -c '.[0].name')"
+note ls "$HOME/Pictures/Captures"
+pause 5
+shot thumb-gone
+toolipc screenshot screen how=save > /dev/null
+pause 1.5
+toolipc capture-thumb edit > /dev/null
+pause 1.5
+note echo "pressed: $(state)"
+shot thumb-pressed
+toolipc capture-editor cancel > /dev/null
+pause 1

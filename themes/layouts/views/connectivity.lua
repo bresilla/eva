@@ -8,6 +8,7 @@
 
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local P = require("themes.layouts.page")
@@ -202,6 +203,9 @@ local function hidden_section(model, w)
     },
     P.row { id = "network-proxy-open", width = inner, icon = "shield", title = "Proxy", subtitle = "For this session's programs",
       trailing = P.chevron(), on_clicked = function() model.request("network/proxy") end },
+    P.row { id = "network-help-open", width = inner, icon = "troubleshoot", title = "Connection help",
+      subtitle = "Troubleshoot, speed test, sign-in pages",
+      trailing = P.chevron(), on_clicked = function() model.request("network/help") end },
   }
 end
 
@@ -217,7 +221,7 @@ local function network_page(model, w, h)
         title = function() return ap().ssid or "" end,
         subtitle = function()
           local a = ap()
-          if a.in_use then return "Connected" end
+          if a.in_use then return model.sign_in_needed() and "Connected · Needs you to sign in" or "Connected" end
           return a.secure and "Secured" or "Open"
         end,
         trailing = ui.Row { gap = 4, align = "center",
@@ -511,7 +515,7 @@ local function mobile_page(model,w,h)
           return P.row {id="mobile-operator-row-"..i,width=rw,icon="cell_tower",
             on=function() return n().availability=="current" end,
             title=function() return n().name or "" end,
-            subtitle=function() return (n().technology or ""):upper().." · "..(n().availability or "") end,
+            subtitle=function() return unicase.upper(n().technology or "").." · "..(n().availability or "") end,
             on_clicked=function() if n().code then model.register(n().code) end end}
         end,"Scan to list the networks nearby",16),
         P.buttons {width=inner,

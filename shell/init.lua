@@ -51,7 +51,8 @@ if config.path then
 end
 
 require("displays_hotplug").start()
-for _, name in ipairs { "input_model", "access_model", "audio_rules", "lid_watch", "privacy_page_model", "drive_watch" } do
+for _, name in ipairs { "input_model", "access_model", "keys_model", "remap_model", "window_rules_model", "layouts_model",
+  "audio_rules", "lid_watch", "privacy_page_model", "drive_watch" } do
   require(name).start()
 end
 
@@ -135,6 +136,7 @@ require("auto_rotate").start()
 require("quick_hardware").nightlight()
 require("quick_hardware").start()
 require("charge_limit_model").start()
+require("ddc_model").start()
 do
   local alarm = require("services").alarm
   alarm.load()
@@ -185,6 +187,8 @@ local keyboard = require("keyboard")
 local bar = require("bar")
 local window_menu = require("window_menu")
 require("calendar_reminders").start()
+require("net_portal").start()
+require("welcome_model").start()
 require("panel_room").watch()
 require("phone")
 local overview = require("overview")
@@ -349,7 +353,15 @@ require("screen_time_model").start()
 -- that acted.
 -- Every verb is kept here as well as given to `morf.ipc` (which only
 -- takes them), so the shell's keyboard shortcuts can call the same ones.
-local ipc = setmetatable({}, { __newindex = function(t, k, v) rawset(t, k, v) morf.ipc[k] = v end })
+-- `morf.ipc` hears a nil as an answer, so a verb's nil goes out as no answer.
+local function answering(fn)
+  return function(...)
+    local out = table.pack(fn(...))
+    if out.n == 1 and out[1] == nil then return end
+    return table.unpack(out, 1, out.n)
+  end
+end
+local ipc = setmetatable({}, { __newindex = function(t, k, v) rawset(t, k, v) morf.ipc[k] = answering(v) end })
 local here = require("services").here
 local function verb(d)
   return function(how)
@@ -669,6 +681,20 @@ ipc.note = function(name)
   require("notes_model").create(name)
   return true
 end
+-- `welcome [next|back]`: the first-run welcome again, or a step along it.
+ipc.welcome = function(how)
+  if not here() then return end
+  local welcome = require("welcome_model")
+  if how == "next" then welcome.next() elseif how == "back" then welcome.back() else welcome.open() end
+  return true
+end
+-- `event [DAY]`: the calendar's form for a new event, on DAY or the day on show.
+ipc.event = function(day)
+  if not here() then return end
+  pages.reach("calendar")
+  morf.time.timer(1, function() require("calendar_page").new_event(day) end, false)
+  return true
+end
 -- `keyboard [how]`: the on-screen keyboard, for a key to bind. `how` is
 -- open, close, toggle or state, or a mode to open it in: full, dev,
 -- letters, numbers, phone or pattern.
@@ -751,6 +777,16 @@ ipc.osd = function(kind)
   if not here() then return nil end
   return osd.flash(kind)
 end
+-- `brightness up|down|PERCENT`: this screen's level, whichever way it is set,
+-- on the focused screen. With nothing it says the level.
+ipc.brightness = function(how)
+  if not here() then return nil end
+  local level = osd.brightness()
+  if how == nil then return math.floor(level * 100 + .5) end
+  local to = how == "up" and level + .05 or how == "down" and level - .05 or (tonumber(how) or level * 100) / 100
+  osd.adjust("brightness", to)
+  return true
+end
 -- `notify SUMMARY [BODY [critical|normal|low [APP [ICON [IMAGE]]]]]` raises a
 -- notification of the shell's own, as the reference's toaster does.
 ipc.notify = function(summary, body, urgency, app, icon, image)
@@ -787,6 +823,7 @@ ipc.notifications = function(how, a, b)
   if how == "clear" then return notifs.clear() end
   if how == "clear-app" then return notifs.clear_app(a) end
   if how == "clear-silent" then return notifs.clear_silent() end
+  if how == "digest" then require("notification_history").digest_now() return true end
   if how == "undo" then return notifs.restore() end
   if how == "snooze" then return notifs.snooze(tonumber(a) or newest(), b or 900) end
   if how == "mute" then notifs.mute_app(a, tonumber(b) or 0) return true end
@@ -840,6 +877,8 @@ ipc.drawers = function(how, name)
     if d.is_open() then open[#open + 1] = d.name end
   end
   if capture.drawer.is_open() then open[#open + 1] = "capture" end
+  -- The first answer wins: a screen out of focus with nothing open stays out of it.
+  if #open == 0 and not here() then return nil end
   return table.concat(open, " ")
 end
 
@@ -873,6 +912,8 @@ if require("themes").refused then
 end
 
 require("windows_ipc").register(ipc)
+require("touch_driver").register(ipc)
+require("touch_driver").start()
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)

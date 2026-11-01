@@ -8,6 +8,7 @@ local stroke = require("themes.tsugumori.strokes")
 local morf = require("morf")
 local ui = require("morf.ui")
 local channel = require("lib.util.channel")
+local unicase = require("lib.util.unicase")
 local common = require("themes.kit_common")
 local get, clamp01 = common.get, common.clamp01
 return function(theme)
@@ -203,7 +204,7 @@ return function(theme)
   --- Micro label: caps, spaced mono. Text props + `size`.
   function M.label(props)
     local text = props.text
-    local function caption() return tostring(get(text) or ""):upper() end
+    local function caption() return unicase.upper(tostring(get(text) or "")) end
     props.text = caption
     props.font_size = props.font_size or props.size or theme.typography.label
     props.size = nil
@@ -741,7 +742,7 @@ return function(theme)
         fill_color = function() return C.surfaceContainerHighest end,
         stroke_color = function() return stroke(C, "hover") end, stroke_width = 1, stroke_join = "miter" },
       ui.Rect { x = c + 2, y = h - 3, width = math.max(0, w - 2 * c - 4), height = 1, color = M.stroke("mark") },
-      M.text { anchors = { center_in = true }, text = text:upper(), font_size = theme.size.small - 2,
+      M.text { anchors = { center_in = true }, text = unicase.upper(text), font_size = theme.size.small - 2,
         font_weight = 500, letter_spacing = .5, color = M.ink("hi") },
     }
   end
@@ -1280,7 +1281,7 @@ return function(theme)
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = size,
       M.emblem { kind = spec.kind, size = size, color = color },
       M.text { x = size + 14, y = 0, height = math.floor(size * .62),
-        text = function() return tostring(get(spec.title) or ""):upper() end,
+        text = function() return unicase.upper(tostring(get(spec.title) or "")) end,
         font_size = math.floor(size * .46), font_weight = 500, color = M.ink("hi"), width = title_w, elide = "right" },
       spec.subtitle and M.label { x = size + 14, y = size - 13, text = spec.subtitle, font_size = 9,
         width = title_w, elide = "right" } or nil,
@@ -1303,7 +1304,7 @@ return function(theme)
       ui.Rect { width = 3, height = h, color = color, behavior = { color = { duration = 180 } } },
       M.emblem { x = 12, y = math.floor((h - 22) / 2), size = 22, kind = spec.kind, color = color },
       M.text { x = 44, y = math.floor(h / 2) - 17, height = 18, font_size = theme.typography.section, font_weight = 500,
-        text = function() return tostring(get(spec.title) or ""):upper() end, color = M.ink("hi"),
+        text = function() return unicase.upper(tostring(get(spec.title) or "")) end, color = M.ink("hi"),
         width = function() return math.max(0, get(w) - 52) end, elide = "right" },
       spec.subtitle and M.text { x = 44, y = math.floor(h / 2) + 2, height = 15, font_size = theme.typography.caption,
         text = function() return tostring(get(spec.subtitle) or "") end, color = M.ink("lo"),

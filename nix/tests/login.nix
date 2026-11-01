@@ -1,10 +1,11 @@
 # A real login in a VM, with a throwaway user and password: greetd, the greeter,
 # the password typed, the session, and a screenshot at each step. The handoff
-# is sampled as fast as QEMU gives frames, and its colours printed.
+# is sampled as fast as QEMU gives frames, and each black span printed with the
+# least and the most it can have lasted, in milliseconds.
 #
-# The times are a software GPU's, slowed by the sampling: the order is what this
-# shows. The black it allows is the first commit of each Hyprland: aquamarine
-# clears a new buffer to black and shows it until the first frame is rendered.
+# The times are a software GPU's. The black it allows is the first commit of each
+# Hyprland: aquamarine clears a new buffer to black and shows it until the first
+# frame is rendered.
 #
 # The module's compositor configuration is Lua, which Hyprland reads from 0.55,
 # so the nixpkgs under the test needs that Hyprland:
@@ -54,7 +55,7 @@ in
         inherit password;
       };
       # A software GPU: morf presents through a swapchain, not dmabufs.
-      environment.sessionVariables = software;
+      environment.sessionVariables = software // { EVA_WELCOME = "0"; };
       systemd.user.services.eva.environment = software;
       hardware.graphics.enable = true;
       environment.systemPackages = [ pkgs.jq ];
@@ -84,6 +85,15 @@ in
 
     def tty1_text():
         return machine.succeed("tr -d ' \\000' < /dev/vcs1 | wc -c").strip()
+
+    def sample():
+        # The frame as QEMU holds it: a PNG of each would cost more than the gap.
+        path = machine.state_dir / "handoff.ppm"
+        machine.send_monitor_command(f"screendump {path}")
+        data = path.read_bytes()
+        _, size, _, pixels = data.split(b"\n", 3)
+        at = 3 * (4 * int(size.split()[0]) + 4)
+        return tuple(pixels[at:at + 3]), data
 
     machine.start()
     machine.wait_for_unit("greetd.service")
@@ -125,23 +135,43 @@ in
         wallpaper = tuple(bytes.fromhex(machine.succeed("cut -c2- /var/lib/eva/wallpaper/alice/dominant").strip()))
         black = (0, 0, 0)
         frames = []
+        kept = {}
+        came_back = None
         began = time.monotonic()
-        while time.monotonic() - began < 40:
-            name = f"05-handoff-{len(frames):03}"
-            machine.screenshot(name)
-            frames.append((time.monotonic() - began, corner(name)))
-            if len(frames) > 1 and frames[-2][1] == black and frames[-1][1] != black:
-                break
-        for seconds, colour in frames:
-            print(f"handoff {seconds:6.3f}s corner {colour}")
+        # Goes on a while past the first black, for any that follows it.
+        while time.monotonic() - began < 40 and (came_back is None or time.monotonic() - came_back < 8):
+            colour, data = sample()
+            frames.append((time.monotonic() - began, colour))
+            if len(frames) == 1 or colour != frames[-2][1]:
+                print(f"handoff {frames[-1][0] * 1000:9.1f} ms corner {colour}")
+                kept[len(kept)] = (colour, data)
+            if came_back is None and len(frames) > 1 and frames[-2][1] == black and colour != black:
+                came_back = time.monotonic()
+        for index, (colour, data) in kept.items():
+            (machine.out_dir / f"05-handoff-{index:02}.ppm").write_bytes(data)
+        gaps = sorted(after[0] - before[0] for before, after in zip(frames, frames[1:]))
+        print(f"sampled {len(frames)} frames, one every {gaps[len(gaps) // 2] * 1000:.1f} ms, the longest gap {gaps[-1] * 1000:.1f} ms")
         colours = [colour for _, colour in frames]
         assert wallpaper in colours, f"the wallpaper's colour {wallpaper} never showed"
         assert black in colours and colours.index(wallpaper) < colours.index(black), (
             "the wallpaper's colour must fill the gap until the compositor's first commit"
         )
-        blackout = [seconds for seconds, colour in frames if colour == black]
-        print(f"black from the compositor's first commit: {blackout[-1] - blackout[0]:.3f}s")
-        assert blackout[-1] - blackout[0] < 5, "the compositor's first frame never came"
+        spans = []
+        for index, (seconds, colour) in enumerate(frames):
+            if colour != black:
+                continue
+            before = frames[index - 1][0] if index else seconds
+            after = frames[index + 1][0] if index + 1 < len(frames) else seconds
+            if spans and spans[-1]["last"] == frames[index - 1][0]:
+                spans[-1].update(last=seconds, after=after)
+            else:
+                spans.append({"before": before, "first": seconds, "last": seconds, "after": after})
+        for number, span in enumerate(spans):
+            least = (span["last"] - span["first"]) * 1000
+            most = (span["after"] - span["before"]) * 1000
+            print(f"black {number}: at {span['first'] * 1000:.1f} ms, between {least:.1f} and {most:.1f} ms long")
+        longest = max(span["after"] - span["before"] for span in spans)
+        assert longest < 5, "the compositor's first frame never came"
         assert tty1_text() == "0", "text on tty1 in the gap"
         machine.wait_until_succeeds("pgrep -u alice Hyprland", timeout=120)
         machine.sleep(5)

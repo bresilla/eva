@@ -3,6 +3,7 @@
 -- view and then rests (finite: nothing animates at rest).
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local symbols = { "!", "<", ">", "-", "_", "/", "[", "]", "{", "}", "=", "+", "*", "^", "?", "#" }
 return function(theme, kit, props)
   local C, source = theme.color, props.text
@@ -16,7 +17,7 @@ return function(theme, kit, props)
   local function caption()
     local value = source
     if type(value) == "function" then value = value() end
-    return tostring(value or ""):upper()
+    return unicase.upper(tostring(value or ""))
   end
   local height = props.height or math.ceil(size * 1.5)
   local width = props.width or function() return utf8.len(caption()) * size * 0.65 + 18 end

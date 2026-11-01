@@ -292,6 +292,18 @@ function M.displays_page(model, w, h)
         { id = "displays-note" }),
       F.status("displays-status", inner, model),
     },
+    P.section { id = "displays-ddc", width = w, title = "External screens",
+      F.toggle { id = "displays-ddc-on", width = inner, icon = "brightness_medium", title = "Brightness over the cable",
+        subtitle = "The brightness slider and keys reach the screen they are on, by DDC/CI",
+        enabled = model.ddc.allowed, on = model.ddc_on, set = model.set_ddc },
+      F.list(inner, "displays-ddc-row-", function() return #model.ddc.rows() end, function(index, width)
+        local function row() return model.ddc.rows()[index] or {} end
+        return P.row { id = "displays-ddc-screen-" .. index, width = width, icon = "monitor", title = function() return row().name or "" end,
+          subtitle = function() return row().percent and ("%d%% · %s"):format(row().percent, row().model or "") or "Not answering" end }
+      end, nil, 4),
+      F.note(inner, "Needs programs.eva.hardware.ddc.enable in the NixOS configuration: it installs ddcutil and opens the monitors' buses to the person at the seat.",
+        { id = "displays-ddc-note", visible = function() return not model.ddc.allowed() end }),
+    },
     P.section { id = "displays-more", width = w, title = "Related",
       F.link { id = "displays-night", width = inner, icon = "nightlight", title = "Night light",
         subtitle = "Warmer colours", go = function() model.request("nightlight", "displays") end },

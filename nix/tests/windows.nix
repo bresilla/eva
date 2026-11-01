@@ -5,7 +5,10 @@
 # so the nixpkgs under the test needs that Hyprland:
 #
 #   nix build .#windows-test --override-input nixpkgs github:NixOS/nixpkgs/nixos-unstable
-{ module, wallpaper }:
+#
+# `only` names sections of windows.py to run alone; through the flake,
+# EVA_VM_ONLY="keys rules" with --impure.
+{ module, wallpaper, only ? "" }:
 let
   password = "correct horse battery staple";
   software = {
@@ -19,6 +22,15 @@ in
   nodes.machine =
     { pkgs, lib, ... }:
     let
+      # Answers as a monitor would: real DDC/CI needs a screen on an I2C bus.
+      ddcutil = pkgs.writeShellScriptBin "ddcutil" ''
+        echo "$*" >> /tmp/ddc-calls
+        case "$*" in
+          *detect*) printf 'Display 1\n   I2C bus:  /dev/i2c-6\n   DRM connector:           card0-Virtual-1\n   Monitor:                 DEL:DELL U2720Q:7H3KD\n' ;;
+          *getvcp*) printf 'VCP 10 C %s 100\n' "$(cat /tmp/ddc-level 2>/dev/null || echo 60)" ;;
+          *setvcp*) for value in "$@"; do :; done; echo "$value" > /tmp/ddc-level ;;
+        esac
+      '';
       lule = pkgs.writeShellScriptBin "lule" ''
         for argument in "$@"; do
           case "$argument" in
@@ -42,19 +54,21 @@ in
         idle.lockTimeout = 0;
         idle.suspendTimeout = 0;
         greeter.environment = software;
+        hardware.ddc.enable = true;
+        remap.enable = true;
       };
       users.users.alice = {
         isNormalUser = true;
         inherit password;
       };
-      environment.systemPackages = [ pkgs.foot pkgs.ydotool ];
+      environment.systemPackages = [ pkgs.foot pkgs.ydotool pkgs.libinput (lib.hiPrio ddcutil) ];
       boot.kernelModules = [ "uinput" ];
       # No sound, modem or Bluetooth service, even in the guest.
       services.pipewire.enable = lib.mkForce false;
       services.pipewire.wireplumber.enable = lib.mkForce false;
       networking.modemmanager.enable = lib.mkForce false;
       hardware.bluetooth.enable = lib.mkForce false;
-      environment.sessionVariables = software;
+      environment.sessionVariables = software // { EVA_WELCOME = "0"; };
       systemd.user.services.eva.environment = software;
       hardware.graphics.enable = true;
       virtualisation = {
@@ -72,6 +86,6 @@ in
 
   testScript = builtins.readFile ./windows.py + ''
 
-    run("${password}")
+    run("${password}", "${only}")
   '';
 }

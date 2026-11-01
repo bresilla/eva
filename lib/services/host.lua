@@ -106,6 +106,20 @@ function M.act(argv, done, options)
   return run(argv, done, options)
 end
 
+--- Asks a server: `spec` as morf.http.request takes it, `done(response)`. Gives
+--- what `cancel` stops it. The stand-in machine answers for itself, and a
+--- headless run reaches no network at all.
+function M.http(spec, done)
+  local fake = stand_in()
+  local answer = fake and fake.http(spec)
+  if not answer and morf.capabilities and morf.capabilities.headless then
+    answer = { ok = false, status = 0, error = "No network in a headless run" }
+  end
+  if answer then return morf.time.timer(1, function() done(answer) end, false) end
+  spec.on_done = done
+  return morf.http.request(spec)
+end
+
 --- Whether a change should stop short of the machine: logs when it does.
 function M.held(what)
   if not M.dry() then return false end

@@ -45,11 +45,7 @@ end
 
 M.upper, M.lower = unicase.upper, unicase.lower
 
-local function capitalise(word)
-  local first = word:match("^[%z\1-\127\194-\244][\128-\191]*")
-  if not first then return word end
-  return M.upper(first) .. M.lower(word:sub(#first + 1))
-end
+local function capitalise(word) return unicase.capitalise(M.lower(word)) end
 
 --- Each word of `text` capitalised, its separators kept.
 function M.title(text)

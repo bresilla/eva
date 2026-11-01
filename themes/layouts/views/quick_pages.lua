@@ -2,6 +2,7 @@
 -- local of the page, never in a signal, and hands it over once on saving.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local P = require("themes.layouts.page")
@@ -150,7 +151,7 @@ function V.filters_page(model, w, h)
   list[#list + 1] = dim
   local kinds = { id = "settings-filters-kind", width = inner, visible = function() return filters.on("correction") end }
   for _, kind in ipairs(filters.CORRECTIONS) do
-    kinds[#kinds + 1] = { id = "settings-filters-kind-" .. kind, label = kind:sub(1, 1):upper() .. kind:sub(2, 5) .. ".",
+    kinds[#kinds + 1] = { id = "settings-filters-kind-" .. kind, label = unicase.capitalise(kind:sub(1, 5)) .. ".",
       accessible_name = kind, group = "settings-filters-kind",
       visible = function() return filters.on("correction") end,
       selected = function() return filters.correction() == kind end,
