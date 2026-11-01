@@ -214,7 +214,7 @@ function V.build(M)
       local icon_box = ui.Item { width = 32, height = 32, icon }
       local area = kit.action {
         id = "launcher-row-" .. entry.key,
-        enter = { opacity = 0, scale = 0.97, duration = theme.duration.small, easing = theme.ease.standard_decel },
+        enter = kit.enter(index_of(entry.key)),
         width = INNER, height = ROW, cursor = "pointer",
         on_entered = function()
           local i = index_of(bound.entry.key)

@@ -21,7 +21,7 @@ local function link_row(w, spec)
     }
   end
   local row = P.row { id = spec.id, width = P.inner(w), icon = spec.icon, on = spec.on, title = spec.name,
-    subtitle = spec.detail, trailing = trailing }
+    subtitle = spec.detail, trailing = trailing, enter = kit.enter() }
   if spec.visible then row.visible = spec.visible end
   return row
 end

@@ -1288,6 +1288,12 @@ return function(theme)
     for _, node in ipairs(nodes) do entries[#entries + 1] = { node = node } end
     return theme.motion.entries(entries, coming, opts)
   end
+  --- How a list's row comes in, as a node's `enter`: a short, hard step in
+  --- from the side, a beat after the row above (`index`, from 1).
+  function M.enter(index)
+    return { opacity = 0, translate_x = -8, duration = theme.duration.small, easing = theme.ease.standard,
+      delay = math.min((index or 1) - 1, 8) * theme.stagger.step }
+  end
   --- Makes `node` ride out with drawer `d`: tied to the panel's far edge on
   --- every frame (ui.follow), pushed `distance()` px at the end.
   function M.ride(name, node, d, distance)

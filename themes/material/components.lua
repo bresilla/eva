@@ -259,6 +259,14 @@ function M.bud(nodes, coming, opts)
   return theme.motion.entries(entries, coming, opts)
 end
 
+--- How a list's row comes in, as a node's `enter`: it grows into place on the
+--- spatial spring a little after the row above (`index`, from 1).
+function M.enter(index)
+  local spatial = theme.bounce.spatial
+  return { opacity = 0, scale = 0.94, duration = spatial.duration, easing = spatial.easing,
+    delay = math.min((index or 1) - 1, 8) * theme.stagger.step }
+end
+
 -- --------------------------------------------------------------- shapes --
 
 local shapes -- lib/m3shapes, loaded on first use

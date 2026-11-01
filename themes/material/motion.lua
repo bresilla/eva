@@ -77,31 +77,34 @@ return function(theme)
     end
     opts = opts or {}
     local handles = {}
+    local stagger = opts.stagger or theme.stagger.step
+    local spatial = theme.bounce.spatial
+    local gone, leaving = theme.duration.small, theme.duration.small * 0.6
     for k, entry in ipairs(entries) do
       local n = entry.node
       local fresh = not (n.opacity > 0 and n.opacity < 1)
+      local delay = coming and ((opts.delay or theme.stagger.delay) + (k - 1) * stagger)
+        or (k - 1) * (opts.leave_stagger or 0)
       local steps
       if coming then
-        local delay = (opts.delay or 40) + (k - 1) * (opts.stagger or 26)
         steps = {
           { node = n, property = "scale", from = fresh and (opts.from or 0.92) or nil, to = 1,
-            duration = theme.bounce.spatial.duration, easing = theme.bounce.spatial.easing, delay = delay },
-          { node = n, property = "opacity", from = fresh and 0 or nil, to = 1, duration = 220, delay = delay },
+            duration = spatial.duration, easing = spatial.easing, delay = delay },
+          { node = n, property = "opacity", from = fresh and 0 or nil, to = 1, duration = gone, delay = delay },
         }
       else
         steps = {
-          { node = n, property = "scale", to = 0.96, duration = 160, easing = theme.ease.emphasized_accel, delay = (k - 1) * (opts.leave_stagger or 0) },
-          { node = n, property = "opacity", to = 0, duration = 120, delay = (k - 1) * (opts.leave_stagger or 0) },
+          { node = n, property = "scale", to = 0.96, duration = gone, easing = theme.ease.emphasized_accel, delay = delay },
+          { node = n, property = "opacity", to = 0, duration = leaving, delay = delay },
         }
       end
       if entry.shape then
         steps[#steps + 1] = { node = entry.shape, property = "opacity", from = coming and fresh and 0 or nil,
-          to = coming and 1 or 0, duration = coming and 220 or 120,
-          delay = coming and ((opts.delay or 40) + (k - 1) * (opts.stagger or 26)) or 0 }
+          to = coming and 1 or 0, duration = coming and gone or leaving, delay = coming and delay or 0 }
       end
       handles[#handles + 1] = morf.animation.play { { parallel = steps } }
     end
-    return handles, coming and (420 + #entries * (opts.stagger or 26)) or 200
+    return handles, coming and (spatial.duration + #entries * stagger) or gone
   end
 
   return M

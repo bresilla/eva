@@ -65,7 +65,12 @@ M.stretch = {
   thumb = { stiffness = 420, damping = 26, scale = 0.9, max = 0.3 },
   blob = { stiffness = 300, damping = 24, scale = 0.5, max = 0.9 },
   selection = { stiffness = 300, damping = 22, scale = 0.5, max = 0.3 },
+  tab = { stiffness = 300, damping = 22, scale = 0.5, max = 0.8 },
 }
+
+-- What comes in together comes in turn: the wait before the first, and each
+-- one's wait after the last.
+M.stagger = { delay = 40, step = 26 }
 
 -- How wide a seam opens between shapes that merge while they move.
 M.blend = { rail = 14 }

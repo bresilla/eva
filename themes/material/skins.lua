@@ -507,26 +507,35 @@ return function(theme, M)
       if not growing then x = x + PAD end
       return x, x + w
     end
-    local indicator = ui.Item { id = id and id .. "-tab-indicator", y = H - 4, height = 3, x = 0, width = 0 }
+    local indicator = ui.Item { id = id and id .. "-tab-indicator", y = H - 4, height = 3,
+      stretch = theme.stretch.tab }
     local moving = morf.signal("eva." .. tostring(id) .. ".indicator.moving", false)
+    local name = "eva." .. tostring(id) .. ".indicator"
+    -- Where it belongs: placed at once until it first travels, then on a
+    -- spring that carries its speed through a change of mind.
+    local aim_x, aim_width = morf.signal(name .. ".x", 0), morf.signal(name .. ".width", 0)
+    local travelled = morf.signal(name .. ".travelled", false)
+    ui.claims(indicator, { motion = theme.spring.spatial,
+      placed = { when = function() return not travelled:get() end, motion = { duration = 0 },
+        set = { x = aim_x, width = aim_width } },
+      moved = { set = { x = aim_x, width = aim_width } } })
     -- Set going once every label is there to be measured.
     local function follow()
       local still
-      local shown, moved = t.current, false
-      morf.effect("eva." .. tostring(id) .. ".indicator", function()
+      local shown = t.current
+      morf.effect(name, function()
         local now = t.current
         if now < 1 then return end
         local l1, r1 = span(now)
-        if now == shown then
-          if not moved then indicator.x, indicator.width = l1, r1 - l1 end
-          return
+        if now ~= shown then
+          shown = now
+          travelled:set(true)
+          moving:set(true)
+          if still then still:cancel() end
+          still = morf.time.timer(theme.bounce.spatial.duration, function() still = nil moving:set(false) end, false)
         end
-        local l0, r0 = span(shown)
-        shown, moved = now, true
-        M.elastic(indicator, "x", l0, r0, l1, r1, { duration = 520 })
-        moving:set(true)
-        if still then still:cancel() end
-        still = morf.time.timer(560, function() still = nil moving:set(false) end, false)
+        aim_x:set(l1)
+        aim_width:set(r1 - l1)
       end, { owner = indicator })
     end
     local line = { shape = "box", operation = "union", y = 7, height = 1,

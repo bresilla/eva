@@ -498,7 +498,7 @@ return function(theme, M, hud)
     local indicator = ui.Rect { id = id and id .. "-tab-indicator", y = height - 8, height = 2,
       color = function() return C.primary end, width = slot,
       x = function() return (growing and 0 or pad) + left(math.max(1, t.current)) end,
-      behavior = { x = { duration = 260, easing = "out_cubic" } } }
+      behavior = { x = theme.spring.spatial } }
     if growing then rail.anchors = { left = true, right = true } else rail.x, rail.width = pad, span end
     return {
       background = rail,

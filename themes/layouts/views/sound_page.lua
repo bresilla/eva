@@ -58,7 +58,7 @@ local function device_row(id_prefix, row, icon)
   local function chosen() local d = live() return d ~= nil and d.default == true end
   return rows.choice {
     id = id_prefix .. "-" .. math.floor(row.id), group = id_prefix,
-    width = INNER, height = P.ROW_H, on = chosen,
+    width = INNER, height = P.ROW_H, on = chosen, enter = kit.enter(),
     on_clicked = function() model.select_device(row) end,
     P.row { width = INNER, on = chosen, icon = icon,
       title = function() return name_of(live()) end,
