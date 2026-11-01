@@ -126,8 +126,9 @@ function M.make(widget, spec)
   local indicator, pull
   if spec.on_refresh then
     indicator, pull = require("themes.kit.drag").make("pull_to_refresh", { id = spec.id and spec.id .. "-pull",
-      anchors = { fill = true }, accepted_buttons = {}, focus_policy = "none",
-      pull_distance = require("themes.overscroll").REST })
+      anchors = { fill = true }, focus_policy = "none", pull_distance = require("themes.overscroll").REST })
+    -- There only while it shows: at rest the list under it takes the presses.
+    indicator.visible = function() return pull.refreshing or (pull.pull or 0) > 0.02 end
     children[2] = indicator
   end
   control_props.on_panned = require("themes.overscroll").new { flick = flick, sideways = sideways,
