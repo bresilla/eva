@@ -1,0 +1,32 @@
+# Every pair of panels that can stand open at once, and the things that open over them.
+start shell
+ipc sidebar open settings; pause 0.8
+ipc dashboard open; pause 1.2; shot right-top
+ipc leftbar open tasks; pause 1.2; shot left-top-right
+ipc close; pause 0.6
+ipc leftbar open tasks; pause 0.6
+ipc dashboard open overview; pause 1.2; shot left-top
+ipc close; pause 0.6
+ipc dashboard open performance; pause 1.4
+ipc bottom open assistant; pause 1.4; shot tall-top-bottom
+ipc close; pause 0.6
+ipc dashboard open overview; pause 1.0
+ipc bottom open assistant; pause 1.4; shot top-bottom
+ipc sidebar open settings; pause 1.2; shot top-bottom-right
+ipc close; pause 0.6
+ipc sidebar open settings; pause 0.6
+ipc capture open; pause 1.6; shot right-capture
+ipc close; pause 0.6
+ipc leftbar open tasks; pause 0.6
+ipc capture open; pause 1.6; shot left-capture
+ipc close; pause 0.6
+ipc sidebar open settings; pause 0.6
+ipc notify "Backup finished" "All files are safe" normal; pause 1.2; shot right-popup
+ipc osd volume; pause 0.8; shot right-osd
+ipc close; pause 0.6
+ipc sidebar open settings; pause 0.6
+ipc launcher open; pause 1.2; shot right-launcher
+ipc close; pause 0.6
+ipc leftbar open tasks; pause 0.4
+ipc sidebar open notifications; pause 0.4
+ipc bottom open drop; pause 1.4; shot left-bottom-right
