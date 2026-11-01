@@ -1,0 +1,45 @@
+#!/bin/sh
+# eva-zoom: a magnifier. On Hyprland, its cursor zoom, live and following the
+# pointer. Elsewhere a lens over the frozen screen that follows the pointer, the
+# wheel or a pinch setting its factor; a second launch shuts it.
+#
+#   eva-zoom                the small window, with a slider for touch
+#   eva-zoom in | out       one step
+#   eva-zoom reset          back to 1 (ends a lens)
+#   eva-zoom N              the factor, from 1 to 10
+#   eva-zoom get            prints the factor
+#   eva-zoom lens           the lens, anywhere
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+# The lens, in the window when it is open, else by itself.
+lens() {
+  pid=$(cat "${XDG_RUNTIME_DIR:-/tmp}/eva/zoom.window" 2> /dev/null || true)
+  display=$(basename -- "${WAYLAND_DISPLAY:-wayland-0}")
+  if [ -n "$pid" ] && eva_morf -i "$display-app-$pid" ipc call lens "$1" > /dev/null 2>&1; then
+    exit 0
+  fi
+  EVA_ZOOM_LENS=$1 exec sh "$apps/launch" zoom
+}
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" zoom ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  lens) lens lens ;;
+  get)
+    if [ "$(eva_compositor)" = hyprland ]; then
+      hyprctl -j getoption cursor:zoom_factor | jq -r .float
+    else
+      jq -r '.factor // 2' "$(eva_state)/zoom/lens.json" 2> /dev/null || echo 2
+    fi
+    ;;
+  in | out | reset | [0-9]*)
+    if [ "$(eva_compositor)" = hyprland ]; then exec sh "$apps/launch" zoom "$1"; fi
+    lens "$1"
+    ;;
+  *)
+    eva_say "eva-zoom: no step $1"
+    exit 2
+    ;;
+esac
