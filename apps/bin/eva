@@ -31,6 +31,9 @@ assistant|toggle, open or close|The assistant
 lule|toggle, open or close|The colour tool's panel
 osd|volume, brightness, mic or another kind|Show the on-screen display
 notify|SUMMARY [BODY URGENCY APP]|Post a notification
+nightlight|on, off, toggle, status, temperature or follow|The night light
+awake|on [MINUTES], off, toggle or state|Keep the session awake
+focus|on, off, toggle or state|Do not disturb, for a focus timer
 workspace|N|Go to workspace N
 window_menu|toggle, open or close|The window menu
 appearance|material, tsugumori, font:NAME or state|Change or read the theme

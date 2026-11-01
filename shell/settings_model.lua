@@ -117,9 +117,35 @@ local function clock(at)
   return (morf.time.format("%H:%M", at))
 end
 
+-- When a kept-awake with a time on it lets go, 0 for none.
+local awake_until = require("themes.session").keep("eva.utilities.awake_until", 0)
+local awake_timer
+
 function M.set_awake(on)
   if on and not M.awake:get() then awake_since:set(clock(morf.time.now())) end
   M.awake:set(on and true or false)
+  if not on then awake_until:set(0) end
+end
+
+morf.effect("eva.utilities.awake_until", function()
+  local stop = awake_until:get()
+  if awake_timer then awake_timer:cancel() awake_timer = nil end
+  if stop <= 0 then return end
+  awake_timer = morf.time.timer(math.max(0, (stop - morf.time.now()) * 1000), function()
+    awake_timer = nil
+    M.set_awake(false)
+  end, false)
+end)
+
+--- Stays awake for `minutes`, or until told otherwise without them.
+function M.awake_for(minutes)
+  M.set_awake(true)
+  awake_until:set(minutes and morf.time.now() + minutes * 60 or 0)
+end
+
+--- `eva awake`'s answer: whether it is on, and when it lets go, 0 for never.
+function M.awake_state()
+  return { on = M.awake:get(), ["until"] = awake_until:get() }
 end
 
 local local_state = {

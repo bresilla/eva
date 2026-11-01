@@ -475,6 +475,27 @@ ipc.nightlight = function(how, value)
   if not text then error(why) end
   return text
 end
+-- `awake on|off|toggle|state [MINUTES]`: the quick settings' keep awake, the
+-- shell's own inhibitor, for eva-awake.
+ipc.awake = function(how, minutes)
+  if not here() then return nil end
+  local settings = require("settings_model")
+  if how == "toggle" then how = settings.awake:get() and "off" or "on" end
+  if how == "on" then settings.awake_for(tonumber(minutes))
+  elseif how == "off" then settings.set_awake(false)
+  elseif how ~= "state" and how ~= nil then error("`" .. tostring(how) .. "`: on, off, toggle or state") end
+  return settings.awake_state()
+end
+-- `focus on|off|toggle|state`: quiet for a while, the seam a focus timer holds.
+ipc.focus = function(how)
+  if not here() then return nil end
+  local dnd = require("notifs").dnd
+  if how == "on" then dnd:set(true)
+  elseif how == "off" then dnd:set(false)
+  elseif how == "toggle" then dnd:set(not dnd:get())
+  elseif how ~= "state" and how ~= nil then error("`" .. tostring(how) .. "`: on, off, toggle or state") end
+  return dnd:get()
+end
 ipc.workspace = function(n)
   if not here() then return nil end
   require("services").workspace.go(n)
