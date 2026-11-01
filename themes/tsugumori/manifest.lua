@@ -30,6 +30,7 @@ return {
     notification_history = "themes.layouts.views.notification_history",
     rail = "themes.tsugumori.views.rail",
     frame = "themes.tsugumori.views.frame",
+    app_frame = "themes.tsugumori.views.app_frame",
     levels = "themes.layouts.views.levels",
     notifications = "themes.layouts.views.notifications",
     polkit = "themes.layouts.views.polkit",
