@@ -89,7 +89,7 @@ function M.proxy_page(model, w, h)
   end
   return P.page { id = "proxy-scroll", width = w, height = h, active = model.active,
     P.section { id = "proxy-mode", width = w, title = "Proxy",
-      F.choices { id = "proxy-how", width = inner, items = model.MODES, now = model.mode, pick = function(mode) model.set("mode", mode) end },
+      F.choices { id = "proxy-how", width = inner, items = model.MODES, per_row = 2, now = model.mode, pick = function(mode) model.set("mode", mode) end },
       line("http", "http://proxy:3128", manual),
       line("https", "http://proxy:3128 for secure sites", manual),
       line("socks", "socks5://proxy:1080", manual),
