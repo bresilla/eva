@@ -27,28 +27,6 @@ M.NONE = { present = false, level = 0, charging = false, plugged = false, full =
   remaining = 0, mark = "", tone = "ink" }
 
 local MAINS = { charging = true, pending_charge = true, fully_charged = true }
-local SUPPLIES = "/sys/class/power_supply"
-
-local function number_at(path)
-  local ok, text = pcall(morf.fs.read, path)
-  return ok and type(text) == "string" and tonumber(text:match("%d+")) or nil
-end
-
-local function word_at(path)
-  local ok, text = pcall(morf.fs.read, path)
-  return ok and type(text) == "string" and text:match("%S+") or nil
-end
-
--- The kernel's charge thresholds of the machine's own battery: end, start.
-local function sysfs_thresholds()
-  local ok, entries = pcall(morf.fs.list, SUPPLIES, { follow = true })
-  for _, entry in ipairs(ok and entries or {}) do
-    local base = SUPPLIES .. "/" .. entry.name
-    if word_at(base .. "/type") == "Battery" and word_at(base .. "/scope") ~= "Device" then
-      return number_at(base .. "/charge_control_end_threshold"), number_at(base .. "/charge_control_start_threshold")
-    end
-  end
-end
 
 -- UPower's display device; a present battery row when that reads absent.
 local function device(state)
@@ -101,7 +79,8 @@ function M.read(upower)
   local limited = false
   if plugged and not charging then
     local stop, start
-    if upower.charge_limit then stop, start = upower.charge_limit() else stop, start = sysfs_thresholds() end
+    if upower.charge_limit then stop, start = upower.charge_limit()
+    else stop, start = require("lib.services.charger").thresholds() end
     limited = stop ~= nil and stop < 100 and level >= (start or stop) - 1
   end
   local feed = plugged and feed_of(upower) or {}

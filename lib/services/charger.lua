@@ -87,6 +87,13 @@ local function capacity(base)
   if charge and voltage then return charge * voltage / MICRO2 end
 end
 
+--- The thresholds of the machine's own battery: end, then start.
+function M.thresholds(dir)
+  local base = own_battery(dir or M.DIR)
+  if not base then return nil end
+  return number_at(base .. "/" .. END_FILE), number_at(base .. "/" .. START_FILE)
+end
+
 --- The present feed: `present` (a battery), `status`, `level`, `kind` (usb,
 --- wireless, mains or nil), `protocol` (PD, DCP and so on), `offered` and
 --- `watts` (what the input can give and what reaches the cell), `volts`,
@@ -96,6 +103,7 @@ function M.read(dir)
   local base, name = own_battery(dir)
   if not base then return { present = false, fast = false, slow = false, wireless = false } end
   local input = best_input(dir) or {}
+  local limit, start = M.thresholds(dir)
   local status = (text_at(base .. "/status") or "Unknown"):match("^%s*(.-)%s*$")
   local charging = status == "Charging"
   local watts = charging and flow(base) or nil
@@ -105,8 +113,7 @@ function M.read(dir)
   return {
     present = true, name = name, status = status, level = number_at(base .. "/capacity"),
     kind = input.kind, protocol = input.protocol, offered = input.offered, volts = input.volts, amps = input.amps,
-    watts = watts, capacity = capacity(base),
-    limit = number_at(base .. "/" .. END_FILE), start = number_at(base .. "/" .. START_FILE),
+    watts = watts, capacity = capacity(base), limit = limit, start = start,
     fast = portable and rate ~= nil and rate >= M.FAST,
     slow = portable and rate ~= nil and rate < M.SLOW,
     wireless = input.kind == "wireless",
