@@ -157,8 +157,7 @@ function V.build(model, w, h)
       entry("look-font-file", inner, "~/.local/share/fonts/face.ttf",
         function() return config.get("appearance.font_file") end,
         function(value)
-          local ok, why = model.set_font_file(value)
-          status:set(ok and "" or why)
+          require("themes.fonts").set({ file = value }, function(ok, why) status:set(ok and "" or why) end)
         end),
       kit.subtitle { id = "look-status", font_size = theme.size.small, color = function() return C.error end, width = inner,
         visible = function() return status:get() ~= "" end, text = function() return status:get() end },
