@@ -61,7 +61,7 @@ function V.build(model, w, h)
       P.row { id = "screen-time-local", width = inner, icon = "lock", title = "Stays on this machine",
         subtitle = "Counted here. Nothing leaves it" },
       P.row { id = "screen-time-honest", width = inner, icon = "info", title = "Limits warn",
-        subtitle = "A shell cannot stop an app, so every limit can be overridden" },
+        subtitle = "You can override them: a shell cannot stop an app" },
     },
     P.section(apps),
     P.section { id = "screen-time-downtime", width = w, title = "Downtime",

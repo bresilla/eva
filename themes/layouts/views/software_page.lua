@@ -17,7 +17,7 @@ function V.build(model, w, h)
 
   local on_machine = { id = "software-machine", width = w, title = "This machine",
     P.row { id = "software-nixos", width = inner, icon = "deployed_code", title = "NixOS",
-      subtitle = "System apps come from your configuration. They cannot be removed from here",
+      subtitle = "System apps cannot be removed from here",
       visible = function() return machine().nixos end },
     P.row { id = "software-flatpak", width = inner, icon = "package_2", title = "Flatpak",
       subtitle = function() return machine().flatpak and "Installs and removes apps" or "Not on this machine" end,

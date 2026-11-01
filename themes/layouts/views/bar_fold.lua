@@ -26,7 +26,7 @@ function V.build(status, w, h)
   local inner = P.inner(w)
   local indicators = { id = "bar-fold-indicators", width = w, title = "Status icons",
     P.row { id = "bar-fold-about", width = inner, icon = "info", title = "When room runs out",
-      subtitle = "First goes into the dot first, Last goes last, Keep stays, Never does not show" },
+      subtitle = "Icons fold into the dot in the order set here" },
     P.row { id = "bar-fold-always", width = inner, icon = "mic", title = "Always shown",
       subtitle = "A microphone, camera or screen share in use" },
   }
