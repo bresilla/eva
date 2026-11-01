@@ -7,7 +7,7 @@ local M = {}
 
 -- The card's surface, taller than the card: what the card leaves bare is
 -- clear and takes no input. Its keypad needs the room.
-local CARD_W, CARD_H = 440, 620
+local CARD_W, CARD_H = 440, 800
 
 local function size()
   local s = (morf.screens or {})[1] or {}

@@ -176,6 +176,17 @@ test.it("a blocked number never rings",function()
   test.eq(read.outcome,"blocked")
 end)
 
+test.it("the desk's card keeps End call on its surface with the keypad open",function()
+  load(1920,1080)
+  ring()
+  press("call-answer")
+  press("call-keypad-toggle")
+  test.settle(400)
+  local stop=test.get("call-end")
+  local surface=call_surface()
+  test.truthy(stop.y+stop.height<=surface.height,("%s + %s within %s"):format(stop.y,stop.height,surface.height))
+end)
+
 test.it("a blocked number that arrives after the ring is still turned away",function()
   test.load("../shell/init.lua",{source=[[
     local standin=require("lib.services.modem_standin").start()
