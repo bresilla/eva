@@ -102,14 +102,13 @@ test.describe("motion films", function()
     test.load("../../lock/init.lua", { args = { "window", "preview" }, size = { 1280, 800 },
       env = { EVA_STYLE = STYLE, EVA_DRY_RUN = "1", EVA_THEME_MODE = morf.env("FILM_MODE") or "dark" } })
     test.settle(2000)
-    local before = test.get("lock-clock-5-digit") or test.get("lock-clock")
-    local from = before.text
-    local waited = 0
-    while waited < 62000 and (test.find("lock-clock-5-digit") or test.get("lock-clock")).text == from do
+    local function digit() return (test.find("lock-clock-5-digit") or test.get("lock-clock")).text end
+    local from, waited = digit(), 0
+    while waited < 62000 and digit() == from do
       test.advance(16)
       waited = waited + 16
     end
-    film("lock-morph", 8, 24)
+    film("lock-morph", 6, 32)
   end)
 
   take("stretch", function()
