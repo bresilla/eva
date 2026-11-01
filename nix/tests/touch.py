@@ -463,12 +463,15 @@ def run(password):
             (2, (0.5, 0.045), (0.5, 0.35), (0.06, 0.03)),
             (3, (0.045, 0.5), (0.35, 0.5), (0.03, 0.06)),
         ):
+            before = reader_pids()
             hyprctl("eval", f'hl.monitor({{ output = "Virtual-1", transform = {transform} }})')
             hyprctl("eval", f"hl.config({{ input = {{ touchdevice = {{ transform = {transform} }} }} }})")
             machine.sleep(6)
             print("TURNED", ipc("screen"), len(reader_pids()), hyprctl("monitors").split("\n")[11])
-            check(f"one reader after turning to {transform}", eventually(lambda: len(reader_pids()) == 1, 12), str(reader_pids()))
-            machine.sleep(2)
+            # Turning rebuilds the shell: its reader replaces the last, never joins it.
+            replaced = eventually(lambda: len(reader_pids()) == 1 and reader_pids() != before, 40)
+            check(f"one new reader after turning to {transform}", replaced, f"{before} to {reader_pids()}")
+            machine.sleep(3)
             stroke([start, (start[0] - second[0], start[1] + second[1])], [end, (end[0] - second[0], end[1] + second[1])])
             machine.sleep(2)
             check(f"the keyboard comes up at transform {transform}", keyboard_up(), str(ipc("touch")))
