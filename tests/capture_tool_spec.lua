@@ -181,6 +181,25 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 end
 
+test.it("keeps the same sections and geometry in both themes", function()
+  local baseline = {}
+  for _, style in ipairs { "material", "tsugumori" } do
+    tool(style, { size = { 1920, 1080 } })
+    test.ipc("capture", "open") test.advance(2800)
+    for _, id in ipairs { "capture-page", "capture-target-region", "capture-target-screen" } do
+      local node = test.get(id)
+      if style == "material" then
+        baseline[id] = { x = node.x, y = node.y, width = node.width, height = node.height, visible = node.visible }
+      else
+        test.eq(node.visible, baseline[id].visible, "visibility changed: " .. id)
+        for _, key in ipairs { "x", "y", "width", "height" } do
+          test.near(node[key], baseline[id][key], 1, id .. " " .. key)
+        end
+      end
+    end
+  end
+end)
+
 test.it("every tool is on the palette", function()
   tool()
   test.ipc("screenshot", "screen") test.advance(600)
