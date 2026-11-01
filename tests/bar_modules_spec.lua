@@ -199,13 +199,18 @@ test.describe("the readings",function()
     add("weather")
     test.eq(module("weather").text,"18°") test.truthy(module("weather").tooltip:find("Wageningen",1,true)~=nil)
   end)
-  test.it("counts the notifications from their history, and from a signal where there is one",function()
+  test.it("counts the notifications from the badge, and none while Focus hides it",function()
     load_shell {}
     test.eq(module("notifications").text,"")
     test.ipc("q_run",[[require('notifs').push{summary='Hi',body='',app='Test'} return true]]) test.advance(100)
     test.eq(module("notifications").text,"1")
-    test.ipc("q_run",[[require('notifs').unread=require('morf').signal('test.unread',7) return true]]) test.advance(100)
-    test.eq(test.ipc("q_run",[[return require('bar').model.notifications.count()]]),7)
+    test.eq(test.ipc("q_run",[[return require('notifs').badge:get().unread]]),1)
+    test.ipc("q_run",[[
+      local badge=require('notifs').badge:get()
+      badge.hidden=true
+      require('notifs').badge:set(badge)
+      return true]]) test.advance(100)
+    test.eq(test.ipc("q_run",[[return require('bar').model.notifications.count()]]),0)
   end)
   test.it("counts down to a date, and offers no countdown without one",function()
     load_shell {}

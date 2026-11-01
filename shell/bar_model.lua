@@ -171,15 +171,15 @@ function M.new(ctx)
   end
 
   -- ------------------------------------------------------ what modules read --
-  -- The notifications, from `notifs.unread` where that signal stands, else
-  -- their history.
+  -- The notifications, from the badge every screen shares: none while Focus
+  -- hides it.
   model.notifications={}
   local function notifs() return package.loaded.notifs end
   function model.notifications.count()
     local n=notifs()
     if not n then return 0 end
-    if n.unread then return n.unread:get() end
-    return #n.history:get()
+    local badge=n.badge:get()
+    return badge.hidden and 0 or badge.unread
   end
   function model.notifications.dnd()
     local n=notifs()
