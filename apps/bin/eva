@@ -89,7 +89,6 @@ tools() {
   for folder in "$apps"/*/; do
     if [ -f "$folder/app.lua" ]; then basename "$folder"; fi
   done
-  # The capture tool under its other name, and the shell's StandBy.
   echo record
   echo standby
 }

@@ -122,7 +122,6 @@ local function busy()
 end
 local function claim()
   if morf.broadcast then morf.broadcast("capture-claim",screen.name) end
-  -- A thumbnail goes before the next picture.
   local thumb = package.loaded.thumb
   if thumb then thumb.dismiss() end
 end
@@ -150,7 +149,6 @@ function M.shoot(what,how)
     end
     M.phase:set("editing")
     M.editor.start(what,function(ok,message,value)
-      -- A cancelled selection answers with neither, and that is not a result.
       report(order.result, ok and value ~= nil, value or message or "cancelled")
       if ok then M.phase:set("ready") M.message:set(message or "Capture closed.")
       elseif after then M.phase:set("ready") M.message:set(message or "Capture failed.")

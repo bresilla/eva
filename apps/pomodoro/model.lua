@@ -1,6 +1,6 @@
 -- eva-pomodoro's state: work, short and long breaks, kept in a file so a session
 -- outlives its window. The moment a phase ends is a timer in eva-clock's store,
--- which rings it and shows it in the bar; there is no timer engine here. No nodes.
+-- which rings it and shows it in the bar. No nodes.
 local morf = require("morf")
 local sys = require("common.sys")
 local lib = require("lib.services.alarm")

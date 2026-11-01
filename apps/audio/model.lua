@@ -1,6 +1,6 @@
 -- eva-audio: the two pages of shell/sound_model.lua and the equalizer of
 -- shell/equalizer_model.lua in a window, and what the command line asks of the
--- sound server. No nodes, and no second model of the sound.
+-- sound server. No nodes.
 local morf = require("morf")
 local sys = require("common.sys")
 
