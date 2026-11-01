@@ -38,6 +38,14 @@ in
         pkgs.iw
         pkgs.jq
         pkgs.upower
+        # There is no sound server here: what stands in writes down what it was
+        # asked to play, and plays it for as long as a short sample would last.
+        (lib.hiPrio (
+          pkgs.writeShellScriptBin "pw-play" ''
+            printf '%s\n' "$*" >> /tmp/sound-requests
+            exec sleep 2
+          ''
+        ))
       ];
     };
 

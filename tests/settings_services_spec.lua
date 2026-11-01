@@ -107,13 +107,24 @@ local HOST = [[
   end
   function tests.filters()
     local access = require("lib.services.access")
+    local screen = require("lib.services.screen_filter")
     for _, row in ipairs(access.FILTERS) do
-      local source = access.shader(row[1])
+      local source = screen.source(screen.with({}, row[1]))
       if row[1] == "none" then falsy(source, "a shader for none")
       else truthy(source:find("fragColor", 1, true), row[1]) end
     end
+    -- A colour blindness filter corrects: it does not show the loss to everyone.
+    for _, kind in ipairs(screen.CORRECTIONS) do
+      truthy(screen.source(screen.with({}, kind)):find("c = correct(c);", 1, true), kind)
+      eq(screen.key(screen.with({}, kind)), "correction-" .. kind, "its name")
+    end
+    local both = screen.with({ extradim = true, dim = 0.5 }, "grayscale")
+    eq(screen.key(both), "grayscale-extradim-50", "the page's filter and a quick one, together")
     local step = require("lib.services.input_config").path_step("decoration:screen_shader", "/a/b.frag", "lua")
     eq(step.eval, 'hl.config({ decoration = { screen_shader = "/a/b.frag" } })')
+    -- Hyprland keeps two quote marks as a path of that name.
+    local cleared = require("lib.services.input_config").path_step("input:kb_file", "", "hyprlang")
+    eq(cleared.value, "", "clearing sends no value at all")
   end
   function tests.mouse_keys()
     local access = require("lib.services.access")

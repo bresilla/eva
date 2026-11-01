@@ -89,7 +89,7 @@ function M.path_step(option, path, how)
   if how == "lua" then
     return { eval = "hl.config(" .. hyprconf.nest(option, '"' .. path .. '"') .. ")" }
   end
-  return { keyword = option, value = path == "" and '""' or path }
+  return { keyword = option, value = path }
 end
 
 --- Everything chosen as one plan. `state`: `chosen` (by OPTIONS name),
