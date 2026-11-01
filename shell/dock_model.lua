@@ -11,7 +11,7 @@ M.MAX_ICONS = 14
 M.GAIN, M.REACH = .6, 2.2
 M.EDGES = { "bottom", "left", "right" }
 
---- What the dock is here: "dock", "taskbar" along a tablet's edge, "hotseat",
+--- What the dock is here: "dock", "taskbar" along a tablet's edge when asked for, "hotseat",
 --- the pinned row on a phone's home, or "off": on a phone without a home, and
 --- on a desk unless it is asked for.
 function M.mode()
@@ -23,7 +23,6 @@ function M.mode()
     local home = config.get("desktop.home.enabled") == true and config.get("desktop.home.dock") == true
     return home and "hotseat" or "off"
   end
-  if form == "tablet" then return "taskbar" end
   return wish == "on" and "dock" or "off"
 end
 

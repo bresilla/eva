@@ -244,9 +244,9 @@ local config = settings.open {
       -- order; which are drawn as an icon alone. A module the machine lacks
       -- is skipped.
       modules = {
-        desk = { start = { "logo", "workspaces", "windows" }, centre = { "live", "clock" },
+        desk = { start = { "logo", "windows" }, centre = { "live", "clock" },
           ["end"] = { "tray", "privacy", "notifications", "status" } },
-        tablet = { start = { "logo", "clock", "workspaces", "windows" }, centre = { "live" },
+        tablet = { start = { "logo", "clock", "windows" }, centre = { "live" },
           ["end"] = { "privacy", "status" } },
         phone = { start = { "clock", "notifications" }, centre = { "live" }, ["end"] = { "privacy", "status" } },
       },
@@ -653,8 +653,8 @@ local config = settings.open {
     -- Background sounds: rain, ocean or noise, and how loud, 0 to 1.
     sounds = { kind = "rain", level = 0.4 },
     dock = {
-      -- "auto" keeps it down on a desk, and a taskbar on a tablet; "on" puts
-      -- it up on a desk; "off" takes it away. A phone never has one.
+      -- "auto" keeps it away; "on" puts it up; "off"
+      -- takes it away. A phone never has one.
       enabled = "auto",
       -- bottom, left or right.
       edge = "bottom",

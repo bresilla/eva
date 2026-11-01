@@ -92,12 +92,11 @@ function M.height_class()
   return h < M.MEDIUM_HEIGHT and "compact" or h < M.EXPANDED_HEIGHT and "medium" or "expanded"
 end
 
---- phone, tablet or desk: what the output is used as. An upright output too
---- narrow for a desk's sides is a phone unless a touchscreen makes it a tablet.
+--- phone or desk: what the output is used as. A touchscreen changes nothing:
+--- an upright output too narrow for a desk's sides is a phone, the rest a desk.
 function M.form()
   local class = M.width_class()
   if class == "compact" or M.phone() then return "phone" end
-  if M.touch() then return "tablet" end
   return class == "medium" and M.portrait() and "phone" or "desk"
 end
 
