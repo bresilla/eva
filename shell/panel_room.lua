@@ -12,6 +12,8 @@ local M = {}
 M.WANT, M.LEAST = 840, theme.SIDE_W
 -- The least the bottom panel stands at under the dashboard.
 M.LEAST_H = 320
+-- The notification popups' column.
+local POPUPS_W = 430
 
 --- What a side panel takes from the opening while open.
 function M.side() return theme.SIDE_W + theme.STRIP end
@@ -123,6 +125,13 @@ local function oldest(names)
   return found
 end
 
+--- Whether the launcher reaches the popups' column, beside any right panel.
+function M.launcher_at_popups()
+  if not open("launcher") then return false end
+  local x, width = M.span(NEEDS.launcher())
+  return x + width > M.opening() - taken("sidebar") - POPUPS_W
+end
+
 --- The panel to shut when those open are too many for the opening, or nil.
 function M.crowded()
   for _, middle in ipairs { "launcher", "bottom", "dashboard" } do
@@ -140,6 +149,7 @@ function M.watch()
   if require("responsive").sheets() then return end
   morf.effect("eva.panels.room", function()
     for _, name in ipairs { "leftbar", "sidebar", "bottom", "dashboard", "launcher" } do note(name, open(name)) end
+    require("notifs").veiled:set(M.launcher_at_popups())
     local shut = M.crowded()
     -- Shut outside the effect that noticed.
     if shut then morf.time.timer(1, function() require("drawer")[shut].set(false) end, false) end
