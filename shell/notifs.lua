@@ -147,9 +147,8 @@ end
 
 -- The store's folder, for its owner alone.
 local function private_folder()
-  local dry = morf.env and morf.env("EVA_DRY_RUN")
   local chosen = morf.env and morf.env("EVA_NOTIFICATION_STORE")
-  if (chosen and chosen ~= "") or (dry and dry ~= "" and dry ~= "0") or not store_path() then return end
+  if (chosen and chosen ~= "") or not store_path() then return end
   local folder = morf.paths.state("notifications")
   pcall(morf.fs.mkdir, folder)
   morf.process.run({ "chmod", "700", folder }, {}, function() end)

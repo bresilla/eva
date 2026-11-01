@@ -1,0 +1,36 @@
+# The history across a real restart: two shell processes, one state folder, the
+# default store. A notification sent over the bus goes in; a transient one and a
+# one-time code show what stays out.
+export BOOT=4
+BUS() { local verb=$1; shift; busctl --address="$DBUS_SESSION_BUS_ADDRESS" "$verb" -- "$@"; }
+SERVICE="org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications"
+SEND() { BUS call $SERVICE Notify susssasa{sv}i "$@" | awk '{print $2}'; }
+
+start shell
+SEND Mail 0 "" "Kept across the restart" "Sent before the shell went down" 0 0 0 > /dev/null
+SEND Chat 0 "" "Also kept" "From another app" 0 0 0 > /dev/null
+SEND Toast 0 "" "Passing through" "A transient one" 0 1 transient b true 0 > /dev/null
+SEND Bank 0 "" "Your verification code" "Use 482913 to sign in" 0 0 0 > /dev/null
+pause 1.6
+note echo "== before: the running history"
+note ipc notifications list
+
+note echo "== the file on disk, then its folder's mode"
+STORE=$(find "$XDG_STATE_HOME" -name history.json | head -1)
+note echo "store=$STORE"
+note cat "$STORE"
+note stat -c '%a %n' "$(dirname "$STORE")"
+note echo "code on disk: $(grep -c 482913 "$STORE")"
+
+stop
+pause 1
+start shell
+pause 1
+note echo "== after: a new process, the same history"
+note ipc notifications list
+ipc sidebar open notifications; pause 1.8; shot restored
+note echo "== a new notification does not take a restored one's id"
+SEND Fresh 0 "" "After the restart" "A new id 1" 0 0 0 > /dev/null
+pause 0.6
+note ipc notifications status
+stop
