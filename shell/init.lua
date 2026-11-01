@@ -432,9 +432,19 @@ ipc.ask = function(question)
   if here() then require("assistant_model").ask(question) end
   return true
 end
--- `page KEY`: the page `KEY` (shell/pages.lua), wherever a panel holds it.
+-- `page KEY`: the page `KEY` (shell/pages.lua), wherever a panel holds it;
+-- `assistant-settings` is that page's settings.
 ipc.page = function(key)
-  if here() then return require("pages").open(key) end
+  if not here() then return end
+  if key == "assistant-settings" then return require("pages").settings("assistant") end
+  return require("pages").open(key)
+end
+-- `note NAME`: the note called NAME, opened or made.
+ipc.note = function(name)
+  if not here() then return end
+  require("pages").open("notes")
+  require("notes_model").create(name)
+  return true
 end
 -- `keyboard [how]`: the on-screen keyboard, for a key to bind. `how` is
 -- open, close, toggle or state, or a mode to open it in: full, dev,

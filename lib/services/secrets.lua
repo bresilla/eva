@@ -66,7 +66,7 @@ function M.lookup(attributes, done)
   run(argv("lookup", attributes), { timeout_ms = M.TIMEOUT_MS }, function(result)
     if result.ok and (result.stdout or "") ~= "" then
       done((result.stdout:gsub("[\r\n]+$", "")))
-    elseif result.error or result.timed_out then
+    elseif result.error or result.timed_out or tostring(result.stderr or ""):find("%S") then
       done(nil, why(result))
     else
       done(nil, "")

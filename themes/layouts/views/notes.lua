@@ -8,6 +8,7 @@ local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local widgets = require("planner_widgets")
 local markup = require("themes.layouts.markup")
+local mirror = require("themes.layouts.mirror")
 local parse = require("lib.shell.markup")
 local C = theme.color
 local S = theme.space
@@ -30,7 +31,8 @@ function M.build(model, active, w, h)
         model.search("")
       end
     end)
-  local list = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = model.rows,
+  local keeper = ui.Item { width = 1, height = 1 }
+  local list = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = mirror.new(model.rows, "id", keeper),
     delegate = function(row)
       return P.row { id = "notes-row-" .. row.id:gsub("[^%w]", "-"), width = inner, icon = "description",
         title = row.name, subtitle = row.when, trailing = P.chevron(),
@@ -40,7 +42,6 @@ function M.build(model, active, w, h)
     text = function() return "Notes are plain files in " .. model.folder() .. "." end,
     visible = function() return model.rows:len() == 0 end }
   local browse = P.page { id = "notes-list", width = w, height = h,
-    visible = function() return not open() end,
     P.section { id = "notes-find", width = w, search_node,
       P.button { id = "notes-new", label = "New note", icon = "add", tone = "primary", width = inner,
         on_clicked = function()
@@ -52,6 +53,7 @@ function M.build(model, active, w, h)
       note = function() return tostring(model.rows:len()) end, list },
     empty,
   }
+  browse.visible = function() return not open() end
 
   -- -------------------------------------------------------------- the note --
   local bar_h = P.BUTTON_H
@@ -100,6 +102,6 @@ function M.build(model, active, w, h)
     visible = open,
     ui.Item { width = w, height = bar_h, back, tools }, status, well, preview }
 
-  return ui.Item { id = "notes-page", width = w, height = h, browse, editor }
+  return ui.Item { id = "notes-page", width = w, height = h, keeper, browse, editor }
 end
 return M

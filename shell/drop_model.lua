@@ -161,9 +161,9 @@ function M.refresh()
     if not result.ok then say(drop.why(result)) return end
     local rows = {}
     for _, machine in ipairs(drop.parse_machines(result.stdout)) do
+      if machine.here then M.identity:set(machine.name .. "  ·  " .. machine.id:sub(-12)) end
       machine.id = machine.name
       rows[#rows + 1] = machine
-      if machine.here then M.identity:set(machine.name .. "  ·  " .. machine.id:sub(-12)) end
     end
     M.machines:replace(rows, "id")
     drop.run({ "person", "ls" }, {}, function(people)
@@ -279,7 +279,7 @@ function M.select(id)
   if not target then return end
   M.selected:set(id)
   M.remote:replace({}, "id")
-  M.files:replace({}, "name")
+  M.files:replace({}, "id")
   M.folder:set("")
   M.log:replace({}, "id")
   check(target)

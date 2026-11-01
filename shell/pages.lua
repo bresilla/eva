@@ -25,7 +25,7 @@ M.all = {
     build = function(_, w, h) return require("notification_history").build(w, h) end },
   tasks = { name = "Tasks", icon = "checklist", title_id = "tasks-title", build = function(_, w, h) return require("tasks_page").build(w, h) end },
   calendar = { name = "Calendar", icon = "calendar_month", title_id = "planner-title",
-    build = function(_, w, h) return require("calendar_page").build(w, h) end },
+    build = function(panel, w, h) return require("calendar_page").build(w, h, M.showing(panel, "calendar"), panel) end },
   assistant = { name = "Assistant", icon = "auto_awesome", title_id = "assistant-title", typed = true, build = workspace("assistant", "Assistant") },
   drop = { name = "Drop", icon = "forum", title_id = "drop-title", typed = true, build = workspace("drop", "Drop") },
   notes = { name = "Notes", icon = "sticky_note_2", title_id = "notes-title", typed = true,

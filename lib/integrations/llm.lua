@@ -275,7 +275,7 @@ function M.stream(spec)
     spec.on_done { error = tostring(why) }
     return nil
   end
-  return { stop = function()
+  return { pid = function() return child:pid() end, body_path = body_path, stop = function()
     stopped = true
     child:kill("TERM")
   end }

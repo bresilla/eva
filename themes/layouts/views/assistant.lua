@@ -10,7 +10,7 @@ local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local R = require("themes.layouts.rows")
 local markup = require("themes.layouts.markup")
-local parse = require("lib.shell.markup")
+local mirror = require("themes.layouts.mirror")
 local C = theme.color
 local S = theme.space
 local M = {}
@@ -82,7 +82,10 @@ end
 
 --- The page: `model` is shell/assistant_model.lua with this panel's `active`.
 function M.build(model, w, h)
-  local function wide() return get(w) >= WIDE end
+  local keeper = ui.Item { width = 1, height = 1 }
+  local function own(list) return mirror.new(list, "id", keeper) end
+  local compact = require("responsive").compact()
+  local function wide() return not compact and get(w) >= WIDE end
   local function chat_w() return wide() and get(w) - LIST_W - P.GAP or get(w) end
   local function ready() return model.state() == "ready" end
   local function browsing() return model.browsing:get() and not wide() end
@@ -98,7 +101,7 @@ function M.build(model, w, h)
 
   -- -------------------------------------------------------- conversations --
   local conversations = ui.Repeater { as = "column", gap = S.xs, width = function() return wide() and LIST_W or get(w) end,
-    model = model.conversations,
+    model = own(model.conversations),
     delegate = function(row)
       local item_w = function() return wide() and LIST_W or get(w) end
       local open = kit.action { id = "assistant-chat-" .. row.id, x = 0, height = 56, cursor = "pointer",
@@ -173,7 +176,7 @@ function M.build(model, w, h)
   local actions = ui.Item { width = chat_w, height = P.BUTTON_H, attach,
     ui.Row { anchors = { right = true, vertical_center = true }, gap = S.s, send, stop } }
 
-  local chips = ui.Repeater { as = "row", gap = S.xs, model = model.attachments,
+  local chips = ui.Repeater { as = "row", gap = S.xs, model = own(model.attachments),
     delegate = function(row)
       return P.button { id = "assistant-attached-" .. row.id, label = row.name, icon = "close",
         accessible_name = "Remove " .. row.name, on_clicked = function() model.detach(row.id) end }
@@ -191,7 +194,7 @@ function M.build(model, w, h)
   local welcome = P.empty { id = "assistant-welcome", width = chat_w, icon = "auto_awesome", title = "Room to think.",
     text = function() return "Ask anything. " .. model.summary() .. " answers here." end,
     visible = function() return model.messages:len() == 0 end }
-  local transcript = ui.Repeater { as = "column", gap = P.GAP, width = chat_w, model = model.messages,
+  local transcript = ui.Repeater { as = "column", gap = P.GAP, width = chat_w, model = own(model.messages),
     delegate = function(row) return message_node(model, row, chat_w, open_link) end }
   local column = ui.Column { width = chat_w, gap = P.GAP, welcome, transcript, ui.Item { width = 1, height = S.s } }
   local pinned = true
@@ -213,7 +216,7 @@ function M.build(model, w, h)
     x = function() return wide() and LIST_W + P.GAP or 0 end,
     visible = function() return ready() and not browsing() end, bar, log, foot }
 
-  local root = ui.Item { id = "assistant-page", width = w, height = h, setup, list, chat }
+  local root = ui.Item { id = "assistant-page", width = w, height = h, keeper, setup, list, chat }
   morf.effect("assistant.shown", function()
     local shown = model.active()
     if shown then morf.time.timer(1, function() model.begin() end, false) end

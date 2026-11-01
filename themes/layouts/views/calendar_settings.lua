@@ -15,7 +15,9 @@ local LEADS = { 5, 10, 15, 30 }
 function V.page(model, w, h)
   local inner = P.inner(w)
   local config = require("config")
-  local rows = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = model.sources,
+  local keeper = ui.Item { width = 1, height = 1 }
+  local rows = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner,
+    model = require("themes.layouts.mirror").new(model.sources, "id", keeper),
     delegate = function(row)
       local detail = ("%s · %d events"):format(KINDS[row.kind] or "", row.events or 0)
       if (row.state or "") ~= "" then detail = row.state end
@@ -41,6 +43,7 @@ function V.page(model, w, h)
   local reminders = function() return config.get("calendar.reminders") ~= false end
   local discover = function() return config.get("calendar.discover") ~= false end
   local node = P.page { id = "settings-calendars-scroll", width = w, height = h,
+    keeper,
     P.section { id = "calendar-sources", width = w, title = "Calendars", note = function() return model.summary() end,
       rows,
       kit.text { id = "calendar-none", width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"),
@@ -49,14 +52,14 @@ function V.page(model, w, h)
       add_node,
       kit.text { id = "calendar-said", width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"),
         text = function() return model.said:get() end, visible = function() return model.said:get() ~= "" end },
-      P.row { id = "calendar-discover", width = inner, icon = "search", title = "Find vdirsyncer and khal folders", on = discover,
-        subtitle = "Looks in their usual places and their configs",
-        trailing = P.switch { id = "calendar-discover-switch", name = "Find vdirsyncer and khal folders", on = discover,
+      P.row { id = "calendar-discover", width = inner, icon = "search", title = "Find synced calendars", on = discover,
+        subtitle = "vdirsyncer and khal",
+        trailing = P.switch { id = "calendar-discover-switch", name = "Find synced calendars", on = discover,
           on_toggled = function(on) config.set("calendar.discover", on) model.watch(true) end } },
     },
     P.section { id = "calendar-reminders", width = w, title = "Reminders",
       P.row { id = "calendar-reminders-row", width = inner, icon = "notifications", title = "Remind me of events", on = reminders,
-        subtitle = "As a notification, at the event's own alarm or this long before",
+        subtitle = "At its alarm, or this long before",
         trailing = P.switch { id = "calendar-reminders-switch", name = "Remind me of events", on = reminders,
           on_toggled = function(on) config.set("calendar.reminders", on) end } },
       P.buttons(leads),

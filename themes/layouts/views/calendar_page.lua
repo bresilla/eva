@@ -73,7 +73,7 @@ function M.build(model, w, h)
           trailing = P.chevron(), on_clicked = function() model.edit(item.uuid) end }
       end },
     P.row { id = "planner-empty", width = inner, icon = "event_available", on = function() return false end,
-      title = "Nothing planned yet", subtitle = "Events and tasks due or scheduled that day show here.",
+      title = "Nothing planned yet", subtitle = "Events and tasks show here.",
       visible = function() return agenda:len() == 0 end },
   }
   local function next_up() return model.next_up() end
@@ -98,7 +98,7 @@ function M.build(model, w, h)
       P.row { id = "planner-work-row", width = inner, icon = "calendar_month", on = model.connected,
         title = function() return model.connected() and model.sources.summary() or "No calendars yet" end,
         subtitle = function()
-          return model.connected() and "Files, vdirs and addresses" or "Add an .ics file, a vdir or an address."
+          return model.connected() and "Files, vdirs and addresses" or "Add a file, a vdir or a URL"
         end,
         trailing = P.chevron(), on_clicked = model.settings },
     },

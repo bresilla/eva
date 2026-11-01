@@ -22,18 +22,22 @@ function M.build(model, active, w, h)
     return ("Battery %d%%%s"):format(reading.percent, reading.charging and ", charging" or "")
   end
 
-  local list = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = model.devices,
+  local keeper = ui.Item { width = 1, height = 1 }
+  local mirror = require("themes.layouts.mirror")
+  local list = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = mirror.new(model.devices, "id", keeper),
     delegate = function(row)
       return P.row { id = "phone-device-" .. row.id, width = inner, icon = "smartphone", title = row.name,
         on = function() return model.selected:get() == row.id end,
         subtitle = row.reachable and "Reachable" or "Out of reach",
         on_clicked = function() model.select(row.id) end }
     end }
-  local notes = ui.Repeater { as = "column", gap = theme.space.xs, width = inner, model = model.notifications,
+  local notes = ui.Repeater { as = "column", gap = theme.space.xs, width = inner, model = mirror.new(model.notifications, "id", keeper),
     delegate = function(row)
       return kit.text { id = "phone-notification-" .. row.id, text = row.text, width = inner, wrap = true,
         font_size = P.SUB, color = kit.ink("hi") }
     end }
+
+  local choose, chooser_box = require("themes.layouts.file_pick").make { id = "phone", width = inner, on_path = model.share }
 
   local page = P.page { id = "phone-page-scroll", width = w, height = h,
     P.empty { id = "phone-missing", width = w, icon = "smartphone", title = "KDE Connect is not installed",
@@ -60,8 +64,9 @@ function M.build(model, active, w, h)
     },
     P.section { id = "phone-send", width = w, title = "Send a file",
       visible = function() return shown() ~= nil end,
-      P.row { id = "phone-drop-target", width = inner, icon = "upload_file", title = "Drop a file on this page",
-        on = function() return hovering:get() end, subtitle = "It goes straight to the phone" },
+      P.row { id = "phone-drop-target", width = inner, icon = "upload_file", title = "Drop a file here",
+        on = function() return hovering:get() end, subtitle = "Straight to the phone", trailing = choose },
+      chooser_box,
     },
     P.section { id = "phone-notifications", width = w, title = "Notifications on the phone",
       visible = function() return shown() ~= nil and model.notifications:len() > 0 end, notes },
@@ -69,6 +74,6 @@ function M.build(model, active, w, h)
   local target = ui.DropArea { id = "phone-drop", anchors = { fill = true }, keys = { "files" },
     on_entered = function() hovering:set(true) end, on_exited = function() hovering:set(false) end,
     on_dropped = function(drop) model.share_all(drop.paths) end }
-  return ui.Item { id = "phone-page", width = w, height = h, page, target }
+  return ui.Item { id = "phone-page", width = w, height = h, keeper, page, target }
 end
 return M

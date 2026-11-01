@@ -18,6 +18,11 @@ local HOST = [[
       tile_phone = utilities.CONTROLS.phone ~= nil, phone_present = utilities.CONTROLS.phone.present() }
   end
   morf.ipc.seam_open = function(key) return require("pages").open(key) end
+  morf.ipc.seam_calendar_active = function()
+    local sidebar = require("sidebar")
+    return sidebar.panel.opened:get() and sidebar.panel.showing("calendar")
+      and require("calendar_sources").revision ~= nil and require("pages").showing(sidebar.panel, "calendar")()
+  end
   morf.ipc.seam_search = function(query)
     local rows = require("apps").search(query, 7) or {}
     local out = {}
@@ -124,6 +129,15 @@ test.describe("page seams", function()
     test.eq(state().route, "notes")
     load { PATH = morf.env("PWD") .. "/tests/fixtures/bin-stand-in:" .. morf.env("PATH") }
     test.truthy(state().phone_present)
+  end)
+
+  test.it("activates the calendar in whichever panel holds it, a phone's sheet too", function()
+    load({}, { 390, 844 })
+    test.ipc("seam_open", "calendar")
+    test.settle(1200)
+    test.truthy(state().sidebar)
+    test.truthy(test.ipc("seam_calendar_active"), "the page was on show and its model never knew")
+    test.eq(#test.logs("error"), 0)
   end)
 
   test.it("opens a settings page for each new route", function()

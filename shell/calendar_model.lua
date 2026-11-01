@@ -77,8 +77,9 @@ function M.new(ctx)
     local item=sources.next_event(now)
     if not item then return nil end
     local minutes=math.floor((item.at-now)/60+.5)
+    local today=morf.time.format("%Y-%m-%d",item.at)==morf.time.format("%Y-%m-%d",now)
     local soon=item.at<=now and "On now" or minutes<60 and ("In "..minutes.." min")
-      or morf.time.format("%a %H:%M",item.at)
+      or morf.time.format(today and "Today %H:%M" or "%a %-d %b %H:%M",item.at)
     return {title=item.event.summary or "Event",when=soon,link=ical.meeting_link(item.event) or "",at=item.at}
   end
   --- The forecast for the day on show: `{ symbol, words }`, or nil.

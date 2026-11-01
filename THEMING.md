@@ -592,9 +592,13 @@ its original inline graph rendering, now supplied by the shared model.
 owns its drawer; global IPC, hover and outside-click handling stay in the shell.
 The view receives tab metadata, `tab`, `displayed`, `opened`, `select`,
 `present(index)`, screen/desk sizes and `page(key, width, height)`.
-`present` rejects stale selections. Each page receives its own active predicate,
-title and connection status through `views.assistant.build(context, w, h)` or
-`views.drop.build(context, w, h)`. Neither page imports a controller or service.
+`present` rejects stale selections. `shell/assistant.lua` and `shell/drop.lua`
+hand their views the page's model and its active predicate through
+`views.assistant.build(model, w, h)` and `views.drop.build(model, active, w, h)`.
+Neither view imports a controller or service. `views.notes`, `views.phone`,
+`views.assistant_settings` and `views.calendar_settings` take a model the same
+way; `themes/layouts/markup.lua` draws markup and `themes/layouts/file_pick.lua`
+the kit's file chooser for them.
 
 Tsugumori calls `present` beneath the page cover and resets the incoming scroll
 position. Titles and entry animation follow the displayed page. Its width

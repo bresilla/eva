@@ -263,6 +263,9 @@ in
         (lib.hiPrio morfDefault)
         bridge
         pkgs.hyprsunset
+        # The assistant's streaming replies, and its keys in the Secret Service.
+        pkgs.curl
+        pkgs.libsecret
         tools
       ];
       hardware.sensor.iio.enable = lib.mkIf config.programs.eva.rotation.enable true;

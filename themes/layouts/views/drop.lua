@@ -10,6 +10,7 @@ local kit = require("kit")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local widgets = require("planner_widgets")
+local mirror = require("themes.layouts.mirror")
 local C = theme.color
 local S = theme.space
 local M = {}
@@ -29,6 +30,8 @@ function M.build(model, active, w, h)
   local adding_kind = morf.signal("eva.drop.kind." .. stamp, "folder")
   local adding_level = morf.signal("eva.drop.level." .. stamp, "me")
   local function serving() return model.serving:get() == "yes" end
+  local keeper = ui.Item { width = 1, height = 1 }
+  local function own(list) return mirror.new(list, "id", keeper) end
 
   -- A row that takes files: a drop on it sends them there.
   local function droppable(row_node, id, on_paths)
@@ -60,7 +63,7 @@ function M.build(model, active, w, h)
   }
 
   -- --------------------------------------------------------- people, machines --
-  local targets = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = model.targets,
+  local targets = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = own(model.targets),
     delegate = function(row)
       local id = safe(row.id)
       local node = P.row { id = "drop-person-" .. id, width = inner,
@@ -102,7 +105,7 @@ function M.build(model, active, w, h)
   }
 
   -- ------------------------------------------------------------------ nearby --
-  local asking = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = model.asking,
+  local asking = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = own(model.asking),
     delegate = function(row)
       return P.row { id = "drop-ask-" .. safe(row.id), width = inner, icon = "contact_page", title = row.name,
         subtitle = "Asks " .. row.says .. " · number " .. row.check,
@@ -111,7 +114,7 @@ function M.build(model, active, w, h)
             on_clicked = function() model.decide(row.name, true) end },
           P.button { id = "drop-ask-no-" .. safe(row.id), label = "No", on_clicked = function() model.decide(row.name, false) end } } }
     end }
-  local devices = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = model.nearby,
+  local devices = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = own(model.nearby),
     delegate = function(row)
       return P.row { id = "drop-near-" .. safe(row.id), width = inner, icon = "devices", title = row.name,
         subtitle = row.id:sub(-12),
@@ -128,7 +131,7 @@ function M.build(model, active, w, h)
   }
 
   -- ------------------------------------------------------------- a target --
-  local remote = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = model.remote,
+  local remote = ui.Repeater { as = "column", gap = P.ROW_GAP, width = inner, model = own(model.remote),
     delegate = function(row)
       return P.row { id = "drop-topic-" .. safe(row.id), width = inner,
         icon = row.kind == "folder" and "folder" or row.kind == "chat" and "chat" or row.kind == "inbox" and "inbox" or "topic",
@@ -136,7 +139,7 @@ function M.build(model, active, w, h)
         trailing = row.kind == "folder" and P.chevron() or nil,
         on_clicked = row.kind == "folder" and function() model.browse(row.path) end or nil }
     end }
-  local files = ui.Repeater { as = "column", gap = S.xs, width = inner, model = model.files,
+  local files = ui.Repeater { as = "column", gap = S.xs, width = inner, model = own(model.files),
     delegate = function(row)
       return P.row { id = "drop-file-" .. safe(row.id), width = inner, height = 48,
         icon = row.folder and "folder" or "draft", title = row.name,
@@ -144,7 +147,7 @@ function M.build(model, active, w, h)
         trailing = row.folder and P.chevron() or kit.icon("download", 20, kit.ink("lo")),
         on_clicked = function() model.open_file(row) end }
     end }
-  local log = ui.Repeater { as = "column", gap = S.xs, width = inner, model = model.log,
+  local log = ui.Repeater { as = "column", gap = S.xs, width = inner, model = own(model.log),
     delegate = function(row)
       return kit.text { text = row.text, width = inner, wrap = true, font_size = P.SUB, font_family = theme.mono,
         color = kit.ink("hi") }
@@ -154,21 +157,15 @@ function M.build(model, active, w, h)
   local path_node, path_input = widgets.field("drop-path", "Or a path", "~/report.pdf", inner, nil,
     function(text) if model.send { text } then path_input.text = "" end end)
 
-  local chooser, chooser_open = nil, morf.signal("eva.drop.chooser." .. stamp, false)
-  local function chooser_node()
-    if chooser then return chooser end
-    chooser = require("themes.kit.composites").file_chooser { id = "drop-chooser", width = inner, height = 360, mode = "open",
-      path = "~", on_accepted = function(path)
-        chooser_open:set(false)
-        model.send { path }
-      end, on_cancelled = function() chooser_open:set(false) end }
-    return chooser
-  end
-  local chooser_box = ui.Item { width = inner, height = function() return chooser_open:get() and 360 or 0 end,
-    visible = function() return chooser_open:get() end, clip = true }
-  morf.effect("drop.chooser", function()
-    if chooser_open:get() and not chooser then ui.reparent(chooser_node(), chooser_box) end
-  end, { owner = chooser_box })
+  local choose, chooser_box = require("themes.layouts.file_pick").make { id = "drop", width = inner,
+    on_path = function(path) model.send { path } end }
+
+  local choosing = P.section { id = "drop-choosing", width = pane_w, title = "Sending",
+    visible = function() return model.target() == nil end,
+    P.row { id = "drop-hint", width = inner, icon = "upload_file", title = "Drop a file on this page",
+      on = function() return hovering:get() ~= "" end,
+      subtitle = "On a row it goes there. Press somebody first to choose them." },
+  }
 
   local selected = P.section { id = "drop-selected", width = pane_w,
     title = function() local t = model.target() return t and (t.title .. " · " .. t.detail) or "Choose somebody" end,
@@ -190,9 +187,7 @@ function M.build(model, active, w, h)
       on_clicked = model.up },
     files,
     P.row { id = "drop-send-here", width = inner, icon = "upload_file", title = "Drop a file on this page to send it",
-      on = function() return hovering:get() == "page" end,
-      trailing = P.button { id = "drop-choose", label = "Choose", icon = "folder_open",
-        on_clicked = function() chooser_open:set(not chooser_open:get()) end } },
+      on = function() return hovering:get() == "page" end, trailing = choose },
     chooser_box,
     path_node,
     log, say_node,
@@ -207,7 +202,7 @@ function M.build(model, active, w, h)
 
   local transfers = P.section { id = "drop-transfers", width = pane_w, title = "On its way",
     visible = function() return model.transfers:len() > 0 end,
-    ui.Repeater { as = "column", gap = S.xs, width = inner, model = model.transfers,
+    ui.Repeater { as = "column", gap = S.xs, width = inner, model = own(model.transfers),
       delegate = function(row)
         local title = kit.text { text = row.name, font_size = theme.size.normal, width = inner, elide = "right", color = kit.ink("hi") }
         local detail = kit.text { text = row.to .. " · " .. row.state, font_size = P.SUB, width = inner, elide = "right", color = kit.ink("lo") }
@@ -218,7 +213,7 @@ function M.build(model, active, w, h)
 
   local received = P.section { id = "drop-received", width = pane_w, title = "Received",
     visible = function() return model.received:len() > 0 end,
-    ui.Repeater { as = "column", gap = S.xs, width = inner, model = model.received,
+    ui.Repeater { as = "column", gap = S.xs, width = inner, model = own(model.received),
       delegate = function(row)
         return ui.MouseArea { id = "drop-received-" .. safe(row.id), width = inner, height = 48, cursor = "grab",
           on_pressed = function() morf.drag.start { paths = { row.path } } end,
@@ -227,7 +222,7 @@ function M.build(model, active, w, h)
   }
 
   -- ------------------------------------------------------------------ topics --
-  local topic_rows = ui.Repeater { as = "column", gap = S.xs, width = inner, model = model.topics,
+  local topic_rows = ui.Repeater { as = "column", gap = S.xs, width = inner, model = own(model.topics),
     delegate = function(row)
       return P.row { id = "drop-mine-" .. safe(row.id), width = inner, height = 48, icon = "topic", title = row.path,
         subtitle = row.kind .. " · open to " .. row.access,
@@ -257,7 +252,7 @@ function M.build(model, active, w, h)
 
   -- ------------------------------------------------------------------ the page --
   local left = ui.Column { width = pane_w, gap = P.GAP, status, people, nearby, topics, ui.Item { width = 1, height = P.GAP } }
-  local right = ui.Column { width = pane_w, gap = P.GAP, said, pending, selected, transfers, received }
+  local right = ui.Column { width = pane_w, gap = P.GAP, said, pending, choosing, selected, transfers, received }
   local columns = ui.Item { width = w,
     height = function()
       if wide() then return math.max(left.layout_height or 0, right.layout_height or 0) end
@@ -286,6 +281,6 @@ function M.build(model, active, w, h)
     on_exited = function() if hovering:get() == "page" then hovering:set("") end end,
     on_dropped = function(drop) model.send(drop.paths) end }
 
-  return ui.Item { id = "drop-page", width = w, height = h, target, gate, body }
+  return ui.Item { id = "drop-page", width = w, height = h, keeper, target, gate, body }
 end
 return M

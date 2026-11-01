@@ -43,6 +43,7 @@ local HOST=[[
   local function page(key)
     shown:set(key)
     presentation.set("leftbar.tasks",key=="tasks") presentation.set("leftbar.calendar",key=="calendar")
+    return true
   end
   package.loaded.leftbar={panel={select=page},drawer={set=function(on) if not on then page("") end end}}
   local model

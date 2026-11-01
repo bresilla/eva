@@ -25,6 +25,14 @@ local HOST = [[
   end
   morf.ipc.state = function() return { text = run.text, done = run.done, outcome = run.outcome or {} } end
   morf.ipc.stop = function() run.stream.stop() end
+  -- What the live curl shows the rest of the machine.
+  morf.ipc.exposed = function()
+    local pid = run.stream.pid()
+    local stat = morf.fs.stat(run.stream.body_path)
+    return { pid = pid, cmdline = morf.fs.read("/proc/" .. pid .. "/cmdline"), environ = morf.fs.read("/proc/" .. pid .. "/environ"),
+      body = morf.fs.read(run.stream.body_path), mode = stat.mode, path = run.stream.body_path }
+  end
+  morf.ipc.exists = function(path) return morf.fs.exists(path) end
   morf.ipc.models = function(kind, key)
     run = { done = false }
     llm.models({ kind = kind, base = "http://127.0.0.1:" .. port .. (kind == "openai" and "/v1" or "") },
@@ -93,6 +101,23 @@ test.describe("assistant transport", function()
     local config = test.ipc("config", "sk-secret")
     test.truthy(config:find('header = "x-api-key: sk-secret"', 1, true))
     test.truthy(config:find('data-binary = "@/tmp/body"', 1, true))
+    test.ipc("quit_server")
+  end)
+
+  test.it("shows the rest of the machine no key while curl runs", function()
+    start()
+    test.ipc("start", "anthropic", "sk-eva-test", "slow")
+    test.wait(function() return test.ipc("state").text:find("tick", 1, true) end, 5000, "the first words")
+    local seen = test.ipc("exposed")
+    test.truthy(seen.cmdline:find("curl", 1, true), "that was not curl")
+    test.falsy(seen.cmdline:find("sk-eva-test", 1, true), "the key is on curl's command line")
+    test.falsy(seen.cmdline:find("127.0.0.1", 1, true), "the address is on curl's command line")
+    test.falsy(seen.environ:find("sk-eva-test", 1, true), "the key is in curl's environment")
+    test.falsy(seen.body:find("sk-eva-test", 1, true), "the key is in the request file")
+    test.eq(seen.mode & 511, 384, "the request file is readable by others")
+    test.ipc("stop")
+    finished()
+    test.falsy(test.ipc("exists", seen.path), "the request file stayed behind")
     test.ipc("quit_server")
   end)
 
