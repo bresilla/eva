@@ -10,7 +10,8 @@ window Editor see.editor "#26547c"
 window Browser see.browser "#7a3b69"
 pause 3
 shot desk
-ipc overview open; pause 2; shot overview
+ipc overview open; shot overview-morph; pause 0.05; shot overview-morph-2; pause 2; shot overview
+key Right; pause 0.5; shot overview-selected
 text fire; pause 0.8; shot overview-filter
 key Escape; pause 1.2
 ipc switcher next free; pause 1.2; shot switcher

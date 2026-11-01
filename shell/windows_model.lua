@@ -169,6 +169,7 @@ local function checked(reply, err)
   if err or (reply and not reply:match("^%s*ok%s*$")) then
     morf.log("warn", "eva: windows: " .. tostring(err or reply))
   end
+  M.refresh()
 end
 
 --- A step that takes the window it is for: `lua` the `hl.dsp` name and its
@@ -183,6 +184,18 @@ local function note(text)
   table.insert(M.sent, 1, text)
   M.sent[17] = nil
 end
+
+-- A window's size, place and floating come by no event of their own: the list
+-- is asked for again after anything the shell sends, and when the focus moves.
+local refreshing
+function M.refresh()
+  if refreshing or not hyprland.refresh then return end
+  refreshing = morf.time.timer(40, function()
+    refreshing = nil
+    hyprland.refresh()
+  end, false)
+end
+if hyprland.on then hyprland.on("activewindowv2", M.refresh) end
 
 --- Runs `steps` on `address`: the Lua form on a Lua-configured Hyprland and
 --- the classic one elsewhere. False with no window.
@@ -376,6 +389,18 @@ function M.focus(address)
   if hyprland.available() then hyprland.dispatch("focuswindow", "address:" .. address) return true end
   return false
 end
+--- Goes to a window from a surface that held the keyboard: the compositor gives
+--- the focus back as the surface lets go, so it is asked twice more.
+function M.focus_after_keys(address)
+  M.focus(address)
+  for _, ms in ipairs { 120, 400 } do
+    morf.time.timer(ms, function()
+      local active = hyprland.state.active_window
+      if M.get(address) and (active and active.address) ~= address then M.focus(address) end
+    end, false)
+  end
+end
+
 function M.close(address)
   require("window_shots").pause()
   return M.run(address, steps.close())

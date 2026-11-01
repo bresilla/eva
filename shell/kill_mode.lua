@@ -36,6 +36,7 @@ end
 function M.start()
   require("drawer").close_all()
   require("overview").close()
+  windows.refresh()
   M.target:set("")
   M.active:set(true)
   -- Lights what is under the pointer at once, before it moves.

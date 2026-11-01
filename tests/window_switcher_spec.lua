@@ -30,6 +30,17 @@ test.it("a quick tap flips to the last window and draws nothing", function()
   test.eq(active(), "web")
 end)
 
+test.it("a quick tap goes to the last window even when it is the same application's", function()
+  load { EVA_FAKE_WINDOWS = [[{"focus":1,"clients":[
+    {"class":"zzterm","title":"a","workspace":1},
+    {"class":"zzterm","title":"b","workspace":1},
+    {"class":"zzweb","title":"c","workspace":1}]}]] }
+  test.ipc("switcher", "next")
+  test.ipc("switcher", "commit")
+  test.advance(16)
+  test.eq(active(), "b", "it went to the next application, not the last window")
+end)
+
 test.it("a release that overtakes its key still flips to the last window", function()
   load()
   test.eq(test.ipc("switcher", "commit"), false)

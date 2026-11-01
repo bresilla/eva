@@ -164,6 +164,7 @@ end
 function M.open()
   if M.opened:get() then return true end
   require("drawer").close_all()
+  windows.refresh()
   M.viewing:set(model.here())
   M.query:set("")
   local active = windows.active()
@@ -207,7 +208,7 @@ end
 function M.activate(address)
   address = address or M.selected:get()
   M.close()
-  if address ~= "" then windows.focus(address) end
+  if address ~= "" then windows.focus_after_keys(address) end
 end
 
 --- Closes the window behind a card.

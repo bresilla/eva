@@ -15,6 +15,7 @@ local function load(style, size, env, touch)
   test.load("../shell/init.lua", { size = size or { 1920, 1080 }, env = e })
   test.advance(200)
   test.ipc("dock", "auto")
+  test.ipc("dock", "hide", "windows")
   test.ipc("dock_clear")
   test.advance(50)
 end
@@ -61,6 +62,16 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.eq(#test.logs("warn"), 0)
   end)
 end
+
+test.it("at rest it asks for nothing: no animation runs on", function()
+  load()
+  test.ipc("dock", "hide", "off")
+  test.ipc("dock", "on")
+  local took = test.settle(4000)
+  test.truthy(took < 3000, "the dock never came to rest: " .. took .. " ms")
+  test.advance(100)
+  test.truthy(test.settle(1000) < 100, "it woke by itself")
+end)
 
 test.it("a tablet has a taskbar along its edge, keeping windows clear of it", function()
   load("material", { 1280, 800 }, nil, true)

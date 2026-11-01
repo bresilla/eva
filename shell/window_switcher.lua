@@ -25,6 +25,9 @@ local held, waiting = false, nil
 -- Alt came up a moment ago with nothing open: the key's call may reach the
 -- shell after the release's.
 local released, RACE = false, 200
+-- Nothing is drawn yet and nothing was walked: a tap, which goes to the last
+-- window whichever application it belongs to.
+local quick = false
 
 --- Which windows it walks: "all", "workspace" or "output".
 function M.scope()
@@ -112,14 +115,17 @@ local function begin(list, start)
   entries = group_rows(list)
   if #entries == 0 then return false end
   M.index:set(math.min(start, #entries))
+  windows.refresh()
   publish()
   M.opened:set(true)
+  quick = true
   cancel_wait()
   local visible = {}
   for _, e in ipairs(entries) do visible[#visible + 1] = e.window end
   shots.refresh(visible)
   waiting = morf.time.timer(SHOW_AFTER, function()
     waiting = nil
+    quick = false
     if M.opened:get() then M.shown:set(true) end
   end, false)
   return true
@@ -127,6 +133,7 @@ end
 
 local function move(delta)
   if #entries == 0 then return end
+  quick = false
   M.index:set((M.index:get() - 1 + delta) % #entries + 1)
 end
 
@@ -155,6 +162,7 @@ function M.same(hold)
   M.grouping = function() return false end
   local started = begin(list, 2)
   M.grouping = keep
+  quick = false
   return started
 end
 
@@ -174,8 +182,14 @@ function M.commit()
     return false
   end
   local c = M.chosen()
+  if quick then
+    local active = windows.active()
+    for _, w in ipairs(windows.recent(candidates())) do
+      if not active or w.address ~= active.address then c = w break end
+    end
+  end
   M.cancel()
-  if c then windows.focus(c.address) end
+  if c then windows.focus_after_keys(c.address) end
   return c ~= nil
 end
 
