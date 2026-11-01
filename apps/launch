@@ -1,0 +1,29 @@
+#!/bin/sh
+# apps/launch TOOL [ARGS]: one tool of apps/ as a program of its own.
+#
+# MORF is the binary (default: morf on PATH). EVA_APPEARANCE and EVA_SETTINGS
+# name the shell's files; unset, they are found here.
+set -eu
+here=$(dirname -- "$(readlink -f -- "$0")")
+tool=${1:?usage: apps/launch TOOL [ARGS]}
+shift
+[ -f "$here/$tool/app.lua" ] || { echo "eva: no tool $tool" >&2; exit 1; }
+
+state=${XDG_STATE_HOME:-$HOME/.local/state}
+
+# The appearance the NixOS launcher gives the shell.
+if [ -z "${EVA_APPEARANCE:-}" ] && [ -r "$state/eva/appearance/appearance.json" ]; then
+  export EVA_APPEARANCE="$state/eva/appearance/appearance.json"
+fi
+
+# The settings file the shell last named, else the newest one it left.
+if [ -z "${EVA_SETTINGS:-}" ]; then
+  named=$(cat "$state/eva/settings-path" 2>/dev/null || true)
+  [ -n "$named" ] || named=$(ls -t "$state"/morf/*/eva.json 2>/dev/null | head -n 1 || true)
+  if [ -n "$named" ]; then export EVA_SETTINGS="$named"; fi
+fi
+
+if [ "$#" -gt 0 ]; then
+  exec "${MORF:-morf}" app "$here/$tool/app.lua" -- "$@"
+fi
+exec "${MORF:-morf}" app "$here/$tool/app.lua"

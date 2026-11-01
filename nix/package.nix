@@ -9,6 +9,7 @@
   material-symbols,
   ibm-plex,
   nerd-fonts,
+  runtimeShell,
   src,
   version,
   morf,
@@ -25,10 +26,13 @@ let
   ];
 in
 # Everything eva installs, in one output:
-#   share/eva     the shell, lock screen and greeter, with the Lua library of
-#                 the morf it is built against and the faces it draws with
+#   share/eva     the shell, lock screen, greeter and tools, with the Lua
+#                 library of the morf it is built against and the faces it
+#                 draws with
 #   share/fonts   the whole families of those faces, for the system's fonts
-#   bin           eva-keyring, the bridge for GNOME Keyring prompts
+#   share/applications  a desktop entry for each tool with a window
+#   bin           eva-keyring, the bridge for GNOME Keyring prompts; eva, the
+#                 command line; eva-<tool>, each tool of apps/
 #   nixos         the NixOS module, importable without eva's flake
 runCommandCC "eva-${version}"
   {
@@ -47,7 +51,7 @@ runCommandCC "eva-${version}"
   ''
     tree="$out/share/eva"
     mkdir -p "$tree"
-    for part in shell lock greet themes models lib; do
+    for part in shell lock greet themes models lib apps; do
       cp -R ${src}/$part "$tree/"
     done
     cp ${src}/morf.lua "$tree/morf.lua"
@@ -79,5 +83,27 @@ runCommandCC "eva-${version}"
     $CC -std=gnu11 -O2 -Wall -Wextra -Werror ${src}/helpers/keyring/eva-keyring.c \
       $(pkg-config --cflags --libs gcr-4 gio-unix-2.0 json-glib-1.0) \
       -o "$out/bin/eva-keyring"
+    launcher() {
+      printf '#!%s\nexport MORF="''${MORF:-%s}"\nexec %s %s "$@"\n' \
+        ${runtimeShell} ${morf}/bin/morf ${runtimeShell} "$2" > "$out/bin/$1"
+      chmod +x "$out/bin/$1"
+    }
+    mkdir -p "$out/share/applications"
+    for folder in "$tree"/apps/*/; do
+      tool=$(basename "$folder")
+      [ -f "$folder/app.lua" ] || continue
+      printf '{ "theme": "tsugumori", "font": "" }\n' > "$folder/appearance-default.json"
+      if [ -f "$folder/cli" ]; then
+        launcher "eva-$tool" "$folder/cli"
+      else
+        launcher "eva-$tool" "$tree/apps/launch $tool"
+      fi
+      for entry in "$folder"/*.desktop; do
+        if [ -e "$entry" ]; then cp "$entry" "$out/share/applications/"; fi
+      done
+    done
+    for command in "$tree"/apps/bin/*; do
+      launcher "$(basename "$command")" "$command"
+    done
     cp -RL ${src}/nix/nixos "$out/nixos"
   ''

@@ -40,6 +40,12 @@ morf.surface.keyboard_focus = "none"
 morf.surface.exclusive_zone = -1
 -- Windows keep inside the frame.
 
+-- Where the tools of apps/ find these settings.
+if config.path then
+  local state = morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")
+  morf.fs.write(state .. "/eva/settings-path", config.path, { atomic = true, parents = true })
+end
+
 -- ------------------------------------------------------------------ colour --
 
 -- Two palettes: `theme.color`, the Material scheme, built from

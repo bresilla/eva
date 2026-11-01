@@ -1,0 +1,6 @@
+# The smallest tool in a real window, then the appearance changing under it.
+start app hello
+shot rest
+appearance material
+pause 2
+shot switched

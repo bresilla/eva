@@ -32,6 +32,13 @@ swaymsg output HEADLESS-1 mode "$SEE_SCREEN@60Hz" > /dev/null
 ROLE=""
 start() {
   stop
+  if [ "$1" = app ]; then
+    shift
+    sh "$SEE_EVA/apps/launch" "$@" > "$SEE_OUT/app-$1.log" 2>&1 &
+    ROLE=$!
+    sleep "${BOOT:-3}"
+    return
+  fi
   local args=()
   case "$1" in
     lock) args=(-- window preview) ;;
@@ -47,6 +54,7 @@ stop() {
   ROLE=""
 }
 shot() { grim "$SEE_OUT/$1.png"; }
+appearance() { printf '{ "theme": "%s", "font": "" }\n' "$1" > "$EVA_APPEARANCE"; }
 ipc() { timeout 10 morf ipc call "$@"; }
 key() { wtype -s 200 -k "$1"; }
 text() { wtype -s 200 "$1"; }

@@ -22,6 +22,8 @@ let
       lib.concatMapStringsSep ":" toString config.programs.eva.runtimePaths
     }''${MORF_RUNTIME_PATH:+:$MORF_RUNTIME_PATH}"
     export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${shell}/bin/eva-keyring}"
+    # A tool's child runs morf as a client, not as part of that tool.
+    unset MORF_APP
     export EVA_SCALE_MODE=compositor
     export EVA_SCALE_FILE="''${EVA_SCALE_FILE:-${config.programs.eva.uiScaleFile}}"
     export EVA_SCALE_DEFAULT="''${EVA_SCALE_DEFAULT:-${toString config.programs.eva.uiScale}}"
@@ -93,6 +95,19 @@ let
     if [ "$role" = greet ] && [ -n "''${EVA_GREETER_CONFIG_HOME:-}" ]; then unset EVA_APPEARANCE; fi
     export XDG_CONFIG_DIRS=/etc/xdg
     exec ${morf}/bin/morf "$fallback"
+  '';
+  # The tools and the command line, reaching morf through the launcher above so
+  # they share the shell's scale and runtime path.
+  tools = pkgs.runCommand "eva-tools" { } ''
+    mkdir -p "$out/bin" "$out/share"
+    for tool in ${shell}/bin/eva ${shell}/bin/eva-*; do
+      name=$(basename "$tool")
+      [ "$name" = eva-keyring ] && continue
+      printf '#!%s\nexport MORF="''${MORF:-%s}"\nexec %s "$@"\n' \
+        ${pkgs.runtimeShell} ${morfDefault}/bin/morf "$tool" > "$out/bin/$name"
+      chmod +x "$out/bin/$name"
+    done
+    ln -s ${shell}/share/applications "$out/share/applications"
   '';
   greeterAccess = pkgs.writeShellScript "eva-greeter-access" ''
     # No write access, and no directory listing outside the eva tree.
@@ -237,6 +252,7 @@ in
       environment.systemPackages = [
         (lib.hiPrio morfDefault)
         bridge
+        tools
       ];
       system.build.evaLauncher = morfDefault;
       system.build.evaGreeter = greeter;
