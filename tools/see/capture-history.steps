@@ -1,0 +1,27 @@
+# The panel's history on real files, a real search, and a real thumbnail pass:
+# three shots through the selection and a recording left in the folder.
+unset EVA_DRY_RUN
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export BOOT=0
+FOLDER="$HOME/Pictures/Captures"
+
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
+for each in 1 2 3; do
+  toolipc screenshot screen how=save > /dev/null
+  pause 1.5
+done
+printf 'stand-in' > "$FOLDER/Replay_2026-11-01_10-00-00.mp4"
+toolipc capture-thumb dismiss > /dev/null
+ipc capture open > /dev/null
+pause 2
+shot panel
+toolipc capture-history open > /dev/null
+pause 2
+shot history
+text 'replay'
+pause 1
+shot history-search
+note ls "$FOLDER"

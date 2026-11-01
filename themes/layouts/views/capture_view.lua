@@ -182,7 +182,9 @@ function M.build(capture, w, h)
         color = function() return capture.delay:get() == n and C.onSecondaryContainer or C.onSurfaceVariant end },
     }
   end
+  local function history() return capture.history_open:get() end
   local controls = ui.Item { id = "capture-controls", y=32, width = w, height = function() return h()-32 end,
+    visible = function() return not history() end,
     ui.MouseArea { anchors = { fill = true } },
     selector, shot, record,
     kit.icon("timer", 17, kit.ink("lo"), { x = 20, y = 202 }),
@@ -202,8 +204,15 @@ function M.build(capture, w, h)
         width = 148, height = 28, on_clicked = capture.cancel },
     },
   }
+  -- The way to what has been captured, at the title's right.
+  local recent = kit.action { id = "capture-history-open", x = w - 16 - 36, y = 2, width = 36, height = 30, cursor = "pointer",
+    on_clicked = function() capture.history_open:set(not history()) end,
+    kit.icon("history", 19, function() return history() and C.primary or C.onSurfaceVariant end, { anchors = { center_in = true } }),
+  }
   return ui.Item {id="capture-page",width=w,height=h,controls,
-    kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32}}
+    ui.Loader { anchors = { fill = true }, active = history,
+      source = function() return require("themes").view("capture_history").build(capture, require("recent").open(capture), w, h) end },
+    kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32},recent}
 
 end
 return M

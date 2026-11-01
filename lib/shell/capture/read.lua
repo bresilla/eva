@@ -25,6 +25,19 @@ function M.available()
   return found
 end
 
+--- The words in the picture at `path`, on no clipboard: `cb(words)`, or
+--- `cb(nil, why)`. Empty words are not an answer.
+function M.text(path, cb)
+  morf.process.run(command("ocr", path), {}, function(result)
+    if not result or not result.ok then
+      cb(nil, result and (result.error or result.stderr) or "Could not read the picture")
+      return
+    end
+    local words = trimmed(result.stdout)
+    if words == "" then cb(nil, "No text found") else cb(words) end
+  end)
+end
+
 --- Reads `path` by `kind`, "ocr" or "qr", and copies what it found:
 --- `cb(ok, words or why)`.
 function M.read(kind, path, cb)

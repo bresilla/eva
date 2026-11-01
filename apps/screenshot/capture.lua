@@ -22,6 +22,7 @@ M.message = morf.signal("eva.capture.message", "")
 M.countdown = morf.signal("eva.capture.countdown", 0)
 -- What keeps a tool with nothing else to do alive: thumbnails and pins.
 M.held = morf.signal("eva.capture.held", 0)
+M.pins_kept = morf.reloadable("eva.capture.pins.kept", "")
 local pending, ticker, process, d
 local sequence, generation = 0, 0
 local function dry_run()
@@ -256,10 +257,18 @@ function M.record(what,order)
   end)
   return what
 end
-function M.height() return 264 end
+-- The panel's history in the place of its controls, and the height it needs.
+M.history_open = morf.signal("eva.capture.history", false)
+function M.height()
+  if not M.history_open:get() then return 264 end
+  return math.max(264, math.min(520, math.floor((screen.height or 800) * 0.62)))
+end
 M.drawer = drawer.new {
   name = "capture", edge = "bottom", width = M.WIDTH, height = M.height,
   content = require("capture_view").build(M, M.WIDTH, M.height), close_policy = "outside",
 }
 d = M.drawer
+morf.effect("eva.capture.history.shut", function()
+  if not d.open:get() and M.history_open:get() then M.history_open:set(false) end
+end)
 return M

@@ -24,7 +24,7 @@ function V.build(M, width, height)
     translate_y = function() return M.leaving:get() and S.m or 0 end,
     behavior = { opacity = theme.spring.drawer, translate_y = theme.spring.drawer },
     kit.card { anchors = { fill = true }, radius = kit.round(S.l), color = function() return C.surfaceContainerHigh end },
-    ui.Item { anchors = { fill = true, margins = S.xs }, clip = true,
+    ui.Rect { anchors = { fill = true, margins = S.xs }, radius = kit.round(S.m), clip = true, color = "transparent",
       ui.Image { id = "capture-thumb-image", anchors = { fill = true }, fill_mode = "preserve_aspect_crop",
         source = function() return M.source:get() end },
     },
