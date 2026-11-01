@@ -14,6 +14,10 @@ local HOST = [[
   morf.ipc.open = d.set
   morf.ipc.at = function() return d.panel[axis] end
   morf.ipc.spring = function() return require("theme").springs.drawer end
+  morf.ipc.stretch = function()
+    local s = d.panel.stretch
+    return { set = s ~= nil and s ~= false, token = require("theme").stretch }
+  end
   morf.ipc.size = function(v) size:set(v) end
   morf.ipc.grab = function() return d.begin_drag() end
   morf.ipc.drag = function(delta) d.drag_by(delta) end
@@ -205,6 +209,17 @@ test.describe("drawer travel", function()
     test.ipc("size", 200) test.advance(1000)
     test.near(test.ipc("at"), further + 300, 0.01, "a closing drawer aimed at its old size")
     test.falsy(test.ipc("state").visible)
+  end)
+
+  test.it("material stretches along its travel as a liquid, tsugumori not at all", function()
+    load("material")
+    local stretch = test.ipc("stretch")
+    test.truthy(stretch.set, "a material drawer does not stretch")
+    local drawer = stretch.token.drawer
+    test.truthy(drawer.max <= 0.06, "a whole panel stretching this far reads as jelly")
+    test.truthy(drawer.damping >= 1.7 * math.sqrt(drawer.stiffness), "a whole panel must not wobble")
+    load("tsugumori")
+    test.falsy(test.ipc("stretch").set, "tsugumori is crisp")
   end)
 
   test.it("material ties its contents and seam to who owns the axis", function()

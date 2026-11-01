@@ -58,6 +58,12 @@ M.springs = {
   press = { stiffness = 900, ratio = 0.5 },
 }
 
+-- Squash and stretch by how much of a surface moves: a whole panel leans a few
+-- percent and relaxes at once, near critical damping, so it never wobbles.
+M.stretch = {
+  drawer = { stiffness = 520, damping = 42, scale = 0.022, max = 0.05 },
+}
+
 -- Durations and curves fitted to films of the reference in the sandbox
 -- (tools/sandbox/eva-motion.steps): a drawer opens on the spatial
 -- curve over about 470 ms (500 here films as ~470 in the same sandbox), overshooting by about 1 % and settling, and

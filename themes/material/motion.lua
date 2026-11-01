@@ -24,6 +24,7 @@ return function(theme)
     local shown = lit(axis.away)
     content.opacity, d.shape.opacity = shown, shown
     d.shape.blend = function() return theme.SEAM * shown() end
+    panel.stretch = theme.stretch.drawer
     return {
       move = function(opening) if opening then panel.visible = true end end,
       stop = axis.stop,
