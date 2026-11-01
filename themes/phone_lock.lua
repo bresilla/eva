@@ -65,8 +65,9 @@ function M.host(scene, spec)
   local function calling() return phone.stage:get() ~= "idle" end
   local function surfaces()
     return ui.Item { width = spec.width, height = spec.height,
+      -- Above the shortcuts in the lock's left corner and the card's chip.
       ui.Item { id = "lock-emergency-button", z = 40,
-        x = S.xl, y = spec.height - S.TOUCH - S.xxl - S.xl, width = BUTTON_W, height = S.TOUCH,
+        x = S.xl, y = spec.height - S.TOUCH - 4 * S.xxl - S.xl - S.s, width = BUTTON_W, height = S.TOUCH,
         visible = function() return not calling() and not sim.asking() end,
         look.action { id = "lock-emergency-dial", accessible_name = "Emergency call", anchors = { fill = true },
           cursor = "pointer", on_clicked = function() M.open_emergency:set(true) end,

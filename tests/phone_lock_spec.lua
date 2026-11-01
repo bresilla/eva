@@ -153,6 +153,13 @@ test.it("Later leaves the SIM locked and the lock usable",function()
   test.truthy(shown("lock-emergency-button"))
 end)
 
+test.it("the emergency button stands clear of the corner shortcuts",function()
+  load(true)
+  local button,corner=test.get("lock-emergency-button"),test.get("lock-shortcuts-left")
+  test.truthy(corner.height>0,"the corner holds shortcuts")
+  test.truthy(button.y+button.height<=corner.y,"the button ends above them")
+end)
+
 test.it("the card's numbers dial through the phone, and the medical line comes from the one file",function()
   local view=morf.env("XDG_RUNTIME_DIR").."/eva/lock-view.json"
   morf.fs.write(view,morf.json.encode{phone={medical="Blood type O"}},{parents=true})
