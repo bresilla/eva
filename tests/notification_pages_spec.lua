@@ -54,6 +54,7 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.ipc("settings", "focus") test.settle(1800)
       test.click("focus-mode-1-press") test.settle(1800)
       test.truthy(test.find { id = "focus-mode-scroll", visible = true }, "the mode's page did not open")
+      test.eq(test.find { text = "Apps", visible = true }, nil, "a heading over no apps")
       test.click("focus-urgency-1") test.settle(300)
       test.eq(test.ipc("focus", "status").active, "")
       local modes = saved(settings).focus.modes

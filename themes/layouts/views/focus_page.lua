@@ -20,8 +20,9 @@ local function toggle(w, id, icon, name, subtitle, on, set)
     trailing = P.switch { id = id .. "-switch", name = name, on = lit, on_toggled = set } }
 end
 
-local function caption(w, text)
-  return kit.subtitle { width = P.inner(w), font_size = theme.size.small, color = kit.ink("lo"), text = text }
+local function caption(w, text, visible)
+  return kit.subtitle { width = P.inner(w), font_size = theme.size.small, color = kit.ink("lo"), text = text,
+    visible = visible }
 end
 
 local function choices(w, id, title, items, now, pick, per)
@@ -122,7 +123,7 @@ function V.mode(model, w, h)
     caption(w, "People: names in a title, separated by commas"),
     field(inner, "focus-people", "Ada, Grace", function() return model.words("allow.people") end,
       function(value) model.set_words("allow.people", value) end),
-    caption(w, "Apps"),
+    caption(w, "Apps", function() return #model.apps() > 0 end),
   }
   for slot = 1, APPS do
     local function row() return model.apps()[slot] end
