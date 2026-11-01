@@ -15,7 +15,7 @@ local CW, MID_H = 320, 96
 local GX, GY = 40, 34
 local W = 3 * CW + 2 * GX
 local HEAD, BH, BG, PAD = 72, 32, 8, 16
-local COLUMNS = { top = 3, left = 5, right = 2, bottom = 3 }
+local COLUMNS = { top = 3, left = 5, right = 2, bottom = 2 }
 local MAX_BUTTONS = 12
 local MARGIN = 16
 local GLIDE = { duration = 420, easing = "out_cubic" }

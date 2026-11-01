@@ -34,9 +34,14 @@ function M.register(ipc)
   local overview = require("overview")
   -- `overview [open|close|toggle|state]`, or `overview app`: only the focused
   -- application's windows, wherever they are.
-  ipc.overview = function(how)
+  ipc.overview = function(how, amount)
     how = how or "toggle"
     if how == "close" then overview.close() end
+    -- As a finger holds it, part of the way out: `overview pull 0.4`.
+    if how == "pull" then
+      if here() then overview.follow(tonumber(amount) or 1) end
+      return overview.pull:get()
+    end
     if how == "app" then
       if not here() then return end
       local c = windows.active()

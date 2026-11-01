@@ -94,6 +94,18 @@ test.it("the middle button closes a card, and the right one offers the rest", fu
   test.eq(#test.ipc("windows"), 7)
 end)
 
+test.it("a finger holds the cards part of the way, and letting go finishes it", function()
+  load()
+  test.ipc("overview", "pull", "0.2")
+  test.advance(16)
+  test.eq(test.ipc("overview", "pull", "0.2"), 0.2, "the opening ran past the finger")
+  test.settle(2000)
+  local held = test.get("overview-card-1").y
+  test.ipc("overview", "pull", "1")
+  test.settle(2000)
+  test.truthy(test.get("overview-card-1").y > held + 20, "the cards did not follow the pull")
+end)
+
 test.it("the strip walks the workspaces", function()
   load()
   test.ipc("overview", "open") test.settle(3000)

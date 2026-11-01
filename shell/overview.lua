@@ -160,8 +160,12 @@ local function start_live()
   live = morf.time.timer(LIVE_MS, function() shots.refresh(on_show()) end, true)
 end
 
---- Shows it, the cards leaving their windows.
-function M.open()
+-- How far out it is going: a finger holds it short of the end.
+local aim = 1
+
+--- Shows it, the cards leaving their windows, `to` of the way (all of it).
+function M.open(to)
+  aim = to or 1
   if M.opened:get() then return true end
   require("drawer").close_all()
   windows.refresh()
@@ -173,7 +177,7 @@ function M.open()
   rebuild()
   M.opened:set(true)
   start_live()
-  morf.time.timer(1, function() if M.opened:get() then M.pull:set(1) end end, false)
+  morf.time.timer(1, function() if M.opened:get() then M.pull:set(aim) end end, false)
   return true
 end
 
@@ -190,17 +194,20 @@ end
 
 function M.toggle()
   if M.opened:get() then return M.close() end
-  return M.open()
+  return M.open(1)
 end
 
 --- A finger's pull from the bottom edge: `amount` of it, from 0 to 1.
 function M.follow(amount)
-  if not M.opened:get() then M.open() end
-  M.pull:set(math.max(0, math.min(1, amount)))
+  amount = math.max(0, math.min(1, amount))
+  if not M.opened:get() then M.open(amount) return end
+  aim = amount
+  M.pull:set(amount)
 end
 
 --- Lets the finger go: the rest of the way, or back.
 function M.settle(keep)
+  aim = 1
   if keep then M.pull:set(1) else M.close() end
 end
 
