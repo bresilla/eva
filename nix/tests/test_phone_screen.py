@@ -50,7 +50,7 @@ class ScreenTests(unittest.TestCase):
         root = Path(self.tmp.name)
         binary = root / "bin"
         binary.mkdir()
-        for name in ("hyprctl", "systemctl", "phone-dpms"):
+        for name in ("hyprctl", "systemctl", "phone-dpms", "brightnessctl"):
             p = binary / name
             p.write_text(STUB)
             p.chmod(0o755)
@@ -131,6 +131,59 @@ class ScreenTests(unittest.TestCase):
         self.update(no_outputs=True)
         s = self.run_action("off", success=False)
         self.assertFalse(any(c[0] == "systemctl" for c in s["calls"]))
+
+    def ambient(self):
+        (Path(self.tmp.name) / "phone-screen-test.ambient").touch()
+
+    def status(self):
+        return (Path(self.tmp.name) / "phone-screen-test.status").read_text().strip()
+
+    def test_ambient_locks_first_and_leaves_the_panel_lit(self):
+        self.ambient()
+        s = self.run_action("off")
+        self.assertTrue(s["locked"])
+        self.assertTrue(s["powered"])
+        self.assertNotIn(["phone-dpms", "off"], s["calls"])
+        self.assertEqual(self.status(), "ambient")
+        lock = s["calls"].index(["systemctl", "--user", "start", "eva-idle-lock.service"])
+        dim = s["calls"].index(["brightnessctl", "-q", "-s", "set", "1%"])
+        self.assertLess(lock, dim)
+
+    def test_ambient_needs_the_lock_first(self):
+        self.ambient()
+        self.update(lock_failed=True)
+        s = self.run_action("off", success=False)
+        self.assertNotIn(["brightnessctl", "-q", "-s", "set", "1%"], s["calls"])
+        self.assertNotEqual((Path(self.tmp.name) / "phone-screen-test.status").exists()
+                            and self.status(), "ambient")
+
+    def test_wake_from_ambient_gives_the_backlight_back(self):
+        self.ambient()
+        self.run_action("off")
+        s = self.run_action("wake")
+        self.assertIn(["brightnessctl", "-q", "-r"], s["calls"])
+        self.assertEqual(self.status(), "on")
+        self.assertTrue(s["locked"])
+
+    def test_power_key_wakes_from_ambient_without_unlocking(self):
+        self.ambient()
+        self.run_action("off")
+        s = self.run_action("toggle")
+        self.assertEqual(self.status(), "on")
+        self.assertTrue(s["locked"])
+
+    def test_ambient_twice_saves_the_backlight_once(self):
+        self.ambient()
+        self.run_action("off")
+        s = self.run_action("off")
+        self.assertEqual(s["calls"].count(["brightnessctl", "-q", "-s", "set", "1%"]), 1)
+
+    def test_a_greeter_never_goes_ambient(self):
+        self.ambient()
+        self.env["EVA_PHONE_GREETER"] = "1"
+        s = self.run_action("off")
+        self.assertFalse(s["powered"])
+        self.assertEqual(self.status(), "off")
 
 if __name__ == "__main__":
     unittest.main()

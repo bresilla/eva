@@ -370,5 +370,12 @@ morf.ipc.stage = function(to)
   if to == "leaving" and PREVIEW then depart(function() end) end
   return stage:get()
 end
+-- For a picture: `access open`, or an option to toggle.
+if PREVIEW then
+  morf.ipc.access = function(what)
+    if what == "open" then access.open:set(true) else access.toggle(what) end
+    return true
+  end
+end
 
 morf.time.timer(30, function() stage:set("rest") end, false)

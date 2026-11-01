@@ -55,8 +55,9 @@ in
       };
       # A software GPU: morf presents through a swapchain, not dmabufs.
       environment.sessionVariables = software;
-      systemd.user.services.eva.environment = software;
+      systemd.user.services.eva.environment = software // { MORF_PROFILE = "lua"; };
       hardware.graphics.enable = true;
+      environment.systemPackages = [ pkgs.jq ];
       virtualisation = {
         memorySize = 4096;
         cores = 4;
@@ -157,7 +158,12 @@ in
 
     def settings(text):
         path = machine.succeed("cat /home/alice/.local/state/eva/settings-path").strip()
-        machine.succeed(f"printf '%s' '{text}' > {path}", f"chown alice {path}")
+        machine.succeed(f"cat > /tmp/settings.json <<'END'\n{text}\nEND")
+        machine.succeed(f"install -D -o alice -m 600 /tmp/settings.json {path}")
+
+    def idle_mark():
+        # Where hypridle runs it from: alice's user manager.
+        machine.succeed(f"{alice} systemd-run --user --wait --quiet ${nodes.machine.system.build.evaIdleLock}")
 
     def locked_up():
         machine.wait_until_succeeds(is_locked(), timeout=90)
@@ -180,7 +186,9 @@ in
         locked_up()
         machine.screenshot("09-lock-rest")
         machine.send_chars("not the password\n")
-        machine.sleep(8)
+        # The verdict, then a moment for the field to take keys again.
+        machine.wait_until_succeeds("journalctl -b | grep -q 'more authentication failure'", timeout=90)
+        machine.sleep(3)
         machine.screenshot("10-lock-wrong")
         machine.succeed(is_locked())
         unlock()
@@ -188,7 +196,7 @@ in
 
     with subtest("a lock asked for by the idle timer opens on a key, inside the window"):
         settings('{"lock":{"grace_seconds":60}}')
-        machine.succeed(f"{alice} ${nodes.machine.system.build.evaIdleLock}")
+        idle_mark()
         locked_up()
         machine.screenshot("12-idle-lock")
         machine.succeed(is_locked())
@@ -210,7 +218,7 @@ in
 
     with subtest("the window ends with the time, and the password is back"):
         settings('{"lock":{"grace_seconds":2}}')
-        machine.succeed(f"{alice} ${nodes.machine.system.build.evaIdleLock}")
+        idle_mark()
         locked_up()
         machine.send_key("a")
         machine.sleep(5)
@@ -224,7 +232,7 @@ in
         machine.sleep(2)
         machine.succeed(
             f"{alice} busctl --user call org.freedesktop.Notifications /org/freedesktop/Notifications "
-            "org.freedesktop.Notifications Notify susssasa{sv}i app 0 '' 'Secret summary' 'secret body' 0 0 5000"
+            "org.freedesktop.Notifications Notify susssasa{sv}i app 0 \"\" 'Secret summary' 'secret body' 0 0 5000"
         )
         machine.wait_until_succeeds(
             "jq -e '.notifications.count == 1 and .notifications.level == \"count\"' /run/user/1000/eva/lock-view.json",
