@@ -260,7 +260,7 @@ in
         machine.succeed("test \"$(stat -c %a /run/user/1000/eva/lock-view.json)\" = 600")
 
     with subtest("real logind: who blocks sleep is named, and a fixed stage stays off"):
-        machine.succeed("systemd-run --unit=hold systemd-inhibit --what=sleep --who=vmtest --why=holding sleep 300")
+        machine.succeed("systemd-run --unit=hold systemd-inhibit --what=sleep --who=vmtest --why=holding /run/current-system/sw/bin/sleep 300")
         machine.wait_until_succeeds("systemd-inhibit --list --no-legend | grep -q vmtest", timeout=30)
         status = machine.succeed(f"{alice} WAYLAND_DISPLAY=wayland-1 morf ipc call idle status")
         print(status)
