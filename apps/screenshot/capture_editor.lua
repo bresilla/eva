@@ -485,6 +485,7 @@ function M.export(action,direct)
   local function complete(ok,message)
     if current~=generation then return end
     M.busy:set(false)
+    if ok and rendered and M.on_shot then M.on_shot(action,rendered,message) end
     if rendered then owned.remove(rendered) rendered=nil end
     if ok then
       if M.on_export then M.on_export(action,message) end
@@ -518,6 +519,7 @@ function M.export(action,direct)
         else save(output_name(),config.get("capture.copy_on_save")) end
       elseif action=="upload" then backend.upload(path,config.get("capture.upload_endpoint"),complete)
       elseif action=="ocr" or action=="qr" then require("lib.shell.capture.read").read(action,path,complete)
+      elseif action=="pin" then complete(true)
       else complete(false,"Unknown export action") end
     end)
   end

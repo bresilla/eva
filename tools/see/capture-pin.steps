@@ -1,0 +1,23 @@
+# A pin on a real layer surface over a real window of the sealed compositor, a
+# second one beside it, then both closed.
+unset EVA_DRY_RUN
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+export BOOT=0
+
+window Reference reference '#335577'
+pause 1
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
+toolipc screenshot screen how=pin > /dev/null
+pause 2
+shot pin
+toolipc capture-pin add "$SEE_EVA/tests/fixtures/wallpaper.png" > /dev/null
+pause 1
+shot pin-two
+note echo "pins: $(toolipc capture-pin count)"
+toolipc capture-pin clear > /dev/null
+pause 1
+shot pin-gone
+note echo "pins: $(toolipc capture-pin count)"

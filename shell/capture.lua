@@ -9,6 +9,7 @@ local M = {
   editing = morf.signal("eva.capture.editing", false),
   phase = morf.signal("eva.capture.phase", "ready"),
   recording = morf.signal("eva.capture.recording", false),
+  paused = morf.signal("eva.capture.paused", false),
   elapsed = morf.signal("eva.capture.elapsed", 0),
   target = morf.signal("eva.capture.target", "region"),
 }
@@ -103,6 +104,7 @@ local function alive()
 end
 
 local function count()
+  if M.paused:get() then return end
   M.elapsed:set(math.max(0, (morf.time.now_ms() - started) // 1000))
 end
 
@@ -115,6 +117,8 @@ local function apply(state)
   M.phase:set(state.phase or "ready")
   M.target:set(state.target or M.target:get())
   M.recording:set(state.recording == true)
+  M.paused:set(state.paused == true)
+  if state.paused then M.elapsed:set(state.elapsed or M.elapsed:get()) end
 end
 
 local function read()

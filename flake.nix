@@ -136,6 +136,7 @@
             pkgs.wl-clipboard
             pkgs.tesseract
             pkgs.zbar
+            pkgs.ffmpeg-headless
             # The assistant's transport, and the fake provider its specs ask.
             pkgs.curl
             pkgs.python3

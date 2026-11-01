@@ -344,8 +344,10 @@ run=function(argv,options,cb)
   return ok and child or nil
 end
 function M.copy(path,cb)
+  local extension=tostring(path):lower():match("%.(%w+)$")
+  local kind=(extension=="jpg" or extension=="jpeg") and "image/jpeg" or extension=="webp" and "image/webp" or "image/png"
   -- wl-copy owns the clipboard beyond a shell reload; pass the path as $0.
-  return run({"sh","-c",'exec wl-copy --type image/png < "$0"',path},{},function(result)
+  return run({"sh","-c",'exec wl-copy --type "$1" < "$0"',path,kind},{},function(result)
     if cb then cb(result and result.ok==true,result and result.stderr or "Clipboard unavailable") end
   end)
 end

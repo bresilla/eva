@@ -214,6 +214,7 @@ function V.build(M)
   for i,a in ipairs {{"reselect","Select again","crop_free",M.reselect},{"last","Last region","history",M.restore_last},
     {"upload","Upload","cloud_upload",function() M.more_open:set(false) M.export("upload") end},
     {"ocr","Copy text","document_scanner",reader("ocr")},{"qr","Copy QR code","qr_code_scanner",reader("qr")},
+    {"pin","Pin to screen","keep",function() M.more_open:set(false) M.export("pin") end},
     {"delete","Delete mark","delete",M.remove},{"settings","Settings","settings",function() M.more_open:set(false) M.settings:set(true) end},
     {"cancel","Cancel","close",M.cancel}} do
     local area
@@ -261,14 +262,16 @@ function V.build(M)
   reveal(tools_popup,function() return editing() and M.tools_open:get() end,6)
   reveal(more_popup,function() return editing() and M.more_open:get() end,6)
   local settings_items={}
-  local function toggle(key,label,y)
-    return kit.action {id="capture-setting-"..key,x=16,y=y,width=280,height=30,on_clicked=function() config.set("capture."..key,not config.get("capture."..key)) end,
+  local function toggle(key,label,y,x,width)
+    return kit.action {id="capture-setting-"..key,x=x or 16,y=y,width=width or 280,height=30,on_clicked=function() config.set("capture."..key,not config.get("capture."..key)) end,
       kit.icon(function() return config.get("capture."..key) and "check_box" or "check_box_outline_blank" end,20,function() return C.primary end,{y=4}),
       kit.text {x=30,y=6,text=label,font_size=13},}
   end
   for i,option in ipairs {{"save_dialog","Choose where to save"},{"copy_on_save","Copy when saving"},{"copy_to_disk","Save when copying"},{"cursor","Include pointer"}} do
     settings_items[#settings_items+1]=toggle(option[1],option[2],40+(i-1)*32)
   end
+  -- Beside the colour field: the floating thumbnail's switch.
+  settings_items[#settings_items+1]=toggle("thumbnail","Thumbnail",344,150,146)
   for i,option in ipairs {{"blur","Blur strength",1,100},{"pixelate","Pixel size",1,256},{"zoom","Zoom factor",1,10}} do
     local y=174+(i-1)*40
     settings_items[#settings_items+1]=kit.text {x=16,y=y+10,text=option[2],font_size=13}

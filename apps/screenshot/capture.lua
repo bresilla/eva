@@ -17,10 +17,17 @@ M.recording = morf.shared("eva.capture.recording", false)
 M.elapsed = morf.shared("eva.capture.elapsed", 0)
 M.started = morf.shared("eva.capture.started", 0)
 M.file = morf.shared("eva.capture.file", "")
+M.paused = morf.shared("eva.capture.paused", false)
+M.pausable = morf.shared("eva.capture.pausable", false)
+-- The seconds a replay buffer keeps; 0 for a plain recording.
+M.replay = morf.shared("eva.capture.replay", 0)
 M.phase = morf.signal("eva.capture.phase", "ready")
 M.message = morf.signal("eva.capture.message", "")
 M.countdown = morf.signal("eva.capture.countdown", 0)
-local pending, ticker, process, d
+-- What keeps a tool with nothing else to do alive: thumbnails and pins.
+M.held = morf.signal("eva.capture.held", 0)
+M.pins_kept = morf.reloadable("eva.capture.pins.kept", "")
+local pending, ticker, process, d, pause_began
 local sequence, generation = 0, 0
 local function dry_run()
   local v = morf.env("EVA_DRY_RUN")
@@ -28,10 +35,14 @@ local function dry_run()
 end
 local expand = backend.expand
 function M.folder() return expand(config.get("capture.folder") or "~/Pictures/Captures") end
+local function recorder_gone()
+  M.paused:set(false) M.pausable:set(false) M.replay:set(0)
+end
 local function fail(message)
   M.message:set(message)
   M.phase:set("error")
   M.recording:set(false)
+  recorder_gone()
   if d then d.set(true) end
 end
 --- Runs the configured command `name`. `$FILE` is the file it writes; `values`
@@ -74,11 +85,15 @@ local function stop_ticker()
 end
 function M.cancel()
   if M.editor.running() then M.editor.cancel() return true end
+  if M.trim_open:get() then require("trim").close() return true end
+  local scroll = package.loaded.scroll
+  if scroll and scroll.state:get() ~= "" then scroll.cancel() return true end
   if not pending then return false end
   generation = generation + 1
   pending:cancel() pending = nil
   stop_ticker()
   M.recording:set(false)
+  M.replay:set(0)
   M.phase:set("ready")
   M.countdown:set(0)
   return true
@@ -107,6 +122,9 @@ local function busy()
 end
 local function claim()
   if morf.broadcast then morf.broadcast("capture-claim",screen.name) end
+  -- A thumbnail goes before the next picture.
+  local thumb = package.loaded.thumb
+  if thumb then thumb.dismiss() end
 end
 -- What the tool's own command line waits on: "ok" or "no", then a line.
 local function report(path, ok, value)
@@ -141,14 +159,15 @@ function M.shoot(what,how)
   end, order.delay)
   return what
 end
---- The editor on the picture at `path`.
-function M.open_file(path, result)
+--- The editor on the picture at `path`. `closed`, if any, runs when it ends.
+function M.open_file(path, result, closed)
   if busy() then return false end
   claim()
   M.phase:set("editing")
   local ok, why = M.editor.open_file(path, function(good, message, value)
     report(result, good, value or message or "cancelled")
     M.phase:set("ready")
+    if closed then closed() end
   end)
   if not ok then M.phase:set("ready") end
   return ok, why
@@ -177,11 +196,15 @@ local function recorded(file)
   if dry_run() or file == "" then return end
   morf.process.detach { "sh", morf.paths.shell("cli"), "--saved-recording", file }
 end
+M.recorded = recorded
+--- Runs the configured command `name`, its capital words from `values`:
+--- `done(result)`. What it writes is in `M.file`.
+function M.run_command(name, values, done) return run(name, nil, done, values) end
 local function stop_recorder()
   if M.phase:get() == "stopping" then return "stopping" end
   M.phase:set("stopping")
   if dry_run() then
-    stop_ticker() M.recording:set(false) M.phase:set("ready")
+    stop_ticker() M.recording:set(false) recorder_gone() M.phase:set("ready")
   elseif process then
     local ok, sent = pcall(function() return process:kill("INT") end)
     if not ok or not sent then
@@ -199,8 +222,17 @@ end
 function M.stop()
   if process or (dry_run() and M.recording:get()) then return stop_recorder() end
 end
+-- Whether the command `name` runs gpu-screen-recorder, which pauses on USR2.
+local function takes_pause(name)
+  local words = config.get("capture.commands." .. name)
+  for _, word in ipairs(type(words) == "table" and words or {}) do
+    if tostring(word):match("gpu%-screen%-recorder$") then return true end
+  end
+  return false
+end
 --- Starts a recording of `what`, or stops the one running. `order`: `audio`
---- (the recorder's -a), `fps`, and `start`, which refuses to stop one.
+--- (the recorder's -a), `fps`, `start`, which refuses to stop one, and `replay`,
+--- the seconds a replay buffer keeps instead of a file.
 function M.record(what,order)
   order = order or {}
   if M.recording:get() then
@@ -211,6 +243,7 @@ function M.record(what,order)
   if busy() then return "busy" end
   what = checked(what)
   M.message:set("") M.elapsed:set(0) M.recording:set(true)
+  M.paused:set(false) M.replay:set(order.replay or 0)
   generation = generation + 1
   local current = generation
   claim()
@@ -222,35 +255,163 @@ function M.record(what,order)
       M.phase:set("recording")
       M.started:set(morf.time.now_ms())
       local name = (what == "window" and not values.REGION) and "record_portal" or "record_" .. what
+      if order.replay then
+        name, values.SECONDS, values.FOLDER = "record_replay", tostring(order.replay), M.folder()
+        M.file:set("")
+      end
+      M.pausable:set(not order.replay and takes_pause(name))
       local extra = order.audio and { "-a", order.audio } or nil
       local ok, child = run(name, extra, function(result)
         if current ~= generation then return end
         local stopped = M.phase:get() == "stopping"
+        local plain = M.replay:get() == 0
         process = nil
         stop_ticker()
         M.recording:set(false)
+        recorder_gone()
         if result.ok or (stopped and result.signal == 2) then
-          M.phase:set("ready") M.message:set("Recording saved.")
-          recorded(M.file:get())
+          M.phase:set("ready") M.message:set(plain and "Recording saved." or "Replay stopped.")
+          if plain then recorded(M.file:get()) end
         else fail(result.error or result.stderr or "Recording cancelled or failed.") end
       end, values)
       if not ok then return end
       if M.phase:get() ~= "recording" then return end
       process = child
-      ticker = morf.time.timer(1000, function() M.elapsed:set(M.elapsed:get() + 1) end, true)
+      ticker = morf.time.timer(1000, function()
+        if not M.paused:get() then M.elapsed:set(M.elapsed:get() + 1) end
+      end, true)
     end
     aim(what, begin, function(ok, message)
       M.recording:set(false)
+      M.replay:set(0)
       if ok then M.phase:set("ready") M.message:set("")
       else fail(message or "Recording cancelled or failed.") end
+    end)
+  end, order.replay and 0 or nil)
+  return what
+end
+--- Whether the recorder running can be paused.
+function M.can_pause() return M.pausable:get() end
+--- Pauses the recording, or takes it up again; `on` says which, a toggle without
+--- it. Answers "paused", "recording", or false when nothing changed.
+function M.pause(on)
+  if on == nil then on = not M.paused:get() end
+  if not M.recording:get() or M.phase:get() ~= "recording" or not M.can_pause() then return false end
+  if on == M.paused:get() then return false end
+  if process then
+    local ok, sent = pcall(function() return process:kill("USR2") end)
+    if not ok or not sent then M.message:set("Could not reach the recorder.") return false end
+  elseif not dry_run() then
+    if morf.broadcast then morf.broadcast("capture-pause", on and "on" or "off") end
+    return on and "paused" or "recording"
+  end
+  local now = morf.time.now_ms()
+  if on then pause_began = now
+  elseif pause_began then M.started:set(M.started:get() + now - pause_began) end
+  M.paused:set(on)
+  return on and "paused" or "recording"
+end
+--- Keeps the last `order.seconds` of the screen, or the configured seconds, until
+--- asked to save them or stop. `order.audio` and `order.fps` as for a recording.
+function M.replay_start(order)
+  order = order or {}
+  local seconds = tonumber(order.seconds) or tonumber(config.get("capture.replay_seconds")) or 30
+  return M.record("screen", { replay = math.max(2, math.floor(seconds)), audio = order.audio, fps = order.fps, start = true })
+end
+--- The replay buffer on, or off when it is on.
+function M.replay_toggle()
+  if M.replay:get() > 0 then return M.record() end
+  return M.replay_start()
+end
+-- Finds the file the recorder writes for a save: it names it itself, so the
+-- folder is watched until a new one stops growing.
+local function await_replay(before)
+  local tries, seen, size = 0, nil, -1
+  local timer
+  timer = morf.time.timer(250, function()
+    tries = tries + 1
+    local found
+    for _, entry in ipairs(morf.fs.list(M.folder()) or {}) do
+      if not before[entry.name] and entry.name:lower():match("%.mp4$") then found = entry end
+    end
+    if found and found.path == seen and found.size == size and size > 0 then
+      timer:cancel()
+      M.file:set(found.path)
+      M.message:set("Replay saved.")
+      recorded(found.path)
+    elseif tries >= 40 then
+      timer:cancel()
+      M.message:set("The recorder did not save a replay.")
+    elseif found then
+      seen, size = found.path, found.size
+    end
+  end, true)
+end
+--- Saves what the replay buffer holds; it runs on. Answers whether it was asked.
+function M.replay_save()
+  if M.replay:get() == 0 then return false end
+  if dry_run() then return true end
+  if not process then
+    if morf.broadcast then return morf.broadcast("capture-replay-save") == true end
+    return false
+  end
+  local before = {}
+  for _, entry in ipairs(morf.fs.list(M.folder()) or {}) do before[entry.name] = true end
+  local ok, sent = pcall(function() return process:kill("USR1") end)
+  if not ok or not sent then M.message:set("Could not reach the recorder.") return false end
+  M.message:set("Saving the replay…")
+  await_replay(before)
+  return true
+end
+--- A long picture of `what` as it scrolls: the selection for a region, the
+--- focused window by its place, or this screen.
+function M.scroll(what)
+  if busy() then return "busy" end
+  what = checked(what)
+  M.message:set("")
+  claim()
+  after_shutting(function()
+    local function ready(values)
+      local area
+      if values and values.OUTPUT then
+        area = { x = screen.x or 0, y = screen.y or 0, w = screen.width, h = screen.height }
+      elseif values and values.REGION then
+        local w, h, x, y = values.REGION:match("^(%d+)x(%d+)%+(-?%d+)%+(-?%d+)$")
+        area = { x = tonumber(x), y = tonumber(y), w = tonumber(w), h = tonumber(h) }
+      end
+      if not area then fail("The compositor does not say where the window is.") return end
+      M.phase:set("scrolling")
+      local ok, why = require("scroll").start(M, area)
+      if not ok then fail(why) end
+    end
+    aim(what, ready, function(ok, message)
+      if ok then M.phase:set("ready") M.message:set("")
+      else fail(message or "Selection cancelled.") end
     end)
   end)
   return what
 end
-function M.height() return 264 end
+-- A recording's trim, over the desk while it is open.
+M.trim_open = morf.signal("eva.capture.trim", false)
+--- Whether the file at `path` is a recording: the editor takes those by trimming.
+function M.is_recording(path)
+  local extension = tostring(path):lower():match("%.(%w+)$")
+  return extension == "mp4" or extension == "mkv" or extension == "webm" or extension == "mov" or extension == "gif"
+end
+-- Whether the panel has opened yet, and its history in the place of its controls.
+M.panel_opened = morf.signal("eva.capture.panel.opened", false)
+M.history_open = morf.signal("eva.capture.history", false)
+function M.height()
+  if not M.history_open:get() then return 264 end
+  return math.max(264, math.min(520, math.floor((screen.height or 800) * 0.62)))
+end
 M.drawer = drawer.new {
   name = "capture", edge = "bottom", width = M.WIDTH, height = M.height,
   content = require("capture_view").build(M, M.WIDTH, M.height), close_policy = "outside",
 }
 d = M.drawer
+morf.effect("eva.capture.panel.follow", function()
+  if d.open:get() then M.panel_opened:set(true)
+  elseif M.history_open:get() then M.history_open:set(false) end
+end)
 return M

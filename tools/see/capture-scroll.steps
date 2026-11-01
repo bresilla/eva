@@ -1,0 +1,75 @@
+# A long picture of a real window in the sealed compositor, in real grim frames,
+# the join checked by reading it with the real tesseract. First by the tool's own
+# Page Down, which runs to the end of the page and stops itself; then by hand, with
+# the keys arriving as a person's would. wtype leaves its own keymap on this seat:
+# the tool's key goes first.
+unset EVA_DRY_RUN
+export BOOT=0
+export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
+FOLDER="$HOME/Pictures/Captures"
+scrollstate() { toolipc capture-scroll state | tr -d ' \n'; }
+newest() { ls -t "$FOLDER"/*_long.png 2> /dev/null | head -n 1; }
+lines_in() { tesseract "$1" - 2> /dev/null | grep -c '^Line '; }
+order_of() { tesseract "$1" - 2> /dev/null | sed -n 's/^Line \([0-9]*\).*/\1/p' | tr '\n' ' '; }
+scroller() {
+  morf app "$SEE_EVA/tools/see/scroll_app.lua" > "$SEE_OUT/scroller.log" 2>&1 &
+  SCROLLER=$!
+  pause 3
+  swaymsg '[app_id="see.scroll"] focus' > /dev/null
+  pause 0.5
+}
+
+scroller
+start shell
+drawn
+toolup
+grim "$EVA_FAKE_SCREEN"
+swaymsg '[app_id="see.scroll"] focus' > /dev/null
+pause 0.5
+shot window
+
+ipc capture open > /dev/null
+pause 2
+shot panel
+ipc capture close > /dev/null
+pause 1.5
+
+toolipc capture-scroll window > /dev/null
+pause 2
+shot following
+toolipc capture-scroll auto > /dev/null
+pause 3
+shot following-auto
+for each in $(seq 28); do
+  [ -n "$(newest)" ] && break
+  pause 1
+done
+pause 2
+note echo "auto: $(scrollstate)"
+LONG=$(newest)
+cp "$LONG" "$SEE_OUT/auto.png"
+note echo "auto lines: $(lines_in "$LONG")"
+note echo "auto order: $(order_of "$LONG")"
+shot thumbnail
+toolipc capture-thumb dismiss > /dev/null
+kill "$SCROLLER"
+pause 1
+
+rm -f "$FOLDER"/*_long.png
+scroller
+toolipc capture-scroll window > /dev/null
+pause 2
+for each in 1 2 3; do
+  key Next
+  pause 1.5
+done
+shot following-hand
+note echo "after three pages: $(scrollstate)"
+toolipc capture-scroll done > /dev/null
+pause 3
+note echo "done: $(scrollstate)"
+LONG=$(newest)
+cp "$LONG" "$SEE_OUT/by-hand.png"
+note echo "by hand lines: $(lines_in "$LONG")"
+note echo "by hand order: $(order_of "$LONG")"
+kill "$SCROLLER"
