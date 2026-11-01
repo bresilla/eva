@@ -90,6 +90,7 @@ local HOST = [[
       "shell/haptics.lua", "shell/mobile_model.lua", "themes/layouts/views/connectivity.lua", "shell/keyboard.lua",
       "shell/quick_tiles.lua", "shell/idle_model.lua", "shell/idle_page.lua", "shell/lock_page.lua",
       "themes/layouts/views/idle_page.lua", "themes/layouts/views/lock_page.lua",
+      "shell/windows_page.lua", "themes/layouts/views/windows_page.lua",
       "themes/layouts/views/assistant_settings.lua", "themes/layouts/views/calendar_settings.lua",
       "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",
@@ -107,7 +108,7 @@ local HOST = [[
     local groups = { "osd.kinds", "lule", "quick", "input", "accessibility", "sound", "power", "storage", "proxy", "nightlight",
       "edgebar", "dashboard", "sidebar", "leftbar", "bottom", "capture.tools", "appearance", "rotation", "polkit", "osd",
       "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels", "assistant", "calendar",
-      "keyboard", "filters", "phone", "idle", "lock" }
+      "keyboard", "filters", "phone", "idle", "lock", "dock", "windows" }
     local function covered(key)
       if reached[key] then return true end
       for _, each in ipairs(kept) do if key == each or key:sub(1, #each + 1) == each .. "." then return true end end

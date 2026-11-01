@@ -55,6 +55,8 @@ M.badge = shared("eva.notifications.badge",
 M.dnd = require("themes.session").keep("eva.notifications.dnd", false)
 -- True while the sidebar is open (sidebar.lua sets it).
 M.covered = morf.signal("eva.notifications.covered", false)
+-- True while the launcher stands where the popups would (panel_room.lua).
+M.veiled = morf.signal("eva.notifications.veiled", false)
 -- Which card is taking a reply, and which shows its tools (this screen's).
 M.replying = morf.signal("eva.notifications.replying", false)
 M.tools = morf.signal("eva.notifications.tools", false)
@@ -1118,7 +1120,7 @@ local function on_this_screen()
   return services.here()
 end
 morf.effect("eva.notifications.shown", function()
-  M.drawer.set(#M.on_show() > 0 and not M.covered:get() and on_this_screen())
+  M.drawer.set(#M.on_show() > 0 and not M.covered:get() and not M.veiled:get() and on_this_screen())
 end)
 --- The edge light and the flash of an arrival, for the frame to lay over all.
 function M.overlay() return visual.overlay() end

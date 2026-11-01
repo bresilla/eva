@@ -20,15 +20,20 @@ local BUTTONS = {
   { "Force quit", "dangerous", "bottom:kill" },
 }
 
-local function hypr_actions(c, h)
+local function windows() return require("windows_model") end
+
+local function hypr_actions(c)
   local address = c.address
   local actions = {
     { name = "Switch to it", material = "open_in_browser",
-      run = function() h.dispatch("focuswindow", "address:" .. address) return "close" end },
+      run = function() windows().focus(address) return "close" end },
     { name = "Bring it here", material = "move_down",
-      run = function() h.dispatch("movetoworkspace", "+0,address:" .. address) return "close" end },
+      run = function()
+        windows().to_workspace(address, windows().int(require("services").workspace.active()), false)
+        return "close"
+      end },
     { name = "Close it", material = "close",
-      run = function() h.dispatch("closewindow", "address:" .. address) return "close" end },
+      run = function() windows().close(address) return "close" end },
   }
   for _, button in ipairs(BUTTONS) do
     actions[#actions + 1] = { name = button[1], material = button[2], run = function()
@@ -71,19 +76,15 @@ function M.window_rows()
   local h = hyprland()
   if h then
     local active = h.state.active_window
-    local model = h.state.clients
-    for i = 1, model:len() do
-      local c = model:get(i)
-      if c.mapped ~= false and not c.hidden then
-        local actions = hypr_actions(c, h)
-        local r = rows.row {
-          id = "window:" .. c.address, name = c.title ~= "" and c.title or c.class, tag = "Window",
-          description = c.class .. "  ·  workspace " .. tostring(c.workspace), keywords = c.class,
-          icon = c.class:lower(), actions = actions, run = actions[1].run,
-        }
-        out[#out + 1] = r
-        if active and active.address == c.address then focused = r end
-      end
+    for _, c in ipairs(windows().list()) do
+      local actions = hypr_actions(c)
+      local r = rows.row {
+        id = "window:" .. c.address, name = c.title ~= "" and c.title or c.class, tag = "Window",
+        description = c.class .. "  ·  workspace " .. tostring(c.workspace), keywords = c.class,
+        icon = c.class:lower(), actions = actions, run = actions[1].run,
+      }
+      out[#out + 1] = r
+      if active and active.address == c.address then focused = r end
     end
     return out, focused
   end

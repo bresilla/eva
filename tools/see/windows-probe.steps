@@ -1,0 +1,9 @@
+# What the sealed compositor serves: its window list, and a window's picture.
+export EVA_FAKE_WINDOWS=$SEE_EVA/tests/fixtures/windows.json
+start shell
+window Editor see.editor "#26547c"
+window Browser see.browser "#7a3b69"
+pause 3
+ipc overview open
+pause 2.5
+note morf ipc call windows shots

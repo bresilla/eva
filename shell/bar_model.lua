@@ -90,17 +90,13 @@ function M.new(ctx)
     local rows={}
     local h=services.hyprland
     if h then
-      local workspace=services.workspace.active()
+      local windows=require("windows_model")
       local focused=(h.state.active_window or {}).address
-      local clients=h.state.clients
-      for i=1,clients:len() do
-        local client=clients:get(i)
-        if client.workspace==workspace and not client.hidden then
-          local class=client.class or ""
-          local icon=apps.icon(class:lower()) or apps.icon(class) or apps.icon((client.initial_class or ""):lower())
-          rows[#rows+1]={address=tostring(client.address),title=client.title and client.title~="" and client.title or class,
-            class=class,focused=focused==client.address,icon=icon or {}}
-        end
+      for _,client in ipairs(windows.on(windows.int(services.workspace.active()))) do
+        local class=client.class or ""
+        local icon=apps.icon(class:lower()) or apps.icon(class) or apps.icon((client.initial_class or ""):lower())
+        rows[#rows+1]={address=tostring(client.address),title=client.title and client.title~="" and client.title or class,
+          class=class,focused=focused==client.address,icon=icon or {}}
       end
     end
     model.rows:replace(rows,"address")
@@ -115,14 +111,10 @@ function M.new(ctx)
   function model.focus(address)
     if not model.on() then return false end
     if dry() then return false end
-    local h=services.hyprland
-    if not h then return false end
-    local workspace=services.workspace.active()
-    for i=1,h.state.clients:len() do
-      local client=h.state.clients:get(i)
-      if tostring(client.address)==address and client.workspace==workspace and not client.hidden then
-        return pcall(h.dispatch,"focuswindow","address:"..address)
-      end
+    if not services.hyprland then return false end
+    local windows=require("windows_model")
+    for _,client in ipairs(windows.on(windows.int(services.workspace.active()))) do
+      if tostring(client.address)==address then return windows.focus(client.address)~=false end
     end
     return false
   end

@@ -29,7 +29,7 @@ local HOST=[[
     if key=="display" then return data end
     return data[key]
   end})
-  local hypr={state={clients=lists.clients,active_window=active},dispatch=function(command,value)
+  local hypr={available=function() return true end,state={clients=lists.clients,active_window=active},dispatch=function(command,value)
     calls[#calls+1]={command,value} active.address=value:gsub("^address:","") return true
   end}
   package.loaded.services={net={state=service_state},modem={state=service_state},upower={state=service_state},

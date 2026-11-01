@@ -21,6 +21,9 @@
 local morf = require("morf")
 local ui = require("morf.ui")
 
+-- Before anything asks for the compositor.
+require("windows_stand_in").install()
+
 local config = require("config")
 local theme = require("theme")
 local drawer = require("drawer")
@@ -184,11 +187,18 @@ local window_menu = require("window_menu")
 require("calendar_reminders").start()
 require("panel_room").watch()
 require("phone")
+local overview = require("overview")
+local window_switcher = require("window_switcher")
+local snap = require("snap")
+local kill_mode = require("kill_mode")
+local dock = require("dock")
 
 -- One policy for the shared surface. Closing a launcher or auth dialog
 -- must not disable typing in the task editor that is still open.
 morf.effect("eva.keyboard.focus", function()
   local exclusive = launcher.drawer.open:get() or session.drawer.open:get() or window_menu.opened:get()
+    or overview.opened:get() or window_switcher.opened:get() or snap.picking:get() or snap.assisting:get()
+    or kill_mode.active:get()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get()
     or notifs.replying:get() ~= false
   -- Typed into on a click: the Tasks and Calendar pages, the terminal, Lule's
@@ -300,7 +310,14 @@ end
 -- The shell's window, to a screen reader.
 frame_root.accessible_name = "Eva"
 -- The focused window's menu, over it: in the screen's own coordinates.
+ui.reparent(dock.node,frame_root)
+ui.reparent(require("window_modes").node,frame_root)
 ui.reparent(window_menu.node,frame_root)
+ui.reparent(overview.node,frame_root)
+ui.reparent(window_switcher.node,frame_root)
+ui.reparent(snap.node,frame_root)
+ui.reparent(kill_mode.node,frame_root)
+ui.reparent(require("hot_corners").build(),frame_root)
 -- Authentication can interrupt editing without ending up behind its overlay.
 morf.effect("eva.capture.authentication",function()
   if (polkit.pending:get() or keyring.request:get()) and capture.editor.running() then capture.cancel() end
@@ -308,7 +325,9 @@ end)
 
 -- Windows keep inside the opening: the frame, and the bar when it is up.
 morf.effect("eva.bar.reserve", function()
-  morf.surface.reserve = frame_view.insets(bar.insets())
+  local insets = frame_view.insets(bar.insets())
+  insets[dock.edge()] = (insets[dock.edge()] or 0) + dock.reserve()
+  morf.surface.reserve = insets
 end)
 
 wallpaper.open_layer()
@@ -855,6 +874,8 @@ if require("themes").refused then
   notifs.push { summary = "Theme unavailable", body = require("themes").refused .. "; using Material.",
     urgency = 1, app = "eva" }
 end
+
+require("windows_ipc").register(ipc)
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)

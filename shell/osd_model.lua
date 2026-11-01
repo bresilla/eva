@@ -28,6 +28,7 @@ M.KINDS = {
     hold = 2400 },
   { id = "headphones", name = "Headphones", icon = "headphones", family = "status", place = "center", hold = 3200 },
   { id = "media", name = "Now playing", icon = "music_note", family = "media", place = "top_center", hold = 3600 },
+  { id = "workspace", name = "Workspace", icon = "workspaces", family = "status", place = "top_center", hold = 1000 },
 }
 M.BY_ID = {}
 for _, kind in ipairs(M.KINDS) do M.BY_ID[kind.id] = kind end
