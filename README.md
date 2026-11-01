@@ -31,11 +31,34 @@ its source, with two visual themes: Material and Tsugumori.
 ```
 
 The module runs the shell as the `eva` user service, the greeter under
-greetd and the lock screen from Hyprland's idle daemon. It also handles the UI
-scale shared with the greeter, the wallpaper bridge, PAM, and, optionally,
-phone gestures. Its options live under `programs.eva`: `uiScale`, `idle.*`,
-`phone.*`, `hyprland.extraConfig`, `greeter.*`, `wallpaperLogo` and
-`usePackagedShell`.
+greetd on a Hyprland of its own and the lock screen from Hyprland's idle
+daemon. It also handles the UI scale shared with the greeter, the wallpaper
+bridge, PAM, and, optionally, phone gestures. Its options live under
+`programs.eva`: `uiScale`, `idle.*`, `phone.*`, `hyprland.extraConfig`,
+`greeter.*`, `seamless.*`, `wallpaperLogo` and `usePackagedShell`.
+
+`seamless.enable`, on by default, hides the way from boot to the desktop. Two
+compositors cannot share a frame, so greetd's switch between them always has a
+gap; this makes the gap a colour rather than text:
+
+- The kernel and systemd stay quiet, tty1 has no getty and no cursor, and
+  greetd stays on tty1. Other VTs get their cursor back at the login prompt.
+- The session's own output goes to the journal (`journalctl -t eva-session`),
+  through `EVA_SESSION_WRAPPER`, which the greeter puts in front of every
+  session it starts.
+- The wallpaper bridge writes the picture's dominant colour beside it. Both
+  Hyprlands use it as `background_color`, and tty1 uses it as its background.
+- The session records each output's mode, position, scale and transform in
+  `outputs` beside the scale file, and the greeter sets the same, so the switch
+  needs no modeset.
+- A right password fades the form, frame and clock off the wallpaper in 170 ms,
+  and only then asks greetd for the session. The compositor ends with that
+  bare wallpaper as its last frame.
+
+The first shell of a session then brings the frame, the rail and the bar in from
+the edges; a lock lifting does the same, and `morf reload` and a theme switch do
+not. `seamless.plymouth = true` adds Plymouth, which hands its last frame to the
+greeter and ends under the greeter's first frame.
 
 On a phone, `phone.enable` adds continuous touch gestures, a hidden pointer and
 deliberate double-tap or power-button wake. `phone.idleTimeout = 0` disables
@@ -353,8 +376,8 @@ when opening the picker, then cached until the next shell reload. IPC accepts
 Lock controls follow the pointer's output. Each output uses its own logical
 dimensions, including space for the on-screen keyboard;
 other outputs show the clock and background. The lock has one private password
-draft across all outputs. The greeter stays on Cage's main display with one
-private draft and one authentication conversation.
+draft across all outputs. The greeter stays on its compositor's main display
+with one private draft and one authentication conversation.
 Both views rebuild their presentation after a resize or rotation while retaining
 controller state. Small outputs keep readable controls and scroll the sheet.
 Replacing a keyboard cancels held keys and
@@ -372,9 +395,9 @@ startup, volume changes and brief Bluetooth profile handoffs stay quiet.
 Preview with `morf ipc call headphones-demo` or
 `morf ipc call headphones-demo earbuds`.
 
-Under Cage the greeter uses one login window on Cage's main display. The view
-uses its configured fullscreen window size and never follows the pointer or
-rebuilds in response to monitor metadata. Locking remains independent.
+The greeter uses one fullscreen surface on its Hyprland's main display. The
+view uses the size that surface is configured to and never follows the pointer
+or rebuilds in response to monitor metadata. Locking remains independent.
 
 ## Sound and nested settings
 
