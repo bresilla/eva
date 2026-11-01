@@ -51,7 +51,7 @@ if config.path then
 end
 
 require("displays_hotplug").start()
-for _, name in ipairs { "input_model", "access_model", "audio_rules", "lid_watch", "privacy_page_model", "drive_watch" } do
+for _, name in ipairs { "input_model", "access_model", "keys_model", "audio_rules", "lid_watch", "privacy_page_model", "drive_watch" } do
   require(name).start()
 end
 

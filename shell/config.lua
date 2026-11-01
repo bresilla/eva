@@ -693,6 +693,9 @@ local config = settings.open {
         group = true,
       },
     },
+    -- New chords for the compositor's keys, eva-keys' to write: `{ id, keys }`,
+    -- an empty chord for none (shell/keys_model.lua).
+    keys = { overrides = {} },
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
     -- keeps it, a phone or a tablet follows the accelerometer).
     rotation = { lock = "auto" },

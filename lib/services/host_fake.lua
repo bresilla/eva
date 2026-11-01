@@ -187,7 +187,12 @@ function M.hyprland()
     table.insert(double.listeners[name], handler)
     return { off = function() end }
   end
-  function double.reload(_, callback) if callback then callback("ok") end end
+  function double.reload(_, callback)
+    double.sent[#double.sent + 1] = "/reload"
+    if callback then callback("ok") end
+  end
+  double.bound = {}
+  function double.binds(callback) callback(double.bound) end
   return double
 end
 
