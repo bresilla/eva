@@ -22,7 +22,7 @@ let
       lib.concatMapStringsSep ":" toString config.programs.eva.runtimePaths
     }''${MORF_RUNTIME_PATH:+:$MORF_RUNTIME_PATH}"
     export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${shell}/bin/eva-keyring}"
-    # A tool's child runs morf as a client, not as part of that tool.
+    # morf as a client, outside any tool.
     unset MORF_APP
     export EVA_SCALE_MODE=compositor
     export EVA_SCALE_FILE="''${EVA_SCALE_FILE:-${config.programs.eva.uiScaleFile}}"
@@ -96,9 +96,8 @@ let
     export XDG_CONFIG_DIRS=/etc/xdg
     exec ${morf}/bin/morf "$fallback"
   '';
-  # The tools and the command line, reaching morf through the launcher above so
-  # they share the shell's scale and runtime path.
-  tools = pkgs.runCommand "eva-tools" { } ''
+  # The tools and the command line, reaching morf through the launcher above.
+  tools =pkgs.runCommand "eva-tools" { } ''
     mkdir -p "$out/bin" "$out/share"
     for tool in ${shell}/bin/eva ${shell}/bin/eva-*; do
       name=$(basename "$tool")

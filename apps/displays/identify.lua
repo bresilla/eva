@@ -1,5 +1,5 @@
--- Each monitor's name on that monitor, for when no shell runs to draw it: a
--- plain configuration, so morf gives every output a runtime of its own.
+-- Each monitor's name on that monitor with no shell running: a plain
+-- configuration, one runtime to an output.
 local morf = require("morf")
 local ui = require("morf.ui")
 morf.surface.layer = "background"

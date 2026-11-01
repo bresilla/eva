@@ -104,8 +104,7 @@ function M.pick()
   return hover.hex
 end
 
---- Builds the desktop's scheme from `hex`: lule's command takes pictures, so
---- this is the shell's colour source, which the shell and every tool follow.
+--- Sets the shell's colour source, `theme.source`, to `hex`.
 function M.send_to_lule(hex)
   if not dry() then config.set("theme.source", hex) end
   M.message:set("Sent " .. hex .. " to the theme")

@@ -35,7 +35,7 @@ local function command(words)
   return argv
 end
 
--- The command runs once this window has gone, so it is not in the picture.
+-- Starts the command detached and ends the window.
 local function leave_and(words)
   morf.process.detach(command(words))
   morf.time.timer(50, function() morf.quit() end, false)

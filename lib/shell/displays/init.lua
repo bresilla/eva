@@ -8,7 +8,7 @@
 --
 -- Profiles live in $XDG_STATE_HOME/eva/displays/profiles.json, matched on
 -- make, model and serial, never on the port. What was last kept is written
--- beside them as a file the compositor loads, so a reload does not lose it.
+-- beside them as a file the compositor loads.
 local morf = require("morf")
 local capture = require("lib.shell.capture")
 

@@ -49,3 +49,23 @@ start shell
 ipc displays-identify > /dev/null
 pause 1
 shot identify-shell
+
+# A third monitor arriving brings the profile saved for those three: the shell
+# puts it above the others.
+monitor() {
+  printf '{"identity":"port:%s","enabled":true,"x":%s,"y":%s,"width":1920,"height":1080,"refresh":60,"scale":1,"transform":0,"vrr":false,"mirror":""}' "$1" "$2" "$3"
+}
+{
+  printf '{"profiles":[{"name":"dock","auto":true,"key":"port:HEADLESS-1#1,port:HEADLESS-2#1,port:HEADLESS-3#1","outputs":['
+  monitor HEADLESS-1 0 1080
+  printf ','
+  monitor HEADLESS-2 0 2160
+  printf ','
+  monitor HEADLESS-3 0 0
+  printf ']}]}\n'
+} > "$XDG_STATE_HOME/eva/displays/profiles.json"
+note echo "before hotplug: $(layout)"
+swaymsg create_output > /dev/null
+pause 2.5
+note echo "after hotplug: $(layout)"
+note echo "persisted: $(grep -c HEADLESS "$XDG_STATE_HOME/eva/displays/outputs.sway") outputs"

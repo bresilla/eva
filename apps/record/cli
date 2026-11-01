@@ -144,7 +144,7 @@ fi
 
 mkdir -p "$folder" "$run_dir"
 chmod 700 "$run_dir"
-# Started with SIGINT at its default: the signal that finishes the file.
+# The recorder, with SIGINT at its default.
 env --default-signal=INT setsid gpu-screen-recorder "$@" > /dev/null 2>&1 &
 printf '%s' "$!" > "$pid_file"
 printf '%s' "$file" > "$file_file"

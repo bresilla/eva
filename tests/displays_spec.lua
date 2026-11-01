@@ -82,6 +82,16 @@ morf.ipc.hypr_plan = function()
   d.apply({ o }, function(ok) answer = ok end)
   return { chunk = plan[1].eval, text = d.hyprland_text { o }, answer = answer, sent = table.concat(sent, "\n") }
 end
+morf.ipc.auto = function(x)
+  local connected = { panel("A", 0, "111", "DP-1") }
+  local kept = d.profile("desk", connected, true)
+  kept.outputs[1].x = tonumber(x)
+  d.save_profiles { kept }
+  morf.ipc.answer = nil
+  d.auto_apply(function(name, why) answer_name, answer_why = name, why end)
+  return true
+end
+morf.ipc.auto_result = function() return { name = answer_name, why = answer_why } end
 morf.ipc.persist = function()
   local ok, why = d.persist { panel("HEADLESS-1", 0) }
   return { ok = ok, why = why, text = morf.fs.read(d.paths.sway()) }
@@ -171,6 +181,38 @@ test.it("writes the file sway reloads", function()
   local result = test.ipc("persist")
   test.truthy(result.ok)
   test.contains(result.text, 'output "Dell U2720Q HEADLESS-1" enable')
+end)
+
+local CONNECTED = morf.json.encode {
+  { name = "DP-1", make = "Dell", model = "U2720Q", serial = "111", active = true,
+    rect = { x = 0, y = 0, width = 1920, height = 1080 }, scale = 1, transform = "normal",
+    current_mode = { width = 1920, height = 1080, refresh = 60000 }, modes = {} },
+}
+
+local function applied()
+  local calls = {}
+  for _, argv in ipairs(test.runs()) do
+    if argv[1] == "swaymsg" and argv[2] ~= "-t" then calls[#calls + 1] = argv[2] end
+  end
+  return calls
+end
+
+test.it("applies the saved profile for what is connected", function()
+  test.stub_run("swaymsg", { code = 0, stdout = CONNECTED })
+  pure { EVA_SETTINGS = "/nonexistent/eva.json", SWAYSOCK = "/nonexistent/sway.sock" }
+  test.ipc("auto", "500")
+  test.settle(100)
+  test.eq(test.ipc("auto_result").name, "desk")
+  test.contains(applied()[1], "pos 500 0")
+end)
+
+test.it("leaves an arrangement that already matches alone", function()
+  test.stub_run("swaymsg", { code = 0, stdout = CONNECTED })
+  pure { EVA_SETTINGS = "/nonexistent/eva.json", SWAYSOCK = "/nonexistent/sway.sock" }
+  test.ipc("auto", "0")
+  test.settle(100)
+  test.eq(test.ipc("auto_result").name, "desk")
+  test.eq(#applied(), 0)
 end)
 
 -- ----------------------------------------------------------------- the tool --
