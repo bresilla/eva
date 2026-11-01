@@ -717,6 +717,14 @@ shared; views receive icon names/paths and own their rendering. Views own
 window overflow, geometry, hover and entry motion. They never read compositor
 or device services, issue commands, or start polling timers.
 
+`responsive.form()` chooses the bar's form: `desk` keeps the framed bar, `phone`
+and `tablet` a status bar with presses `responsive.target()` tall. The model's
+`arrange(room, sizes)` says what fits (`status_model.arrange`) and `reading`
+carries one normalised battery (`battery_status_model.lua`), drawn by
+`kit.battery`, a display function each theme draws itself. `responsive.lanes()`
+gives the row clear of the screen's corners and any cutout. On a desk
+`model.tray` holds the system tray's rows, up only while the bar is.
+
 ### Side-panel builder
 
 `views.side_panel.build(model)` returns `width`, a `height` binding, `edge`,

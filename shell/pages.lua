@@ -44,7 +44,8 @@ function M.tabs(edge)
       tabs[#tabs + 1] = { key = key, name = page.name, icon = page.icon, fit = page.fit,
         build = function(w, h)
           return require("themes.layouts.page").frame { id = "page-" .. key, width = w, height = h,
-            title = page.name, title_id = page.title_id, titled = require("responsive").compact(),
+            title = page.name, title_id = page.title_id,
+            titled = require("responsive").compact() or require("responsive").sheets(),
             -- Its title reads in (where the theme reads titles in) as its
             -- panel shows it.
             active = function() return panel ~= nil and require("presentation").active(panel.id .. "." .. key)() end,

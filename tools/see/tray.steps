@@ -1,0 +1,15 @@
+# The tray on a desk's bar, with a real item on the session bus: a program of
+# its own, on a second private display.
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-57}
+export EVA_FAKE_STATUS=${EVA_FAKE_STATUS:-wifi,dnd}
+export EVA_SETTINGS="$SEE_OUT/settings.json"
+echo '{ "edgebar": { "enabled": "on" } }' > "$EVA_SETTINGS"
+start shell
+WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDER_DRM_DEVICE=$RENDER \
+  sway --unsupported-gpu -c "$CONFIG" > "$SEE_OUT/sway-item.log" 2>&1 &
+pause 2
+ITEM_DISPLAY=$(cd "$XDG_RUNTIME_DIR" && ls -d wayland-[0-9] | tail -1)
+WAYLAND_DISPLAY=$ITEM_DISPLAY morf tools/see/tray_item.lua > "$SEE_OUT/tray-item.log" 2>&1 &
+pause 4
+shot tray
+ipc settings bar; pause 1.2; shot bar-page

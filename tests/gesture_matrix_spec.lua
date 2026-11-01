@@ -230,10 +230,10 @@ test.it("a touchscreen is told from the input devices", function()
   load(UPRIGHT[1], UPRIGHT[2]) test.falsy(state().touch)
   load(UPRIGHT[1], UPRIGHT[2], true) test.truthy(state().touch)
 end)
-test.it("on a touchscreen the dashboard pulls shut from its tab row, upright and on its side", function()
+test.it("on a touchscreen the dashboard rises from the bottom and pulls shut from its tab row, upright and on its side", function()
   for _, case in ipairs {
     { UPRIGHT, { UPRIGHT[1] / 2, UPRIGHT[2] - 2 }, { UPRIGHT[1] / 2, UPRIGHT[2] - 700 }, 420 },
-    { SIDEWAYS, { SIDEWAYS[1] / 2, 2 }, { SIDEWAYS[1] / 2, 420 }, -300 },
+    { SIDEWAYS, { SIDEWAYS[1] / 2, SIDEWAYS[2] - 2 }, { SIDEWAYS[1] / 2, SIDEWAYS[2] - 420 }, 300 },
   } do
     load(case[1][1], case[1][2], true)
     drag(case[2][1], case[2][2], case[3][1], case[3][2])

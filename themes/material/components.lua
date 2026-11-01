@@ -1448,6 +1448,8 @@ end
 --- A state word in the theme's voice: Material says it plainly.
 function M.term(_, plain) return plain end
 
+M.battery = require("themes.material.battery")(theme, M)
+
 for name, skin in pairs(require("themes.material.skins")(theme, M)) do M.skins[name] = skin end
 
 return M

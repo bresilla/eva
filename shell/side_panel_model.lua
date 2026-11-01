@@ -13,6 +13,8 @@ function M.new(ctx)
     model.tabs[i] = { key = tab.key, name = tab.name, icon = tab.icon, fit = tab.fit }
     builders[tab.key] = tab.build
   end
+  -- A tab kept through a rebuild that left this panel with fewer tabs.
+  if not model.tabs[model.tab:get()] then model.tab:set(1) model.displayed:set(1) end
   --- How tall the page on show wants to stand, or nil for all there is.
   function model.fit()
     local tab = model.tabs[model.tab:get()]

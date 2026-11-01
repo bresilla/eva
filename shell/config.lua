@@ -136,6 +136,17 @@ local config = settings.open {
       -- "on" or "off": each window's title beside its icon, along a top or
       -- bottom bar.
       titles = "on",
+      -- How far the screen's rounded corners reach along the bar, in logical
+      -- pixels; 0 works it out. A cutout, in the panel's upright orientation:
+      -- its left edge, its width and how far down it goes.
+      corner = 0,
+      cutout = { x = 0, width = 0, height = 0 },
+      -- "on" or "off": the system tray on a desk's bar.
+      tray = "on",
+      -- The wheel over a desk's bar: over the status it changes the volume,
+      -- over the clock the workspace.
+      wheel_volume = false,
+      wheel_workspace = false,
     },
     -- Airplane mode, and what was on before it (to bring back).
     airplane = { on = false, was = { wifi = false, bluetooth = false, mobile = false } },

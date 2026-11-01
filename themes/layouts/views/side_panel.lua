@@ -4,23 +4,24 @@ local ui = require("morf.ui")
 local theme = require("theme")
 local V = {}
 function V.build(model)
-  -- From the top (a phone's quick settings) it is a sheet the desk's width,
-  -- as tall as the page on show wants up to four fifths of the desk, its tabs
-  -- icons alone; from a side, the side's height.
+  -- From the top it is a sheet, its tabs icons alone: the desk's width on a
+  -- phone held upright, elsewhere a panel under the status, and as tall as the
+  -- page on show wants, up to its most. From a side, the side's height.
+  local responsive = require("responsive")
   local top = model.edge == "top"
   local tabbed_layout = require("themes.layouts.tabbed")
   local function height()
     local _, h = model.desk_size()
     if not top then return h - 2 * theme.BORDER end
     -- A sheet leaves at least a fifth of the desk below it, to tap it shut.
-    local most = math.floor((h - 2 * theme.BORDER) * 0.8)
+    local most = responsive.panel_height(h)
     local wanted = model.fit()
     if not wanted then return most end
     return math.min(most, math.ceil(wanted) + tabbed_layout.TABS_H + 2 * tabbed_layout.PAD)
   end
   local function page_width()
     if not top then return theme.SIDE_W end
-    return require("responsive").sheet_width()
+    return responsive.panel_width()
   end
   local tabs = {}
   for i, tab in ipairs(model.tabs) do
@@ -41,7 +42,7 @@ function V.build(model)
   end
   if top then
     return { width = page_width(), height = height, edge = "top",
-      content = content, props = { anchors = { top = true, horizontal_center = true },
+      content = content, props = { anchors = responsive.panel_anchors(),
         behavior = { height = theme.spring.drawer } } }
   end
   return { width = theme.SIDE_W + theme.STRIP, height = height, edge = model.edge,

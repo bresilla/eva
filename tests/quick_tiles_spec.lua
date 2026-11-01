@@ -108,7 +108,7 @@ test.it("a wide touchscreen with no keyboard is a tablet, with a tablet's tiles"
   local shown=test.ipc("q_shown")
   test.truthy(has(shown,"rotation"),"a tablet has its rotation at hand")
   test.truthy(has(shown,"keyboard"),"a tablet has its keyboard at hand")
-  test.eq(test.get("drawer-sidebar").width,450,"a tablet keeps the panel")
+  test.eq(test.get("drawer-sidebar").width,560,"a tablet keeps a panel, not a phone's sheet")
   test.eq(#test.logs("error"),0)
 end)
 

@@ -35,6 +35,31 @@ function M.follow_range(state,owner,targets,motion)
   end,{owner=owner})
 end
 
+--- A field layer's outline that walks from one drawing onto the next. `want`
+--- is a binding naming a drawing, "" for none; `path` turns a name into its
+--- file. Returns the layer's `source`, `source_morph_to` and `morph_progress`
+--- bindings: the end not on show takes the new drawing and the progress
+--- flips towards it, so a change in flight retargets.
+local outline_morphs = 0
+function M.outline_morph(want, path, owner)
+  outline_morphs = outline_morphs + 1
+  local key = "kit.outline." .. outline_morphs
+  local first = M.get(want)
+  local from = morf.signal(key .. ".from", first)
+  local to = morf.signal(key .. ".to", first)
+  local side = morf.signal(key .. ".side", 0)
+  morf.effect(key, function()
+    local name = M.get(want)
+    if name == "" or name == (side:get() == 0 and from:get() or to:get()) then return end
+    if side:get() == 0 then to:set(name) side:set(1) else from:set(name) side:set(0) end
+  end, { owner = owner })
+  local function file(signal)
+    local name = signal:get()
+    return name ~= "" and path(name) or ""
+  end
+  return function() return file(from) end, function() return file(to) end, function() return side:get() end
+end
+
 --- Bytes in binary units, one decimal under ten: "1.1", "MiB". `unit`
 --- forces one.
 function M.bytes(n, unit)

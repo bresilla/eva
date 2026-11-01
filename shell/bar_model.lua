@@ -3,74 +3,65 @@ local morf = require("morf")
 local M = {}
 function M.new(ctx)
   local services, apps = require("services"), require("apps")
+  local status, battery = require("status_model"), require("battery_status_model")
   local model = { on=ctx.on, side=ctx.side, vertical=ctx.vertical, screen=ctx.screen, insets=ctx.insets,
-    rows=morf.list_model({}), has_modem=services.modem~=nil,
+    rows=morf.list_model({}), keys=status.KEYS,
     stamp=morf.signal("eva.bar.clock",{"","",""}),
-    reading=morf.signal("eva.bar.reading",{network_icon="wifi",mobile_icon="signal_cellular_nodata",
-      battery_icon="power",battery=false,percentage="",tor=false,ring=false,ring_icon="notifications",technology=""}) }
+    reading=morf.signal("eva.bar.reading",{network_icon="",mobile_icon="",battery=battery.NONE,percentage="",
+      indicators={},icons={},technology=""}) }
   function model.titles() return require("config").get("edgebar.titles")~="off" and not model.vertical() end
-  -- The network, as an icon: Wi-Fi by its signal, the wire, or none.
-  local function network_icon()
-    local n = services.net
-    if n and n.state.available then
-      local model = n.state.access_points
-      for i = 1, model:len() do
-        local ap = model:get(i)
-        if ap.in_use then
-          local s = ap.strength or 0
-          if s > 75 then return "network_wifi" end
-          if s > 50 then return "network_wifi_3_bar" end
-          if s > 25 then return "network_wifi_2_bar" end
-          return "network_wifi_1_bar"
-        end
-      end
-      if n.state.wired and n.state.wired.connected then return "lan" end
-      return n.state.wifi_enabled and "wifi_find" or "wifi_off"
+  -- The tray on a desk, up while the bar is and its setting says so.
+  local config=require("config")
+  function model.tray_on() return config.get("edgebar.tray")~="off" end
+  if require("responsive").form()=="desk" then
+    model.tray=require("tray_model").new()
+    morf.effect("eva.bar.tray",function()
+      if model.on() and model.tray_on() then model.tray.start() else model.tray.stop() end
+    end)
+  end
+  -- The wheel over the bar, each with its setting: `volume` or `workspace`.
+  function model.wheel_on(kind) return config.get("edgebar.wheel_"..kind)==true end
+  local VOLUME_STEP=0.05
+  function model.wheel_volume(steps)
+    if not (model.on() and model.wheel_on("volume")) then return end
+    local volume=require("osd").volume()
+    require("settings_model").levels.set_volume(math.max(0,math.min(1,volume-steps*VOLUME_STEP)))
+  end
+  -- A touchpad turns in fractions: a workspace goes by for each whole notch.
+  local turned=0
+  function model.wheel_workspace(steps)
+    if not (model.on() and model.wheel_on("workspace")) then return end
+    turned=turned+steps
+    if math.abs(turned)<1 then return end
+    local delta=turned>0 and 1 or -1
+    turned=0
+    local dry=morf.env("EVA_DRY_RUN")
+    if dry and dry~="" and dry~="0" then
+      morf.log("info","eva: workspace "..delta.." (dry run)")
+      return
     end
-    return "wifi"
+    services.workspace.step(delta)
   end
-  -- A phone's mobile network: bars by its signal, or off.
-  local function mobile_icon()
-    local m = services.modem
-    -- No modem: the bars crossed out, so the place is always there.
-    if not (m and m.state.available) then return "signal_cellular_nodata" end
-    local s = m.state
-    if s.locked then return "signal_cellular_connected_no_internet_0_bar" end
-    if not s.registered then return "signal_cellular_off" end
-    local q = s.signal or 0
-    if q > 80 then return "signal_cellular_4_bar" end
-    if q > 55 then return "signal_cellular_3_bar" end
-    if q > 30 then return "signal_cellular_2_bar" end
-    if q > 10 then return "signal_cellular_1_bar" end
-    return "signal_cellular_0_bar"
-  end
-  local function battery()
-    local u = services.upower
-    local d = u and u.state.available and u.state.display or {}
-    return d.present and d or nil
-  end
-  local function battery_icon()
-    local b = battery()
-    if not b then return "power" end
-    if b.charging then return "battery_charging_full" end
-    local pct = b.percentage or 0
-    if pct > 90 then return "battery_full" end
-    if pct > 60 then return "battery_5_bar" end
-    if pct > 30 then return "battery_3_bar" end
-    if pct > 10 then return "battery_1_bar" end
-    return "battery_alert"
+  -- What collapses, in `room` pixels: status_model.arrange.
+  function model.arrange(room,sizes)
+    local r=model.reading:get()
+    sizes.level=r.battery.level
+    if not r.battery.present then sizes.percent=0 end
+    return status.arrange(r.indicators,room,sizes)
   end
 
-
+  status.connect()
   morf.effect("eva.bar.readings",function()
     if not model.on() then return end
-    local b=battery()
-    local r,t,m=services.ringer,services.tor,services.modem
-    local mode=r and r.state.mode or "sound"
-    model.reading:set {network_icon=network_icon(),mobile_icon=mobile_icon(),battery_icon=battery_icon(),
-      battery=b~=nil,percentage=b and ("%d%%"):format(math.floor((b.percentage or 0)+.5)) or "",
-      tor=t~=nil and t.on(),ring=mode~="sound",ring_icon=require("lib.shell.audio.ringer").icon(mode),
-      technology=m and m.state.available and m.state.technology or ""}
+    local b=battery.read()
+    local m=services.modem
+    local indicators=status.read(services)
+    local icons={}
+    for _,item in ipairs(indicators) do icons[item.key]=item.icon end
+    local airplane=require("config").get("airplane.on")==true
+    model.reading:set {network_icon=status.network_icon(services.net),mobile_icon=status.mobile_icon(m,airplane),
+      battery=b,percentage=b.present and ("%d%%"):format(b.level) or "",indicators=indicators,icons=icons,
+      technology=not airplane and m and m.state.available and m.state.technology or ""}
   end)
   morf.effect("eva.bar.windows",function()
     if not model.on() then return end
@@ -122,6 +113,12 @@ function M.new(ctx)
     local sidebar=require("sidebar")
     sidebar.select("settings")
     require("utilities").detail:set("")
+    sidebar.drawer.set(true)
+  end
+  function model.open_notifications()
+    if not model.on() then return end
+    local sidebar=require("sidebar")
+    sidebar.select("notifications")
     sidebar.drawer.set(true)
   end
   function model.toggle_dashboard()

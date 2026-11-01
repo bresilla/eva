@@ -33,8 +33,12 @@ P.GAP = S.m             -- between blocks, and between a caption and its card
 P.PAD = S.l             -- inside a card
 P.ROW_H = 64          -- a row
 P.ROW_GAP = S.s         -- between rows in a card
-P.BUTTON_H = S.TARGET   -- a button
 P.RADIUS = S.l          -- a card's rounding, where the theme rounds
+-- A button: a finger's height where one is the main input.
+do
+  local ok, responsive = pcall(require, "responsive")
+  P.BUTTON_H = ok and responsive.target() or S.TARGET
+end
 
 local function get(v) if type(v) == "function" then return v() end return v end
 
@@ -294,12 +298,12 @@ function P.header(spec)
     row = ui.Row(r)
   end
   local can_back = spec.can_back or function() return spec.back ~= nil end
-  local function lead() return can_back() and 44 or 0 end
+  local function lead() return can_back() and P.BUTTON_H + S.xs or 0 end
   local function text_w() return math.max(1e-3, get(w) - lead() - (row and (row.layout_width or 0) + 12 or 0)) end
   local back
   if spec.back then
-    back = kit.action { id = spec.back_id or (spec.id and spec.id .. "-back"), accessible_name = "Back", width = 40, height = 40,
-      cursor = "pointer", anchors = { vertical_center = true }, on_clicked = spec.back, visible = can_back,
+    back = kit.action { id = spec.back_id or (spec.id and spec.id .. "-back"), accessible_name = "Back",
+      width = P.BUTTON_H, height = P.BUTTON_H, cursor = "pointer", anchors = { vertical_center = true }, on_clicked = spec.back, visible = can_back,
       kit.icon("arrow_back", 22, kit.ink("hi"), { anchors = { center_in = true } }) }
     kit.hover(back, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
   end

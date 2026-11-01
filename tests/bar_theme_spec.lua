@@ -4,7 +4,7 @@ local HOST=[[
   local W,H=tonumber(morf.env("TEST_WIDTH")),tonumber(morf.env("TEST_HEIGHT"))
   morf.surface.height=H
   morf.time.now=function() return 1790584200 end
-  local prefs=morf.state {enabled="off",side="top",titles="on"}
+  local prefs=morf.state {enabled="off",side="top",titles="on",tray="off",wheel_volume=false,wheel_workspace=false}
   local original=require("config")
   package.loaded.config={get=function(key)
     local name=key:match("^edgebar%.(.+)$")
@@ -116,7 +116,8 @@ for _,style in ipairs {"material","tsugumori"} do
     show() test.eq(state().count,2)
     test.eq(state().reading.percentage,"64%") test.eq(state().reading.network_icon,"network_wifi_3_bar")
     test.ipc("change","charging") test.advance(100)
-    test.eq(state().reading.percentage,"84%") test.eq(state().reading.battery_icon,"battery_charging_full")
+    test.eq(state().reading.percentage,"84%") test.truthy(state().reading.battery.charging)
+    test.eq(state().reading.battery.mark,"bolt")
     test.ipc("workspace","2") test.advance(100) test.eq(state().count,1)
     test.falsy(test.ipc("focus","0xa")) test.eq(#state().calls,0)
     test.ipc("workspace","1") test.ipc("change","remove") test.advance(100)
@@ -128,8 +129,9 @@ for _,style in ipairs {"material","tsugumori"} do
     test.falsy(test.ipc("focus","0xb"))
     show() test.eq(state().reading.percentage,"31%")
     test.ipc("change","offline") test.advance(100)
-    test.eq(state().reading.network_icon,"wifi") test.eq(state().reading.battery_icon,"power")
-    test.falsy(state().reading.tor) test.falsy(state().reading.ring)
+    test.eq(state().reading.network_icon,"") test.eq(state().reading.mobile_icon,"")
+    test.falsy(state().reading.battery.present)
+    test.falsy(state().reading.icons.tor) test.falsy(state().reading.icons.ring)
     test.click("bar-status") test.eq(state().tab,"settings")
     test.eq(#test.logs("error"),0)
   end)
@@ -202,7 +204,8 @@ test.it("Tsugumori compact bar keeps the final window reachable without overlapp
   test.ipc("side","left") test.advance(900)
   lane=test.get("bar-windows-v") clock=test.get("bar-clock-v") status=test.get("bar-status-v")
   test.truthy(lane.y+lane.height<=clock.y,"windows run under the clock")
-  test.truthy(clock.y+clock.height<=status.y)
+  test.truthy(clock.y+clock.height<=status.y,("the clock ends at %s, the status starts at %s, %s tall"):format(
+    clock.y+clock.height,status.y,status.height))
   test.truthy(status.y+status.height<=H)
   last=reach("0x24",lane,120,"y")
   test.truthy(inside(last,lane,"y"),"the final window is out of reach")

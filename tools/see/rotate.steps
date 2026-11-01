@@ -1,0 +1,10 @@
+# A real rotation through the compositor, with the sheet open across it.
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-57,charging} EVA_FAKE_MODEM=1
+export EVA_FAKE_STATUS=${EVA_FAKE_STATUS:-wifi,bluetooth}
+start shell
+ipc sidebar open settings; pause 1.2; shot upright-sheet
+swaymsg output HEADLESS-1 transform 90 > /dev/null; pause 2.5; shot turned-sheet
+ipc screen > "$SEE_OUT/screen-turned.txt"
+ipc close; pause 0.8
+swaymsg output HEADLESS-1 transform normal > /dev/null; pause 2.5; shot upright-again
+ipc screen > "$SEE_OUT/screen-upright.txt"

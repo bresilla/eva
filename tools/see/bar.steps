@@ -1,0 +1,18 @@
+# The status bar, its sheet and the dashboard, at any form factor. Every
+# indicator is on until the state says otherwise.
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-57,charging,saver} EVA_FAKE_MODEM=1
+export EVA_FAKE_STATUS=${EVA_FAKE_STATUS:-wifi,bluetooth,vpn,dnd,ring,awake,mic}
+start shell
+pause 1
+shot rest
+ipc fake-battery 12; pause 1; shot low
+ipc fake-battery 80,limited; pause 1; shot limited
+ipc fake-battery 100,full; pause 1; shot full
+ipc fake-battery 57,saver; pause 1; shot saver
+ipc sidebar open settings; pause 1.2; shot sheet
+ipc close; pause 0.6
+ipc dashboard open; pause 1.4; shot dashboard
+ipc close; pause 0.6
+ipc launcher open; pause 1; shot launcher
+ipc close; pause 0.6
+ipc session open; pause 1; shot session

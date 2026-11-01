@@ -112,14 +112,17 @@ end)
 
 -- --------------------------------------------------------------- rotation --
 
--- A screen turned between portrait and landscape: this output's shell is
--- built again in place for the other layout, and what is open stays open.
-local built_portrait = require("responsive").portrait()
+-- A screen turned between portrait and landscape, or a keyboard docked: this
+-- output's shell is built again in place for the other layout, and what is
+-- open stays open.
+local built_layout = require("responsive").layout()
+require("responsive").watch_input()
 morf.effect("eva.rotation", function()
   morf.window.screens_revision()
-  local portrait = require("responsive").portrait()
-  if portrait ~= built_portrait then
-    built_portrait = portrait
+  local layout = require("responsive").layout()
+  if layout ~= built_layout then
+    built_layout = layout
+    require("themes.session").hold()
     morf.reload { output = true }
   end
 end)
@@ -175,16 +178,21 @@ end)
 local rail_node=rail.build()
 local levels=require("levels")
 local levels_node=levels.build()
+-- Where the panels are sheets the levels show only while one changes.
+if require("responsive").sheets() then
+  levels_node.visible=function() return levels.shown:get()~="" end
+end
 local overlays={
   -- The desk dims under the session menu.
   session.dim(),
   -- A press on the desk shuts what is open: each drawer's close policy
   -- (shell/drawer.lua), not catchers here.
 }
-local triggers=require("responsive").portrait() and {
-  -- A phone: the top edge brings quick settings down, the bottom one the
-  -- dashboard up; the side edges are left to the workspace gestures, and
-  -- the planner and the assistant wait for theirs.
+local triggers=require("responsive").touch() and {} or require("responsive").sheets() and {
+  -- A narrow window: the top edge brings quick settings down, the bottom one
+  -- the dashboard up; the side edges are left to the workspace gestures, and
+  -- the planner and the assistant wait for theirs. Under a finger the edges
+  -- are the gestures' alone.
   require("hover").edge {
     name = "sidebar", drawer = sidebar.drawer, edge = "top",
     length = function() local _, _, w = bar.desk() return w - 2 * (theme.BORDER + theme.ROUNDING) end,

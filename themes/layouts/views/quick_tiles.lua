@@ -116,8 +116,14 @@ function V.build(model, w, ctx)
         if not editing() then model.detail:set(t.detail) end
       end or nil,
       kit.icon(t.icon, 22, fg, { anchors = { vertical_center = true }, fill = t.fill or on,
+        visible = not t.glyph or function() return not t.glyph().present end,
         x = function() return small() and (METRICS.half - 22) / 2 or S.l end,
         behavior = { x = TRAVEL } }),
+      t.glyph and ui.Item { anchors = { vertical_center = true }, width = 28, height = 14,
+        visible = function() return t.glyph().present end,
+        x = function() return small() and (METRICS.half - 28) / 2 or S.m end,
+        behavior = { x = TRAVEL },
+        kit.battery { id = "utilities-glyph-" .. id, size = 14, status = t.glyph, color = fg, plain = on } } or ui.Item {},
       ui.Column {
         x = S.xxl + S.l, anchors = { vertical_center = true }, gap = 0,
         opacity = function() return small() and 0 or 1 end, behavior = { opacity = theme.spring.effects },

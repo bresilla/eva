@@ -25,11 +25,11 @@ local COMPACT = responsive.compact()
 -- On a phone every tab is the one size, scrolled in it; on a desk each
 -- tab has its own (responsive.dashboard), and the drawer eases between them.
 local CW, VIEW_H = responsive.dashboard()
-local PANEL_W = COMPACT and (responsive.portrait() and responsive.sheet_width()
+local PANEL_W = COMPACT and (responsive.sheets() and responsive.sheet_width()
   or responsive.desk_width() - 2 * theme.BORDER) or nil
 -- The tabs by the edge it comes from: the bottom one, on a phone.
-local TABS_BELOW = COMPACT and responsive.portrait()
-local PHONE=responsive.portrait()
+local TABS_BELOW = COMPACT and responsive.sheets()
+local PHONE=responsive.sheets()
 -- Swiped shut toward the edge it hangs from: the bottom on a phone, the top on a desk.
 local DISMISS=PHONE and "down" or "up"
 -- Four fifths of the desk: the fifth above it is to tap it shut.
@@ -96,7 +96,7 @@ local REORDER = AXIS or not require("models.touchscreens").attached()
 local function tabs()
   local row = kit.tabs { id = "dashboard", accessible_name = "Dashboard", tabs = TABS, tab = M.tab,
     width = width, height = TABS_H, pad = PAD, ids = "name", growing = true, reorderable = REORDER,
-    icons_only = COMPACT }
+    icons_only = responsive.width_class() == "compact" }
   if not TABS_BELOW then return row end
   return ui.Item { y = function() return panel_height()-TABS_H end, width = PANEL_W, height = TABS_H, row }
 end

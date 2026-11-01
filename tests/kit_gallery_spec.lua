@@ -35,6 +35,8 @@ local SOURCE = [[
       title = function() return "Normal" end, subtitle = function() return "Running smoothly" end } end,
     chip = function() return kit.chip { text = "Online" } end,
     loading = function() return kit.loading(32, signal, {}) end,
+    battery = function() return kit.battery { size = 24, status = function()
+      return { level = 62, mark = "bolt", tone = "ok", saver = true } end } end,
     gauge = function() return kit.gauge { size = 90, value = value } end,
     ring = function() return kit.ring { size = 180, value = value, label = "Load" } end,
     mini_ring = function() return kit.mini_ring { size = 80, value = value, text = function() return "62" end, label = "Mem" } end,

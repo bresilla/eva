@@ -1,0 +1,9 @@
+# The status bar round a cutout in the middle of a phone's top edge, and then
+# on a narrow phone, where it runs out of room and folds into the dot.
+export EVA_FAKE_BATTERY=64,charging EVA_FAKE_MODEM=1
+export EVA_FAKE_STATUS=wifi,bluetooth,vpn,dnd,ring,awake,night,alarm,mic
+export EVA_FAKE_CUTOUT=400,68,34
+start shell
+pause 1
+shot cutout
+ipc fake-battery 15; pause 1; shot cutout-low

@@ -220,6 +220,7 @@ return function(theme, M, hud)
     -- A layout's own area draws itself: the wash, the marks and the
     -- keyboard's brackets here.
     if widget == "area" or widget == "segment" then return { badge = feedback(t, spec.id) } end
+    if require("lib.kit.archetypes.press").has(spec, "flat") then return S.flat(t, spec) end
     if widget == "switch" then return switch(t, spec)
     elseif widget == "icon" then return icon(t, spec)
     elseif widget == "checkbox" or widget == "check_menu_item" then return checkbox(t)
@@ -457,7 +458,7 @@ return function(theme, M, hud)
 
   --- A scrolled view: the hairline scroll bar (a kit Range) on its right.
   function S.Scroll(t, spec)
-    if require("responsive").portrait() then return require("themes.phone_scrollbar")(t,spec,theme) end
+    if require("responsive").sheets() then return require("themes.phone_scrollbar")(t,spec,theme) end
     local flick = spec.flick
     local function room() return math.max(0, t.content_height - t.viewport_height) end
     return {

@@ -352,6 +352,32 @@ reload, the graphs fill from the right as samples arrive.
 waking idle sources. Pass an output name (for example `dashboard-history DP-6`)
 to inspect that monitor. The counters should increase with the drawer closed.
 
+## Phone, tablet and desk
+
+Each output is classed from its logical size: compact below 600 wide, medium to
+839, expanded from 840, with a height class to match. A touchscreen is the main
+input while no real keyboard is attached and the output is the machine's own
+panel, so a docked phone is a desk on its monitor and a phone on its panel.
+Turning the screen or docking a keyboard rebuilds that output in place, and
+what was open stays open.
+
+A phone and a tablet have a status bar with the clock at the left and mobile,
+Wi-Fi and battery at the right. Rare statuses, then Bluetooth, then VPN and Do
+not disturb fold into a dot when the row runs out, then the percentage if the
+battery is above 20%. Set `edgebar.corner` and `edgebar.cutout` for a screen's
+rounded corners and cutout. Quick settings comes down from the top, under the
+status on a tablet, and the dashboard rises from the bottom.
+
+A desk's bar has the system tray, and optionally the wheel over the status for
+volume and over the clock for the workspace (Eva, Bar). The tray serves a
+StatusNotifier watcher only while the bar is up, so programs never register with
+a tray nobody can see.
+
+`EVA_FAKE_BATTERY=57,charging,saver`, `EVA_FAKE_STATUS=wifi,bluetooth,vpn,dnd`
+and `EVA_FAKE_CUTOUT=400,68,34` stand in for hardware; a `tools/see/` scenario
+exports them, as `tools/see/bar.steps` and `cutout.steps` do, and
+`morf ipc call fake-battery 12` moves the battery while it runs.
+
 ## Visual themes (in progress)
 
 The shell, lock and greeter select a visual package with
