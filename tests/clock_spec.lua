@@ -199,6 +199,19 @@ test.it("keeps the time itself where there is no systemd", function()
   test.eq(#test.runs(), 0)
 end)
 
+test.it("a change to the store leaves the running wait alone", function()
+  local env = host("rearm")
+  local timer = test.ipc("add", "timer 1 min tea")
+  test.advance(30000)
+  local path = env.XDG_STATE_HOME .. "/eva/clock/alarms.json"
+  local list = morf.json.decode(morf.fs.read(path))
+  list[#list + 1] = { id = "later", kind = "timer", label = "", on = true, at = MONDAY + 600, seconds = 600 }
+  morf.fs.write(path, morf.json.encode(list), { atomic = true })
+  test.wait(function() return #test.ipc("state").items == 2 end, 3000, "the store was followed")
+  test.advance(31000)
+  test.eq(test.ipc("state").rang[1], timer.id)
+end)
+
 test.it("makes a timer unit of each entry with systemd", function()
   host("units", { EVA_ALARM_ENGINE = "systemd", EVA_DRY_RUN = "0" })
   test.stub_run("systemctl", { code = 0 })

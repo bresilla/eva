@@ -1,0 +1,13 @@
+# One window of a tool on a real compositor: with another window focused, a
+# second launch brings the first forward and starts nothing.
+focused() { swaymsg -r -t get_tree | jq -r '.. | objects | select(.focused? == true) | .app_id // .name'; }
+count() { grep -lsa "$1/app.lua" /proc/[0-9]*/cmdline | wc -l; }
+
+start app keys
+sh apps/launch clipboard > /dev/null 2>&1 &
+pause 2.5
+note echo "before: focused $(focused), keys windows $(count keys)"
+sh apps/launch keys
+pause 1
+note echo "after a second launch: focused $(focused), keys windows $(count keys)"
+shot raised
