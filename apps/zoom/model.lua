@@ -3,6 +3,7 @@
 local morf = require("morf")
 local sys = require("common.sys")
 local pointer = require("lib.shell.pointer")
+local hypr = require("lib.util.hypr")
 local frozen = require("common.freeze").new("zoom")
 
 local M = {
@@ -64,17 +65,18 @@ local function lua_chunk(value)
   return ("hl.config({ cursor = { zoom_factor = %s } })"):format(spell(value))
 end
 
--- Sets the keyword and reads it back; a value that did not take is said the way
--- a Lua-configured Hyprland takes it.
+-- `hyprctl` in the shape lib.util.hypr takes.
+local hyprctl = {}
+function hyprctl.eval(chunk, done)
+  sys.run({ "hyprctl", "eval", chunk }, {}, function(result) done(result.stdout) end)
+end
+
+-- Sets the factor and reads it back.
 local function write(value, done)
-  sys.run({ "hyprctl", "keyword", M.OPTION, spell(value) }, {}, function()
-    M.read(function(now)
-      if now == nil or math.abs(now - value) < 0.01 or sys.dry() then return done(now or value) end
-      sys.run({ "hyprctl", "eval", lua_chunk(value) }, {}, function()
-        M.read(function(after) done(after or now) end)
-      end)
-    end)
-  end)
+  local function settled() M.read(function(now) done(now or value) end) end
+  hypr.eval_or(hyprctl, lua_chunk(value), function()
+    sys.run({ "hyprctl", "keyword", M.OPTION, spell(value) }, {}, settled)
+  end, settled)
 end
 
 local writing, waiting = false, nil

@@ -178,7 +178,7 @@ local flavour = dispatch.flavour
 M.flavour = flavour
 
 local function checked(reply, err)
-  if err or (reply and not reply:match("^%s*ok%s*$")) then
+  if err or (reply and not require("lib.util.hypr").took(reply)) then
     morf.log("warn", "eva: windows: " .. tostring(err or reply))
   end
   M.refresh()

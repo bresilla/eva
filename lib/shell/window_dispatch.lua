@@ -4,6 +4,7 @@
 -- Hyprland and the classic one elsewhere; `global` marks a step on the focused
 -- window. EVA_DRY_RUN=1 logs what would be dispatched instead.
 local morf = require("morf")
+local hypr = require("lib.util.hypr")
 
 local M = {}
 
@@ -68,7 +69,7 @@ function M.run(address, steps, done, options)
       end
       if options.sent then options.sent(table.concat(chunk, " ")) end
       hyprland.eval(table.concat(chunk, " "), function(reply, err)
-        if err or (reply and not reply:match("^%s*ok%s*$")) then
+        if err or (reply and not hypr.took(reply)) then
           morf.log("warn", "eva: window menu: " .. tostring(err or reply))
           done(false)
         else
