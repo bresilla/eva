@@ -23,10 +23,8 @@ local function list(w, prefix, count, row, none, max)
   local inner = P.inner(w)
   local col = { width = inner, gap = P.ROW_GAP }
   for i = 1, max or MAX_ROWS do
-    local node = row(i, inner)
-    col[#col + 1] = ui.Item { id = prefix .. i, width = inner,
-      height = function() return math.max(P.ROW_H, node.layout_height or 0) end,
-      visible = function() return i <= count() end, node }
+    col[#col + 1] = ui.Item { id = prefix .. i, width = inner, height = P.ROW_H,
+      visible = function() return i <= count() end, row(i, inner) }
   end
   col[#col + 1] = P.row { width = inner, icon = "info", on = function() return false end, title = none,
     visible = function() return count() == 0 end }

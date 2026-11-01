@@ -101,10 +101,8 @@ end
 function F.list(width, prefix, count, row, none, max)
   local column = { width = width, gap = P.ROW_GAP }
   for index = 1, max or 32 do
-    local node = row(index, width)
-    column[#column + 1] = ui.Item { id = prefix .. index, width = width,
-      height = function() return math.max(P.ROW_H, node.layout_height or 0) end,
-      visible = function() return index <= count() end, node }
+    column[#column + 1] = ui.Item { id = prefix .. index, width = width, height = P.ROW_H,
+      visible = function() return index <= count() end, row(index, width) }
   end
   if none then
     column[#column + 1] = P.row { width = width, icon = "info", on = function() return false end, title = none,
