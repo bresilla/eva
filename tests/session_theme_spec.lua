@@ -14,7 +14,7 @@ local HOST = [[
       session.drawer.panel},
   }
   morf.ipc.open=function(on) session.drawer.set(on=="yes") end
-  morf.ipc.state=function() return {open=session.opened:get(),focus=session.focus:get()} end
+  morf.ipc.state=function() return {open=session.opened:get(),focus=session.focus:get(),pending=session.pending:get()} end
   morf.ipc.command=session.command
   morf.ipc.color=function(accent) theme.follow(accent) end
 ]]
@@ -37,7 +37,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(panel.width,300)
     test.truthy(test.get("session-picture").visible)
     local last
-    for _,id in ipairs {"logout","shutdown","hibernate","reboot"} do
+    for _,id in ipairs {"lock","lockdown","suspend","hibernate","logout","reboot","shutdown"} do
       local row=test.get("session-"..id)
       test.eq(row.width,276)
       if last then test.truthy(row.y>=last.y+last.height,"rows overlap: "..id) end
@@ -47,13 +47,17 @@ for _,style in ipairs {"material","tsugumori"} do
     if style=="material" then test.eq(test.get("session-title").text,"Session")
     else test.eq(test.get("session-title-text").text,"SESSION") end
     if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(style.."-session.png") end
-    test.key("Up") test.eq(test.ipc("state").focus,4)
+    test.key("Up") test.eq(test.ipc("state").focus,7)
     test.key("Tab") test.eq(test.ipc("state").focus,1)
     test.key("Down") test.eq(test.ipc("state").focus,2)
     test.key("Escape") test.advance(1000)
     test.falsy(test.ipc("state").open)
     test.eq(#test.runs(),0)
-    open() test.key("Down") test.key("Return") test.advance(1000)
+    -- What ends the session counts down, and a second press goes at once.
+    open() test.key("Up") test.key("Return") test.advance(300)
+    test.truthy(test.ipc("state").open,"the first press only starts the countdown")
+    test.eq(test.ipc("state").pending,"shutdown")
+    test.key("Return") test.advance(1000)
     test.falsy(test.ipc("state").open)
     local invoked=false
     for _,entry in ipairs(test.logs("info")) do
@@ -69,7 +73,9 @@ for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." session click dispatches the configured command once",function()
     load(style,nil,nil,false) open()
     test.move("session-reboot") test.advance(350)
-    test.eq(test.ipc("state").focus,4)
+    test.eq(test.ipc("state").focus,6)
+    test.click("session-reboot") test.advance(300)
+    test.eq(#test.runs(),0,"one press starts the countdown")
     test.click("session-reboot") test.advance(1000)
     test.falsy(test.ipc("state").open)
     test.eq(#test.runs(),1)
@@ -85,7 +91,7 @@ test.it("Tsugumori session fits compact outputs and survives interrupted reopeni
   test.ipc("open","no") test.advance(180)
   test.ipc("open","yes") test.advance(2400)
   test.truthy(test.get("drawer-session").visible)
-  for _,id in ipairs {"logout","shutdown","hibernate","reboot"} do
+  for _,id in ipairs {"lock","suspend","hibernate","logout","reboot","shutdown"} do
     test.near(test.get("session-"..id).opacity,1,0.001)
   end
   test.eq(test.get("session-title-text").text,"SESSION")

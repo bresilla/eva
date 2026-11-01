@@ -120,7 +120,7 @@ test.it("the full session drawer remains, with its own actions",function()
   for _,id in ipairs {"logout","shutdown","hibernate","reboot"} do
     test.truthy(test.find{id="session-"..id,visible=true},id.." left the drawer")
   end
-  test.falsy(test.find{id="session-lock"},"the row's Lock leaked into the drawer")
+  test.truthy(test.find{id="session-lock",visible=true},"the menu locks too")
   test.eq(#test.logs("error"),0)
 end)
 

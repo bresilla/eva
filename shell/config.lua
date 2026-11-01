@@ -176,6 +176,10 @@ local config = settings.open {
       },
     },
     session = {
+      -- Seconds a confirmed action counts down in the menu; 0 runs it at once.
+      countdown = 5,
+      -- Actions left out of the menu and the quick settings, by id.
+      hide = {},
       -- What each of the session menu's actions runs (`$USER` is the
       -- user's name).
       commands = {

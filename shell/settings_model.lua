@@ -68,20 +68,15 @@ function M.record()
   if capture.record then capture.record(capture.target and capture.target:get() or "screen") end
 end
 
--- The session row: Lock acts at once, what ends the session must be held.
-M.SESSION = {
-  { id = "lock", icon = "lock", name = "Lock", tone = "accent" },
-  { id = "logout", icon = "logout", name = "Log out", hold = true },
-  { id = "suspend", icon = "bedtime", name = "Suspend", hold = true, tone = "accent" },
-  { id = "reboot", icon = "restart_alt", name = "Restart", hold = true },
-  { id = "shutdown", icon = "power_settings_new", name = "Power off", hold = true },
-}
-
---- Whether the session action `id` has a command to run.
-function M.session_available(id)
-  local words = config.get("session.commands." .. id)
-  return type(words) == "table" and #words > 0
+-- The session row: Lock acts at once, what ends the session must be held. One
+-- list with the session menu's (shell/session_model.lua).
+M.SESSION = {}
+for _, action in ipairs(require("session_model").ACTIONS) do
+  if action.quick then M.SESSION[#M.SESSION + 1] = action end
 end
+
+--- Whether the session action `id` can be done here.
+function M.session_available(id) return require("session_model").available(id) end
 
 --- Who is signed in: `label` (the name to show) and `face` (a picture, or nil).
 function M.session_user()
