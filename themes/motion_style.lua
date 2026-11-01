@@ -39,7 +39,10 @@ function M.link(config)
     local name = SHARED[key]
     if not name then return set(key, value) end
     local ok, why = preferences.set(name, value)
-    if ok then preferences.flush() end
+    if ok then
+      preferences.flush()
+      require("themes.ui_scale").share { [name] = value }
+    end
     return ok, why
   end
   config.reset = function(key)

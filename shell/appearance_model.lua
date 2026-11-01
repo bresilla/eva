@@ -101,6 +101,7 @@ function M.find_sun(done)
       preferences.set("sunrise", M.local_time(rise, zone))
       preferences.set("sunset", M.local_time(set, zone))
       preferences.flush()
+      require("themes.ui_scale").share { sunrise = preferences.get("sunrise"), sunset = preferences.get("sunset") }
     end
     if done then done(found and true or false) end
   end)

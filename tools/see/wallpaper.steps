@@ -19,7 +19,7 @@ for kind in circle wipe grow dissolve stripes diamond star melt; do
     stripes) next=snow ;; diamond) next=dune ;; star) next=lagoon ;; melt) next=forest ;;
   esac
   ipc wallpaper set "$WALLS/$next.png"
-  pause 1.1
+  pause 1.7
   shot transition-$kind
-  pause 2.4
+  pause 1.8
 done

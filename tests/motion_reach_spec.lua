@@ -87,6 +87,59 @@ test.describe("a role without the shell's theme", function()
   end)
 end)
 
+test.describe("the greeter, which has no home of the user's", function()
+  local shared = morf.env("XDG_CACHE_HOME") .. "/motion-reach-shared.json"
+  local empty = morf.env("XDG_CACHE_HOME") .. "/motion-reach-no-personal.json"
+
+  test.it("hears the shell's choices through the file the scale shares", function()
+    morf.fs.remove(shared)
+    test.load("../shell/init.lua", { source = [[
+      local config = require("config")
+      morf.ipc.m_set = function(key, value) return config.set(key, value) end
+      morf.ipc.m_mode = function(value) require("themes.color_mode").set(value) end
+      return require("morf.ui").Item { width = 10, height = 10 }
+    ]], env = { EVA_SCALE_FILE = shared, EVA_APPEARANCE = appearance {},
+      EVA_SETTINGS = morf.env("XDG_CACHE_HOME") .. "/motion-reach-share-settings.json" } })
+    test.ipc("m_set", "appearance.motion", "calm")
+    test.ipc("m_set", "appearance.reduce_motion", true)
+    test.ipc("m_mode", "schedule")
+    local kept = morf.json.decode(morf.fs.read(shared))
+    test.eq(kept.motion, "calm")
+    test.eq(kept.reduce_motion, true)
+    test.eq(kept.mode, "schedule")
+  end)
+
+  test.it("lands everything from that file alone", function()
+    morf.fs.write(shared, morf.json.encode { zoom = 0, reduce_motion = true, motion = "calm", mode = "schedule" })
+    morf.fs.remove(empty)
+    test.load("../greet/init.lua", { source = PROBE, env = { EVA_SCALE_FILE = shared, EVA_APPEARANCE = empty } })
+    test.truthy(test.ipc("m_reduced"), "the greeter did not hear Reduce motion")
+    test.eq(test.ipc("m_style"), "calm")
+  end)
+
+  test.it("keeps the scale when it shares, and the shares when the scale moves", function()
+    morf.fs.write(shared, morf.json.encode { zoom = 0.25, motion = "playful" })
+    test.load("../shell/init.lua", { source = [[
+      local config = require("config")
+      morf.ipc.m_set = function(key, value) return config.set(key, value) end
+      return require("morf.ui").Item { width = 10, height = 10 }
+    ]], env = { EVA_SCALE_FILE = shared, EVA_APPEARANCE = appearance {},
+      EVA_SETTINGS = morf.env("XDG_CACHE_HOME") .. "/motion-reach-share2-settings.json" } })
+    test.ipc("m_set", "appearance.density", "compact")
+    test.ipc("m_set", "appearance.zoom", 0.5)
+    local kept = morf.json.decode(morf.fs.read(shared))
+    test.eq(kept.zoom, 0.5)
+    test.eq(kept.motion, "playful")
+    test.eq(kept.density, "compact")
+  end)
+
+  test.it("yields to a person's own file", function()
+    morf.fs.write(shared, morf.json.encode { motion = "calm" })
+    test.load("../greet/init.lua", { source = PROBE, env = { EVA_SCALE_FILE = shared, EVA_APPEARANCE = appearance { motion = "playful" } } })
+    test.eq(test.ipc("m_style"), "playful")
+  end)
+end)
+
 for _, role in ipairs { "lock", "greet" } do
   test.describe("the " .. role, function()
     test.it("builds whole under Reduce motion and under each style", function()

@@ -386,7 +386,9 @@ From a key or a script:
     morf ipc call wallpaper transition melt
     morf ipc call wallpaper draw on
 
-Dropping an image on the desktop sets it.
+Dropping an image on the desktop sets it. Options also has **Glow with the
+music**, where the picture brightens on every beat, and **a second picture under
+the pointer**, seen through a soft hole that follows it across the desktop.
 
 ## Desktop widgets
 
@@ -404,7 +406,9 @@ small ones to a row. Each form keeps its own board.
 Where Eva paints, widgets live on the wallpaper's own layer, so their glass reads
 the picture. Otherwise they have a layer just above the wallpaper tool's. Ink
 turns light or dark with the picture behind it, and **Clock in the quiet part**
-moves the clock to the calmest part of the picture.
+moves the clock to the calmest part of the picture. A widget stands on glass, a
+solid card or nothing; **Cut** cuts the clock's digits through a veil, so the
+picture itself is the time.
 
     morf ipc call desktop edit               # or done, state, add ID, hide ID, size ID
 
@@ -441,11 +445,20 @@ timed mode can be held for an hour. The choice lives with the theme in
   `settings.ini` and to qt5ct and qt6ct (with a palette of the shell's colours),
   and the terminals through Lule, or directly for a scheme by name. **Cursor** and
   **Icons** go the same way. Turn it off and nothing outside the shell is touched.
+- **Saved looks** keep the colours, shape, wallpaper and widgets under a name.
+- **Schemes of your own**: a file in `~/.config/eva/schemes` joins the sources,
+  with the same fields as `themes/schemes.lua`, and **Save these colours as a
+  scheme** writes one from the colours on show. A scheme says its text contrast,
+  with its WCAG grade.
 
 `theme.hook` runs when the mode turns, with `$MODE` filled in. How things move
 (the Eva page) and the density and corners also live in `appearance.json`, so the
 lock, the greeter and the tools take them, and Reduce motion lands everything in
-all of them. The desktop's own `reduced_motion` setting counts too.
+all of them. The desktop's own `reduced_motion` setting counts too. The Eva page
+also sets how quick everything is, how far surfaces deform as they move, from
+rigid to liquid, and the **Island**: a pill grown out of the top of the frame that
+shows the music or the time, opens on a press and walks its faces on a right
+press (`morf ipc call island [on|off|toggle|next]`).
 
 ## Phone, tablet and desk
 

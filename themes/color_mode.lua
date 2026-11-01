@@ -78,6 +78,7 @@ function M.set(mode)
   preferences.set("snooze_mode", "")
   preferences.set("snooze_until", 0)
   preferences.flush()
+  require("themes.ui_scale").share { mode = mode }
 end
 
 --- Holds `mode` for `seconds`; the choice resumes after.
@@ -93,6 +94,7 @@ function M.set_schedule(light_from, dark_from)
   preferences.set("light_from", light_from)
   preferences.set("dark_from", dark_from)
   preferences.flush()
+  require("themes.ui_scale").share { light_from = light_from, dark_from = dark_from }
   return true
 end
 

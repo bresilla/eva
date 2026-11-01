@@ -21,6 +21,17 @@ do
     if type(value.font) == "string" then defaults.font = value.font end
   end
 end
+-- A greeter has no home of the user's to read: what they chose reaches it in
+-- the public file the scale already shares. A person's own file still wins.
+do
+  local shared = morf.env("EVA_SCALE_FILE")
+  local ok, value = pcall(function() return morf.json.decode(morf.fs.read(shared)) end)
+  if shared and ok and type(value) == "table" then
+    for _, key in ipairs { "mode", "light_from", "dark_from", "sunrise", "sunset", "motion", "reduce_motion", "density" } do
+      if type(value[key]) == type(defaults[key]) then defaults[key] = value[key] end
+    end
+  end
+end
 local preferences = settings.open {
   path = morf.env("EVA_APPEARANCE") or (root .. "/eva/appearance.json"),
   name = "eva.appearance", defaults = defaults,

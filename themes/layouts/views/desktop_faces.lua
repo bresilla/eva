@@ -195,6 +195,10 @@ function F.visualiser(ctx, _, node_active)
     ui.Path { id = "desktop-visualiser-ring", anchors = { fill = true }, view_box = { 0, 0, 144, 144 }, visible = ctx.small,
       series = media.bars.id, plot = { kind = "radial", width = 144, height = 144, inner = 34, sweep = 360, start = 0 },
       fill_color = function() return C.primary end },
+    ui.Column { id = "desktop-visualiser-idle", anchors = { center_in = true }, gap = S.xs, align = "center",
+      visible = function() return not media.playing() end,
+      kit.icon("graphic_eq", 36, ctx.soft),
+      line(ctx, { text = "Quiet", color = ctx.soft, font_size = theme.size.small }) },
   }
 end
 
