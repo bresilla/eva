@@ -1,0 +1,69 @@
+# What each scene of the shell costs: how long it took to come up, the frame
+# accounting of every scene, the CPU and resident memory, and how the resident
+# capture tool stands. Numbers land in $SEE_OUT/cost.txt.
+export MORF_TEST_HOOKS=1
+export MORF_LOG=frame
+COST=$SEE_OUT/cost.txt
+: > "$COST"
+monotonic() { python3 -c 'import time; print(int(time.monotonic() * 1000))'; }
+rss() { awk '/^VmRSS/ { print $2 }' "/proc/$1/status" 2> /dev/null; }
+scene() {
+  local name=$1
+  {
+    printf '== %s\n' "$name"
+    printf 'at_ms %s\n' "$(monotonic)"
+    printf 'rss_kb %s\n' "$(rss "$ROLE")"
+    awk '{ print "cpu_ms", ($14 + $15) * 10 }' "/proc/$ROLE/stat"
+    ipc @frames
+  } >> "$COST"
+}
+
+BEGIN=$(monotonic)
+morf shell/init.lua > "$SEE_OUT/walk.log" 2>&1 &
+ROLE=$!
+for _ in $(seq 600); do morf ipc verbs > /dev/null 2>&1 && break; sleep 0.05; done
+UP=$(monotonic)
+printf 'begin_ms %s\nipc_ms %s\n' "$BEGIN" "$UP" >> "$COST"
+pause "${ARRIVAL:-8}"
+scene start
+pause 6
+scene idle
+
+walk() {
+  local tag=$1
+  ipc sidebar open notifications > /dev/null; pause 1.6; scene "$tag-right"
+  ipc close > /dev/null; pause 1; scene "$tag-right-shut"
+  ipc leftbar open tasks > /dev/null; pause 1.6; scene "$tag-left"
+  ipc close > /dev/null; pause 1; scene "$tag-left-shut"
+  ipc dashboard open > /dev/null; pause 1.6; scene "$tag-top"
+  ipc close > /dev/null; pause 1; scene "$tag-top-shut"
+  ipc bottom open assistant > /dev/null; pause 1.6; scene "$tag-bottom"
+  ipc close > /dev/null; pause 1; scene "$tag-bottom-shut"
+  ipc launcher open > /dev/null; pause 1.6; scene "$tag-launcher"
+  ipc close > /dev/null; pause 1; scene "$tag-launcher-shut"
+  ipc utilities open > /dev/null; pause 1.8; scene "$tag-settings"
+  ipc close > /dev/null; pause 1; scene "$tag-settings-shut"
+}
+walk first
+shot walked
+walk again
+pause 3
+scene settled
+ipc reload > /dev/null
+pause "${ARRIVAL:-8}"
+scene reload
+shot reloaded
+grep -E '^(Rss|Anonymous|Pss_File)' "/proc/$ROLE/smaps_rollup" | sed 's/^/shell_/' >> "$COST"
+
+# The capture tool, on the standby a real session keeps it on.
+stop
+unset EVA_DRY_RUN
+export BOOT=0
+start shell
+drawn
+toolup
+pause 6
+TOOL=$(sed -n 's/.*"pid":\([0-9]*\).*/\1/p' "$XDG_RUNTIME_DIR"/eva/capture-*.json)
+printf 'tool_rss_kb %s\n' "$(rss "$TOOL")" >> "$COST"
+grep -E '^(Rss|Anonymous|Pss_File)' "/proc/$TOOL/smaps_rollup" | sed 's/^/tool_/' >> "$COST"
+kill "$TOOL" 2> /dev/null
