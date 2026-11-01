@@ -74,6 +74,8 @@ while [ "$#" -gt 0 ]; do
         eva_capture_call "$@" > /dev/null
         exit 0
       fi
+      # The shell keeps it ready; with no shell it does this and ends.
+      if ! eva_shell_up; then exec sh "$apps/launch" screenshot "$@"; fi
       [ "${1:-}" != standby ] || shift
       exec sh "$apps/launch" screenshot standby "$@"
       ;;

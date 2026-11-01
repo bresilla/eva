@@ -77,7 +77,6 @@
             pkgs.dbus
             # What the tools of apps/ call, for tools/see.sh's scenarios.
             pkgs.jq
-            pkgs.slurp
             pkgs.wl-clipboard
             pkgs.tesseract
             pkgs.zbar

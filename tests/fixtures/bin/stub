@@ -8,7 +8,6 @@ case "$name" in
     for last in "$@"; do :; done
     printf 'picture' > "$last"
     ;;
-  slurp) printf '10,20 300x200\n' ;;
   swaymsg)
     case "$*" in
       *get_outputs*) printf '[{"name":"DP-1","focused":true}]\n' ;;

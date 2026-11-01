@@ -6,4 +6,3 @@ Exec=eva-screenshot
 Icon=applets-screenshooter
 Terminal=false
 Categories=Utility;Graphics;
-StartupWMClass=eva.screenshot

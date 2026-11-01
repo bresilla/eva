@@ -14,3 +14,8 @@ done
 for app in apps/*/app.lua; do
   EVA_DRY_RUN=1 "$morf" check "$app" --no-dbus --isolate --after 0
 done
+# The capture tool past its first order: the panel up, then the selection, and
+# at rest on standby.
+EVA_DRY_RUN=1 "$morf" check apps/screenshot/app.lua --no-dbus --isolate --after 800 -- capture open
+EVA_DRY_RUN=1 "$morf" check apps/screenshot/app.lua --no-dbus --isolate --after 800 -- screenshot screen
+EVA_DRY_RUN=1 "$morf" check apps/screenshot/app.lua --no-dbus --isolate --after 800 -- standby

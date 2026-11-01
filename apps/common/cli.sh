@@ -27,14 +27,6 @@ eva_has() {
   command -v "$1" > /dev/null 2>&1
 }
 
-# Which compositor this session has: hyprland, sway or other.
-eva_compositor() {
-  if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then echo hyprland
-  elif [ -n "${SWAYSOCK:-}" ]; then echo sway
-  else echo other
-  fi
-}
-
 # The capture tool's socket, beside the shell's: it runs on every screen as the
 # shell does, so it is not an application of this display but an instance.
 eva_capture_socket() {
@@ -94,33 +86,6 @@ eva_private_file() {
   mktemp "$folder/capture.XXXXXX.$1"
 }
 
-# The focused window as grim and slurp spell an area, X,Y WxH.
-eva_window_area() {
-  case "$(eva_compositor)" in
-    hyprland)
-      hyprctl -j activewindow | jq -er '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"'
-      ;;
-    sway)
-      swaymsg -r -t get_tree | jq -er '
-        .. | objects | select(.focused? == true and (.pid? != null))
-        | "\(.rect.x),\(.rect.y) \(.rect.width)x\(.rect.height)"' | head -n 1 | grep .
-      ;;
-    *) return 1 ;;
-  esac
-}
-
-# The focused output's name.
-eva_focused_output() {
-  case "$(eva_compositor)" in
-    hyprland) hyprctl -j monitors | jq -er '.[] | select(.focused) | .name' ;;
-    sway) swaymsg -r -t get_outputs | jq -er '.[] | select(.focused) | .name' ;;
-    *)
-      eva_say "this compositor is not known"
-      return 1
-      ;;
-  esac
-}
-
 # A notification titled $3 for file $2 with thumbnail $1, offering Open, and
 # Edit through the tool at $4 when one is given. Waits for the answer: run it in
 # the background.
@@ -140,11 +105,4 @@ eva_thumbnail() {
     open) if eva_has xdg-open; then xdg-open "$2"; fi ;;
     edit) sh "$4" --edit-file "$2" ;;
   esac
-}
-
-# The folder captures go to, with ~ expanded.
-eva_captures() {
-  folder=$(eva_setting capture.folder "$HOME/Pictures/Captures")
-  case "$folder" in "~/"*) folder=$HOME/${folder#"~/"} ;; esac
-  printf '%s' "$folder"
 }

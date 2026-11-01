@@ -22,6 +22,7 @@ let
       lib.concatMapStringsSep ":" toString config.programs.eva.runtimePaths
     }''${MORF_RUNTIME_PATH:+:$MORF_RUNTIME_PATH}"
     export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${shell}/bin/eva-keyring}"
+    export EVA_SCREENSHOT_TOOL="''${EVA_SCREENSHOT_TOOL:-${shell}/bin/eva-screenshot}"
     # morf as a client, outside any tool.
     unset MORF_APP
     export EVA_SCALE_MODE=compositor

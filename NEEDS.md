@@ -8,7 +8,16 @@ dashboard). Each entry says what is missing, the API that would cover it,
 and why Lua cannot do it well. Work already under way elsewhere is marked
 **in progress** and only left as a TODO in the port.
 
-Nothing open: every entry found so far is in the engine (below).
+Open:
+
+- A layer on a chosen output from `morf app`. `runtime_bar_config` puts every
+  `morf.window.layer` on its runtime's output, and an application has one
+  runtime, the first output's, so a tool cannot open on the focused monitor.
+  eva-screenshot runs as a plain `morf -i NAME config.lua` instead, one runtime
+  per output as the shell has, with the idle runtimes on a 1x1 surface. An
+  `output` key on `morf.window.layer` would let it be an application.
+
+Everything else found so far is in the engine (below).
 
 Phase 2 (the other dashboard tabs, the launcher's pickers, the session
 menu, the bar's popouts, notifications and the OSD) found the entries
