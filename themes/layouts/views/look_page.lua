@@ -139,7 +139,7 @@ function V.build(model, w, h)
       toggle("look-song", inner, "Follow the song", "Album art colours the shell while music plays", "music_note", "theme.follow_song"),
       toggle("look-black", inner, "Pure black", "Dark surfaces all the way down, for OLED", "contrast", "appearance.pure_black"),
       label("Scheme", inner),
-      choice("look-variant", inner, "theme.variant", model.VARIANTS, 4),
+      choice("look-variant", inner, "theme.variant", model.VARIANTS, 3),
     },
     P.section { id = "look-shape", width = w, title = "Shape",
       label("Density", inner),
