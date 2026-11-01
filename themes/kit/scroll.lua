@@ -33,7 +33,7 @@ local CONTROL = { x = true, y = true, z = true, anchors = true, visible = true, 
   width = true, height = true }
 local SETTINGS = { content = true, scroll_policy_x = true, scroll_policy_y = true, snap = true, item_size = true, step = true,
   widget = true, on_scrolled = true, on_reached_start = true, on_reached_end = true, focus_policy = true,
-  on_load_more = true, pages = true }
+  on_load_more = true, pages = true, on_refresh = true }
 
 local DEFAULTS = {
   pager = { snap = "pages", scroll_policy_x = "never", scroll_policy_y = "never" },
@@ -60,7 +60,7 @@ function M.make(widget, spec)
   local settings = { widget = widget, id = spec.id and (spec.id .. "-scroll") or nil, flick = flick }
   for k, v in pairs(spec) do if SETTINGS[k] and type(k) == "string" then settings[k] = v end end
   -- (The glue's to call, not a handler for the node.)
-  settings.on_load_more = nil
+  settings.on_load_more, settings.on_refresh = nil, nil
   -- Keys jump; a settle, a page dot or an arrow glides.
   -- (An eased offset does not wake the geometry's binding as it moves: it
   -- is told where the glide goes as it sets out, and where it is after.)
@@ -119,8 +119,26 @@ function M.make(widget, spec)
       glide(to, nil)
     end
   end
+  -- Pulled past its end the view runs on elastically. With `on_refresh`, the
+  -- theme's pull_to_refresh indicator comes down over it with the pull.
+  local sideways = SIDEWAYS[widget] == true
+  local children = { flick }
+  local indicator, pull
+  if spec.on_refresh then
+    indicator, pull = require("themes.kit.drag").make("pull_to_refresh", { id = spec.id and spec.id .. "-pull",
+      anchors = { fill = true }, accepted_buttons = {}, focus_policy = "none",
+      pull_distance = require("overscroll").REST })
+    children[2] = indicator
+  end
+  control_props.on_panned = require("overscroll").new { flick = flick, sideways = sideways,
+    on_refresh = spec.on_refresh,
+    on_pull = pull and function(fraction, refreshing) pull.pull, pull.refreshing = fraction, refreshing end,
+    room = function()
+      if sideways then return (t and t.content_width or 0) - (flick.layout_width or 0) end
+      return (t and t.content_height or 0) - (flick.layout_height or 0)
+    end }.on_panned
   local root, ctl
-  root, t, ctl = control.make("Scroll", widget, settings, { children = { flick }, props = control_props,
+  root, t, ctl = control.make("Scroll", widget, settings, { children = children, props = control_props,
     state = { loading = false } })
   -- A Flickable receives wheel input but is not itself a pointer target.
   -- Empty space between its controls must still start a touch inside its

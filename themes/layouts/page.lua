@@ -407,11 +407,20 @@ end
 
 -- ------------------------------------------------------------------ page --
 
+--- `run` as a scroll's `on_refresh`: the indicator holds a moment and goes.
+function P.refreshing(run)
+  if not run then return nil end
+  return function(done)
+    run()
+    morf.time.timer(theme.duration.large * 2, done, false)
+  end
+end
+
 --- A page: `id`, `width`, `height` (a number or fn), `title`, `subtitle`,
 --- `actions` (nodes at the header's right), `scroll` (false: it does not
 --- scroll, its blocks share the height), `active` (fn: on show -- it is
---- back at its top each time it comes on show); the blocks in the array
---- part.
+--- back at its top each time it comes on show), `on_refresh` (fn: a pull
+--- past the top runs it); the blocks in the array part.
 function P.page(spec)
   local w = spec.width
   local blocks = children(spec)
@@ -428,7 +437,8 @@ function P.page(spec)
   if spec.scroll == false then
     return ui.Item { id = spec.id, width = w, height = spec.height, column }
   end
-  local node, flick = kit.scroll({ id = spec.id, width = w, height = spec.height, clip = true, column })
+  local node, flick = kit.scroll({ id = spec.id, width = w, height = spec.height, clip = true,
+    on_refresh = P.refreshing(spec.on_refresh), column })
   -- Back at its top each time it comes on show.
   if spec.active and flick then
     local was = false

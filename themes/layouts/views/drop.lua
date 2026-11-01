@@ -262,7 +262,7 @@ function M.build(model, active, w, h)
     ui.Item { width = pane_w, x = function() return wide() and pane_w() + P.GAP or 0 end, right },
   }
   local body = kit.scroll { id = "drop-scroll", width = w, height = h, clip = true,
-    visible = ready, columns }
+    on_refresh = P.refreshing(model.refresh), visible = ready, columns }
 
   local gate = ui.Item { width = w, height = h, visible = function() return not ready() end,
     P.empty { id = "drop-placeholder", width = w, icon = "forum",

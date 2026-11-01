@@ -235,6 +235,7 @@ local function network_page(model, w, h)
       on_clicked = function() model.scan() end }),
   }
   return ui.Item { id = "network-page", width = w, height = h, P.page { id = "network-scroll", width = w, height = h,
+    on_refresh = function() model.scan() end,
     P.section { id = "wifi", caption_id = "wifi-title", width = w, title = "Wi-Fi",
       P.row { id = "network-enabled", width = inner, icon = "wifi", on = model.enabled, title = "Enabled",
         subtitle = function()
@@ -379,6 +380,7 @@ local function bluetooth_page(model, w, h)
       on_clicked = function() model.open_settings() end }),
   }
   return ui.Item { id = "bluetooth-page", width = w, height = h, P.page { id = "bluetooth-scroll", width = w, height = h,
+    on_refresh = function() model.scan(true) end,
     P.section { id = "bluetooth", caption_id = "bluetooth-title", width = w, title = "Bluetooth",
       P.row { id = "bluetooth-enabled", width = inner, icon = "bluetooth", on = model.enabled, title = "Enabled",
         subtitle = function()

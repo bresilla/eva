@@ -82,6 +82,7 @@ function M.build(model, w, h)
   failure.visible = function() return (model.error:get() or "") ~= "" end
 
   local page = P.page { id = "planner-scroll", width = w, height = h, active = model.active,
+    on_refresh = function() model.sources.load() end,
     P.section { id = "planner-month", width = w,
       month,
       ui.Row { gap = 8, align = "center", today, plan },
