@@ -158,8 +158,19 @@ return function(S, theme, M)
   end
 
   --- A tile that is carried: a high-tone container that turns the primary
-  --- container and rounds from 16 to 28 as it rises.
+  --- container and rounds from 16 to 28 as it rises. With `carrier`, the
+  --- tile is a layout's own and only the shadow it rises on is drawn.
   S.sortable_grid = function(t, spec)
+    if spec.carrier then
+      return {
+        handle = ui.Item {},
+        background = ui.Rect { anchors = { fill = true, margins = 3 }, radius = 28,
+          color = function() return C().surfaceContainerHighest end,
+          shadow_color = SHADOW, shadow_blur = 20, shadow_offset_y = 8,
+          opacity = function() return t.active and 1 or 0 end, behavior = { opacity = quick() } },
+        drop_indicator = ring(t, 16),
+      }
+    end
     return {
       handle = ui.Item {},
       background = container(t, 16, 28, 1.07, function() return C().surfaceContainerHigh end),

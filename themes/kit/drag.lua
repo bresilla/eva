@@ -58,7 +58,9 @@ local FOLLOW = { stiffness = 700, damping = 53 }
 --- on release; it then rides in a holder Item (returned in its place)
 --- that takes the spec's `x`, `y`, `z` and `behavior`; `x`/`y` given as
 --- bindings are its place, so a row the reorder moved stays under the
---- finger. A `swipe_dismiss` flies off
+--- finger. `armed` (a binding) has the control there only while it holds,
+--- for a layout hanging its own node on the holder beside it. A
+--- `swipe_dismiss` flies off
 --- past its distance (`on_swiped(direction)` then); a `swipe_actions`
 --- row latches open `reveal` px (128) to show what is under its trailing
 --- edge, and shuts swiped back (`t.open`). A `pull_to_refresh` moves its
@@ -172,6 +174,9 @@ function M.make(widget, spec)
     for _, k in ipairs { "x", "y", "anchors" } do holder[k] = spec[k] spec[k] = nil end
     spec.z, spec.behavior, spec.opacity = nil, nil, nil
     spec.anchors = { fill = true }
+    -- The control itself is there only while `armed` holds; the holder, and
+    -- what a layout hung on it, stays.
+    if spec.armed ~= nil then spec.visible, spec.armed = spec.armed, nil end
   end
   root, t, ctl = control.make("Drag", widget, spec, { state = state, children = children })
   if follow then
