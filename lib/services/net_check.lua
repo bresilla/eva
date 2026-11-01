@@ -149,7 +149,7 @@ function M.diagnose(net, server, step, done)
     end, { timeout_ms = 8000 })
   end
 
-  local function gateway(address, value, servers)
+  local function gateway(value, servers)
     if value == "" then
       fail("gateway", "This network gave no route out, so nothing past this machine can be reached.")
       return skip("dns")
@@ -169,7 +169,6 @@ function M.diagnose(net, server, step, done)
       step("gateway", "unsure", "The router at " .. value .. " did not answer a ping. Some routers ignore it.")
       dns(words, servers)
     end, { timeout_ms = 6000 })
-    return address
   end
 
   local function address(device)
@@ -187,7 +186,7 @@ function M.diagnose(net, server, step, done)
         return skip("gateway")
       end
       step("address", "ok", "This machine is " .. value .. ".")
-      gateway(value, gateway_of(raw), table.concat(raw["IP4.DNS"] or {}, ", "))
+      gateway(gateway_of(raw), table.concat(raw["IP4.DNS"] or {}, ", "))
     end)
   end
 

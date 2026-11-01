@@ -67,9 +67,17 @@ function M.parse_snapper(text, name, root)
   return rows
 end
 
+-- Snapper's refusal in a person's words.
+local function plainly(why)
+  if tostring(why):find("permission", 1, true) or tostring(why):find("No permissions", 1, true) then
+    return "Snapper does not let you read this. Add yourself to ALLOW_USERS in its config."
+  end
+  return why
+end
+
 local function snapper_root(done)
   host.read({ "snapper", "--jsonout", "list-configs" }, function(text, why)
-    if not text then return done(nil, why) end
+    if not text then return done(nil, plainly(why)) end
     local ok, value = pcall(morf.json.decode, text)
     local wanted = snapper_config()
     for _, row in ipairs(ok and type(value) == "table" and value.configs or {}) do
@@ -83,7 +91,7 @@ local function snapper_list(done)
   snapper_root(function(root, why)
     if not root then return done(nil, why) end
     host.read({ "snapper", "--jsonout", "-c", snapper_config(), "list" }, function(text, failed)
-      if not text then return done(nil, failed) end
+      if not text then return done(nil, plainly(failed)) end
       done(M.parse_snapper(text, snapper_config(), root))
     end)
   end)
@@ -107,8 +115,8 @@ function M.parse_btrbk(text)
   return rows
 end
 
--- Listing wants root, and a page coming on show must not ask for a password:
--- it tries as this person, and `asked` goes through polkit on a press.
+-- Lists as this person, or through polkit when `asked`. `done`'s third value
+-- says only root could read it.
 local function btrbk_list(asked, done)
   local argv = { "btrbk", "list", "snapshots", "--format=raw" }
   if asked then table.insert(argv, 1, "pkexec") end

@@ -126,6 +126,7 @@ function M.new(ctx)
       all_day = found.all_day == true, repeats = repeats, until_day = last, reminder = reminder_of(event),
       calendar = event.calendar or "", scope = (master.rule ~= nil) and "one" or "all" }
     local locked = sources.locked(event.calendar) or ""
+    if (event.uid or "") == "" then locked = "It has no UID, so it cannot be told from others in its file." end
     model.locked_why:set(locked)
     model.repeating:set(master.rule ~= nil)
     model.calendar_name:set(event.calendar_name or "")

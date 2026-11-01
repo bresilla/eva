@@ -99,6 +99,7 @@ local function file() return morf.fs.read(dir .. "/work.ics") end
 local function has(text, part) test.truthy(text:find(part, 1, true), ("expected %q in:\n%s"):format(part, text)) end
 local function lacks(text, part) test.falsy(text:find(part, 1, true), ("did not expect %q in:\n%s"):format(part, text)) end
 local function json(value) return morf.json.encode(value) end
+local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS") == "1" then test.snapshot(name .. ".png") end end
 
 test.describe("calendar events", function()
   for _, style in ipairs { "material", "tsugumori" } do
@@ -200,6 +201,8 @@ test.describe("calendar events", function()
     local s = state()
     test.eq(s.repeats, "DAILY")
     test.eq(s.scope, "one")
+    test.settle(300)
+    shot("calendar-edit-repeating")
     test.ipc("draft", json { from_time = "11:00", to_time = "11:30" })
     test.truthy(test.ipc("save"))
     local text = file()
@@ -286,9 +289,21 @@ test.describe("calendar events", function()
     test.truthy(s.why:find("read-only", 1, true), s.why)
     test.truthy(test.get("event-details-locked").visible)
     test.falsy(test.get("event-save").visible)
+    shot("calendar-read-only")
     test.falsy(test.ipc("save"))
     test.falsy(test.ipc("delete"))
     test.ipc("close")
+  end)
+
+  test.it("an event with no UID opens, read-only, and says why", function()
+    load()
+    local s = read_file { "SUMMARY:Nameless", "DTSTART:" .. test.ipc("stamp", 2, 9) }
+    test.eq(#s.writable, 1)
+    agenda(test.ipc("day_after", 2))
+    test.truthy(test.ipc("open_row", 1))
+    s = state()
+    test.eq(s.mode, "read")
+    test.truthy(s.why:find("no UID", 1, true), s.why)
   end)
 
   test.it("khal's and vdirsyncer's read-only marks are honoured", function()

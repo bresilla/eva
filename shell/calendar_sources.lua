@@ -373,7 +373,7 @@ end
 function M.instance(uid, at)
   M.revision:get()
   for _, item in ipairs(instances) do
-    if item.event.uid == uid and item.at == at then return item end
+    if (item.event.uid or "") == uid and item.at == at then return item end
   end
 end
 

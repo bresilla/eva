@@ -43,9 +43,9 @@ local function ask(net, login)
     on_action = function(key) if key == "open" then M.open_login() end end }
 end
 
-local function clear(name)
+local function clear()
   M.asking:set(false)
-  if name then told[name] = nil end
+  told = {}
 end
 
 -- What a connection coming up asks. Off unless a person turned it on.
@@ -54,7 +54,7 @@ local function probe(net)
   probing = check.probe(server(), function(state, login)
     probing = nil
     if state == "portal" then ask(net, login)
-    elseif state == "online" then clear(name_of(net)) end
+    elseif state == "online" then clear() end
   end)
 end
 
@@ -87,8 +87,8 @@ function M.start()
     if word == last then return end
     last = word
     morf.time.timer(1, function()
-      if state == "portal" then ask(net) end
-      if state == "full" and not probing_on then clear(name_of(net)) end
+      if state == "portal" then ask(net)
+      elseif primary == "" or (state == "full" and not probing_on) then clear() end
       after(net, net.state.available and primary ~= "")
     end, false)
   end)
