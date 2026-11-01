@@ -21,7 +21,13 @@ local disclosure = require("lib.kit.archetypes.disclosure")
 
 local M = {}
 
-function M.build(model, w, h)
+--- Sound's second page: the devices wanted first, codecs and card profiles,
+--- and the sound theme.
+function M.more(model, w, h)
+  return M.build(model, w, h, true)
+end
+
+function M.build(model, w, h, more)
 local INNER = P.inner(w)
 local MAX_CHANNELS = 16
 local available = model.available
@@ -125,6 +131,9 @@ local function output_section()
     P.row { id = "sound-equalizer", width = INNER, icon = "equalizer", title = "Equalizer",
       subtitle = "Tone, presets and audiogram compensation", trailing = P.chevron(),
       on_clicked = model.open_equalizer },
+    P.row { id = "sound-more", width = INNER, icon = "tune", title = "More sound settings",
+      subtitle = "Preferred devices, codec, sound theme", trailing = P.chevron(),
+      on_clicked = model.open_more },
   }
 end
 
@@ -208,7 +217,91 @@ local function apps_section()
   }
 end
 
+-- ------------------------------------------------------------------ extras --
+
+--- The devices wanted first: each with a way up and off the list, and a way
+--- to add the one in use.
+local function preferred_section()
+  local F = require("themes.layouts.form")
+  local function count() return #model.preferred() end
+  local list = F.list(INNER, "sound-preferred-" .. model.kind .. "-", count, function(index, width)
+    local function name() return model.preferred()[index] or "" end
+    return P.row { id = "sound-prefer-" .. model.kind .. "-" .. index, width = width, icon = "star",
+      title = function() return model.device_name(name()) end,
+      subtitle = function() return index == 1 and "Wanted most" or ("Choice %d"):format(index) end,
+      trailing = ui.Row { gap = theme.space.xs, align = "center",
+        P.button { id = "sound-prefer-up-" .. model.kind .. "-" .. index, label = "Up", accessible_name = "Move this device up",
+          visible = function() return index > 1 end, on_clicked = function() model.raise_preferred(index) end },
+        P.button { id = "sound-prefer-drop-" .. model.kind .. "-" .. index, label = "Remove", accessible_name = "Stop preferring this device",
+          on_clicked = function() model.drop_preferred(index) end } } }
+  end, "None: the system decides", 6)
+  return P.section { id = "sound-preferred-" .. model.kind, width = w, title = "Preferred devices",
+    list,
+    F.note(INNER, "When one of these appears and outranks the device in use, sound moves to it."),
+    P.button { id = "sound-prefer-add-" .. model.kind, icon = "add", label = "Prefer the device in use", width = INNER,
+      on_clicked = model.prefer_current },
+  }
+end
+
+--- A card's profile choices: a Bluetooth headset's codec, or a sound card's
+--- mode.
+local function card_block(card_of, prefix, index)
+  local rows = {}
+  for slot = 1, 6 do
+    local function profile() local card = card_of() return card and card.profiles[slot] end
+    rows[#rows + 1] = P.row { id = prefix .. "-" .. index .. "-" .. slot, width = INNER,
+      visible = function() return profile() ~= nil end,
+      icon = function() local card, p = card_of(), profile() return (card and p and card.active == p.key) and "radio_button_checked" or "radio_button_unchecked" end,
+      on = function() local card, p = card_of(), profile() return card ~= nil and p ~= nil and card.active == p.key end,
+      title = function() local p = profile() return p and (p.codec or p.name) or "" end,
+      subtitle = function() local p = profile() return p and p.codec and p.name or "" end,
+      on_clicked = function() local card, p = card_of(), profile() if card and p then model.set_profile(card, p) end end }
+  end
+  return ui.Column { width = INNER, gap = P.ROW_GAP, visible = function() return card_of() ~= nil end,
+    kit.subtitle { width = INNER, elide = "right", font_size = P.SUB, color = kit.ink("lo"),
+      text = function() local card = card_of() return card and card.title or "" end },
+    table.unpack(rows) }
+end
+
+local function cards_section(title, id, list, prefix)
+  local spec = { id = id, width = w, title = title, visible = function() return #list() > 0 end }
+  for index = 1, 3 do spec[#spec + 1] = card_block(function() return list()[index] end, prefix, index) end
+  return P.section(spec)
+end
+
+local function theme_section()
+  local F = require("themes.layouts.form")
+  return P.section { id = "sound-theme", width = w, title = "Sound theme", visible = function() return #model.themes() > 0 end,
+    (F.picker { id = "sound-theme-list", width = INNER, placeholder = "Search sound themes", max = 5, items = model.themes,
+      row = function(item)
+        return { icon = "music_note", title = item.name, on = item.key == model.theme(),
+          subtitle = item.key == model.theme() and "In use, press to hear it" or "Press to use it",
+          pick = function()
+            if item.key == model.theme() then model.preview(item) else model.set_theme(item) end
+          end }
+      end }),
+    require("themes.layouts.form").status("sound-theme-status", INNER, model),
+  }
+end
+
 -- ------------------------------------------------------------------- input --
+
+--- The level as the microphone hears it, while a test runs.
+local function test_section()
+  local F = require("themes.layouts.form")
+  local testing = function() return model.testing:get() end
+  return P.section { id = "sound-test", width = w, title = "Test", visible = available,
+    P.row { id = "sound-test-row", width = INNER, icon = "graphic_eq", on = testing,
+      title = function() return testing() and model.verdict() or "Test the microphone" end,
+      subtitle = function() return testing() and "Speak as you normally would" or "Shows how loud it hears you" end,
+      trailing = P.button { id = "sound-test-button", label = function() return testing() and "Stop" or "Start" end,
+        tone = function() return testing() and "primary" or nil end, on_clicked = function() model.test(not testing()) end } },
+    ui.Item { id = "sound-test-level", width = INNER, height = theme.space.m, visible = testing,
+      kit.fill { width = INNER, height = theme.space.m, color = kit.signal("accent"),
+        value = function() return model.level:get() end } },
+    F.status("sound-test-status", INNER, model),
+  }
+end
 
 local function input_section()
   return P.section { id = "sound-input", caption_id = "sound-title-input", width = w, title = "Input",
@@ -245,12 +338,19 @@ local function inputs_section()
   }
 end
 
+if more then
+  return ui.Item { id = "sound-more-page", width = w, height = h, clip = true,
+    P.page { id = "sound-more-scroll", width = w, height = h, preferred_section(),
+      cards_section("Bluetooth codec", "sound-codec", model.bluetooth_cards, "sound-codec"),
+      cards_section("Card profile", "sound-profile", model.other_cards, "sound-profile"), theme_section() } }
+end
 if model.kind == "output" then
   return ui.Item { id = "sound-page", width = w, height = h, clip = true,
     P.page { id = "sound-scroll", width = w, height = h, output_section(), devices_section(), apps_section() } }
 end
 return ui.Item { id = "microphone-page", width = w, height = h, clip = true,
-  P.page { id = "microphone-scroll", width = w, height = h, input_section(), inputs_section() } }
+  P.page { id = "microphone-scroll", width = w, height = h, input_section(), test_section(), inputs_section(),
+    preferred_section() } }
 end
 
 return M

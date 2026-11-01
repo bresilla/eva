@@ -22,6 +22,21 @@ local M = {}
 -- reference shows before it has a scheme of its own.
 M.FALLBACK_SOURCE = "#ffb0ca"
 
+--- Scheme `s` as high contrast has it: text at full strength, outlines as
+--- strong as text, surfaces plain.
+local function sharpened(s)
+  if config.get("appearance.high_contrast") ~= true then return s end
+  local out = {}
+  for name, value in pairs(s) do out[name] = value end
+  out.onSurfaceVariant, out.outline, out.outlineVariant = s.onSurface, s.onSurface, s.onSurface
+  local ground = morf.color(color_mode.resolve() == "light" and "#ffffff" or "#000000")
+  for _, name in ipairs { "surface", "surfaceDim", "surfaceBright", "surfaceContainerLowest", "surfaceContainerLow",
+    "surfaceContainer", "background" } do
+    if s[name] ~= nil then out[name] = ground end
+  end
+  return out
+end
+
 local function initial()
   local source = config.get("theme.source")
   if source == "" or source == "wallpaper" or source == "auto" or source == "lule" or source == "system" then
@@ -33,7 +48,7 @@ local function initial()
 end
 
 local roles = {}
-for name, value in pairs(initial()) do
+for name, value in pairs(sharpened(initial())) do
   local ok, red = pcall(function() return value.r end)
   if type(value) ~= "string" and ok and type(red) == "number" then roles[name] = value end
 end
@@ -68,6 +83,7 @@ end
 
 --- Puts every role of scheme `s` in place.
 function M.apply(s)
+  s = sharpened(s)
   for name in pairs(roles) do
     if s[name] ~= nil then M.color[name] = s[name] end
   end

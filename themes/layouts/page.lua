@@ -134,6 +134,24 @@ function P.chevron()
   return kit.icon("chevron_right", 22, kit.ink("lo"))
 end
 
+--- A one-line text field `width` wide: `id`, `kind` ("entry", "password",
+--- "search"), `placeholder`, `on_changed`, `on_accepted`, `on_escape`.
+--- Returns the box to place and the input in it.
+function P.field(spec)
+  local inset, w = S.s + S.xxs, get(spec.width)
+  local node, handle = kit.text_field(spec.kind or "entry", { id = spec.id, x = inset, y = 3, width = w - 2 * inset,
+    height = 30, font_family = theme.font, font_size = 12, placeholder = spec.placeholder,
+    reveal = spec.kind == "password" and false or nil,
+    -- A search field's magnifier stands at its left.
+    icon = spec.kind == "search" and "search" or nil,
+    inset = spec.kind == "search" and { S.xl + S.l, 0, S.m, 0 } or nil,
+    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
+    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
+    on_text_changed = spec.on_changed, on_accepted = spec.on_accepted, on_escape = spec.on_escape })
+  return kit.surface { width = w, height = 36, radius = kit.round(S.s + S.xxs), visible = spec.visible,
+    color = function() return C.surfaceContainerHighest end, node }, handle
+end
+
 --- A caption across `w`, held to it: a long note is cut at the card's edge,
 --- never run on over a neighbour's.
 local function caption(id, w, text, note)

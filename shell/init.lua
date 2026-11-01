@@ -48,6 +48,9 @@ if config.path then
 end
 
 require("displays_hotplug").start()
+for _, name in ipairs { "input_model", "access_model", "audio_rules", "lid_watch", "privacy_page_model", "drive_watch" } do
+  require(name).start()
+end
 
 -- ------------------------------------------------------------------ colour --
 
@@ -95,7 +98,9 @@ local motion_first, motion_settle = true, nil
 morf.effect("eva.motion", function()
   local style = config.get and { config.get("appearance.motion"), config.get("appearance.reduce_motion"),
     config.get("appearance.density"), config.get("appearance.corners"), config.get("appearance.speed"),
-    config.get("appearance.deform"), config.get("island.enabled"), require("themes.motion_style").reduced() }
+    config.get("appearance.deform"), config.get("island.enabled"), require("themes.motion_style").reduced(),
+    config.get("appearance.text_scale"), config.get("appearance.high_contrast"), config.get("appearance.font_file"),
+    config.get("polkit.agent") }
   if motion_first or not style then motion_first = false return end
   if motion_settle then motion_settle:cancel() end
   motion_settle = morf.time.timer(120, function()
@@ -450,7 +455,7 @@ ipc.sidebar = panel_verb("sidebar", "right")
 ipc.leftbar = panel_verb("leftbar", "left")
 ipc.bottom = panel_verb("bottom", "bottom")
 ipc.utilities = function(how) return page_verb("settings")(how or "toggle") end
-for _, key in ipairs { "tasks", "calendar", "assistant", "drop", "notifications" } do
+for _, key in ipairs { "tasks", "calendar", "assistant", "drop" } do
   ipc[key] = page_verb(key)
 end
 ipc.settings = function(page)
@@ -458,6 +463,13 @@ ipc.settings = function(page)
   if not require("utilities").request(page or "") then error("No such Settings page: " .. tostring(page)) end
   pages.open("settings")
   return page or ""
+end
+-- `power-key`: the power button, bound here while Settings chose its action.
+ipc["power-key"] = function() require("lid_watch").power_key() return true end
+-- `settings-search`: every page and setting, for the launcher and scripts.
+ipc["settings-search"] = function(query)
+  if query and query ~= "" then return require("settings_registry").search(query) end
+  return require("settings_registry").list()
 end
 -- `quick edit` or `quick done`: the quick settings' tiles being arranged.
 ipc.quick = function(how)
@@ -588,12 +600,16 @@ ipc.notify = function(summary, body, urgency, app, icon, image)
   return notifs.push { summary = summary, body = body, app = app, icon = icon, image = image,
     urgency = urgency == "critical" and 2 or urgency == "low" and 0 or 1 }
 end
--- `notifications VERB ...`: status; list; invoke [ID [KEY]]; reply ID TEXT;
--- dismiss [ID]; clear; clear-app KEY; clear-silent; undo; snooze ID PRESET;
--- mute KEY [SECONDS]; unmute KEY. Without an ID, the newest.
+-- `notifications [open|close|toggle|state]`: the page. `notifications VERB ...`:
+-- status; list; invoke [ID [KEY]]; reply ID TEXT; dismiss [ID]; clear; clear-app
+-- KEY; clear-silent; undo; snooze ID PRESET; mute KEY [SECONDS]; unmute KEY.
+-- Without an ID, the newest.
+local notifications_page = page_verb("notifications")
 ipc.notifications = function(how, a, b)
+  if how == nil or how == "open" or how == "close" or how == "toggle" or how == "state" then
+    return notifications_page(how)
+  end
   if morf.window.primary and not morf.window.primary() then return nil end
-  how = how or "status"
   local function newest()
     local list = notifs.list:get()
     return list[#list] and list[#list].id or nil

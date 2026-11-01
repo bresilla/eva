@@ -22,6 +22,7 @@ let
       lib.concatMapStringsSep ":" toString config.programs.eva.runtimePaths
     }''${MORF_RUNTIME_PATH:+:$MORF_RUNTIME_PATH}"
     export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${shell}/bin/eva-keyring}"
+    export MORF_LIMITS="''${MORF_LIMITS:-frame=64m}"
     # morf as a client, outside any tool.
     unset MORF_APP
     export EVA_SCALE_MODE=compositor
@@ -263,6 +264,10 @@ in
         (lib.hiPrio morfDefault)
         bridge
         pkgs.hyprsunset
+        # Sharing Wi-Fi by code, sticky keys and mouse keys.
+        pkgs.qrencode
+        (lib.getBin pkgs.libxkbcommon)
+        pkgs.wlrctl
         tools
       ];
       hardware.sensor.iio.enable = lib.mkIf config.programs.eva.rotation.enable true;

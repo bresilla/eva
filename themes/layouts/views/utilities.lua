@@ -77,6 +77,13 @@ function V.theme_page(model,w,h)
   }
 end
 
+--- A row to one of the registry's pages under Eva.
+function V.eva_link(key,inner,model)
+  local page=model.registry.BY_KEY[key]
+  return P.row {id="settings-eva-"..key,width=inner,icon=page.icon,title=page.name,subtitle=page.summary,
+    trailing=P.chevron(),on_clicked=function() model.request(key) end}
+end
+
 --- The Eva page: the shell's own parts -- the bar, one page in -- and how
 --- its panels open.
 function V.eva_page(model,w,h)
@@ -135,6 +142,11 @@ function V.eva_page(model,w,h)
         subtitle=function() return reduced() and "Everything lands at once" or "Things travel on springs" end,
         trailing=P.switch {id="utilities-toggle-reduce-motion",name="Reduce motion",on=reduced,
           on_toggled=model.set_reduce_motion}},
+    },
+    P.section {id="settings-eva-more",width=w,title="More",
+      V.eva_link("launcher",inner,model),V.eva_link("rail",inner,model),V.eva_link("panels",inner,model),
+      V.eva_link("capture",inner,model),V.eva_link("osk",inner,model),V.eva_link("weather",inner,model),
+      V.eva_link("commands",inner,model),
     },
   }
 end
@@ -209,9 +221,13 @@ local capture_button = kit.pill {
     model.capture()
   end,
 }
+local all_settings = kit.pill {
+  id = "utilities-all-settings", width = CARD_W, height = 40, icon = "settings", label = "All settings",
+  on_clicked = function() model.open_home() end,
+}
 local session_card = require("themes").view("quick_session").build(model, CARD_W)
 local slider_card = sliders()
-local cards = { session_card, slider_card, capture_button, tiles.node }
+local cards = { session_card, slider_card, capture_button, all_settings, tiles.node }
 
 -- While the tiles are edited the cards above them step aside: they fade where
 -- they stand and the tiles rise to the top of the page.
@@ -240,7 +256,7 @@ function M.height() return (editing() and 0 or stacked(#cards)) + tiles.height()
 --- Whether its cards have been measured.
 function M.laid_out() return card_height(session_card) > 0 and card_height(slider_card) > 0 end
 local stack = ui.Item { width = CARD_W, height = M.height,
-  above(session_card, 1), above(slider_card, 2), above(capture_button, 3), tiles_slot }
+  above(session_card, 1), above(slider_card, 2), above(capture_button, 3), above(all_settings, 4), tiles_slot }
 
 
 --- The Settings page of the right panel: the cards, top down, and the

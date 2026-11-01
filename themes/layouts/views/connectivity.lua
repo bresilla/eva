@@ -55,16 +55,24 @@ end
 --- A one-line text field the card's width, its text kept in `draft`;
 --- `keys` are its Enter and Escape handlers.
 local function field(id, w, placeholder, draft, kind, keys)
-  local C = theme.color
   keys = keys or {}
-  local node, handle = kit.text_field(kind or "entry", { id = id, x = 10, y = 3, width = w - 20, height = 30,
-    font_family = theme.font, font_size = 12, placeholder = placeholder, reveal = kind == "password" and false or nil,
-    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
-    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
-    on_text_changed = function(value) draft:set(value) end, on_accepted = keys.accept, on_escape = keys.escape })
+  local box, handle = P.field { id = id, width = w, placeholder = placeholder, kind = kind,
+    on_changed = function(value) draft:set(value) end, on_accepted = keys.accept, on_escape = keys.escape }
   morf.effect("eva.mobile.field." .. id, function() handle.text = draft:get() end)
-  return kit.surface { width = w, height = 36, radius = kit.round(10),
-    color = function() return C.surfaceContainerHighest end, node }, handle
+  return box, handle
+end
+
+--- A password field whose text stays in a local here, never in a signal:
+--- the box, the input, and a holder with `get` and `set`. `keys`: `changed`,
+--- `accept`, `escape`.
+local function secret_field(id, w, placeholder, keys)
+  keys = keys or {}
+  local value, box, input = "", nil, nil
+  box, input = P.field { id = id, width = w, placeholder = placeholder, kind = "password",
+    on_changed = function(text) value = text if keys.changed then keys.changed(text) end end,
+    on_accepted = keys.accept, on_escape = keys.escape }
+  return box, input, { get = function() return value end,
+    set = function(_, text) value = text input.text = text end }
 end
 
 -- ----------------------------------------------------------------- network --
@@ -83,22 +91,24 @@ end
 local function network_prompt(model, w)
   local inner = P.inner(w)
   local identity = morf.signal("eva.network.identity", "")
-  local password = morf.signal("eva.network.password", "")
+  local typed = morf.signal("eva.network.typed", false)
+  local password
   local function mode(m) return function() return model.mode() == m end end
   local function asking() local m = model.mode() return m == "password" or m == "enterprise" end
   local function row() return model.asked() or {} end
-  local function clear() identity:set("") password:set("") end
+  local function clear() identity:set("") password:set("") typed:set(false) end
   local function join() local i, p = identity:get(), password:get() clear() model.join(p, i) end
   local function cancel() clear() model.dismiss() end
-  local pass_box, pass = field("network-password", inner, "Password", password, "password",
-    { accept = join, escape = cancel })
+  local pass_box, pass
+  pass_box, pass, password = secret_field("network-password", inner, "Password",
+    { changed = function(text) typed:set(text ~= "") end, accept = join, escape = cancel })
   local user_box, user = field("network-identity", inner, "User name", identity, "entry",
     { accept = function() pass.focus = true end, escape = cancel })
   user_box.visible, pass_box.visible = mode("enterprise"), asking
   local answer = P.buttons { width = inner,
     { id = "network-password-cancel", label = "Cancel", on_clicked = cancel },
     { id = "network-password-join", label = "Connect", tone = "primary", on_clicked = join,
-      enabled = function() return password:get() ~= "" and (model.mode() ~= "enterprise" or identity:get() ~= "") end } }
+      enabled = function() return typed:get() and (model.mode() ~= "enterprise" or identity:get() ~= "") end } }
   local manage = P.buttons { width = inner,
     { id = "network-disconnect", label = "Disconnect", on_clicked = model.disconnect,
       visible = function() return row().in_use == true end },
@@ -107,7 +117,12 @@ local function network_prompt(model, w)
     { id = "network-forget", label = "Forget", on_clicked = model.forget,
       visible = function() return row().known == true end },
     { id = "network-manage-close", label = "Close", on_clicked = cancel } }
-  answer.visible, manage.visible = asking, mode("manage")
+  local more = P.buttons { width = inner,
+    { id = "network-details", icon = "tune", label = "Details", on_clicked = function() model.details(row()) end,
+      visible = function() return row().known == true end },
+    { id = "network-share", icon = "qr_code_2", label = "Share", on_clicked = function() model.share_shown:set(true) end,
+      visible = function() return row().known == true or row().secure ~= true end } }
+  answer.visible, manage.visible, more.visible = asking, mode("manage"), mode("manage")
   morf.effect("eva.network.prompt.focus", function()
     local m = model.mode()
     if m ~= "password" and m ~= "enterprise" then clear() end
@@ -123,7 +138,70 @@ local function network_prompt(model, w)
         if m == "manage" then return ssid .. (row().in_use and " · Connected" or " · Saved") end
         return "Password for " .. ssid
       end },
-    user_box, pass_box, answer, manage,
+    user_box, pass_box, answer, manage, more,
+  }
+end
+
+--- The code a phone reads to join the network being managed, drawn straight
+--- from what the model hands over and cleared as soon as it is shut.
+local function share_panel(model, w)
+  local inner = P.inner(w)
+  local SIDE = math.min(inner, 240)
+  local light = function() return require("themes.color_mode").resolve() == "light" end
+  local paper = function() return light() and theme.color.surface or theme.color.onSurface end
+  local ink = function() return light() and theme.color.onSurface or theme.color.surface end
+  local code = ui.Path { id = "network-share-code", x = theme.space.s, y = theme.space.s, width = SIDE - 2 * theme.space.s,
+    height = SIDE - 2 * theme.space.s, fill_color = ink }
+  local failure = morf.signal("eva.network.share.failure", "")
+  local function clear() code.d = "" code.view_box = { 0, 0, 1, 1 } end
+  morf.effect("eva.network.share", function()
+    if not model.share_shown:get() then clear() failure:set("") return end
+    model.share(function(rows)
+      code.view_box = { 0, 0, #rows, #rows }
+      code.d = require("connection_model").qr_path(rows)
+    end, function(why) failure:set(tostring(why)) end)
+  end)
+  return ui.Column { id = "network-share-panel", width = inner, gap = theme.space.s, align = "center",
+    visible = function() return model.share_shown:get() end,
+    kit.surface { id = "network-share-paper", width = SIDE, height = SIDE, radius = kit.round(theme.space.s), color = paper, code,
+      visible = function() return failure:get() == "" end },
+    kit.subtitle { id = "network-share-failure", width = inner, wrap = true, font_size = P.SUB,
+      text = function() return failure:get() end, visible = function() return failure:get() ~= "" end,
+      color = function() return theme.color.error end },
+    kit.subtitle { width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"), horizontal_alignment = "center",
+      text = "Point a phone's camera at it to join this network." },
+    P.button { id = "network-share-close", label = "Close", on_clicked = function() model.share_shown:set(false) end },
+  }
+end
+
+--- Joining a network that does not announce itself.
+local function hidden_section(model, w)
+  local inner = P.inner(w)
+  local ssid = morf.signal("eva.network.hidden.ssid", "")
+  local password
+  local open = morf.signal("eva.network.hidden.open", false)
+  local ssid_box = field("network-hidden-ssid", inner, "Network name", ssid)
+  local pass_box, _, holder = secret_field("network-hidden-password", inner, "Password, if it has one")
+  password = holder
+  local function join()
+    local name, secret = ssid:get(), password:get()
+    password:set("")
+    if name ~= "" then
+      open:set(false)
+      ssid:set("")
+      model.join_hidden(name, secret)
+    end
+  end
+  return P.section { id = "network-hidden", width = w, title = "Other networks", visible = model.available,
+    P.row { id = "network-hidden-open", width = inner, icon = "wifi_find", title = "Join a hidden network",
+      subtitle = "One that does not show in the list", trailing = P.chevron(),
+      on_clicked = function() open:set(not open:get()) end },
+    ui.Column { width = inner, gap = theme.space.s, visible = function() return open:get() end,
+      ssid_box, pass_box,
+      P.button { id = "network-hidden-join", label = "Join", tone = "primary", width = inner, on_clicked = join },
+    },
+    P.row { id = "network-proxy-open", width = inner, icon = "shield", title = "Proxy", subtitle = "For this session's programs",
+      trailing = P.chevron(), on_clicked = function() model.request("network/proxy") end },
   }
 end
 
@@ -151,6 +229,7 @@ local function network_page(model, w, h)
         on_clicked = function() model.choose(ap()) end }
     end, function() return model.enabled() and "No networks found" or "Turn on Wi-Fi to find networks." end),
     network_prompt(model, w),
+    share_panel(model, w),
     status("network-status", model, w),
     action(w, { id = "network-rescan", icon = "wifi_find", label = "Rescan networks",
       on_clicked = function() model.scan() end }),
@@ -166,6 +245,7 @@ local function network_page(model, w, h)
         trailing = P.switch { id = "network-wifi", name = "Wi-Fi", on = model.enabled, on_toggled = model.set_enabled } },
     },
     networks,
+    hidden_section(model, w),
     missing(w, "wifi_off", "No network manager", "NetworkManager is not running, so there are no networks to list.",
       available),
   } }
@@ -220,17 +300,55 @@ end
 --- Under the list: what can be done to a paired device.
 local function device_prompt(model, w)
   local inner = P.inner(w)
+  local F = require("themes.layouts.form")
   local function dev() return model.asked() or {} end
+  local alias = morf.signal("eva.bluetooth.alias", "")
+  local alias_box, alias_input = field("bluetooth-device-alias", inner, "A name for this device", alias)
+  morf.effect("eva.bluetooth.alias.fill", function()
+    local d = dev()
+    alias_input.text = d.alias or ""
+  end)
   local buttons = P.buttons { width = inner,
     { id = "bluetooth-disconnect", label = "Disconnect", on_clicked = model.disconnect,
       visible = function() return dev().connected == true end },
     { id = "bluetooth-forget", label = "Forget", on_clicked = model.forget },
     { id = "bluetooth-manage-close", label = "Close", on_clicked = model.dismiss } }
+  local sending = morf.signal("eva.bluetooth.sending", false)
+  local more = P.buttons { width = inner,
+    { id = "bluetooth-send", icon = "upload_file", label = "Send file", on_clicked = function() sending:set(not sending:get()) end },
+    { id = "bluetooth-rename-device", label = "Rename", on_clicked = function() model.rename_device(dev(), alias:get()) end } }
   return ui.Column { id = "bluetooth-manage-prompt", width = inner, gap = 8,
     visible = function() return model.mode() == "manage" and model.asked() ~= nil end,
     kit.subtitle { id = "bluetooth-manage-title", width = inner, elide = "right", font_size = P.SUB,
-      text = function() local d = dev() return (d.alias or d.name or d.address or "") .. " · Paired" end },
+      text = function()
+        local d = dev()
+        local words = (d.alias or d.name or d.address or "") .. " · Paired"
+        if d.has_battery then words = words .. (" · Battery %d%%"):format(d.battery or 0) end
+        return words
+      end },
+    F.toggle { id = "bluetooth-trusted", width = inner, icon = "verified", title = "Connect by itself",
+      subtitle = "It may connect without asking", on = function() return dev().trusted == true end,
+      set = function(on) model.set_trusted(dev(), on) end },
+    alias_box, more,
+    F.chooser { id = "bluetooth-send-chooser", width = inner, open = function() return sending:get() end,
+      on_accepted = function(path) sending:set(false) model.send_file(dev(), path) end,
+      on_cancelled = function() sending:set(false) end },
+    kit.subtitle { id = "bluetooth-send-progress", width = inner, elide = "right", font_size = P.SUB, color = kit.ink("lo"),
+      text = function() return model.transfer:get() end, visible = function() return model.transfer:get() ~= "" end },
     buttons,
+  }
+end
+
+--- This computer's name as nearby devices see it.
+local function adapter_section(model, w)
+  local inner = P.inner(w)
+  local name = morf.signal("eva.bluetooth.adapter.name", "")
+  local box, input = field("bluetooth-adapter-name", inner, "This computer's name", name)
+  morf.effect("eva.bluetooth.adapter.fill", function() input.text = model.adapter_name() end)
+  return P.section { id = "bluetooth-adapter", width = w, title = "This computer", visible = model.available,
+    box,
+    P.button { id = "bluetooth-adapter-save", label = "Rename", width = inner,
+      on_clicked = function() model.rename_adapter(name:get()) end },
   }
 end
 
@@ -276,6 +394,7 @@ local function bluetooth_page(model, w, h)
           on_toggled = model.scan } },
     },
     devices,
+    adapter_section(model, w),
     missing(w, "bluetooth_disabled", "No Bluetooth adapter", "There is no Bluetooth adapter to use.", available),
   } }
 end
@@ -292,9 +411,13 @@ local function mobile_page(model,w,h)
   local function has_profile() return profile()~=nil end
   local function busy() return model.pending:get() end
   local draft={}
-  for _,k in ipairs {"apn","user","password","pin","new_pin","ussd","ussd_reply","sms_to","sms_text"} do
+  for _,k in ipairs {"apn","user","ussd","ussd_reply","sms_to","sms_text"} do
     draft[k]=morf.signal("eva.mobile.draft."..k,"")
   end
+  local password_box,pin_box,new_pin_box,_
+  password_box,_,draft.password=secret_field("mobile-password",inner,"Password (optional)")
+  pin_box,_,draft.pin=secret_field("mobile-pin",inner,"SIM PIN")
+  new_pin_box,_,draft.new_pin=secret_field("mobile-new-pin",inner,"New PIN (to change it)")
   morf.effect("eva.mobile.draft.profile",function()
     local p=profile() or {}
     draft.apn:set(p.auto_apn and "" or (p.apn or "")) draft.user:set(p.user or "")
@@ -359,7 +482,7 @@ local function mobile_page(model,w,h)
         kit.subtitle {width=inner,font_size=P.SUB,color=kit.ink("lo"),text="APN (empty for automatic)"},
         field("mobile-apn",inner,"live.vodafone.com",draft.apn),
         field("mobile-user",inner,"User (optional)",draft.user),
-        field("mobile-password",inner,"Password (optional)",draft.password,"password"),
+        password_box,
         P.buttons {width=inner,
           {id="mobile-apn-save",label="Save",tone="primary",enabled=function() return not busy() end,
             on_clicked=function()
@@ -410,8 +533,7 @@ local function mobile_page(model,w,h)
             if tries then parts[#parts+1]=tries.." PIN tries left" end
             return #parts>0 and table.concat(parts," · ") or "No SIM details"
           end},
-        field("mobile-pin",inner,"SIM PIN",draft.pin,"password"),
-        field("mobile-new-pin",inner,"New PIN (to change it)",draft.new_pin,"password"),
+        pin_box,new_pin_box,
         P.buttons {width=inner,
           {id="mobile-unlock",label="Unlock",tone="primary",visible=function() return modem().locked~=nil end,
             enabled=function() return not busy() end,on_clicked=function() model.unlock(draft.pin:get()) draft.pin:set("") end},

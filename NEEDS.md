@@ -109,6 +109,15 @@ Nothing open. The idle inhibitor reads back: `morf.idle.inhibited()` is
 what the shell last asked for, and `morf.capabilities.idle_inhibit` says
 whether the compositor can hold one (docs/IO.md, "Idle").
 
+## Settings: open
+
+- A binding that raises is silent. `("%d"):format(150.5)` in a row's subtitle
+  left the row blank, with nothing in the log and nothing in `test.logs("error")`.
+  One warning per binding would have shown it. Specs now assert a page's content.
+- No virtual pointer. Mouse keys go through `wlrctl`, and are hidden without it.
+- Escape reaches a drawer's close policy as well as a focused field's
+  `on_escape`, so a search field cannot take the first Escape to clear itself.
+
 ## Seamless login: open
 
 - Custom shaders on a held lock. Every renderer calls `register_shaders` except

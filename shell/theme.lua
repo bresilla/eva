@@ -18,6 +18,15 @@ do
   M.ROUNDING, M.SEAM = M.ROUNDING * corners, M.SEAM * corners
   M.PAD, M.GAP = M.space.l, M.space.m
 end
+-- Large text: every size the theme names, before anything is built with it.
+do
+  local scale = tonumber(config.get("appearance.text_scale")) or 1
+  if scale ~= 1 and M.size then
+    local sized = {}
+    for name, value in pairs(M.size) do sized[name] = math.floor(value * scale * 2 + 0.5) / 2 end
+    M.size = sized
+  end
+end
 -- Reduce motion lands everything at once, before anything is built to move.
 if require("themes.motion_style").reduced() then
   require("themes.motion_landing").install()

@@ -239,6 +239,68 @@ function M.new(kind,active)
     end)
   end
   function model.dismiss() model.asking:set("") end
+  if wireless then
+    model.share_shown=morf.signal("eva.network.share.shown",false)
+    --- The code for the asked network: `draw(rows)` or `fail(why)`.
+    function model.share(draw,fail)
+      local row=model.asked()
+      if not row then return fail("Choose a network first") end
+      require("connection_model").share(row,draw,fail)
+    end
+    --- Joins a network that does not announce itself.
+    function model.join_hidden(ssid,password)
+      return radio_action("Connecting to "..ssid.."…",function(source,done)
+        return source.connect(ssid,password~="" and password or nil,nil,done)
+      end)
+    end
+    --- The page about the asked network's saved connection.
+    function model.details(row)
+      return require("connection_model").open(require("settings_model"),row.ssid)
+    end
+    function model.request(key) return require("settings_model").request(key) end
+    morf.effect("eva.network.share.gone",function()
+      if model.asking:get()=="" and model.share_shown:get() then model.share_shown:set(false) end
+    end)
+  else
+    local host=require("lib.services.host")
+    local BLUEZ,ADAPTER,DEVICE="org.bluez","org.bluez.Adapter1","org.bluez.Device1"
+    model.transfer=morf.signal("eva.bluetooth.transfer","")
+    function model.adapter_name()
+      snapshot:get()
+      local source=service()
+      local rows=source and source.snapshot and source.snapshot().adapters or {}
+      return rows[1] and rows[1].name or ""
+    end
+    local function write(path,interface,property,value,label)
+      return action(label,function(done)
+        return host.bus("system").set_async(BLUEZ,path,interface,property,value,2500,done)
+      end)
+    end
+    --- This computer's name as nearby devices see it.
+    function model.rename_adapter(name)
+      local source=service()
+      if name=="" or not source then return false end
+      return write(source.state.adapter,ADAPTER,"Alias",name,"Renaming…")
+    end
+    function model.rename_device(row,name)
+      if name=="" or not row.path then return false end
+      return write(row.path,DEVICE,"Alias",name,"Renaming…")
+    end
+    function model.set_trusted(row,on)
+      return radio_action("Changing trust…",function(source,done) return source.trust(row,on==true,done) end)
+    end
+    --- Sends a file to `row`, the progress in `model.transfer`.
+    function model.send_file(row,path)
+      if not active() or not row.address then return false end
+      model.transfer:set("Connecting…")
+      require("lib.services.obex").send(row.address,path,function(state,sent,size)
+        model.transfer:set(size>0 and ("Sending, %d%%"):format(sent*100//size) or ("Sending: "..state))
+      end,function(ok,why)
+        model.transfer:set(ok and "Sent" or tostring(why or "It did not send"))
+      end)
+      return true
+    end
+  end
   function model.open_settings()
     if wireless then return false end
     local argv=config.get("bar.bluetooth_settings")

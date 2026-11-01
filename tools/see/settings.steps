@@ -1,0 +1,11 @@
+# Every Settings page on the stand-in machine (EVA_FAKE_SYSTEM=1). The route's
+# slashes become dashes in the shot's name.
+start shell
+ipc utilities open; pause 1.2; shot overview
+for page in home network network/connection network/proxy bluetooth displays input input/pointer input/devices \
+  sound sound/more microphone power storage printers wallpaper accessibility eva bar/more launcher rail panels capture osk \
+  weather commands apps startup datetime region users privacy firewall updates about; do
+  ipc settings "$page"; pause 0.9; shot "page-${page//\//-}"
+done
+ipc close; pause 0.8
+ipc fake-plug; pause 1; shot drive-popup

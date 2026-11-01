@@ -46,7 +46,8 @@ for _, key in ipairs { "dashboard", "media", "perf", "battery", "weather", "term
   OPEN[#OPEN + 1] = { "dashboard " .. key, tab("dashboard", key) }
 end
 for _, page in ipairs { "network", "bluetooth", "sound", "sound/equalizer", "sound/equalizer/audiogram", "microphone",
-  "power", "bar", "wired", "mesh", "tunnel", "focus" } do
+  "power", "bar", "wired", "mesh", "tunnel", "focus", "home", "input", "input/pointer", "storage", "printers", "datetime",
+  "users", "privacy", "firewall", "about", "accessibility", "apps", "startup", "commands" } do
   OPEN[#OPEN + 1] = { "settings " .. page, function() test.ipc("utilities", "open") test.settle(800) test.ipc("settings", page) end }
 end
 

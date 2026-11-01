@@ -20,6 +20,8 @@ session|toggle, open or close|The session menu
 sidebar|HOW [TAB]|The right panel: settings or notifications
 utilities|toggle, open or close|The quick settings
 settings|[PAGE]|A page of Settings
+settings-search|[WORDS]|Every Settings page, or those matching WORDS
+power-key|-|What Settings chose for the power button
 leftbar|HOW [TAB]|The left panel: tasks or calendar
 tasks|toggle, open or close|The tasks
 calendar|toggle, open or close|The calendar
@@ -31,7 +33,7 @@ assistant|toggle, open or close|The assistant
 lule|toggle, open or close|The colour tool's panel
 osd|volume, brightness, mic or another kind|Show the on-screen display
 notify|SUMMARY [BODY URGENCY APP ICON IMAGE]|Post a notification
-notifications|status, list, invoke, reply, dismiss, clear, clear-app, clear-silent, undo, snooze, mute, unmute|Notifications from a key
+notifications|open, close, toggle, state, status, list, invoke, reply, dismiss, clear, clear-app, clear-silent, undo, snooze, mute, unmute|The page, and notifications from a key
 focus|status, list, on MODE [SECONDS], off or toggle|Focus modes
 workspace|N|Go to workspace N
 window_menu|toggle, open or close|The window menu

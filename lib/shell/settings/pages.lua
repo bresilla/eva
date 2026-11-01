@@ -23,14 +23,22 @@ function M.new(pages, selected, aliases)
     end
   end
   local tree={pages=pages}
-  function tree.request(key)
+  -- The page each parentless page was opened from, while the route lasts.
+  local via={}
+  --- Opens `key`. `from` is the page Back returns to, for a page with no
+  --- parent of its own.
+  function tree.request(key,from)
     key=(aliases or {})[key] or key
     if key~="" and not by_key[key] then return false end
+    if key~="" then via[key]=from~=key and by_key[from or ""] and from or nil end
     selected:set(key) if tree.follow then tree.follow() end return true
   end
   function tree.path(key)
     local path={}
-    while by_key[key] do table.insert(path,1,by_key[key]) key=by_key[key].parent or "" end
+    while by_key[key] do
+      table.insert(path,1,by_key[key])
+      key=by_key[key].parent or via[key] or ""
+    end
     return path
   end
   -- The stack, and the page it shows, kept in Lua so following the signal
@@ -42,6 +50,7 @@ function M.new(pages, selected, aliases)
       if not syncing and selected:get()~=key then selected:set(key) end
     end})
   local function sync(key)
+    if key=="" then via={} end
     if key==at then return end
     syncing=true
     nav.send("go","")

@@ -8,6 +8,7 @@ local builders={
   mobile=function(w,h) return require("connectivity").mobile_page(w,h) end,
   bluetooth=function(w,h) return require("connectivity").bluetooth_page(w,h) end,
   sound=function(w,h) return require("sound_page").output_page(w,h) end,
+  ["sound/more"]=function(w,h) return require("sound_page").more_page(w,h) end,
   ["sound/equalizer"]=function(w,h) return require("equalizer_page").page(w,h) end,
   ["sound/equalizer/audiogram"]=function(w,h) return require("equalizer_page").audiogram(w,h) end,
   microphone=function(w,h) return require("sound_page").input_page(w,h) end,
@@ -31,7 +32,49 @@ local builders={
   ["theme/desktop"]=function(w,h) return require("themes").view("desktop_page").build(require("desktop_model"),w,h) end,
   ["theme/look"]=function(w,h) return require("themes").view("look_page").build(require("appearance_model"),w,h) end,
 }
+local function active(key) return require("presentation").active("settings."..key) end
+local function with_request(model) model.request=M.request return model end
+local function themed(name) return require("themes").view(name) end
+
+-- All settings, and the pages over the shell's own configuration.
+builders.home=function(w,h)
+  return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
+end
+for _,name in ipairs {"launcher","rail","capture","osk","weather","commands","bar/more"} do
+  builders[name]=function(w,h) return themed("settings_form").build(name,w,h) end
+end
+
+-- Keyboard and pointer.
+for _,key in ipairs {"input","input/pointer","input/devices"} do
+  builders[key]=function(w,h)
+    return themed("settings_input").build(with_request(require("input_model").new(key)),w,h)
+  end
+end
+local function system(view_name,make)
+  return function(w,h) return themed("settings_system")[view_name](with_request(make()),w,h) end
+end
+builders.datetime=system("datetime_page",function() return require("datetime_model").new("datetime") end)
+builders.region=system("region_page",function() return require("datetime_model").new("region") end)
+builders.users=system("users_page",function() return require("users_model").new("users") end)
+builders.privacy=system("privacy_page",function() return require("privacy_page_model").new() end)
+builders.firewall=system("firewall_page",function() return require("privacy_page_model").firewall() end)
+builders.about=system("about_page",function() return require("about_model").about() end)
+builders.updates=system("updates_page",function() return require("about_model").updates() end)
+builders.displays=system("displays_page",function() return require("about_model").displays() end)
+builders.storage=function(w,h) return themed("settings_devices").storage_page(with_request(require("storage_model").new()),w,h) end
+builders.printers=function(w,h) return themed("settings_devices").printers_page(with_request(require("storage_model").printers()),w,h) end
+builders.apps=function(w,h) return themed("settings_apps").defaults_page(with_request(require("apps_model").defaults()),w,h) end
+builders.startup=function(w,h) return themed("settings_apps").startup_page(with_request(require("apps_model").startup()),w,h) end
+builders.accessibility=function(w,h) return themed("settings_access").build(require("access_model").new(nil,M),w,h) end
+builders["network/connection"]=function(w,h)
+  return themed("settings_net").connection_page(with_request(require("connection_model").new()),w,h)
+end
+builders["network/proxy"]=function(w,h)
+  return themed("settings_net").proxy_page(with_request(require("connection_model").proxy()),w,h)
+end
 function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end
+--- Whether page `key` has a builder.
+function M.has_page(key) return builders[key]~=nil end
 local visual
 local built=morf.signal("eva.settings.built",false)
 function M.page(w,h)

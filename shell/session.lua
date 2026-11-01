@@ -3,17 +3,21 @@ local morf = require("morf")
 local config = require("config")
 local drawer = require("drawer")
 local M = {}
-M.actions = {
+local can = require("lib.services.power_extras")
+M.actions = {}
+for _, action in ipairs {
   {id="logout", icon="logout", name="Log out", detail="End this session"},
   {id="shutdown", icon="power_settings_new", name="Shut down", detail="Power off the computer"},
   {id="hibernate", icon="downloading", name="Hibernate", detail="Save the session to disk"},
   {id="reboot", icon="cached", name="Restart", detail="Reboot the computer"},
-}
+} do
+  -- What logind says this machine cannot do is not offered.
+  if can.can_now(action.id) then M.actions[#M.actions + 1] = action end
+end
 M.focus = morf.signal("eva.session.focus", 1)
 M.opened = morf.signal("eva.session.opened", false)
 M.username = morf.env("USER") or "user"
-local face = morf.fs.home() .. "/.face"
-M.picture = morf.fs.exists(face) and face or nil
+M.picture = require("lib.services.accounts").face(M.username, morf.fs.home())
 local function dry_run()
   local v = morf.env and morf.env("EVA_DRY_RUN")
   return v ~= nil and v ~= "" and v ~= "0"

@@ -11,13 +11,8 @@ local V = {}
 
 --- A one-line text field the card's width. Returns its box and its handle.
 local function field(id, w, placeholder, kind, on_changed, on_accept)
-  local node, handle = kit.text_field(kind, { id = id, x = 10, y = 3, width = w - 20, height = 30,
-    font_family = theme.font, font_size = 12, placeholder = placeholder, reveal = kind == "password" and false or nil,
-    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
-    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
-    on_text_changed = on_changed, on_accepted = on_accept })
-  return kit.surface { width = w, height = 36, radius = kit.round(10),
-    color = function() return C.surfaceContainerHighest end, node }, handle
+  return P.field { id = id, width = w, placeholder = placeholder, kind = kind, on_changed = on_changed,
+    on_accepted = on_accept }
 end
 V.field = field
 

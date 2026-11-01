@@ -77,10 +77,11 @@ M.SESSION = {
   { id = "shutdown", icon = "power_settings_new", name = "Power off", hold = true },
 }
 
---- Whether the session action `id` has a command to run.
+--- Whether the session action `id` has a command to run, and logind says it
+--- can be done here.
 function M.session_available(id)
   local words = config.get("session.commands." .. id)
-  return type(words) == "table" and #words > 0
+  return type(words) == "table" and #words > 0 and require("lib.services.power_extras").can_now(id)
 end
 
 --- Who is signed in: `label` (the name to show) and `face` (a picture, or nil).
@@ -555,32 +556,35 @@ function M.set_reduce_motion(on) config.set("appearance.reduce_motion", on == tr
 M.opened = morf.signal("eva.settings.opened", false)
 M.displayed = require("themes.session").keep("eva.settings.displayed", "")
 
-M.DETAILS = {
-  {key="network",name="Network"}, {key="bluetooth",name="Bluetooth"},
-  {key="mobile",name="Mobile networks"},
-  {key="sound",name="Sound"}, {key="microphone",name="Microphone"},
-  {key="power",name="Power"}, {key="eva",name="Eva"}, {key="bar",name="Bar",parent="eva"}, {key="wired",name="Wired"},
-  {key="osd",name="On-screen displays",parent="eva"},
-  {key="panels",name="Panels",parent="eva"},
-  {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
-  {key="focus/mode",name="Mode",parent="focus"},
-  {key="notifications",name="Notifications",parent="eva"},
-  {key="notifications/app",name="App",parent="notifications"},
-  {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
-  {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},
-  {key="theme/wallpaper",name="Wallpaper",parent="theme"},
-  {key="theme/desktop",name="Desktop",parent="theme"},
-  {key="theme/look",name="Look",parent="theme"},
-  {key="sound/equalizer",name="Equalizer",parent="sound"},
-  {key="sound/equalizer/audiogram",name="Audiogram",parent="sound/equalizer"},
-}
+-- Every page is the registry's; a route's parent is what Back returns to.
+M.registry=require("settings_registry")
+M.DETAILS={}
+for index,page in ipairs(M.registry.PAGES) do
+  M.DETAILS[index]={key=page.key,name=page.name,parent=page.parent}
+end
 M.navigation=require("lib.shell.settings.pages").new(M.DETAILS,M.detail,{tor="tunnel"})
 M.back=M.navigation.back
 M.breadcrumb=M.navigation.breadcrumb
 function M.overview() return M.opened:get() and M.displayed:get()=="" end
 function M.present(key) if key==M.detail:get() then M.displayed:set(key) end end
-function M.request(key)
-  return M.navigation.request(key)
+--- Opens page `key`; `from` is the page Back returns to, for a page without
+--- a parent of its own.
+function M.request(key,from)
+  return M.navigation.request(key,from)
+end
+--- Opens All settings.
+function M.open_home() return M.request(M.registry.HOME) end
+-- The pages only some machines have, and what says so.
+local PRESENT={
+  mobile=function() return M.CONTROLS.mobile.present() end,
+  wired=function() return M.CONTROLS.wired.present() end,
+  hotspot=function() return M.CONTROLS.hotspot.present() end,
+  nightlight=function() return M.CONTROLS.nightlight.present() end,
+}
+--- Whether page `key` is one this machine can show.
+function M.page_present(key)
+  local check=PRESENT[key]
+  return check==nil or check()==true
 end
 function M.capture()
   require("pages").close("settings")

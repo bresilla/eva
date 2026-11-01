@@ -8,6 +8,7 @@ local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
 local P = require("themes.layouts.page")
+local F = require("themes.layouts.form")
 
 local M = {}
 
@@ -93,7 +94,71 @@ function M.build(model, w, h)
         on_clicked = model.open_battery } },
   }
 
-  return P.page { id = "power-scroll", width = w, height = h, active = model.active, summary, profile, health }
+  -- The lid and the power button: the shell's choice while it runs, what
+  -- logind does otherwise.
+  local function action_block(key, title, field)
+    return ui.Column { width = inner, gap = P.ROW_GAP,
+      F.note(inner, function()
+        local logind = model.logind_action(field)
+        return title .. (logind and ("  (the system: " .. logind .. ")") or "")
+      end),
+      F.choices { id = "power-" .. key, width = inner, items = model.ACTIONS, per_row = 2,
+        now = function() return model.action_of(key) end, pick = function(value) model.set_action(key, value) end },
+    }
+  end
+  local buttons = P.section { id = "power-actions", caption_id = "power-heading-actions", width = w, title = "Lid and power button",
+    (function()
+      local block = action_block("lid_battery", "Closing the lid on battery", "HandleLidSwitch")
+      block.visible = model.lid_present
+      return block
+    end)(),
+    (function()
+      local block = action_block("lid_ac", "Closing the lid plugged in", "HandleLidSwitchExternalPower")
+      block.visible = model.lid_present
+      return block
+    end)(),
+    action_block("button", "Pressing the power button", "HandlePowerKey"),
+    F.note(inner, "System leaves it to logind, as the system configuration says. Anything else wins over that configuration while the shell runs; at the login screen logind decides."),
+  }
+
+  -- How long before the machine locks, blanks and sleeps.
+  local idle = { id = "power-idle", caption_id = "power-heading-idle", width = w, title = "When idle", visible = model.idle_managed }
+  for _, entry in ipairs(model.IDLE) do
+    idle[#idle + 1] = F.slider { id = "power-" .. entry[1], width = inner, icon = entry[4], name = entry[3], from = 0, to = 3600,
+      step = 60, value = function() return model.idle_seconds(entry) end, set = function(v) model.set_idle(entry, v) end,
+      format = model.idle_format }
+  end
+  idle[#idle + 1] = F.note(inner, function()
+    if model.idle_changed() then return "These win over programs.eva.idle in the system configuration, on this account." end
+    return "These are programs.eva.idle from the system configuration. Change one and yours wins."
+  end)
+  idle[#idle + 1] = P.button { id = "power-idle-reset", label = "Back to the system's", width = inner,
+    visible = model.idle_changed, on_clicked = model.idle_reset }
+
+  local limit = P.section { id = "power-limit", caption_id = "power-heading-limit", width = w, title = "Charging",
+    visible = function() return model.charge().supported == true end,
+    F.toggle { id = "power-charge-limit", width = inner, icon = "battery_saver", title = "Limit charging",
+      subtitle = function()
+        local c = model.charge()
+        if c.limit then return ("Stops at %d%%, which keeps the battery healthy"):format(c.limit) end
+        return "Stops short of full, which keeps the battery healthy"
+      end,
+      on = function() return model.charge().on == true end, set = model.set_charge },
+  }
+
+  local graphics = { id = "power-gpu", caption_id = "power-heading-gpu", width = w, title = "Graphics",
+    visible = function() return model.gpu().tool ~= "" end }
+  for slot = 1, 4 do
+    local function row() return model.gpu().modes[slot] end
+    graphics[#graphics + 1] = P.row { id = "power-gpu-" .. slot, width = inner, visible = function() return row() ~= nil end,
+      icon = function() return (row() or {}).key == model.gpu().mode and "radio_button_checked" or "radio_button_unchecked" end,
+      on = function() return (row() or {}).key == model.gpu().mode end,
+      title = function() return (row() or {}).name or "" end, subtitle = function() return (row() or {}).hint or "" end,
+      on_clicked = function() if row() then model.set_gpu(row()) end end }
+  end
+
+  return P.page { id = "power-scroll", width = w, height = h, active = model.active, summary, profile, health, limit, buttons,
+    P.section(idle), P.section(graphics), F.status("power-status", w, { message = model.note, failed = model.failed }) }
 end
 
 return M
