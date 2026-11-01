@@ -5,8 +5,8 @@
 --
 --     morf test --no-dbus tests/cost_spec.lua
 --
--- Measured on the commit that added this spec, the worst of both themes on a
--- desk and a phone. A change that needs more moves the number, on purpose.
+-- MEASURED and NODES: the worst of both themes on a desk and a phone, at the
+-- commit that added this spec. MARGIN: how far past them a scene may go.
 
 local test = morf.test
 

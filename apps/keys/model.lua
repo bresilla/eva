@@ -5,7 +5,7 @@ local keybinds = require("key_rows")
 
 local M = {
   rows = morf.signal("keys.rows", {}),
-  -- Moves with `rows`: reading that signal copies the whole list.
+  -- Moves with `rows`, for what follows the list without reading it.
   loaded = morf.signal("keys.loaded", 0),
   query = morf.signal("keys.query", ""),
   message = morf.signal("keys.message", ""),
