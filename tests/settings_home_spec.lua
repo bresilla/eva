@@ -67,9 +67,7 @@ local HOST = [[
   local function leaves(tree, prefix, out)
     for key, value in pairs(tree) do
       local path = prefix == "" and key or (prefix .. "." .. key)
-      -- The gestures are one table per form, all on the Touch gestures page.
-      if path == "gestures" then
-      elseif type(value) == "table" and next(value) ~= nil and value[1] == nil then leaves(value, path, out)
+      if type(value) == "table" and next(value) ~= nil and value[1] == nil then leaves(value, path, out)
       else out[#out + 1] = path end
     end
     return out
@@ -93,6 +91,7 @@ local HOST = [[
       "shell/quick_tiles.lua", "shell/idle_model.lua", "shell/idle_page.lua", "shell/lock_page.lua",
       "themes/layouts/views/idle_page.lua", "themes/layouts/views/lock_page.lua",
       "shell/windows_page.lua", "themes/layouts/views/windows_page.lua",
+      "shell/touch_page.lua", "shell/touch_bindings.lua",
       "themes/layouts/views/assistant_settings.lua", "themes/layouts/views/calendar_settings.lua",
       "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",
@@ -110,11 +109,25 @@ local HOST = [[
     local groups = { "osd.kinds", "lule", "quick", "input", "accessibility", "sound", "power", "storage", "proxy", "nightlight",
       "edgebar", "dashboard", "sidebar", "leftbar", "bottom", "capture.tools", "appearance", "rotation", "polkit", "osd",
       "notifications", "wallpaper", "desktop", "island", "bar", "focus", "standby", "panels", "assistant", "calendar",
-      "keyboard", "filters", "phone", "idle", "lock", "dock", "windows" }
+      "keyboard", "filters", "phone", "idle", "lock", "dock", "windows", "gestures" }
+    -- Each list by the first part of its keys: a key looks only at its own.
+    local function by_head(list)
+      local out = {}
+      for _, each in ipairs(list) do
+        local head = each:match("^[^%.]+")
+        out[head] = out[head] or {}
+        out[head][#out[head] + 1] = each
+      end
+      return out
+    end
+    local kept_by_head, groups_by_head = by_head(kept), by_head(groups)
     local function covered(key)
       if reached[key] then return true end
-      for _, each in ipairs(kept) do if key == each or key:sub(1, #each + 1) == each .. "." then return true end end
-      for _, each in ipairs(groups) do
+      local head = key:match("^[^%.]+")
+      for _, each in ipairs(kept_by_head[head] or {}) do
+        if key == each or key:sub(1, #each + 1) == each .. "." then return true end
+      end
+      for _, each in ipairs(groups_by_head[head] or {}) do
         if key:sub(1, #each + 1) == each .. "." and sources:find(key:sub(#each + 2):match("[^%.]+"), 1, true) then return true end
       end
       return sources:find(key, 1, true) ~= nil

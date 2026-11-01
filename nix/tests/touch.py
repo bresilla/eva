@@ -412,6 +412,13 @@ def run(password):
         check("the session unlocks", eventually(lambda: "false" in hyprctl("locked"), 30), hyprctl("locked"))
         check("and the reader comes back", eventually(lambda: len(reader_pids()) == 1, 15), str(reader_pids()))
 
+    with subtest("another console on the screen"):
+        machine.succeed("chvt 3")
+        check("the reader stops", eventually(lambda: reader_pids() == [], 10), str(reader_pids()))
+        machine.succeed("chvt 1")
+        check("and comes back", eventually(lambda: len(reader_pids()) == 1, 20), str(reader_pids()))
+        machine.sleep(4)
+
     with subtest("no libinput access is said plainly"):
         pid = reader_pids()[0]
         machine.succeed("setfacl -b /dev/input/event2")

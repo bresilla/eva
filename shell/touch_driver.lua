@@ -53,6 +53,13 @@ function M.locked()
   return bus ~= nil and bus.state.session.locked == true
 end
 
+--- Whether this session has left the screen: another user or a console has it.
+function M.away()
+  local bus = login()
+  local session = bus and bus.state.session
+  return session ~= nil and session.state ~= nil and session.state ~= "" and session.active == false
+end
+
 --- The screen the touchscreen sits on, or nil.
 function M.panel()
   return service.panel(morf.screens, config.get("gestures.output"), require("auto_rotate").built_in)
@@ -68,7 +75,7 @@ function M.allowed()
   if config.get("gestures.enabled") == false then return false end
   if morf.env("EVA_GESTURE_DRIVER") == "lisgd" then return false end
   local gesture = require("phone_gestures")
-  return own_panel() and not M.locked() and not gesture.blocked() and gesture.global_allowed()
+  return own_panel() and not M.locked() and not M.away() and not gesture.blocked() and gesture.global_allowed()
 end
 
 --- Whether the reader is hearing the touchscreen, so gestures are its own.
@@ -189,7 +196,9 @@ end
 -- device that cannot be opened.
 local function stand_in()
   local kind = morf.env and morf.env("EVA_FAKE_TOUCH")
-  if not kind or kind == "" then return {} end
+  if not kind or kind == "" then
+    return { installed = function() return require("services").installed(service.LIBINPUT) end }
+  end
   local present = function() return { { name = "Stand-in touchscreen", node = "/dev/input/event99", multi = true } } end
   if kind == "none" then return { find = function() return {} end } end
   if kind == "missing" then return { find = present, installed = function() return false end } end

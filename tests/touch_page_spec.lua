@@ -8,6 +8,11 @@ local SOURCE=[[
   morf.ipc.value=function(key) return require("config").get(key) end
   morf.ipc.bound=function(key) return require("touch_bindings").action(key) end
   morf.ipc.command_of=function(key) return require("touch_bindings").command(key) end
+  morf.ipc.gesture_keys=function()
+    local out={}
+    for i,gesture in ipairs(require("touch_bindings").GESTURES) do out[i]=gesture.key end
+    return out
+  end
   morf.ipc.search=function(word)
     local out={}
     for i,entry in ipairs(require("settings_registry").search(word)) do out[i]=entry.key end
@@ -49,6 +54,19 @@ test.it("is on the launcher's search, by what people call it",function()
     for _,key in ipairs(found) do hit=hit or key=="touch" end
     test.truthy(hit,word)
   end
+end)
+
+test.it("has a real field for every gesture on every form",function()
+  load("material")
+  for _,form in ipairs {"desk","tablet","phone"} do
+    press("touch-form-"..form) test.advance(200)
+    for _,key in ipairs(test.ipc("gesture_keys")) do
+      test.truthy(test.get("touch-gesture-"..key),key)
+      test.truthy(test.get("touch-gesture-"..key.."-subtitle").text~="",key.." says what it does")
+    end
+  end
+  test.get("touch-enabled-switch")
+  test.eq(#test.logs("error"),0)
 end)
 
 for _,style in ipairs {"material","tsugumori"} do

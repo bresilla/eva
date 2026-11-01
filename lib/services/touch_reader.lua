@@ -72,16 +72,6 @@ function M.panel(screens, chosen, built_in)
   return screens and #screens == 1 and screens[1] or nil
 end
 
---- Whether `libinput` can be run.
-function M.installed()
-  local program = M.LIBINPUT
-  if program:find("/", 1, true) then return morf.fs.exists(program) end
-  for dir in ((morf.env and morf.env("PATH") or "") .. ":/usr/bin:/usr/local/bin"):gmatch("[^:]+") do
-    if morf.fs.exists(dir .. "/" .. program) then return true end
-  end
-  return false
-end
-
 -- The processes running, across a reload: the next runtime has no handle on them.
 local kept_processes
 local function processes()
@@ -90,12 +80,12 @@ local function processes()
 end
 
 --- A reader. `options`, each a seam: `screen()`, `sink`, `find()` (the
---- touchscreens, as models.touchscreens lists them), `installed()`,
---- `spawn(spec)` (morf.process.spawn), `changed(state)`.
+--- touchscreens, as models.touchscreens lists them), `installed()` (whether
+--- `LIBINPUT` is on PATH), `spawn(spec)` (morf.process.spawn), `changed(state)`.
 function M.new(options)
   options = options or {}
   local find = options.find or function() return require("models.touchscreens").list() end
-  local installed = options.installed or M.installed
+  local installed = options.installed or function() return true end
   local spawn = options.spawn or morf.process.spawn
   local sink = options.sink or {}
   local r = {}

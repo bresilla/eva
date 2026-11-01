@@ -32,6 +32,7 @@ local SOURCE=[[
   end
   morf.ipc.lock_signal=function() require("models.logind").connect().fire("lock") end
   morf.ipc.lock_hint=function(on) require("models.logind").connect().set_locked(on=="on") end
+  morf.ipc.on_screen=function(on) require("models.logind").connect().set_active(on=="on") end
   morf.ipc.editor=function(on) require("capture").editor.active:set(on=="on") end
   morf.ipc.handoff=function(on) require("phone_gestures").handoff(on=="on") end
   morf.ipc.setting=function(key,value) require("config").set(key,value=="true") end
@@ -101,6 +102,19 @@ test.it("reads on a desk with a keyboard attached: gestures do not ask for a tab
   load()
   local state=touch()
   test.eq(state.state,"running") test.eq(state.form,"desk") test.eq(state.reading,true)
+end)
+
+test.describe("without the driver",function()
+  test.it("fingers above the strip reach no one: what this driver is for",function()
+    load({EVA_FAKE_TOUCH="none"})
+    test.touch("down",10,640,770) test.touch("down",11,720,690) test.advance(16)
+    for i=1,16 do
+      test.touch("move",10,640,770-i*16) test.touch("move",11,720,690-i*16)
+      test.advance(16)
+    end
+    test.touch("up",10,640,514) test.touch("up",11,720,434) test.settle(800)
+    test.falsy(spy().keyboard)
+  end)
 end)
 
 test.describe("the defaults",function()
@@ -320,6 +334,13 @@ test.describe("what stops the reader",function()
     test.eq(touch().reading,false)
     test.ipc("compositor","open","lit")
     test.advance(6000)
+    test.eq(touch().reading,true)
+  end)
+  test.it("another session on the screen: this one reads nothing of it",function()
+    load()
+    test.ipc("on_screen","off") test.advance(50)
+    test.eq(touch().reading,false)
+    test.ipc("on_screen","on") test.advance(50)
     test.eq(touch().reading,true)
   end)
   test.it("a password prompt",function()

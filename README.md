@@ -119,12 +119,13 @@ in again. Do not join the `input` group instead: it can read every keystroke.
 `getfacl /dev/input/eventN` on the touchscreen should list your user, and
 Settings says what it found.
 
-Where Hyprland must rotate touches along with the screen, set
-`input:touchdevice:transform` to the monitor's transform, as auto-rotate does;
-and on a machine with an external monitor set `input:touchdevice:output` to the
-built-in panel, or Hyprland sends touches to the focused monitor. The gestures
-themselves find the built-in panel, or the one named by the `gestures.output`
-setting, and follow its rotation either way.
+The gestures find the built-in panel, follow its rotation and scale, and run on
+the shell of that screen alone. On a machine with no built-in panel and several
+screens, Settings asks which one has the touchscreen. With a second monitor eva
+also binds `input:touchdevice:output` to the panel, or Hyprland would send
+touches to whichever monitor has the focus. A screen turned by hand needs
+`input:touchdevice:transform` set to the monitor's transform for apps to agree,
+as auto-rotate does.
 
 eva pins the morf release it is written against in `flake.nix`, and the engine
 comes prebuilt from the binary cache. The engine and its Lua library always
