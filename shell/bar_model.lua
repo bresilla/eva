@@ -163,12 +163,14 @@ function M.new(ctx)
   function model.press_clock()
     if responsive.sheets() then model.open_notifications() else model.toggle_dashboard() end
   end
-  function model.open_calendar()
+  local function open_left(tab)
     if not model.on() then return end
     local leftbar=require("leftbar")
-    leftbar.panel.select("calendar")
+    leftbar.panel.select(tab)
     leftbar.drawer.set(true)
   end
+  function model.open_calendar() open_left("calendar") end
+  function model.open_tasks() open_left("tasks") end
   function model.settings_open()
     local s=package.loaded.sidebar
     return s and s.drawer and s.drawer.open:get() or false

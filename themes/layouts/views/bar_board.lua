@@ -1,6 +1,6 @@
 -- The Bar page's board: the bar's modules by zone, on the board the quick
--- settings' tiles use (themes/layouts/board.lua). A module's tile names it and
--- says how it reads now; arranging it here moves it on the bar behind the page.
+-- settings' tiles use (themes/layouts/board.lua). Arranging a tile here moves its
+-- module on the bar behind the page.
 local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
@@ -18,10 +18,6 @@ function V.build(model, w)
 
   local function face(m, tile)
     local id, name = m.id, m.name or m.id
-    local function reading()
-      if not m.text or not m.tile_text then return "" end
-      return m.text() or ""
-    end
     local area = kit.action {
       id = "bar-board-toggle-" .. id, accessible_name = name, anchors = { fill = true }, cursor = "pointer",
       enabled = function() return not tile.armed() end,
@@ -32,10 +28,7 @@ function V.build(model, w)
       kit.subtitle { x = S.xl + S.m, anchors = { vertical_center = true }, width = tile.slot - S.xxl - S.xl - S.m,
         elide = "right", font_size = theme.size.small, color = function() return C.onSurface end,
         opacity = function() return tile.small() and 0 or 1 end, behavior = { opacity = theme.spring.effects },
-        text = function()
-          local now = reading()
-          return now ~= "" and (name .. " · " .. now) or name
-        end },
+        text = name },
     }
     ui.reparent(kit.tile_surface { id = "bar-board-toggle-" .. id .. "-shape", area = area, on = function() return false end,
       height = TILE_H, tone = "primary", z = -1, width = function() return tile.box().width end,

@@ -69,6 +69,16 @@ function M.playing() return M.active().playing == true end
 function M.small_spectrum(id, count, shown)
   local channel = morf.channel { name = "eva.media.small." .. id, size = count, mode = "frame" }
   local monitor
+  -- EVA_FAKE_MEDIA: a stand-in's sound has no monitor, so the bars are made up.
+  if morf.env and morf.env("EVA_FAKE_MEDIA") then
+    morf.time.timer(120, function()
+      if not (shown() and M.playing()) then return end
+      local values = {}
+      for i = 1, count do values[i] = 0.25 + 0.7 * math.abs(math.sin(i * 0.9 + morf.time.now_ms() / 300)) end
+      channel:set(values)
+    end, true)
+    return channel
+  end
   morf.effect("eva.media.small." .. id, function()
     local on = shown() and M.playing()
     if on and not monitor then

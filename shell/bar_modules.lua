@@ -259,9 +259,17 @@ function M.list(bar)
     press = function() require("session").drawer.set(true) end, tooltip = function() return "Lock, log out, restart" end }
   add { id = "assistant", name = "Assistant", icon = "smart_toy", tier = 1,
     press = function() require("bottom").drawer.set(true) end, tooltip = function() return "Assistant" end }
-  add { id = "clipboard", name = "Clipboard", icon = "content_paste", tier = 1,
-    press = function() M.run { "sh", morf.paths.shell("../apps/launch"), "clipboard" } end,
-    tooltip = function() return "Clipboard history" end }
+  -- The tools of apps/, each a press away where it is installed.
+  for _, tool in ipairs {
+    { "clipboard", "Clipboard", "content_paste", "eva-clipboard", "Clipboard history" },
+    { "color_picker", "Colour picker", "colorize", "eva-colorpick", "Pick a colour off the screen" },
+    { "displays", "Displays", "desktop_windows", "eva-displays", "Arrange the monitors" },
+    { "keybinds", "Keybindings", "keyboard_keys", "eva-keys", "The live keybindings" },
+  } do
+    add { id = tool[1], name = tool[2], icon = tool[3], tier = 1,
+      present = function() return installed(tool[4]) end,
+      press = function() M.run { tool[4] } end, tooltip = function() return tool[5] end }
+  end
   add { id = "screenshot", name = "Screenshot", icon = "screenshot_region", tier = 1,
     press = function() require("capture").shoot("region") end, tooltip = function() return "Take a screenshot" end,
     menu = function() return { item("Of a region", "screenshot_region", function() require("capture").shoot("region") end),
@@ -311,6 +319,16 @@ function M.list(bar)
     tooltip = function()
       local i = own_interface()
       return ("%s\nDown %s/s\nUp %s/s"):format(i.name, size_text(i.rx_rate), size_text(i.tx_rate))
+    end,
+    press = dashboard_tab("performance") }
+  add { id = "data_usage", name = "Data used", icon = "data_usage", tier = 1,
+    text = function()
+      local i = own_interface()
+      return size_text((i.rx_bytes or 0) + (i.tx_bytes or 0))
+    end,
+    tooltip = function()
+      local i = own_interface()
+      return ("%s since it started\nDown %s\nUp %s"):format(i.name, size_text(i.rx_bytes), size_text(i.tx_bytes))
     end,
     press = dashboard_tab("performance") }
   add { id = "lan_ip", name = "Local address", icon = "lan", tier = 1,
@@ -558,6 +576,11 @@ function M.list(bar)
     text = function() return (bar.next_event() or {}).text or "" end,
     tooltip = function() return (bar.next_event() or {}).tooltip or "" end,
     press = function() bar.open_calendar() end }
+  add { id = "tasks", name = "Tasks", icon = "checklist", tier = 1,
+    present = function() return installed("task") end,
+    text = function() return tostring(#require("planner").client.tasks:get()) end,
+    tooltip = function() return "Pending tasks" end,
+    press = function() bar.open_tasks() end }
 
   -- Media.
   add { id = "media", name = "Media", icon = "music_note", kind = "media", tier = 3,

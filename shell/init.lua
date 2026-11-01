@@ -402,9 +402,18 @@ end
 -- `bar modules`: what stands on the bar, zone by zone, and what could. `bar add
 -- ID [ZONE]`, `bar remove ID`, `bar move ID INDEX [ZONE]`, `bar small ID`, `bar
 -- reset`, `bar show on|off|auto`, `bar side EDGE` and `bar live toggle|next`.
+-- `bar output NAME on|off|follow`, `own|shared` or `add ID [ZONE]`: one screen's.
 ipc.bar = function(how, id, a, b)
   local model = bar.model
   local board = model.board
+  if how == "output" then
+    local store = require("bar_store")
+    if a == "on" or a == "off" then store.set_on(id, a) return true end
+    if a == "follow" then store.set_on(id, "") return true end
+    if a == "own" or a == "shared" then store.set_own(id, a == "own", require("responsive").form()) return true end
+    if a == "add" and store.output() == id then return board.add(b) end
+    return nil
+  end
   if how == "show" then config.set("edgebar.enabled", id) return bar.on() end
   if how == "side" then bar.set_side(id) return bar.side() end
   if how == "modules" then

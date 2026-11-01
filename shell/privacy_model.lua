@@ -269,21 +269,21 @@ function M.new(opts)
     end)
     if not ok or not client then return end
     local NAME, PATH, IFACE = "org.freedesktop.GeoClue2", "/org/freedesktop/GeoClue2/Manager", "org.freedesktop.GeoClue2.Manager"
+    local listening = false
     local function read()
       local up, value = pcall(client.get, NAME, PATH, IFACE, "InUse")
       located:set(up and value == true)
-    end
-    -- Only a GeoClue that is running: asking would start one.
-    pcall(client.watch_name, NAME, function(owner)
-      if owner and owner ~= "" then read() else located:set(false) end
-    end)
-    local running = select(2, pcall(client.has_owner, NAME))
-    if running == true then
-      read()
+      if listening then return end
+      listening = true
       pcall(client.on_properties, NAME, PATH, function(interface, changes)
         if interface == IFACE and type(changes) == "table" and changes.InUse ~= nil then located:set(changes.InUse == true) end
       end)
     end
+    -- Only a GeoClue that is running: asking would start one.
+    pcall(client.watch_name, NAME, function(present)
+      if present then read() else located:set(false) end
+    end)
+    if select(2, pcall(client.has_owner, NAME)) == true then read() end
   end
 
   --- Starts following the machine. Once only, outside an effect.

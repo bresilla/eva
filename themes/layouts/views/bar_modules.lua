@@ -27,10 +27,12 @@ function V.context(spec)
   local M = { model = model, ITEM = ITEM, ICONS_H = ICONS_H, GLYPH = GLYPH }
 
   --- A tooltip on `target`, under a bar along an edge and beside a side one.
+  --- `vertical` is the strip it stands on, nil for either.
   function M.tip(target, text, vertical, when)
     popup.tooltip(target, { text = text, placement = vertical and "right" or "bottom",
       when = function()
-        return model.on() and model.vertical() == (vertical == true) and (when == nil or when())
+        if not model.on() or (vertical ~= nil and model.vertical() ~= vertical) then return false end
+        return when == nil or when()
       end }, 500)
   end
 

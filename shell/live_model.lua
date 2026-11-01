@@ -106,9 +106,6 @@ end
 --- The model for the bar model `bar`.
 function M.new(bar)
   local sources = catalogue(bar)
-  local fake = morf.env and morf.env("EVA_FAKE_LIVE")
-  local forced = {}
-  for word in tostring(fake or ""):gmatch("[^,%s]+") do forced[word] = true end
   local model = {
     expanded = morf.signal("eva.bar.live.expanded", false),
     -- The key of the activity put first by hand, "" for the most pressing.
@@ -149,7 +146,6 @@ function M.new(bar)
     return table.concat(lines, "\n")
   end
 
-  model.forced = forced
   return model
 end
 

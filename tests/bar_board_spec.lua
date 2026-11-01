@@ -122,12 +122,55 @@ test.describe("the Bar page",function()
     test.truthy(has(modules()["end"],"clock"))
     test.truthy(up("bar-clock"))
   end)
-  test.it("walks a module across zones with Alt and the arrows",function()
+  local function centre(node) return node.x+node.width/2,node.y+node.height/2 end
+  local function index_of(list,id)
+    for i,v in ipairs(list) do if v==id then return i end end
+  end
+  test.it("drags a module along its zone, as the quick tiles drag",function()
     open {}
-    local before=#modules().centre
-    test.ipc("bar","add","load","centre") test.settle(900)
-    test.eq(#modules().centre,before+1)
-    test.ipc("q_set","bar.small.desk",{}) test.advance(100)
+    local logo=reach("bar-board-toggle-logo")
+    local windows=reach("bar-board-toggle-windows")
+    logo=test.get("bar-board-toggle-logo")
+    local x,y=centre(logo)
+    local tx,ty=centre(windows)
+    test.press(x,y)
+    for i=1,12 do test.move(x+(tx-x)*i/12,y+(ty-y)*i/12) test.advance(16) end
+    test.release(tx,ty) test.settle(1500)
+    test.truthy(index_of(modules().start,"logo")>1,"it did not move")
+    test.eq(#test.logs("error"),0)
+  end)
+  test.it("drags a module across into another zone, and the bar follows",function()
+    open {}
+    local logo=reach("bar-board-toggle-logo")
+    local target=test.get("bar-board-toggle-clock")
+    if target.y+target.height>960 then
+      test.wheel(0,120,{x=1450,y=500}) test.advance(300)
+      logo=test.get("bar-board-toggle-logo") target=test.get("bar-board-toggle-clock")
+    end
+    local x,y=centre(logo)
+    local tx,ty=centre(target)
+    test.press(x,y)
+    for i=1,16 do test.move(x+(tx-x)*i/16,y+(ty-y)*i/16) test.advance(16) end
+    test.release(tx,ty) test.settle(1500)
+    test.truthy(index_of(modules().centre,"logo")~=nil,"it stayed in the start")
+    test.eq(index_of(modules().start,"logo"),nil)
+    test.truthy(test.get("bar-logo").x>200,"the bar did not follow")
+    test.eq(#test.logs("error"),0)
+  end)
+  test.it("steps a module along, on into the next zone and back, as Alt and the arrows do",function()
+    open {}
+    local function step(delta)
+      return test.ipc("q_run",("return require('bar').model.board.step('logo',%d)"):format(delta))
+    end
+    test.truthy(step(1)) test.eq(index_of(modules().start,"logo"),2)
+    test.truthy(step(1)) test.eq(index_of(modules().start,"logo"),3)
+    test.truthy(step(1)) test.eq(index_of(modules().centre,"logo"),1,"it did not cross into the centre")
+    test.truthy(step(-1)) test.eq(index_of(modules().start,"logo"),3,"it did not cross back")
+  end)
+  test.it("stops at the ends of the board",function()
+    open {}
+    test.falsy(test.ipc("q_run","return require('bar').model.board.step('logo',-1)"))
+    test.eq(index_of(modules().start,"logo"),1)
   end)
   test.it("sets the clock, the height and the percentage from its sections",function()
     open {}

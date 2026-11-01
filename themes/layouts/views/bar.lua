@@ -117,7 +117,7 @@ function V.build(model)
         behavior = { width = { duration = theme.duration.small }, x = { duration = theme.duration.small } },
       },
     }
-    modules.tip(area, function() return client.title end, model.vertical())
+    modules.tip(area, function() return client.title end)
     ui.reparent(ui.MouseArea { anchors = { fill = true }, accepted_buttons = { "right" },
       on_pressed = function() model.window_menu(client.address) end }, area)
     return kit.hover(area, function(hovered)
@@ -282,7 +282,7 @@ function V.build(model)
     -- The kit's press takes the left button alone: the right one comes here.
     ui.reparent(ui.MouseArea { anchors = { fill = true }, accepted_buttons = { "right" },
       on_pressed = function() item.open_menu() end }, node)
-    modules.tip(node, function() return row.title end, false)
+    modules.tip(node, function() return row.title end)
     return node
   end
   local function tray(_, vertical)

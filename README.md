@@ -397,11 +397,12 @@ module, and a long press does the same on a touchscreen. A cutout parts the row:
 the centre zone joins the end one and the live pill wraps the camera.
 
 The modules: launcher, workspaces, windows, window title, clock, world clock,
-fuzzy clock, binary clock, countdown, next event, status, system tray, privacy,
-live activity, notifications, dashboard, quick settings, session, assistant,
-clipboard, screenshot, wallpaper, on-screen keyboard, volume, microphone,
-brightness, network, network speed, local and public address, VPN, Bluetooth,
-device batteries, battery, power draw, power profile, CPU, CPU cores, CPU speed,
+fuzzy clock, binary clock, countdown, next event, tasks, status, system tray,
+privacy, live activity, notifications, dashboard, quick settings, session,
+assistant, clipboard, colour picker, displays, keybindings, screenshot, wallpaper,
+on-screen keyboard, volume, microphone, brightness, network, network speed, data
+used, local and public address, VPN, Bluetooth, device batteries, battery, power
+draw, power profile, CPU, CPU cores, CPU speed,
 memory, swap, temperature, GPU, fans, disk, disk activity, load, uptime, machine
 name, user, media, audio visualiser, lyrics, keep awake, focus, night light, dark
 mode, rotation lock, flashlight, recording, screen sharing, weather, updates,

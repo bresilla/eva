@@ -1,5 +1,5 @@
-# Two sealed outputs, each running the shell: the bar's settings by screen. The
-# second screen gets modules of its own, then keeps its bar down.
+# Two sealed outputs, each running the shell: the second keeps modules of its own,
+# then the first keeps its bar down while the second stays up.
 export EVA_FAKE_BATTERY=64 EVA_FAKE_STATUS=wifi
 swaymsg create_output > /dev/null
 pause 0.3
@@ -8,6 +8,18 @@ start shell
 pause 2
 ipc bar show on
 pause 1.5
-ipc bar modules > "$SEE_OUT/board.json"
-note swaymsg -t get_outputs -p
 shot both
+ipc bar output HEADLESS-2 own
+pause 1
+ipc bar output HEADLESS-2 add cpu
+ipc bar output HEADLESS-2 add memory
+ipc bar output HEADLESS-2 add disk
+pause 2
+shot own
+ipc bar output HEADLESS-1 off
+pause 2
+shot one-down
+ipc bar output HEADLESS-1 follow
+ipc bar output HEADLESS-2 shared
+pause 2
+shot back
