@@ -14,7 +14,7 @@ Open:
   `morf.window.layer` on its runtime's output, and an application has one
   runtime, the first output's, so a tool cannot open on the focused monitor.
   eva-screenshot runs as a plain `morf -i NAME config.lua` instead, one runtime
-  per output as the shell has, with the idle runtimes on a 1x1 surface. An
+  per output as the shell has, with the idle runtimes held under the desk. An
   `output` key on `morf.window.layer` would let it be an application.
 
 Everything else found so far is in the engine (below).

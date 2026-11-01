@@ -109,8 +109,8 @@ drawn() {
   sleep "${ARRIVAL:-6}"
 }
 toolup() {
-  for _ in $(seq 300); do morf -i "$(basename "$WAYLAND_DISPLAY")-screenshot" ipc verbs > /dev/null 2>&1 && break; sleep 0.1; done
-  sleep 2
+  for _ in $(seq 300); do toolipc state 2> /dev/null | grep -q '"ok":true' && break; sleep 0.1; done
+  sleep "${SETTLE:-1}"
 }
 note() { "$@" >> "$SEE_OUT/notes.txt" 2>&1; }
 

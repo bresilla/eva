@@ -155,14 +155,14 @@ if stays then
   end, true)
 end
 
---- `fn` once the surface is whole: at once when it is, a moment later when it
---- has to grow.
+--- `fn` once the surface is over the desk: at once from standby, a moment later
+--- when it has to grow back from the pill's strip.
 local function wake(fn)
   claim()
   host.framed:set(host.shell_up())
-  if host.now == "full" then fn() return end
+  local strip = host.now == "strip"
   host.posture("full")
-  morf.time.timer(40, fn, false)
+  if strip then morf.time.timer(40, fn, false) else fn() end
 end
 
 -- ---------------------------------------------------------------------- verbs --

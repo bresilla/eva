@@ -36,23 +36,20 @@ local function desk()
 end
 
 --- The surface's shape for `posture`: "full", the whole output over everything;
---- "strip", the top edge, for the recording pill; "hidden", nothing to see.
+--- "hidden", the same size under everything, transparent and taking no input,
+--- so it comes back by changing layer; "strip", the top edge, for the pill.
 function M.posture(name)
   M.now = name
   local surface = morf.surface
-  if name == "full" then
-    surface.layer = "overlay"
-    surface.anchors = { top = true, bottom = true, left = true, right = true }
-    surface.width, surface.height, surface.exclusive_zone = 0, 0, -1
-  elseif name == "strip" then
+  if name == "strip" then
     surface.layer = "overlay"
     surface.anchors = { top = true, left = true, right = true }
     surface.width, surface.height, surface.exclusive_zone = 0, indicator.HEIGHT, 0
-  else
-    surface.layer = "background"
-    surface.anchors = {}
-    surface.width, surface.height, surface.exclusive_zone = 1, 1, 0
+    return
   end
+  surface.layer = name == "full" and "overlay" or "background"
+  surface.anchors = { top = true, bottom = true, left = true, right = true }
+  surface.width, surface.height, surface.exclusive_zone = 0, 0, -1
 end
 
 -- The field: a base the width of the join, its top on the frame's inner edge,
