@@ -1,0 +1,21 @@
+# eva-record on this private sway, gpu-screen-recorder a stand-in that writes
+# its arguments down and finishes on SIGINT.
+unset EVA_DRY_RUN
+export RECORD_ARGS="$SEE_OUT/recorder-args.txt"
+CLI="sh apps/record/cli"
+
+start app record
+shot window
+stop
+
+# Recording a window takes its place on screen, not -w focused.
+start app displays
+note echo "window: $($CLI window --audio both 2>&1)"
+pause 1.5
+shot indicator
+note echo "status: $($CLI status)"
+note cat "$RECORD_ARGS"
+note echo "stop: $($CLI stop 2>&1)"
+pause 1.2
+note echo "status: $($CLI status)"
+shot stopped
