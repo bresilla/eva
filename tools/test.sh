@@ -39,14 +39,14 @@ wait
 
 status=0
 for tap in "$scratch"/shard.*.tap; do
-  if ! grep -q '^# [0-9]* passed' "$tap"; then
+  if ! grep -a -q '^# [0-9]* passed' "$tap"; then
     echo "a shard stopped before its summary:" >&2
     tail -n 20 "$tap" >&2
     status=1
   fi
 done
-grep -h -A3 '^not ok' "$scratch"/shard.*.tap || true
-grep -h '^# [0-9]* passed' "$scratch"/shard.*.tap | awk '
+grep -a -h -A3 '^not ok' "$scratch"/shard.*.tap || true
+grep -a -h '^# [0-9]* passed' "$scratch"/shard.*.tap | awk '
   { passed += $2; failed += $4; skipped += $6 }
   END { printf "eva: %d passed, %d failed, %d skipped\n", passed, failed, skipped; exit failed > 0 }
 ' || status=1
