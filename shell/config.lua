@@ -156,6 +156,8 @@ local config = settings.open {
     notifications = {
       -- Off, another daemon keeps the bus name; the shell's own still show.
       daemon = true,
+      -- The screen popups stand on, "" for the one in use.
+      output = "",
       -- ms on screen, 0 for the default of 5 s.
       timeout = 0,
       ignore_app_timeouts = false,

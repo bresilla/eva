@@ -188,6 +188,8 @@ end
 local overlays={
   -- The desk dims under the session menu.
   session.dim(),
+  -- A notification lights the screen's edge.
+  notifs.overlay(),
   -- A press on the desk shuts what is open: each drawer's close policy
   -- (shell/drawer.lua), not catchers here.
 }

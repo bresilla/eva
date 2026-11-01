@@ -455,10 +455,35 @@ function V.build(M)
   if theme.motion.notification_acquire then
     theme.motion.notification_acquire(content, cards, M, shown)
   end
+  -- An arrival's light: a ring round the screen, a wash over it. Neither takes
+  -- the pointer. They rise and fall on one spring's time.
+  local ring = ui.Rect { id = "notification-edge", anchors = { fill = true }, color = "transparent", border_width = 4,
+    border_color = function() return kit.signal("accent")() end, opacity = 0 }
+  local wash = ui.Rect { id = "notification-flash", anchors = { fill = true }, opacity = 0,
+    color = function() return C.onSurface end }
+  local overlay = ui.Item { id = "notification-light", anchors = { fill = true }, ring, wash }
+  local pulsed = M.pulse:get()
+  morf.effect("eva.notifications.light", function()
+    local now = M.pulse:get()
+    if now == pulsed then return end
+    pulsed = now
+    local steps = {}
+    if M.edge_light() then
+      steps[#steps + 1] = { sequence = { { node = ring, property = "opacity", from = 0, to = .9, duration = theme.duration.small },
+        { node = ring, property = "opacity", to = 0, duration = theme.duration.long or 700 } } }
+    end
+    if M.flash() then
+      steps[#steps + 1] = { sequence = { { node = wash, property = "opacity", from = 0, to = .35, duration = 80 },
+        { node = wash, property = "opacity", to = 0, duration = 300 } } }
+    end
+    if #steps > 0 then morf.animation.play { { parallel = steps } } end
+  end, { owner = overlay })
+
   -- The sidebar opens over the right corner: while it is out a stack there
   -- stands beside it rather than over it.
   local aside = require("presentation").active("sidebar")
   return { content = content, width = WIDTH, height = height, edge = at_bottom and "bottom" or "top", dismiss = dismiss,
+    overlay = overlay,
     props = { anchors = { [at_bottom and "bottom" or "top"] = true },
       x = function()
         local _, _, w = require("bar").desk()

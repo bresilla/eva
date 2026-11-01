@@ -72,13 +72,14 @@ M.otp = remembered(function(x)
   local lower, wanted = text:lower(), false
   for _, word in ipairs(CODE_WORDS) do wanted = wanted or lower:find(word, 1, true) ~= nil end
   if not wanted then return nil end
+  local prefixed = text:match("%f[%w](%u%-%d%d%d%d+)%f[%W]")
+  if prefixed then return prefixed end
   local a, b = text:match("%f[%w](%d%d%d)[%- ](%d%d%d)%f[%W]")
   if a then return a .. b end
   for digits in text:gmatch("%f[%w](%d%d%d%d%d?%d?%d?%d?)%f[%W]") do
     local year = #digits == 4 and tonumber(digits) >= 1900 and tonumber(digits) <= 2100
     if not year then return digits end
   end
-  return text:match("%f[%w](%u%-%d%d%d%d+)%f[%W]")
 end)
 
 --- The first web link in a notification, or nil.

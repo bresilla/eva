@@ -549,7 +549,7 @@ function act.reply(id, text)
   return false
 end
 function M.reply(id, text)
-  M.replying:set(false)
+  M.cancel_reply()
   return ask("reply", id, text)
 end
 
@@ -562,8 +562,19 @@ function act.hold(id, on)
 end
 function M.hold(id, on) ask("hold", id, on) end
 
-function M.begin_reply(id) M.replying:set(id) end
-function M.cancel_reply() M.replying:set(false) end
+-- Where a finger is the main input, the on-screen keyboard comes with the field.
+local function typing(on)
+  local responsive, keyboard = package.loaded.responsive, package.loaded.keyboard
+  if responsive and keyboard and responsive.touch() then keyboard.set(on) end
+end
+function M.begin_reply(id)
+  M.replying:set(id)
+  typing(true)
+end
+function M.cancel_reply()
+  M.replying:set(false)
+  typing(false)
+end
 
 --- A card's own tools (snooze, mute, its rules) out or back.
 function M.toggle_tools(id) M.tools:set(M.tools:get() ~= id and id or false) end
@@ -573,6 +584,9 @@ function M.buttons_on() return config.get("notifications.actions") end
 function M.smart_on() return config.get("notifications.smart") end
 --- How many cards stand on screen.
 function M.max_popups() return config.get("notifications.max_popups") end
+--- Whether an arrival lights the edge, and flashes the screen.
+function M.edge_light() return config.get("notifications.edge_light") end
+function M.flash() return config.get("notifications.flash") end
 
 --- Whether `n`'s content stays hidden until it is opened.
 function M.redacted(n)
@@ -976,6 +990,19 @@ local function report_missed()
     end }
 end
 
+-- Going quiet clears the screen of what the quiet would have held back.
+local function hush()
+  local changed = false
+  for _, m in pairs(live) do
+    local probe = setmetatable({ urgency = m.urgency }, { __index = m.entry })
+    if pop(m) and not focus.allows(probe, m.out) then
+      m.popup = false
+      changed = true
+    end
+  end
+  if changed then publish() end
+end
+
 local digest_fired = ""
 local function digest_tick()
   local at = morf.time.format("%H:%M", now())
@@ -1017,6 +1044,7 @@ local function start_primary()
   morf.effect("eva.notifications.quiet", function()
     local quiet = focus.quiet()
     if focus_was_quiet and not quiet then morf.time.timer(400, report_missed, false) end
+    if quiet and not focus_was_quiet then morf.time.timer(1, hush, false) end
     focus_was_quiet = quiet
   end)
   morf.effect("eva.notifications.daemon", function()
@@ -1053,9 +1081,36 @@ M.drawer = drawer.new { name = "notifications", edge = visual.edge, width = visu
   -- Toasts: they stay until their time is up, a click or a swipe.
   close_policy = "none",
   content = visual.content, props = visual.props }
+-- The screen they stand on: the one named, or the one in use.
+local function on_this_screen()
+  local services, chosen = require("services"), config.get("notifications.output")
+  if chosen ~= "" and services.output then return services.output() == chosen end
+  return services.here()
+end
 morf.effect("eva.notifications.shown", function()
-  M.drawer.set(#M.list:get() > 0 and not M.covered:get() and require("services").here())
+  M.drawer.set(#M.on_show() > 0 and not M.covered:get() and on_this_screen())
 end)
+--- The edge light and the flash of an arrival, for the frame to lay over all.
+function M.overlay() return visual.overlay end
+--- What a lock screen may say of the history: `{ count, apps = { names },
+--- entries = { { app, summary, body } } }`, by `notifications.lock_previews`.
+function M.lock_view()
+  local level, list = config.get("notifications.lock_previews"), M.records()
+  local out = { count = level ~= "none" and #list or 0, apps = {}, entries = {} }
+  if level ~= "all" and level ~= "app" then return out end
+  local seen = {}
+  for i = #list, 1, -1 do
+    local e = list[i]
+    if not seen[e.app] then
+      seen[e.app] = true
+      out.apps[#out.apps + 1] = e.app
+    end
+    if level == "all" and not M.redacted(e) then
+      out.entries[#out.entries + 1] = { app = e.app, summary = e.summary, body = e.body }
+    end
+  end
+  return out
+end
 morf.effect("eva.notifications.presented", function() M.opened:set(M.drawer.open:get()) end)
 -- A drawer's edge is fixed as it is built: the other one builds this output's
 -- shell again in place. Along the edge the popups just move.

@@ -120,14 +120,94 @@ local function settle()
   focus.tick(M.seen())
 end
 
+-- ------------------------------------------------------------ what a mode does --
+
+local function dry()
+  local value = morf.env and morf.env("EVA_DRY_RUN")
+  return value ~= nil and value ~= "" and value ~= "0"
+end
+
+local function control(id)
+  local settings = require("settings_model")
+  local tile = settings.CONTROLS[id]
+  if tile and (not tile.present or tile.present()) then return tile end
+end
+
+--- What a mode can change: each `{ read(), write(value) }`, `field` naming its
+--- entry in `effects`.
+M.EFFECTS = {
+  night = { read = function() local c = control("nightlight") return c ~= nil and c.on() == true end,
+    write = function(on) local c = control("nightlight") if c then c.set(on) end end },
+  saver = { read = function() local c = control("powersaver") return c ~= nil and c.on() == true end,
+    write = function(on) local c = control("powersaver") if c then c.set(on) end end },
+  awake = { read = function() return require("settings_model").awake:get() end,
+    write = function(on) require("settings_model").set_awake(on) end },
+  dark = { read = function() return require("themes.color_mode").chosen() end,
+    write = function(mode)
+      if mode == true then mode = "dark" end
+      if dry() then morf.log("info", "eva: focus theme " .. tostring(mode) .. " (dry run)") return end
+      require("themes.color_mode").set(mode)
+    end },
+  ring = { read = function()
+      local ringer = require("services").ringer
+      return ringer and ringer.state.mode or nil
+    end,
+    write = function(mode)
+      local ringer = require("services").ringer
+      if ringer then ringer.set(mode) end
+    end },
+}
+
+local function run(words)
+  if #(words or {}) == 0 then return end
+  if dry() then morf.log("info", "eva: focus hook (dry run): " .. table.concat(words, " ")) return end
+  morf.process.run(words, {}, function() end)
+end
+
+-- What was there before the mode changed it, to put back.
+local before = {}
+local function undo()
+  for name, value in pairs(before) do M.EFFECTS[name].write(value) end
+  before = {}
+end
+
+local function enter(mode)
+  local wanted = mode.effects or {}
+  for name, effect in pairs(M.EFFECTS) do
+    local value = wanted[name]
+    if value == true or (type(value) == "string" and value ~= "") then
+      before[name] = effect.read()
+      effect.write(value)
+    end
+  end
+  run(mode.on_enter)
+end
+
+local shown_id = ""
+local function follow_mode()
+  local id, was = focus.active_id(), shown_id
+  if id == was then return end
+  shown_id = id
+  local left = was ~= "" and focus.mode(was) or nil
+  undo()
+  if left then run(left.on_exit) end
+  local mode = id ~= "" and focus.mode(id) or nil
+  if mode then enter(mode) end
+end
+
 local started = false
 --- Starts following; the primary screen's job.
 function M.start()
   if started then return end
   started = true
+  shown_id = focus.active_id()
   settle()
   morf.time.timer(TICK, settle, true)
   morf.time.timer(SHARE_POLL, poll_streams, true)
+  morf.effect("eva.focus.effects", function()
+    focus.active_id()
+    morf.time.timer(1, follow_mode, false)
+  end)
   morf.effect("eva.focus.triggers", function()
     config.get("focus.sharing")
     config.get("focus.fullscreen")
