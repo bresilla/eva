@@ -114,6 +114,8 @@ function M.new(on_page)
         moved:set(true)
       end
     end
+    -- The rebuild reads the file: nothing may still be on its way there.
+    config.flush()
     require("themes.session").hold()
     morf.reload()
   end
@@ -128,7 +130,8 @@ function M.new(on_page)
   function board.settle()
     if not moved:get() then return end
     moved:set(false)
-    pages.open("settings")
+    -- After the build: a drawer's motion wants its panel laid out.
+    morf.time.timer(1, function() pages.open("settings") end, false)
   end
 
   return board

@@ -185,13 +185,16 @@ test.it("Settings cannot be lost, and a page named twice stays in the first", fu
   test.eq(test.ipc("panel_of", "settings"), "sidebar")
 end)
 
-test.it("a panel left with no pages does not open", function()
-  load("material", "desk", { right = { "settings", "tasks", "calendar", "notifications", "assistant", "drop" }, left = {}, bottom = {} })
-  test.ipc("leftbar", "open") test.settle(500)
-  test.ipc("bottom", "open") test.settle(500)
-  test.eq(where().open, "")
-  test.eq(#test.logs("error"), 0)
-end)
+for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. " a panel left with no pages builds quietly and does not open", function()
+    load(style, "desk", { right = { "settings", "tasks", "calendar", "notifications", "assistant", "drop" }, left = {}, bottom = {} })
+    test.ipc("leftbar", "open") test.settle(500)
+    test.ipc("bottom", "open") test.settle(500)
+    test.eq(where().open, "")
+    test.eq(#test.logs("error"), 0)
+    test.eq(#test.logs("warn"), 0)
+  end)
+end
 
 test.it("Settings pages reach whichever panel holds Settings", function()
   load("material", "desk", { right = { "notifications" }, left = { "settings", "tasks" }, bottom = { "assistant" } })

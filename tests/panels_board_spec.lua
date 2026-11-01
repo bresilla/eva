@@ -14,10 +14,17 @@ local SOURCE = [[
   morf.ipc.board = function() return { spare = require("utilities").panels.spare(), reloads = reloads,
     dirty = require("utilities").panels.dirty:get(), reopen = require("themes.session").keep("eva.panels.reopen", false):get() } end
   morf.ipc.step = function(key, delta) return require("utilities").panels.step(key, tonumber(delta)) end
+  morf.ipc.settings_path = function() return require("config").path end
+  morf.ipc.showing = function()
+    local holder = pages.holder("settings")
+    return { settings = pages.on_show("settings"), left = holder == package.loaded.leftbar,
+      right_open = require("drawer").sidebar.open:get(), detail = require("utilities").detail:get() }
+  end
 ]]
 local loads = 0
 local function load(style, size, touch)
-  test.stub_run("task", { code = 0, stdout = "[]" })
+  -- (Stubs last the file, and the verb that sets them does not last a reload.)
+  if loads == 0 then test.stub_run("task", { code = 0, stdout = "[]" }) end
   loads = loads + 1
   local env = { EVA_STYLE = style, EVA_WALLPAPER = "", EVA_FONT_FILE = "", EVA_DRY_RUN = "1",
     LULE_A = "/nonexistent/lule", HOME = morf.env("XDG_CACHE_HOME"),
@@ -25,6 +32,21 @@ local function load(style, size, touch)
   if touch then env.EVA_INPUT_DEVICES = morf.env("PWD") .. "/tests/fixtures/input-devices-touch" end
   test.load("../shell/init.lua", { size = size or { 1920, 1080 }, source = SOURCE, env = env })
   test.settle(1000)
+end
+-- A real reload in place. It keeps a process's environment; `test.reload`
+-- starts from the spec's, so what `load` gave it is given again.
+local function rebuild(style)
+  local kept = ([[
+    local env = morf.env
+    local kept = { EVA_SETTINGS = %q, EVA_STYLE = %q, EVA_DRY_RUN = "1", EVA_WALLPAPER = "", EVA_FONT_FILE = "",
+      LULE_A = "/nonexistent/lule", HOME = %q }
+    morf.env = function(name)
+      if kept[name] ~= nil then return kept[name] end
+      return env(name)
+    end
+  ]]):format(test.ipc("settings_path"), style, morf.env("XDG_CACHE_HOME"))
+  test.truthy(test.reload { source = kept .. SOURCE }, "the reload failed")
+  test.settle(1400)
 end
 local function open_page() test.ipc("settings", "panels") test.settle(1600) end
 local function sets() return test.ipc("sets") end
@@ -157,6 +179,35 @@ test.it("takes Settings along when it moves, reopening where it went", function(
 end)
 
 for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. " a real rebuild gives the panels their new pages, what was open staying open", function()
+    load(style)
+    open_page()
+    test.click("panels-hide-drop") test.settle(500)
+    test.click("settings-back") test.settle(900)
+    test.eq(test.ipc("board").reloads, 1)
+    rebuild(style)
+    test.truthy(test.find { id = "bottom-tab-assistant" })
+    test.falsy(test.find { id = "bottom-tab-drop" }, "the bottom panel kept the page it gave up")
+    local now = test.ipc("showing")
+    test.truthy(now.settings, "Settings shut in the rebuild")
+    test.eq(now.detail, "eva", "Settings lost its place")
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it(style .. " a real rebuild reopens Settings in the panel it moved to", function()
+    load(style)
+    open_page()
+    test.ipc("step", "notifications", 1)
+    test.ipc("step", "settings", 1)
+    test.click("settings-back") test.settle(900)
+    rebuild(style)
+    local now = test.ipc("showing")
+    test.truthy(now.left, "Settings did not move")
+    test.truthy(now.settings, "it did not reopen where it went")
+    test.falsy(now.right_open, "the panel it left stayed open")
+    test.eq(#test.logs("error"), 0)
+  end)
+
   test.it(style .. " a sheet arranges its one panel", function()
     load(style, { 868, 1932 }, true)
     open_page()

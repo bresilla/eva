@@ -492,7 +492,7 @@ return function(theme, M, hud)
       if growing then return grown:get() end
       return math.max(0, (get(row_width) or 0) - 2 * pad)
     end
-    local function slot() return math.max(1, (span() - gap * (#list - 1)) / #list) end
+    local function slot() return math.max(1, (span() - gap * (#list - 1)) / math.max(1, #list)) end
     local function left(i) return (i - 1) * (slot() + gap) end
     local rail = ui.Rect { id = id and id .. "-tab-rail", y = height - 7, height = 1,
       color = function() return stroke(C, "quiet") end }
