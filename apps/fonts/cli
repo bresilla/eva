@@ -1,0 +1,19 @@
+#!/bin/sh
+# eva-fonts: browse and preview the installed fonts, and set the shell's.
+#
+#   eva-fonts                 the window
+#   eva-fonts list [--mono]   the installed families
+#   eva-fonts current         the shell's font
+#   eva-fonts set NAME        sets it: the running shell changes over, and with
+#                             no shell it is saved for the next start
+#   eva-fonts reset           back to the theme's own font
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+. "$apps/tool-job.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" fonts ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_tool_job fonts "$@" ;;
+esac

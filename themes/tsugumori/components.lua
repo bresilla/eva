@@ -615,6 +615,9 @@ return function(theme)
 
   -- ------------------------------------------------- stateful controls --
 
+  -- What a search field's prompt block takes of its start.
+  M.search_lead = 34
+
   --- A layout's radius `r` (Material's measure) in Tsugumori's: square,
   --- with at most the theme's hairline softening.
   function M.round(r)

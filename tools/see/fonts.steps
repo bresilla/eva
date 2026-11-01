@@ -1,0 +1,54 @@
+# eva-fonts on the sealed session: the window, the machine's own fonts through
+# themes/fonts.lua, the font saved with no shell, then the running shell's
+# `appearance font:NAME` verb taking one, a name with spaces whole.
+unset EVA_DRY_RUN
+state() { appipc state | tr -d ' \n' | cut -c1-260; }
+appearance_file() { tr -d ' \n' < "$EVA_APPEARANCE"; }
+
+note echo "--- list, no shell"
+note sh -c 'sh apps/fonts/cli list | wc -l'
+note sh -c 'sh apps/fonts/cli list --mono | head -n 3'
+note sh apps/fonts/cli current
+
+BOOT=4 start app fonts
+shot list
+appipc mono on > /dev/null
+pause 0.8
+FAMILY=$(sh apps/fonts/cli list --mono | head -n 1)
+appipc choose "$FAMILY" > /dev/null
+pause 0.8
+shot mono
+note echo "--- chosen: $(state)"
+appipc mono off > /dev/null
+appipc size 5 > /dev/null
+appipc weight 700 > /dev/null
+pause 0.8
+shot bold
+note echo "--- weighted: $(state)"
+
+note echo "--- saved with no shell, the window following its file"
+note sh apps/fonts/cli set "$FAMILY"
+pause 2.5
+note echo "file: $(appearance_file)"
+shot saved
+stop
+
+note sh apps/fonts/cli reset
+note echo "file after reset: $(appearance_file)"
+
+start shell
+pause 1
+note echo "--- through the running shell"
+note echo "before: $(ipc appearance state | cut -c1-140)"
+note sh apps/fonts/cli set "$FAMILY"
+pause 2.5
+note echo "after: $(ipc appearance state | cut -c1-140)"
+note echo "file: $(appearance_file)"
+note sh apps/fonts/cli current
+note echo "--- the same again"
+note sh apps/fonts/cli set "$FAMILY"
+note echo "--- back"
+note sh apps/fonts/cli reset
+pause 2.5
+note echo "after reset: $(ipc appearance state | cut -c1-140)"
+note echo "file: $(appearance_file)"
