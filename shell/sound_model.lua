@@ -67,6 +67,7 @@ function M.new(kind,active)
   end)
   function model.available() return snapshot:get().available end
   function model.default() return snapshot:get().default end
+  function model.list() return snapshot:get().devices end
   local function cached(collection,target)
     local id=type(target)=="table" and target.id or target
     for _,row in ipairs(snapshot:get()[collection]) do
