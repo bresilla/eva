@@ -7,6 +7,7 @@ local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
+local pill = require("themes.layouts.tool_pill")
 local frame = require("common.frame")
 local model = require("model")
 local C, S = theme.color, theme.space
@@ -89,14 +90,10 @@ end
 
 local function controls_pill(done)
   local function button(id, icon, name, press)
-    return L.icon_button { id = id, name = name, icon = icon, width = S.TARGET, height = S.TARGET, on_clicked = press }
+    return L.icon_button { id = id, name = name, icon = icon, width = pill.CELL, height = pill.CELL, on_clicked = press }
   end
-  return kit.card {
-    id = "zoom-controls", z = 4, width = 3 * S.TARGET + 2 * S.xs + 2 * S.s, height = S.TARGET + 2 * S.s,
-    radius = kit.round(S.l), anchors = { horizontal_center = true, bottom = true, bottom_margin = S.l },
-    ui.MouseArea { id = "zoom-controls-area", anchors = { fill = true } },
-    ui.Row {
-      x = S.s, y = S.s, gap = S.xs,
+  return pill.new {
+    id = "zoom-controls", cells = {
       button("zoom-out", "remove", "Less", function() model.step(-1) end),
       button("zoom-in", "add", "More", function() model.step(1) end),
       button("zoom-end", "close", "End", done),

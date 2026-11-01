@@ -5,9 +5,11 @@
 unset EVA_DRY_RUN
 export EVA_FAKE_POINTER=420,300
 state() { appipc state | tr -d ' \n' | cut -c1-200; }
+until_up() { for _ in $(seq 120); do state | grep -q 'up\\":true' && return 0; sleep 0.1; done; }
 
-BOOT=1.5 start app find
-pause 0.5
+BOOT=0.3 start app find
+until_up
+pause 0.7
 shot spotlight
 note echo "spotlight: $(state)"
 appipc point 700 420 > /dev/null
@@ -16,15 +18,18 @@ shot spotlight-moved
 pause 3
 note echo "after the moment, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
 
-EVA_FIND_MODE=crosshairs BOOT=2 start app find
-pause 0.5
+EVA_FIND_MODE=crosshairs BOOT=0.3 start app find
+until_up
+pause 0.7
 shot crosshairs
-appipc point 900 200 > /dev/null
+appipc point 700 200 > /dev/null
 pause 0.4
 shot crosshairs-moved
 note echo "crosshairs: $(state)"
 
-EVA_FIND_MODE=ripple BOOT=2 start app find
+EVA_FIND_MODE=ripple BOOT=0.3 start app find
+until_up
+pause 1
 appipc ripple 300 300 > /dev/null
 appipc ripple 500 420 > /dev/null
 shot ripple
@@ -34,7 +39,8 @@ note echo "rings after: $(state)"
 shot ripple-gone
 
 # A second launch asks the first to shut.
-EVA_FIND_MODE=crosshairs BOOT=2 start app find
+EVA_FIND_MODE=crosshairs BOOT=0.3 start app find
+until_up
 sh apps/find/cli --crosshairs
 pause 1
 note echo "second launch, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"

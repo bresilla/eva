@@ -7,13 +7,13 @@ local kit = require("kit")
 local theme = require("theme")
 local frame = require("common.frame")
 local L = require("themes.layouts.parts")
+local pill = require("themes.layouts.tool_pill")
 local model = require("model")
 local C, S = theme.color, theme.space
 
 local M = {}
 
-M.BUTTON = S.TARGET
-M.GAP = S.xs
+M.BUTTON = pill.CELL
 M.SWATCH = S.l + S.xs
 
 local INK = {}
@@ -101,16 +101,9 @@ local function tool(name, icon, label, press, on)
   }
 end
 
-local function columns(count)
-  morf.window.screens_revision()
-  local w = ((morf.screens or {})[1] or {}).width or 1920
-  return math.max(1, math.min(count, (w - 2 * S.l) // (M.BUTTON + M.GAP)))
-end
-
 local function toolbar(finish)
   local cells = {}
   for _, pen in ipairs(model.PENS) do cells[#cells + 1] = swatch(pen) end
-  local pens = #cells
   cells[#cells + 1] = width_button()
   cells[#cells + 1] = tool("text", "title", "Write", model.toggle_writing, function() return model.writing:get() end)
   cells[#cells + 1] = tool("board", "rectangle", "Board", function() model.board:set(not model.board:get()) end,
@@ -118,41 +111,16 @@ local function toolbar(finish)
   cells[#cells + 1] = tool("undo", "undo", "Undo", model.undo)
   cells[#cells + 1] = tool("clear", "delete", "Clear", model.clear)
   cells[#cells + 1] = tool("end", "close", "End", finish)
-  local count = #cells
-  local function across() return columns(count) end
-  local function down() return math.ceil(count / across()) end
-  local function pen_at()
-    for index, pen in ipairs(model.PENS) do
-      if pen.key == model.pen:get() then return index - 1 end
-    end
-    return 0
-  end
-  local function step() return M.BUTTON + M.GAP end
-  local chosen = ui.Item {
-    id = "draw-chosen", width = M.BUTTON, height = M.BUTTON,
-    x = function() return S.s + (pen_at() % across()) * step() end,
-    y = function() return S.s + (pen_at() // across()) * step() end,
-    behavior = { x = theme.spring.spatial, y = theme.spring.spatial },
-    stretch = kit.STRETCH,
-  }
-  local grid = { x = S.s, y = S.s, gap = M.GAP, columns = across }
-  for index = 1, pens do grid[index] = cells[index] end
-  for index = pens + 1, count do grid[index] = cells[index] end
-  return kit.card {
-    id = "draw-toolbar", z = 5, radius = kit.round(S.l),
-    width = function() return across() * step() - M.GAP + 2 * S.s end,
-    height = function() return down() * step() - M.GAP + 2 * S.s end,
-    anchors = { horizontal_center = true, bottom = true, bottom_margin = S.l },
+  return pill.new {
+    id = "draw-toolbar", cells = cells,
+    chosen = function()
+      for index, pen in ipairs(model.PENS) do
+        if pen.key == model.pen:get() then return index end
+      end
+      return 1
+    end,
     opacity = function() return model.drawing:get() and 0.35 or 1 end,
     behavior = { opacity = theme.spring.effects },
-    ui.MouseArea { id = "draw-toolbar-area", anchors = { fill = true } },
-    chosen,
-    ui.Sdf {
-      id = "draw-chosen-field", anchors = { fill = true }, fill_color = C.primary:alpha(0),
-      stroke_color = kit.stroke("hot"), stroke_width = S.xxs,
-      ui.SdfShape { shape = "box", radius = kit.round(S.m), track = chosen },
-    },
-    ui.Grid(grid),
   }
 end
 

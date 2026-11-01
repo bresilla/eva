@@ -94,14 +94,14 @@ end)
 
 test.it("rides a mark onto the chosen pen on a spring", function()
   tool()
-  local at = test.get("draw-chosen").x
+  local at = test.get("draw-toolbar-mark").x
   test.click { id = "draw-pen-p" }
   test.advance(32)
-  local moving = test.get("draw-chosen").x
+  local moving = test.get("draw-toolbar-mark").x
   test.truthy(moving > at, "the mark did not move")
   test.settle(1500)
-  test.truthy(test.get("draw-chosen").x > moving, "the mark jumped")
-  test.near(test.get("draw-chosen").x + 20, test.get("draw-pen-p").x + 20, 2)
+  test.truthy(test.get("draw-toolbar-mark").x > moving, "the mark jumped")
+  test.near(test.get("draw-toolbar-mark").x + 20, test.get("draw-pen-p").x + 20, 2)
 end)
 
 test.it("takes marks back, one by one and all at once", function()

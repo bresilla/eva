@@ -7,6 +7,7 @@ local M = {
   mode = morf.signal("find.mode", "spotlight"),
   at = morf.signal("find.at", { x = 0, y = 0 }),
   known = morf.signal("find.known", false),
+  up = morf.signal("find.up", false),
   leaving = morf.signal("find.leaving", false),
   rings = morf.list_model({}),
 }
@@ -49,7 +50,10 @@ function M.start()
 end
 
 --- The overlay is on the screen: the clock starts.
-function M.shown() rest() end
+function M.shown()
+  M.up:set(true)
+  rest()
+end
 
 --- The pointer moved to `x`, `y`.
 function M.point(x, y)

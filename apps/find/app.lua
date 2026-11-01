@@ -13,7 +13,7 @@ frame.on_second(function() model.finish() return true end)
 
 morf.ipc.state = function()
   local at = model.at:get()
-  return { mode = model.mode:get(), x = at.x, y = at.y, known = model.known:get(),
+  return { mode = model.mode:get(), x = at.x, y = at.y, known = model.known:get(), up = model.up:get(),
     leaving = model.leaving:get(), rings = model.rings:len() }
 end
 morf.ipc.point = function(x, y) model.point(tonumber(x), tonumber(y)) return true end
