@@ -1,0 +1,20 @@
+#!/bin/sh
+# eva-startup: what starts with the session, by XDG autostart, and the user's
+# timers.
+#
+#   eva-startup                 the window
+#   eva-startup list            every entry, on or off
+#   eva-startup enable NAME     starts with the session
+#   eva-startup disable NAME    does not; a system entry is hidden, not changed
+#   eva-startup remove NAME     takes away an entry of your own
+#   eva-startup timers          the scheduled jobs
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+. "$apps/job.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" startup ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_tool_job startup "$@" ;;
+esac
