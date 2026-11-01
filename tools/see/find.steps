@@ -27,7 +27,10 @@ pause 0.4
 shot crosshairs-moved
 note echo "crosshairs: $(state)"
 
-EVA_FIND_MODE=ripple BOOT=0.3 start app find
+stop
+sh apps/find/cli --ripple > "$SEE_OUT/ripple.log" 2>&1 &
+ROLE=$!
+pause 0.3
 until_up
 pause 1
 appipc ripple 300 300 > /dev/null

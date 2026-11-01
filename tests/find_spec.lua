@@ -144,6 +144,15 @@ test.it("answers a touch on a phone", function()
   test.eq(state().rings, 1)
 end)
 
+test.it("takes the modes as flags too", function()
+  for _, flag in ipairs { "crosshairs", "ripple" } do
+    test.load("../apps/find/app.lua", { args = { "--" .. flag }, size = { 1280, 800 },
+      env = { EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_DRY_RUN = "1" } })
+    test.advance(16)
+    test.eq(state().mode, flag)
+  end
+end)
+
 test.it("falls back to the spotlight for a word it does not know", function()
   tool { EVA_FIND_MODE = "nonsense" }
   test.eq(state().mode, "spotlight")

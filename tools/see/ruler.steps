@@ -49,4 +49,15 @@ note echo "bounds: $(state)"
 sh apps/ruler/cli
 pause 1
 note echo "second launch, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+
+# A mode from the command line, through the cli.
+sh apps/ruler/cli vertical > "$SEE_OUT/vertical.log" 2>&1 &
+ROLE=$!
+until_tool
+frozen
+pause 1
+note echo "from the cli: $(state)"
+key Escape
+pause 1
+note echo "after Escape, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
 ROLE=""

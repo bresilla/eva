@@ -45,6 +45,13 @@ note echo "lens alone: $(state)"
 sh apps/zoom/cli lens
 pause 1
 note echo "second launch, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+
+EVA_ZOOM_LENS=lens BOOT=0.5 start app zoom
+until_tool
+pause 5
+key Escape
+pause 1
+note echo "after Escape, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
 ROLE=""
 
 sh apps/zoom/cli in > "$SEE_OUT/in.log" 2>&1 &

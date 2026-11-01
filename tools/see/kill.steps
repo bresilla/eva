@@ -42,10 +42,14 @@ shot ended
 note echo "after: $(titles)"
 note echo "kill role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
 
-# Escape ends nothing.
+# A window over the whole screen leaves the field nothing to dim; Escape ends nothing.
 BOOT=0.5 start app kill
 until_tool
+pause 3
+appipc point 100 100 > /dev/null
 pause 1
+shot whole-screen
+note echo "over the whole screen: $(state)"
 key Escape
 pause 1
 note echo "after Escape: $(titles), role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
