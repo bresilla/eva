@@ -543,6 +543,7 @@ M.DETAILS = {
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
   {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},
+  {key="theme/wallpaper",name="Wallpaper",parent="theme"},
   {key="sound/equalizer",name="Equalizer",parent="sound"},
   {key="sound/equalizer/audiogram",name="Audiogram",parent="sound/equalizer"},
 }

@@ -26,6 +26,7 @@ return {
     assistant = "themes.layouts.views.assistant",
     drop = "themes.layouts.views.drop",
     lule_page = "themes.layouts.views.lule_page",
+    wallpaper_page = "themes.layouts.views.wallpaper_page",
     tasks_page = "themes.layouts.views.tasks_page",
     calendar_page = "themes.layouts.views.calendar_page",
     planner_widgets = "themes.layouts.views.planner_widgets",

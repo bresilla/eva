@@ -22,6 +22,9 @@ function V.theme_page(model,w,h)
       P.row {id="settings-theme-lule",width=inner,icon="palette",title="Lule",
         subtitle="Wallpaper, colours, the shell's theme and font",trailing=P.chevron(),
         on_clicked=function() model.request("theme/lule") end},
+      P.row {id="settings-theme-wallpaper",width=inner,icon="wallpaper",title="Wallpaper",
+        subtitle="Pictures, transitions, slideshow, day and night",trailing=P.chevron(),
+        on_clicked=function() model.request("theme/wallpaper") end},
     },
   }
 end

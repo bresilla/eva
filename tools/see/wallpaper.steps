@@ -1,0 +1,25 @@
+# The picker over a folder of pictures, with Eva painting the desktop, and each
+# transition caught half way.
+export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
+WALLS=$SEE_EVA/tests/fixtures/wallpapers
+cat > "$EVA_SETTINGS" <<JSON
+{ "lule": { "folder": "$WALLS" },
+  "wallpaper": { "draw": true, "path": "$WALLS/dune.png",
+    "transition": { "kind": "circle", "duration": 3000, "softness": 40 } } }
+JSON
+start shell
+pause 1
+shot desk
+ipc settings theme/wallpaper; pause 3; shot picker
+ipc close; pause 1
+for kind in circle wipe grow dissolve stripes diamond star melt; do
+  ipc wallpaper transition $kind
+  case $kind in
+    circle) next=lagoon ;; wipe) next=forest ;; grow) next=dusk ;; dissolve) next=paper ;;
+    stripes) next=snow ;; diamond) next=dune ;; star) next=lagoon ;; melt) next=forest ;;
+  esac
+  ipc wallpaper set "$WALLS/$next.png"
+  pause 1.1
+  shot transition-$kind
+  pause 2.4
+done
