@@ -25,7 +25,7 @@ function V.page(model, w, h)
   local function chosen() return model.kind() end
   local function kind() return model.KINDS[chosen()] end
 
-  local kinds = { width = inner }
+  local kinds = {}
   kinds[1] = { id = "assistant-kind-off", label = "Off", group = "assistant-kind",
     selected = function() return chosen() == "" end, on_clicked = function() model.choose("") end }
   for _, id in ipairs(model.ORDER) do
@@ -136,7 +136,8 @@ function V.page(model, w, h)
   folder_input.text = require("config").get("assistant.folder") or ""
   local page = P.page { id = "settings-assistant-scroll", width = w, height = h,
     P.section { id = "assistant-provider", width = w, title = "Provider",
-      P.buttons(kinds),
+      P.buttons { width = inner, kinds[1], kinds[2] },
+      P.buttons { width = inner, table.unpack(kinds, 3) },
       P.row { id = "assistant-provider-state", width = inner, icon = "forum", title = model.summary,
         on = function() return model.state() == "ready" end,
         subtitle = function() return model.state() == "ready" and "Ready" or (select(2, model.explain())) end },
