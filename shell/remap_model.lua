@@ -40,7 +40,7 @@ end
 
 --- What the service is asked to do, in a line.
 function M.summary()
-  if not M.allowed() then return "Off in the system's configuration" end
+  if not M.allowed() then return "Off in the system's configuration: programs.eva.remap.enable turns it on" end
   if not M.anything() then return "Nothing chosen, so nothing reads the keyboards" end
   return M.running:get() and "Running" or "Starting"
 end

@@ -13,6 +13,8 @@ let
   render = pkgs.writeShellApplication {
     name = "eva-remap-render";
     runtimeInputs = [ pkgs.jq pkgs.coreutils ];
+    # `$tap` and `$hold` are kanata's own variables, kept as written.
+    excludeShellChecks = [ "SC2016" ];
     text = builtins.readFile ./scripts/remap-render.sh;
   };
 in

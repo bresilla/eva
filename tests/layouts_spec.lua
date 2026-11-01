@@ -142,7 +142,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(test.find { id = "windows-layouts", visible = true })
     test.ipc("settings", "windows/layouts") test.settle(900)
     test.truthy(test.find { id = "layouts-row-1", visible = true })
-    test.click("layouts-row-1-press") test.settle(700)
+    test.click("layouts-restore-1") test.settle(700)
     test.truthy(test.ipc("layouts", "report"))
     test.truthy(test.find { id = "layouts-report", visible = true })
     test.eq(#test.logs("error"), 0)

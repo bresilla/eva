@@ -113,6 +113,14 @@ function M.build(w, h)
     ui.Item { y = foot, width = w, height = function() return math.max(1, h() - 2 * foot) end, scroll },
     notice(w),
     kit.text {
+      id = "keys-hint", z = 2, anchors = { bottom = true, bottom_margin = S.xs }, font_size = theme.size.small, color = kit.ink("lo"),
+      text = "Press a row to give it new keys",
+      visible = function()
+        for _, item in ipairs(model.rows:get()) do if item.custom then return false end end
+        return model.can_edit() and model.recording:get() == "" and not model.pending:get() and model.message:get() == ""
+      end,
+    },
+    kit.text {
       id = "keys-count", z = 2, anchors = { right = true, bottom = true, bottom_margin = S.xs },
       visible = function() return model.recording:get() == "" and not model.pending:get() and model.message:get() == "" end,
       font_size = theme.size.small, color = kit.ink("lo"),

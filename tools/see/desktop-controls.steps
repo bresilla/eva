@@ -1,0 +1,24 @@
+# The desktop control pages: window rules, saved layouts, the tray, external
+# screens, key remapping, a desk's menu in the overview, and eva-keys editing.
+export EVA_FAKE_WINDOWS=1 EVA_FAKE_SYSTEM=1
+export STUB_HYPR_BINDS="$SEE_EVA/tests/fixtures/binds.json"
+start shell
+pause 1.5
+ipc rules add '{"class":"^firefox$","layout":"float","size":"1200 800","workspace":"2","opacity":0.9}' > /dev/null
+ipc rules add '{"class":"^kitty$","title":"^btop$","workspace":"4","silent":true,"no_blur":true}' > /dev/null
+ipc layouts save work > /dev/null
+pause 0.8
+ipc utilities open; pause 1
+ipc settings windows; pause 1.4; shot windows
+ipc settings windows/rules; pause 1.4; shot rules
+ipc settings windows/layouts; pause 1.4; shot layouts
+ipc settings displays; pause 1.4; shot displays
+ipc settings bar/tray; pause 1.4; shot tray
+ipc settings input/remap; pause 1.4; shot remap
+ipc close; pause 0.8
+ipc overview open; pause 1.5; shot overview
+ipc overview close; pause 0.6
+stop
+start app keys
+pause 1
+shot keys

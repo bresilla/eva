@@ -165,8 +165,9 @@ function M.build_layouts(model, w, h)
       kit.icon("delete", 20, kit.ink("lo"), { anchors = { center_in = true } }) }
     return P.row { id = "layouts-row-" .. index, width = width, icon = "dashboard", title = function() return layout().name or "" end,
       subtitle = function() return ("%d windows"):format(#(layout().windows or {})) end,
-      on_clicked = function() layouts.restore(layout().name) end,
       trailing = ui.Row { gap = S.xs, align = "center",
+        P.button { id = "layouts-restore-" .. index, label = "Restore", width = 104, height = S.TARGET,
+          on_clicked = function() layouts.restore(layout().name) end },
         P.switch { id = "layouts-login-" .. index, name = "Restore after login",
           on = function() return layouts.login() == layout().name end,
           on_toggled = function(on) layouts.set_login(on and layout().name or "") end },
@@ -181,7 +182,7 @@ function M.build_layouts(model, w, h)
       F.list(inner, "layouts-saved-", function() return #layouts.list() end, row, "Nothing saved yet", 16),
       F.note(inner, function() return layouts.report_text() end, { id = "layouts-report",
         visible = function() return layouts.report_text() ~= "" end }) },
-    F.note(w, "A press restores a layout; the switch does it after each login. Floating windows return to their exact place, "
+    F.note(w, "The switch restores a layout after each login. Floating windows return to their exact place, "
       .. "tiled ones to their workspace. A window that is closed is started again, but what was in it is not: tabs, "
       .. "documents and terminal sessions start fresh. An app with no desktop entry cannot be started, and one that "
       .. "keeps to a single window comes back as one.") }
