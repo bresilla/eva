@@ -18,6 +18,7 @@ local SOURCE=[[
   backend.save=function(_,_,cb) saves=saves+1 cb(true) end
   backend.rebind=function(next,_,_,cb) binding=next cb(true) end
   backend.upload=function(_,_,cb) uploads=uploads+1 cb(true) end
+  require("config").set("capture.folder",morf.env("XDG_CACHE_HOME").."/captures")
   local editor=require("capture_editor")
   morf.effect("fixture.hover",function() editor.hovered:get() hover_updates=hover_updates+1 end)
   morf.ipc.render_delay=function(ms) render_ms=tonumber(ms) end

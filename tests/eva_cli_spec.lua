@@ -17,7 +17,7 @@ local function eva(args, up)
   local log = morf.env("XDG_STATE_HOME") .. "/eva-cli-" .. tostring(morf.time.now_ms()) .. ".log"
   morf.fs.write(log, "")
   local argv = { "env", "MORF=" .. STUB, "STUB_LOG=" .. log, "STUB_UP=" .. (up and "1" or ""),
-    "sh", ROOT .. "apps/bin/eva" }
+    "HOME=" .. morf.env("XDG_STATE_HOME"), "sh", ROOT .. "apps/bin/eva" }
   for _, word in ipairs(args) do argv[#argv + 1] = word end
   test.ipc("run", table.unpack(argv))
   local done = test.wait(function() return test.ipc("result") end, 5000, "eva answered")

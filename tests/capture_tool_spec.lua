@@ -30,6 +30,8 @@ local SOURCE = [[
   read.read = function(kind, _, cb) reads[#reads + 1] = kind cb(morf.read_stub ~= false, morf.read_stub == false and "No text found" or "the words") end
   morf.process.detach = function(argv) detached[#detached + 1] = table.concat(argv, " ") end
   morf.quit = function() quits = quits + 1 end
+  -- `~/` is the real home here, whatever HOME a test gives: keep off it.
+  require("config").set("capture.folder", morf.env("XDG_CACHE_HOME") .. "/captures")
   require("app")
   local env = morf.env
   morf.env = function(key) if key == "EVA_DRY_RUN" then return morf.dry_stub or "0" end return env(key) end
@@ -338,6 +340,7 @@ test.describe("the one recorder", function()
     test.contains(words, "-f 30")
     test.contains(words, "-a default_output")
     test.contains(words, ".mp4")
+    test.contains(words, morf.env("XDG_CACHE_HOME") .. "/captures/")
     test.eq(#runs_of("slurp"), 0)
   end)
 
@@ -559,7 +562,8 @@ test.describe("the shell", function()
     test.load("../shell/init.lua", { source = [[
       local detached = 0
       morf.process.detach = function() detached = detached + 1 end
-      require("init")
+      require("morf.ui").Item { width = 1, height = 1 }
+      require("capture")
       morf.ipc.detached = function() return detached end
     ]], size = { 1920, 1080 }, env = { EVA_STYLE = "material", EVA_DRY_RUN = "0", EVA_WALLPAPER = "", LULE_A = "/nonexistent/lule" } })
     test.advance(4000)
