@@ -210,6 +210,12 @@ function M.new(options)
     say("off")
   end
 
+  --- Takes `line` as the first open process would have printed it: a stand-in's way in.
+  function r.feed(line)
+    local _, entry = next(open)
+    if entry then heard(entry, line) end
+  end
+
   --- What the reader is doing.
   function r.state() return state end
 

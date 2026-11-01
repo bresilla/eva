@@ -16,6 +16,9 @@ function M.contacts(region,model,single)
       if math.abs(dy1)<48 or math.abs(dy2)<48 or dy1*dy2<=0
         or math.abs(dy1)<math.abs(dx1)*1.2 or math.abs(dy2)<math.abs(dx2)*1.2 then return end
       if model.allowed and not model.allowed() then return end
+      -- The global driver owns these, where it runs.
+      local owned=model.owned and model.owned()
+      if owned and (region=="bottom" or dy1>0) then return end
       if region=="bottom" then
         -- One finger from the edge itself, the other from it or the band above.
         local h=model.height()

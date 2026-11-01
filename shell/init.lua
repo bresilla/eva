@@ -876,6 +876,8 @@ if require("themes").refused then
 end
 
 require("windows_ipc").register(ipc)
+require("touch_driver").register(ipc)
+require("touch_driver").start()
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)

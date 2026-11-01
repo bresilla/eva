@@ -57,10 +57,25 @@ local function blocked()
   return capture and capture.editor and capture.editor.active:get()
 end
 
+M.blocked=blocked
+
 local function close_other_panels(keep)
   for _, drawer in ipairs(require("drawer").all) do
     if drawer ~= keep and drawer.name~="keyboard" then drawer.set(false) end
   end
+end
+M.close_panels=close_other_panels
+
+-- The global driver reads the touchscreen: two fingers are its, and the strip
+-- has no need to reach for a second one.
+local function driven()
+  local driver=package.loaded.touch_driver
+  return driver~=nil and driver.owns()
+end
+
+--- Lets go of whatever an edge strip holds: a global gesture has begun.
+function M.yield()
+  for _,cancel in ipairs(cancel_global) do cancel() end
 end
 
 local function top_page(x)
@@ -317,6 +332,8 @@ function M.attach(root)
     end)
   cancel_global[#cancel_global+1]=function()
     contacts.cancel() single("cancel") preview.cancel()
+    -- The rest of this contact sequence stays cancelled.
+    mode="ignored"
   end
   -- The bottom strip owns the gesture so a second finger can cancel
   -- an in-progress panel/workspace pull before choosing the keyboard.
@@ -369,6 +386,8 @@ function M.attach(root)
   }, root)
   -- A finger resting on the strip lets it reach higher (themes.keyboard).
   local reach=gestures.reach("eva.gesture.bottom.held")
+  local stretch=reach.hold
+  function reach.hold(on) stretch(on and not driven()) end
   local hold=reach.hold
   local function floor()
     return ((morf.screens[1] or {}).height or morf.surface.height)-require("themes.keyboard").inset:get()
@@ -397,7 +416,7 @@ function M.attach(root)
     end
     bottom.on_two_finger_panned=function(phase,dx1,dy1,dx2,dy2,x1,y1,x2,y2)
       if phase=="begin" then
-        if not M.global_allowed() or blocked() or require("keyboard").active() then return false end
+        if driven() or not M.global_allowed() or blocked() or require("keyboard").active() then return false end
         -- One finger from the edge itself, the other from it or the band above.
         return math.max(y1,y2)>=floor()-EDGE and math.min(y1,y2)>=floor()-EDGE-CATCH
       end

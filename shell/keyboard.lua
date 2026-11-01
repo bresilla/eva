@@ -350,6 +350,24 @@ function M.show(mode)
   return true
 end
 
+--- A gesture takes the docked panel, which then follows `drawer.drag_by`. Coming
+--- up it is the full board; false where it cannot be pulled.
+function M.pull_begin()
+  if not M.drawer.open:get() then
+    asked = false
+    M.keys.mode:set("full")
+    chosen = true
+    M.keys.reset()
+  end
+  return M.drawer.begin_drag()
+end
+
+--- The gesture ends: the panel settles, up or down, and that is remembered.
+function M.pull_end(velocity, canceled)
+  M.drawer.end_drag(velocity, canceled)
+  remember(M.drawer.open:get())
+end
+
 -- The board the focused field calls for.
 local function fit_board()
   if chosen then return end

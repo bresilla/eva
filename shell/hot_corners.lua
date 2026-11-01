@@ -62,21 +62,23 @@ function M.guarded(corner, modifiers)
   return want == "" or (modifiers or ""):find(want, 1, true) ~= nil
 end
 
+--- Runs a person's command, its `words` a list. `source` names who asked, in a log.
+function M.run(words, source)
+  if type(words) ~= "table" or #words == 0 then return false end
+  if require("windows_model").held_back() then
+    morf.log("info", "eva: " .. source .. " (dry run): " .. table.concat(words, " "))
+    return true
+  end
+  morf.process.run(words, {}, function() end)
+  return true
+end
+
 --- Does what `corner` is set to.
 function M.fire(corner)
   local key = M.action(corner)
   local action = BY[key]
   if key == "none" or not action then return false end
-  if key == "command" then
-    local words = setting(corner, "command")
-    if type(words) ~= "table" or #words == 0 then return false end
-    if require("windows_model").held_back() then
-      morf.log("info", "eva: hot corner (dry run): " .. table.concat(words, " "))
-      return true
-    end
-    morf.process.run(words, {}, function() end)
-    return true
-  end
+  if key == "command" then return M.run(setting(corner, "command"), "hot corner") end
   if ipc and ipc[action.verb] then ipc[action.verb](table.unpack(action.args)) return true end
   return false
 end

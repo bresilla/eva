@@ -467,6 +467,17 @@ local config = settings.open {
     },
     -- Whether touches and gestures buzz (shell/haptics.lua).
     haptics = { on = true },
+    -- Gestures anywhere on a touchscreen (shell/touch_driver.lua). `output` names
+    -- the screen it sits on where that cannot be told; `commands` holds each
+    -- gesture's own command; each form holds what its gestures do.
+    gestures = {
+      enabled = true,
+      output = "",
+      commands = {},
+      desk = require("touch_bindings").defaults("desk"),
+      tablet = require("touch_bindings").defaults("tablet"),
+      phone = require("touch_bindings").defaults("phone"),
+    },
     phone = {
       -- A folder of vCards, and the code bare numbers get: "+31".
       contacts = "~/.local/share/contacts",
