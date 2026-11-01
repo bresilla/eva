@@ -101,7 +101,7 @@ end
 local GROW = skin.grow or { duration = 420, easing = "out_back" }
 local SETTLE = skin.settle or { duration = 340, easing = "out_cubic" }
 local function showing() return stage:get() == "rest" or stage:get() == "sheet" end
-local function leaving() return stage:get() == "leaving" end
+local function leaving() return stage:get() == "leaving" or stage:get() == "left" end
 local function opened() return stage:get() == "closed" or leaving() end
 
 -- ------------------------------------------------------------- the frame --
@@ -417,6 +417,7 @@ local root = ui.Item {
     backdrop,
     ui.Item {
       id = "greet-scene", anchors = { fill = true },
+      visible = function() return stage:get() ~= "left" end,
       opacity = function() return leaving() and 0 or 1 end,
       behavior = { opacity = require("themes.reveal").MOTION },
       skin.chrome and skin.chrome(W, H, s, "greet") or ui.Item {},

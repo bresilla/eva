@@ -105,7 +105,10 @@ local GREETER=[[
   end
   package.loaded["lib.services.accounts"]={list=function() return {{name="fixture",label="Fixture",initial="F"}} end}
   package.loaded["lib.services.sessions"]={list=function() return {{name="Desktop",command={"false"}}} end,default_index=function() return 1 end}
-  local handlers,started
+  local handlers,started,typed
+  local passwords=require("models.password")
+  local make=passwords.new
+  passwords.new=function(...) local password=make(...) typed=password.typed return password end
   package.loaded["lib.shell.auth"]={greeter=function(on)
     handlers=on
     return {available=true,submit=function() on.on_busy(true) end,switch=function() end,stop=function() end}
@@ -116,7 +119,7 @@ local GREETER=[[
     elseif what=="open" then handlers.on_open()
     elseif what=="failed" then handlers.on_failed(why or "")
     end
-    return {started=started~=nil,quits=quits,runs=#runs}
+    return {started=started~=nil,quits=quits,runs=#runs,typed=typed:get()}
   end
 ]]
 local function greeter(style,exit)
@@ -133,25 +136,31 @@ for _,style in ipairs {"material","tsugumori"} do
   test.describe(style.." greeter exit",function()
     test.it("the session is asked for after the form has left the bare wallpaper",function()
       greeter(style,"/run/eva-greeter-exit")
+      test.eq(test.ipc("door").typed,7)
       test.eq(test.get("greet-veil").opacity,1)
-      test.falsy(test.ipc("door","verified").started)
+      local verified=test.ipc("door","verified")
+      test.falsy(verified.started)
+      test.eq(verified.typed,0,"the dots go the moment the password is right")
       test.eq(test.ipc("stage"),"leaving")
       test.advance(16)
       test.falsy(test.get("greet-glance").visible,"the clock must not come back over the fade")
       test.advance(104)
       test.falsy(test.ipc("door").started,"started before the fade had ended")
-      test.advance(80)
+      test.truthy(test.get("greet-scene").visible)
+      test.advance(60)
+      test.eq(test.ipc("stage"),"left")
+      test.falsy(test.get("greet-scene").visible,"nothing but the picture before the session starts")
+      test.falsy(test.get("greet-veil").visible)
+      test.falsy(test.ipc("door").started,"the bare frame reaches the screen first")
+      test.advance(40)
       test.truthy(test.ipc("door").started)
-      test.settle(200)
-      test.eq(test.get("greet-veil").opacity,0)
-      test.eq(test.get("greet-scene").opacity,0)
       test.truthy(test.get("greet-wallpaper"))
     end)
 
     test.it("the compositor is told to end before the greeter quits",function()
       greeter(style,"/run/eva-greeter-exit")
       test.ipc("door","verified")
-      test.advance(200)
+      test.advance(240)
       local state=test.ipc("door","open")
       test.eq(state.runs,1)
       test.eq(state.quits,1)
@@ -160,11 +169,13 @@ for _,style in ipairs {"material","tsugumori"} do
     test.it("a session that will not start brings the form back",function()
       greeter(style)
       test.ipc("door","verified")
-      test.advance(200)
+      test.advance(240)
       test.ipc("door","failed","No session to start")
       test.eq(test.ipc("stage"),"sheet")
       test.settle(400)
+      test.truthy(test.get("greet-scene").visible)
       test.eq(test.get("greet-scene").opacity,1)
+      test.truthy(test.get("greet-veil").visible)
       test.eq(test.get("greet-veil").opacity,1)
     end)
   end)
@@ -173,7 +184,7 @@ end
 test.it("without a compositor to end the greeter simply quits",function()
   greeter("material")
   test.ipc("door","verified")
-  test.advance(200)
+  test.advance(240)
   local state=test.ipc("door","open")
   test.eq(state.runs,0)
   test.eq(state.quits,1)

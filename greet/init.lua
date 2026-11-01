@@ -79,7 +79,7 @@ local message = morf.signal("greet.message", "")
 local bad = morf.signal("greet.bad", false)
 local shake = morf.signal("greet.shake", 0)
 -- "closed" (coming in), "rest" (choosing), "sheet" (the way in is open),
--- "leaving" (the session is starting).
+-- "leaving" (the password was right), "left" (only the wallpaper is drawn).
 local stage = morf.signal("greet.stage", "closed")
 local pull = morf.signal("greet.pull", 0)
 local outputs
@@ -92,6 +92,17 @@ local function say(words, wrong)
   bad:set(wrong == true)
 end
 local clear = password.clear
+
+-- The dots go at once and everything fades off the wallpaper. Then nothing but
+-- the picture is drawn, and `after` runs once that is on screen.
+local function depart(after)
+  clear()
+  stage:set("leaving")
+  morf.time.timer(reveal.LEAVE, function()
+    stage:set("left")
+    morf.time.timer(reveal.SETTLE, after, false)
+  end, false)
+end
 
 -- Ends the compositor with this frame still mapped, then this process.
 local function leave()
@@ -107,7 +118,7 @@ local door = auth.greeter {
   on_busy = function(b) if b then busy:set(true) end end,
   on_info = function(words, wrong) say(words, wrong) end,
   on_failed = function(why)
-    if stage:get() == "leaving" then stage:set("sheet") end
+    if stage:get() == "leaving" or stage:get() == "left" then stage:set("sheet") end
     say(why ~= "" and why or "Wrong password", true)
     clear()
     shake:set(1)
@@ -120,12 +131,7 @@ local door = auth.greeter {
     clear()
     if outputs then outputs.release() end
   end,
-  -- The password was right: everything leaves the wallpaper, then the session
-  -- is asked for.
-  on_verified = function(start)
-    stage:set("leaving")
-    morf.time.timer(reveal.LEAVE, start, false)
-  end,
+  on_verified = depart,
   on_open = leave,
 }
 local NOT_GREETD = "Not started by greetd: nothing to log in to"
@@ -320,7 +326,7 @@ end,{owner=root})
 -- For a test or a picture: `morf ipc call stage sheet`.
 morf.ipc.stage = function(to)
   if to == "sheet" then stage:set("rest") open_sheet() elseif to == "rest" then stage:set("rest") end
-  if to == "leaving" and PREVIEW then stage:set("leaving") end
+  if to == "leaving" and PREVIEW then depart(function() end) end
   return stage:get()
 end
 

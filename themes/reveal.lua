@@ -4,7 +4,7 @@
 -- their first frame, once per output per session, and again on `replay`.
 local morf=require("morf")
 local session=require("themes.session")
-local M={LEAVE=170}
+local M={LEAVE=170,SETTLE=34}
 M.MOTION={duration=M.LEAVE,easing="out_cubic"}
 
 local LEAD,STAGGER=180,35
@@ -15,7 +15,8 @@ local function marker()
   local run,display=morf.env("XDG_RUNTIME_DIR"),morf.env("HYPRLAND_INSTANCE_SIGNATURE") or morf.env("WAYLAND_DISPLAY")
   if not run or not display or run=="" or display=="" then return nil end
   local output=(morf.screens[1] or {}).name or "output"
-  return (run.."/eva/arrived-"..display.."-"..output):gsub("[^%w_./-]","_"),nil
+  local name=(display.."-"..output):gsub("[^%w_.-]","_")
+  return run.."/eva/arrived-"..name
 end
 
 -- Whether this runtime is the output's first in the session. A dry run keeps
@@ -25,7 +26,8 @@ local function first()
   local path=morf.env("EVA_DRY_RUN")~="1" and marker()
   if path then
     if morf.fs.exists(path) then return false end
-    return morf.fs.write(path,"",{parents=true,mode=384})~=false
+    morf.fs.write(path,"",{parents=true,mode=384})
+    return true
   end
   local seen=morf.reloadable("eva.reveal.seen",false)
   if seen:get() then return false end

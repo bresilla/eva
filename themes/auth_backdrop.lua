@@ -12,6 +12,7 @@ return function(ctx,s,role)
       source=path,visible=function() return path()~="" end},
     ui.Rect {id=role.."-veil",anchors={fill=true},backdrop_blur=s(28),
       color=function() return ctx.C.surface:alpha(.4) end,
+      visible=function() return ctx.stage:get()~="left" end,
       opacity=function() return ctx.scene_leaving() and 0 or 1 end,
       behavior={opacity=reveal.MOTION}},
   }
