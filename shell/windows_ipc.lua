@@ -150,6 +150,21 @@ function M.register(ipc)
     local c = windows.active()
     return c and modes.split_with(c.address) or false
   end
+  -- `show_desktop`: the windows on this workspace aside, or back.
+  ipc.show_desktop = function() return windows.show_desktop(shown_workspace()) end
+  -- `lock_now`: the session's lock command.
+  ipc.lock_now = function() return require("session").run("lock") end
+  local corners = require("hot_corners")
+  corners.attach(ipc)
+  -- `corner NAME [ACTION [GUARD]]`: what a hot corner does; a guard of `?`
+  -- asks which key it wants.
+  ipc.corner = function(name, action, guard)
+    if guard == "?" then return corners.guard(name) end
+    if action then corners.set_action(name, action) end
+    if guard then corners.set_guard(name, guard) end
+    return corners.action(name)
+  end
+  ipc.settings_detail = function() return require("settings_model").detail:get() end
   -- `keep_above`, `opacity [VALUE]`: the focused window.
   ipc.keep_above = function()
     local c = windows.active()

@@ -28,6 +28,7 @@ return {
     kill_mode = "themes.layouts.views.kill_mode",
     dock = "themes.material.views.dock",
     window_modes = "themes.layouts.views.window_modes",
+    windows_page = "themes.layouts.views.windows_page",
     launcher = "themes.layouts.views.launcher",
     assistant = "themes.layouts.views.assistant",
     drop = "themes.layouts.views.drop",

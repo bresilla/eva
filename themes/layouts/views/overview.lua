@@ -88,6 +88,7 @@ function V.build(model)
     end
     area = ui.MouseArea { id = "overview-card-area-" .. row.index, anchors = { fill = true }, cursor = "pointer",
       accepted_buttons = { "left", "middle", "right" },
+      drag_axis = cards() and "y" or "both",
       accessible_role = "button", accessible_name = function() return title:get() end,
       on_panned = on_pan,
       on_pressed = function(x, y, _, _, button) pressed_on = { x = x, y = y, button = button } end,

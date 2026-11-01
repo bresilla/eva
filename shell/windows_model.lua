@@ -335,6 +335,29 @@ morf.effect("eva.windows.above", function()
   end, false)
 end)
 
+-- The windows put aside to show the desktop, and the workspace they are from.
+local aside = session.keep("eva.windows.aside", {})
+
+--- Puts the windows on workspace `id` aside, on a hidden workspace of their
+--- own, or brings them back: false once they are back.
+function M.show_desktop(id)
+  local kept = aside:get()
+  if #kept > 0 then
+    aside:set({})
+    for _, address in ipairs(kept) do
+      if M.get(address) then M.to_workspace(address, id, false) end
+    end
+    return false
+  end
+  local list = {}
+  for _, c in ipairs(M.on(id)) do
+    list[#list + 1] = c.address
+    M.to_workspace(c.address, "special:desktop", false)
+  end
+  aside:set(list)
+  return #list > 0
+end
+
 function M.focus(address)
   if not address or address == "" then return false end
   if dry_run() then

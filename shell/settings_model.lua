@@ -540,6 +540,7 @@ M.DETAILS = {
   {key="sound",name="Sound"}, {key="microphone",name="Microphone"},
   {key="power",name="Power"}, {key="eva",name="Eva"}, {key="bar",name="Bar",parent="eva"}, {key="wired",name="Wired"},
   {key="osd",name="On-screen displays",parent="eva"},
+  {key="dock",name="Dock",parent="eva"}, {key="windows",name="Windows",parent="eva"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
   {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},
@@ -547,6 +548,8 @@ M.DETAILS = {
   {key="sound/equalizer/audiogram",name="Audiogram",parent="sound/equalizer"},
 }
 M.navigation=require("lib.shell.settings.pages").new(M.DETAILS,M.detail,{tor="tunnel"})
+-- How far a page has been pulled back under a finger, in pixels.
+M.peek=morf.signal("eva.settings.peek",0)
 M.back=M.navigation.back
 M.breadcrumb=M.navigation.breadcrumb
 function M.overview() return M.opened:get() and M.displayed:get()=="" end

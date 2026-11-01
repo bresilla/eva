@@ -258,6 +258,7 @@ ui.reparent(overview.node,frame_root)
 ui.reparent(window_switcher.node,frame_root)
 ui.reparent(snap.node,frame_root)
 ui.reparent(kill_mode.node,frame_root)
+ui.reparent(require("hot_corners").build(),frame_root)
 capture.editor.on_export=function(action,result)
   notifs.push {summary=action=="copy" and "Capture copied" or action=="save" and "Capture saved" or "Capture uploaded",
     body=action=="upload" and tostring(result or "Link copied to clipboard") or action=="save" and tostring(result or "") or "",app="Morf"}

@@ -48,6 +48,16 @@ function V.eva_page(model,w,h)
       P.row {id="settings-eva-osd",width=inner,icon="picture_in_picture",title="On-screen displays",
         subtitle="Where each one appears, and for how long",
         trailing=P.chevron(),on_clicked=function() model.request("osd") end},
+      P.row {id="settings-eva-dock",width=inner,icon="dock_to_bottom",title="Dock",
+        subtitle=function()
+          local dock=require("dock")
+          if dock.mode()=="taskbar" then return "A taskbar along the edge" end
+          return dock.on() and "On the "..dock.edge().." edge" or "Off"
+        end,
+        trailing=P.chevron(),on_clicked=function() model.request("dock") end},
+      P.row {id="settings-eva-windows",width=inner,icon="select_window",title="Windows",
+        subtitle="Hot corners, the switcher and snapping",
+        trailing=P.chevron(),on_clicked=function() model.request("windows") end},
     },
     P.section {id="settings-eva-panels",width=w,title="Panels",
       P.row {id="settings-eva-hover",width=inner,icon="near_me",title="Open on hover",on=hover,
@@ -204,6 +214,21 @@ function M.page(w, h)
   }
   local stack = {}
   local names = {}
+  -- Going back under a finger: how far the page has been pulled, the page it
+  -- goes back to, and whether that is another detail or the overview.
+  local pull_x = model.peek
+  local function pull() return pull_x:get() end
+  local function peek() return math.min(1, pull() / math.max(1, w)) end
+  local function parent_of(key)
+    for _, d in ipairs(M.DETAILS) do if d.key == key then return d.parent or "" end end
+    return ""
+  end
+  local function peek_key()
+    if pull() <= 0 then return nil end
+    local parent = parent_of(M.detail:get())
+    return parent ~= "" and parent or nil
+  end
+  local function nested() return parent_of(M.detail:get()) ~= "" end
   for _, d in ipairs(M.DETAILS) do
     names[d.key] = d.name
     -- Each detail is built the first time it opens, and kept.
@@ -211,12 +236,22 @@ function M.page(w, h)
     morf.effect("eva.settings.build." .. d.key, function()
       if M.detail:get() == d.key and not wanted:get() then wanted:set(true) end
     end)
+    -- Pulled back from a page, the page above it shows beneath, a touch small.
+    local function peeked() return peek_key()==d.key end
     stack[#stack + 1] = ui.Item {
       id = "settings-detail-" .. d.key,
       width = w, height = h,
-      visible = function() return M.detail:get() == d.key end,
-      opacity=function() return M.detail:get()==d.key and 1 or 0 end,
-      translate_x=function() return M.detail:get()==d.key and 0 or 20 end,
+      visible = function() return M.detail:get() == d.key or peeked() end,
+      opacity=function() return M.detail:get()==d.key and 1 or peeked() and .4+.6*peek() or 0 end,
+      translate_x=function()
+        if M.detail:get()==d.key then return nested() and pull() or 0 end
+        return peeked() and 0 or 20
+      end,
+      scale=function()
+        if M.detail:get()==d.key then return 1-.06*peek() end
+        return peeked() and .94+.06*peek() or 1
+      end,
+      z=function() return M.detail:get()==d.key and 1 or 0 end,
       behavior={opacity={duration=theme.duration.small},translate_x=SWITCH},
       ui.Loader {
         anchors = { fill = true }, keep = true,
@@ -260,16 +295,43 @@ function M.page(w, h)
   }
   -- The last detail shown stays drawn while it slides away. The pages are
   -- a Navigation stack: with focus inside, Alt+Left and the back button pop.
-  return ui.Item {
+  local holder = ui.Item {
     width = w, height = h, clip = true,
     shortcuts = model.navigation.shortcuts(),
     ui.Row {
       gap = 24,
-      translate_x = function() return M.detail:get() ~= "" and -(w + 24) or 0 end,
+      translate_x = function()
+        if M.detail:get() == "" then return 0 end
+        return -(w + 24) + (nested() and 0 or pull())
+      end,
       behavior = { translate_x = SWITCH },
       main, detail,
     },
   }
+  -- A pull in from the page's left edge goes back, what it goes back to
+  -- showing under the finger; let go early, it stays.
+  local gesture = require("gesture_motion")
+  local EDGE, COMMIT = 28, .35
+  local pulling
+  holder.on_panned = function(phase, dx, dy, vx, _, start_x)
+    if phase == "begin" then
+      pulling = false
+      if M.detail:get() == "" or dx <= 0 or math.abs(dx) <= math.abs(dy) * 1.2 then return false end
+      if not start_x or start_x - (holder.x or 0) > EDGE + (require("responsive").panel_width and 0 or 0) + w then return false end
+      if model.page_left and start_x - model.page_left() > EDGE then return false end
+      pulling = true
+      return true
+    end
+    if not pulling then return end
+    if phase == "update" then pull_x:set(math.max(0, dx))
+    else
+      local done = phase == "end" and (dx >= w * COMMIT or gesture.fling(dx, vx) and (vx or 0) > 0)
+      pulling = false
+      pull_x:set(0)
+      if done then model.back() end
+    end
+  end
+  return holder
 end
 
 
