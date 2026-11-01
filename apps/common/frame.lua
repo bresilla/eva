@@ -24,8 +24,8 @@ M.HEADER_H = S.TARGET + S.m
 M.CLOSE = S.TARGET
 M.PAD = S.l
 
--- The Material scheme and lule's own colours, from what the colour tool made.
-local function follow_scheme()
+--- The Material scheme and lule's own colours, from what the colour tool made.
+function M.follow_scheme()
   morf.effect("eva.app.lule", function() theme.apply_lule(terminal_colors.current:get()) end)
   morf.effect("eva.app.scheme", function()
     local source = config.get("theme.source")
@@ -84,7 +84,7 @@ function M.open(spec)
   morf.surface.blend = "srgb"
   morf.surface.namespace = "eva-" .. spec.id
   require("themes.ui_scale").apply()
-  follow_scheme()
+  M.follow_scheme()
   follow_appearance()
   -- A window that lives through a reload gets no configure: its size is kept.
   local kept = morf.reloadable("eva.app.size", {})

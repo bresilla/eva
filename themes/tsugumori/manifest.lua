@@ -37,6 +37,7 @@ return {
     launcher = "themes.layouts.views.launcher",
     capture_view = "themes.layouts.views.capture_view",
     capture_editor = "themes.layouts.views.capture_editor",
+    displays_identify = "themes.layouts.views.displays_identify",
     dashboard_media = "themes.layouts.views.dashboard_media",
   },
   tokens = require("themes.tsugumori.tokens"),

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Stands in for hyprctl on the sealed session: answers from $STUB_HYPR_BINDS, or
+# with nothing, and never reaches a real compositor.
+case "$*" in
+  *binds*) cat "${STUB_HYPR_BINDS:-/dev/null}" 2>/dev/null || printf '[]\n' ;;
+  *) printf '[]\n' ;;
+esac

@@ -1,0 +1,51 @@
+# eva-displays on two sealed outputs, acting on this private sway only. The
+# tool's socket stands in for the pointer; tests/displays_spec.lua presses.
+unset EVA_DRY_RUN
+layout() { swaymsg -p -t get_outputs | grep -E '^Output|Position|Scale|Transform' | tr -s ' ' | tr '\n' ' '; echo; }
+swaymsg create_output > /dev/null
+pause 0.3
+start app displays
+note echo "start: $(layout)"
+shot rest
+
+# HEADLESS-2 under HEADLESS-1: snapped from a little off.
+appipc select HEADLESS-2 > /dev/null
+appipc place HEADLESS-2 30 1100 > /dev/null
+pause 0.4
+shot moved
+note echo "draft: $(appipc state | grep -o 'dirty[^,]*')"
+
+# Apply, and go back.
+appipc apply > /dev/null
+pause 0.8
+shot countdown
+note echo "applied: $(layout)"
+appipc revert > /dev/null
+pause 0.8
+note echo "reverted: $(layout)"
+
+# Apply again and keep: the file a reload reads.
+appipc place HEADLESS-2 30 1100 > /dev/null
+appipc apply > /dev/null
+pause 0.8
+appipc keep > /dev/null
+pause 0.4
+shot kept
+note echo "kept: $(layout)"
+note cat "$XDG_STATE_HOME/eva/displays/outputs.sway"
+swaymsg reload > /dev/null
+pause 0.8
+note echo "after reload: $(layout)"
+
+# A name on each monitor, with no shell to draw it.
+appipc identify > /dev/null
+pause 2.4
+shot identify
+pause 2.5
+stop
+
+# The same through the shell's verb.
+start shell
+ipc displays-identify > /dev/null
+pause 1
+shot identify-shell

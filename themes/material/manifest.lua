@@ -31,6 +31,7 @@ return {
     planner_widgets = "themes.layouts.views.planner_widgets",
     capture_view = "themes.layouts.views.capture_view",
     capture_editor = "themes.layouts.views.capture_editor",
+    displays_identify = "themes.layouts.views.displays_identify",
     graphs = "themes.layouts.views.graphs",
     dashboard_media = "themes.layouts.views.dashboard_media",
     dashboard_performance = "themes.layouts.views.dashboard_performance",

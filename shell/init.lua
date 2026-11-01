@@ -46,6 +46,8 @@ if config.path then
   morf.fs.write(state .. "/eva/settings-path", config.path, { atomic = true, parents = true })
 end
 
+require("displays_hotplug").start()
+
 -- ------------------------------------------------------------------ colour --
 
 -- Two palettes: `theme.color`, the Material scheme, built from
