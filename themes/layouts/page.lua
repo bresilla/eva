@@ -325,7 +325,11 @@ end
 --- (the head shows: the tabs are icons alone), `build(w, h)` -- the body, `h` a fn -- which may
 --- give back a second value with what the header says instead: `title`,
 --- `subtitle`, `back`, `can_back`, `actions` (as P.header's), `keep` (fn:
---- the head shows even where the tabs name the page).
+--- the head shows even where the tabs name the page). `measured(read)` is
+--- given a function: how tall the page stands whole, head and all, once the
+--- first `P.page` in its body is laid out, for a panel that fits its page;
+--- `measured(nil, read)` says that `read` has gone with its frame.
+local measuring
 function P.frame(spec)
   local w = spec.width
   local head
@@ -344,13 +348,23 @@ function P.frame(spec)
   local function top() return header_space:get() end
   local function body_h() return math.max(0, get(spec.height) - top()) end
   local body
+  local outer = measuring
+  local measure = {}
+  measuring = measure
   body, head = spec.build(w, body_h)
+  measuring = outer
   head = head or {}
+  local reader = spec.measured and measure.read and function()
+    local whole = measure.read()
+    return whole > 0 and top() + whole or nil
+  end or nil
+  if reader then spec.measured(reader) end
   local header = P.header { id = spec.id and spec.id .. "-head", width = w, title = head.title or spec.title,
     title_id = head.title_id or spec.title_id, scope = spec.scope, subtitle = head.subtitle, back = head.back,
     can_back = head.can_back, back_id = head.back_id, actions = head.actions, active = head.active or spec.active }
   header.visible = shown
   local frame=ui.Item { id = spec.id, width = w, height = spec.height,
+    on_destroyed = reader and function() spec.measured(nil, reader) end or nil,
     header,
     ui.Item { y = top, width = w, height = body_h, body },
   }
@@ -380,6 +394,9 @@ function P.page(spec)
   -- scroll's edge.
   col[#col + 1] = ui.Item { width = 1, height = P.GAP }
   local column = ui.Column(col)
+  if measuring and not measuring.read then
+    measuring.read = function() return column.layout_height or 0 end
+  end
   if spec.scroll == false then
     return ui.Item { id = spec.id, width = w, height = spec.height, column }
   end

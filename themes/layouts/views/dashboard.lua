@@ -342,7 +342,14 @@ end)
 return content
 end
 
-return { content=build, width=width, height=height, size=M.size, bud=bud,
-  edge="top", props={behavior={width=SWITCH,height=SWITCH}} }
+-- On a desk it keeps clear of the side panels (shell/panel_room.lua).
+local function place() return require("panel_room").span(width()) end
+local props={behavior={width=SWITCH,height=SWITCH}}
+if not PHONE then
+  props.anchors,props.x={top=true},function() return (place()) end
+  props.behavior.x=theme.spring.drawer
+end
+return { content=build, width=width, height=height, size=M.size, bud=bud, place=place,
+  edge="top", props=props }
 end
 return V
