@@ -4,6 +4,6 @@
 printf '%s EVA_SETTINGS=%s EVA_APPEARANCE=%s\n' "$*" "${EVA_SETTINGS:-}" "${EVA_APPEARANCE:-}" >> "$STUB_LOG"
 if [ "$1 $2" = "ipc verbs" ]; then
   [ -n "${STUB_UP:-}" ] || exit 1
-  printf 'launcher\ndashboard\nsettings\nnotify\n'
+  printf '{"n":4,"ok":true,"result":["dashboard","launcher","notify","settings"]}\n'
 fi
 exit 0
