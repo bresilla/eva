@@ -40,6 +40,15 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.eq(#test.logs("error"), 0)
   end)
 
+  test.it(style .. " a touchscreen with no keyboard presses the rail as a desk does", function()
+    load(style, 1280, 800, true)
+    local hit = test.get("rail-hit-3")
+    local x, y = hit.x + hit.width / 2, hit.y + hit.height / 2
+    test.touch("down", 1, x, y) test.touch("up", 1, x, y) test.advance(200)
+    test.eq(state().active, 3)
+    test.eq(#test.logs("error"), 0)
+  end)
+
   test.it(style .. " rail turns workspaces with the wheel, a notch at a time", function()
     load(style)
     local hit = test.get("rail-hit-5")

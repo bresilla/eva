@@ -40,10 +40,10 @@ function M.tap(x)
 end
 function M.build()
   model.leftbar=require("leftbar")
-  -- A pointer's way in. A finger's is the bottom strip's (phone_gestures.lua),
-  -- which has the swipes that start on the rail as well.
+  -- A desk's way in. A phone's is the bottom strip's (phone_gestures.lua), which
+  -- has the swipes that start on the rail as well.
   local targets
-  if not require("responsive").touch() then
+  if not require("responsive").sheets() then
     M.hits,targets=require("themes.layouts.rail_hits").build(model,function() return V.geometry(model) end)
     model.hovered=function(slot) return targets[slot].hovered end
   end
