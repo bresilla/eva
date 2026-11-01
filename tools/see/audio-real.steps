@@ -1,0 +1,74 @@
+# eva-audio against a real PipeWire with no hardware. The server and WirePlumber
+# run in a mount namespace whose /dev holds no sound or video device, with no
+# udev database, every device monitor off, on this session's own runtime folder.
+# Two null sinks and a silent stream are all there is to see. The scenario stops
+# with a note if a program it needs is missing, and if any device shows up.
+unset EVA_DRY_RUN
+unset EVA_FAKE_AUDIO
+
+for program in bwrap pipewire wireplumber wpctl pw-cli pw-play jq; do
+  command -v "$program" > /dev/null || { echo "no $program" >> "$SEE_OUT/notes.txt"; exit 0; }
+done
+
+mkdir -p "$XDG_CONFIG_HOME/wireplumber/wireplumber.conf.d"
+cat > "$XDG_CONFIG_HOME/wireplumber/wireplumber.conf.d/90-sealed.conf" <<CONF
+wireplumber.profiles = {
+  main = {
+    monitor.alsa = disabled
+    monitor.alsa-midi = disabled
+    monitor.bluez = disabled
+    monitor.bluez-midi = disabled
+    monitor.libcamera = disabled
+    monitor.v4l2 = disabled
+  }
+}
+CONF
+
+sealed() { exec bwrap --die-with-parent --dev-bind / / --dev /dev --tmpfs /run/udev -- "$@"; }
+sealed pipewire > "$SEE_OUT/pipewire.log" 2>&1 &
+SERVER=$!
+pause 1
+sealed wireplumber > "$SEE_OUT/wireplumber.log" 2>&1 &
+MANAGER=$!
+pause 2
+
+sink() {
+  pw-cli create-node adapter "{ factory.name=support.null-audio-sink node.name=$1 node.description=\"$2\" media.class=Audio/Sink object.linger=true audio.position=[FL FR] monitor.channel-volumes=true }"
+}
+sink eva-speakers "Sealed speakers" > /dev/null
+sink eva-headset "Sealed headset" > /dev/null
+pause 1
+note wpctl status
+if wpctl status | grep -Eq '\[(alsa|v4l2|libcamera|bluez5)\]'; then
+  echo "a device showed up: stopping" >> "$SEE_OUT/notes.txt"
+  exit 0
+fi
+
+note sh apps/audio/cli list
+note sh apps/audio/cli next
+note sh apps/audio/cli list
+
+# Twenty seconds of silence, 48 kHz, stereo.
+{
+  printf 'RIFF\044\114\035\000WAVEfmt \020\000\000\000\001\000\002\000\200\273\000\000\000\356\002\000\004\000\020\000data\000\114\035\000'
+  head -c 1920000 /dev/zero
+} > "$XDG_RUNTIME_DIR/silence.wav"
+pw-play "$XDG_RUNTIME_DIR/silence.wav" > "$SEE_OUT/play.log" 2>&1 &
+pause 1
+note sh apps/audio/cli list
+
+BOOT=4 start app audio
+shot real-output
+state() { appipc state | jq -r '.result[0]'; }
+STREAM=$(state | jq -r '.streams[0].id')
+OTHER=$(state | jq -r '.devices[] | select(.default | not) | .id' | head -n 1)
+note echo "stream $STREAM goes to device $OTHER"
+note appipc route output "$STREAM" "$OTHER"
+note appipc mute output "$STREAM"
+pause 0.6
+note sh -c "wpctl status | sed -n '/Streams/,/^\$/p'"
+note wpctl inspect "$STREAM"
+state > "$SEE_OUT/state.json"
+shot real-routed
+stop
+kill "$SERVER" "$MANAGER" 2> /dev/null
