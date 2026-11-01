@@ -1,5 +1,5 @@
 # The tray on a desk's bar, with a real item on the session bus: a program of
-# its own, on a second private display since a display holds one morf.
+# its own, on a second private display.
 export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-57}
 export EVA_FAKE_STATUS=${EVA_FAKE_STATUS:-wifi,dnd}
 export EVA_SETTINGS="$SEE_OUT/settings.json"

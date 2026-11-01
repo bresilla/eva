@@ -165,8 +165,7 @@ function M.new(opts)
   if dry_run() then pcall(hold_menus) end
   local running, watching, subscribed = false, nil, false
 
-  --- Puts the tray up: the watcher, unless another panel has it, and the
-  --- host. A program registers only while someone is there to show it.
+  --- Puts the tray up: the watcher, unless another panel has it, and the host.
   function model.start()
     if running then return end
     running = true

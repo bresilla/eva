@@ -25,7 +25,7 @@ function V.build(model)
   local FORM = responsive.form()
   local PHONE, TABLET, DESK = FORM == "phone", FORM == "tablet", FORM == "desk"
   -- How tall a press is, and the band the icons sit in.
-  local ITEM = DESK and 34 or S.TOUCH
+  local ITEM = DESK and 34 or responsive.target()
   local ICONS_H = S.xl
   local GLYPH = 20
   -- An icon's width, the overflow dot's, the percentage's and the battery's.
@@ -141,19 +141,13 @@ function V.build(model)
   -- and goes opens and shuts its gap along the row.
   local CLOSED = 0.01
   local function slot(id, shown, vertical, size, child)
-    local node
     local along = vertical and "height" or "width"
     local spec = { id = id, clip = true, [vertical and "width" or "height"] = ICONS_H,
       opacity = function() return shown() and 1 or 0 end,
-      visible = function()
-        if shown() then return true end
-        return node ~= nil and (node[vertical and "layout_height" or "layout_width"] or 0) > 0.5
-      end,
       behavior = { [along] = theme.spring.spatial, opacity = theme.spring.effects },
       child }
     spec[along] = function() return shown() and size or CLOSED end
-    node = ui.Item(spec)
-    return node
+    return ui.Item(spec)
   end
   local function ink() return C.onSurface end
   local function reading() return model.reading:get() end
