@@ -267,6 +267,36 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   `eva-monitor` stops sampling when minimised, paused or away, and keeps sampling
   on a hidden workspace.
 
+## What things cost: open
+
+Found measuring the shell against its frame budget. `tests/cost_spec.lua` guards
+what Lua can reach today.
+
+- Reading what fuel was spent. `drive_counted` knows the figure for every run and
+  `flush_graph` for every pass, and nothing shows them, so the numbers behind
+  `tests/cost_spec.lua` came from a patched copy of the engine, and the spec can
+  only ask whether a scene fits a budget. `test.frames()` and `MORF_LOG=frame`
+  carrying the worst pass and the total would turn it into a number to compare.
+- A binding that builds. A `require` inside an effect puts everything it builds
+  into one pass: a rearranged panel set spent 14.5M of a frame budget of 8M that
+  way, and the reports named no culprit, only a pass that ran out. A line in `morf
+  check` when an effect registers hundreds of others would have found it at once.
+- A memo. `signal:get()` copies, and no value can be derived once for all its
+  readers, so eva pairs an effect with a signal (`themes/layouts/dock.lua`, the
+  sheet's height in `side_panel.lua`, `shell/live_model.lua`). A `morf.computed`
+  with the graph's own dependency tracking would replace them.
+- Field pipelines made ahead of the first draw, or kept in a `VkPipelineCache` on
+  disk. A variant compiles the frame it is first drawn, in `encode`: 90 to 230 ms
+  at the first dashboard, launcher and Settings, which no Lua can spread out.
+- A GPU only while something shows. An empty `ui.Item` on a hidden surface holds
+  283 MB here, and the capture tool on standby 298 MB, so its 15 MB is all eva can
+  cut. Starting the device with the first shown surface, and letting it go when
+  none is left, would make a standby process cheap.
+- A hidden Loader item stops its bindings. `keep` keeps them running, so a colour
+  change reaches every page ever visited (1.8M of a pass, every Settings page
+  visited). A `keep = "frozen"` catching them up as it shows again would cost less
+  than building it again.
+
 ## Seamless login: open
 
 - Custom shaders on a held lock. Every renderer calls `register_shaders` except

@@ -82,11 +82,11 @@ end
 
 --- The window's content, `w` by `h` (fns).
 function M.build(w, h)
-  local found_list, found_query, found_rows
+  local found_list, found_query, found_loaded
   local function found()
-    local query, rows = model.query:get(), model.rows:get()
-    if query ~= found_query or rows ~= found_rows then
-      found_query, found_rows = query, rows
+    local query, loaded = model.query:get(), model.loaded:get()
+    if query ~= found_query or loaded ~= found_loaded then
+      found_query, found_loaded = query, loaded
       found_list = model.found()
     end
     return found_list

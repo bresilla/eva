@@ -167,21 +167,29 @@ function settings.open(opts)
     if not ok then morf.log("warn", "settings: could not save " .. opts.path .. ": " .. tostring(err)) end
   end
 
+  -- Which leaves each branch holds, found the first time it is read.
+  local branches = {}
+  local function branch(key)
+    if not branches[key] then
+      local prefix, found = key .. ".", {}
+      for k in pairs(signals) do
+        if k:sub(1, #prefix) == prefix then found[#found + 1] = { k, k:sub(#prefix + 1) } end
+      end
+      branches[key] = found
+    end
+    return branches[key]
+  end
+
   --- A value, by dotted key; tracked in a binding.
   function s.get(key)
     local signal = signals[key]
     if signal then return signal:get() end
     -- A branch: its leaves as a table.
-    local out, any = {}, false
-    local prefix = key .. "."
-    for k, sig in pairs(signals) do
-      if k:sub(1, #prefix) == prefix then
-        place(out, k:sub(#prefix + 1), sig:get())
-        any = true
-      end
-    end
-    if any then return out end
-    error("settings: no setting " .. tostring(key), 2)
+    local found = branch(key)
+    if #found == 0 then error("settings: no setting " .. tostring(key), 2) end
+    local out = {}
+    for _, leaf in ipairs(found) do place(out, leaf[2], signals[leaf[1]]:get()) end
+    return out
   end
 
   --- Sets a value; returns true, or false and why.

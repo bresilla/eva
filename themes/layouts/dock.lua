@@ -65,12 +65,25 @@ function M.build(model, style)
   model.attach(plate_box)
 
   -- An icon's box: it stands on the plate's inner side and grows off the edge.
-  local function icon_box(i)
+  local function work_out(i)
     local at, s = along(i)
     local b, inset = plate_box(), S.s
     if model.edge() == "bottom" then return { x = at, y = b.y + b.height - inset - s, width = s, height = s } end
     if model.edge() == "left" then return { x = b.x + inset, y = at, width = s, height = s } end
     return { x = b.x + b.width - inset - s, y = at, width = s, height = s }
+  end
+  -- Every box at once, as what they follow moves: four bindings an icon read them.
+  local boxes, moved = {}, 0
+  local boxes_moved = morf.signal("eva.dock.boxes", 0)
+  morf.effect("eva.dock.boxes", function()
+    local fresh = {}
+    for i = 1, model.MAX_ICONS + 1 do fresh[i] = work_out(i) end
+    boxes, moved = fresh, moved + 1
+    boxes_moved:set(moved)
+  end)
+  local function icon_box(i)
+    boxes_moved:get()
+    return boxes[i] or work_out(i)
   end
 
   -- How far it slides off the edge when hidden.

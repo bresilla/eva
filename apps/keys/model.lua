@@ -6,6 +6,8 @@ local keys = require("keys_model")
 
 local M = {
   rows = morf.signal("keys.rows", {}),
+  -- Moves with `rows`, for what follows the list without reading it.
+  loaded = morf.signal("keys.loaded", 0),
   query = morf.signal("keys.query", ""),
   message = morf.signal("keys.message", ""),
   -- The row a chord is being pressed for, "" for none.
@@ -34,6 +36,7 @@ function M.load()
       M.message:set("The compositor's bindings cannot be read here")
     end
     M.rows:set(M.merge(binds, keys.overrides(), keys.capture_key()))
+    M.loaded:set(M.loaded:get() + 1)
   end)
 end
 
