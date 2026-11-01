@@ -898,7 +898,7 @@ return function(theme)
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
       line { stroke_color = spec.track and function() return get(spec.track) end or M.stroke("quiet", color) },
       line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end,
-        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = settle() } },
+        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = spec.motion or settle() } },
     }
   end
 
@@ -940,7 +940,7 @@ return function(theme)
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
       line { stroke_color = M.stroke("quiet", color) },
       line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end,
-        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = settle() } },
+        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = spec.motion or settle() } },
     }
   end
 

@@ -274,7 +274,8 @@ function M.morph_number(spec)
   local family = spec.font or (theme.font:match("^%s*([^,]+)") or "sans-serif")
   local motion = { duration = spec.duration or 260, easing = theme.ease.standard }
   local slots, state = {}, {}
-  local field = { id = spec.id, width = n * dw, height = size, fill_color = spec.color }
+  local field = { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = n * dw, height = size,
+    fill_color = spec.color }
   for i = 1, n do
     slots[i] = ui.SdfShape {
       id = spec.id and (spec.id .. "-digit-" .. i) or nil,
@@ -506,7 +507,7 @@ function M.bar(spec)
   local w, h = spec.width, spec.stroke or 6
   local GAP = 4
   local function v() return clamp01(spec.value()) end
-  local motion = { duration = theme.duration.large, easing = theme.ease.emphasized_decel }
+  local motion = spec.motion or { duration = theme.duration.large, easing = theme.ease.emphasized_decel }
   local function split() return math.min(w, v() * w + GAP + h) end
   return ui.Item {
     id = spec.id, width = w, height = h, x = spec.x, y = spec.y, anchors = spec.anchors,
@@ -863,11 +864,12 @@ end
 
 --- A level: a rounded pill track, the value in `color`, a gap, the tonal
 --- rest and its stop dot. `width`, `height` (8), `value`, `color`,
---- `track`. (`count` is accepted; Material does not segment.)
+--- `track`, `motion` (a behavior for a new value). (`count` is accepted;
+--- Material does not segment.)
 function M.meter(spec)
   local color = spec.color or M.signal("accent")
   return M.bar { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = spec.width,
-    stroke = spec.height or 8, color = color,
+    stroke = spec.height or 8, color = color, motion = spec.motion,
     value = function() return get(spec.value) end,
     track = spec.track or function() return get(color):alpha(0.22) end }
 end
@@ -886,11 +888,13 @@ function M.fill(spec)
 end
 
 --- A vertical channel: a rounded column filled from the foot, a gap, the
---- tonal rest above. `width` (10), `height`, `value`, `color`.
+--- tonal rest above. `width` (10), `height`, `value`, `color`, `motion` (a
+--- behavior for a new value).
 function M.vmeter(spec)
   local w, h = spec.width or 10, spec.height
   local color = spec.color or M.signal("accent")
   local GAP = 3
+  local function settle_() return spec.motion or settle() end
   local function lit()
     local v = common.clamp01(get(spec.value))
     return v <= 0 and 0 or math.max(w, v * h)
@@ -898,9 +902,9 @@ function M.vmeter(spec)
   return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
     ui.Rect { width = w, radius = w / 2, color = function() return get(color):alpha(0.22) end,
       height = function() local l = lit() return math.max(0, h - l - (l > 0 and GAP or 0)) end,
-      behavior = { height = settle() } },
+      behavior = { height = settle_() } },
     ui.Rect { width = w, radius = w / 2, color = color,
-      y = function() return h - lit() end, height = lit, behavior = { y = settle(), height = settle() } },
+      y = function() return h - lit() end, height = lit, behavior = { y = settle_(), height = settle_() } },
   }
 end
 
