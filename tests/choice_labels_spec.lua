@@ -39,7 +39,7 @@ local function cut()
 end
 
 local PAGES = { "backups/more", "focus", "focus/mode", "network/proxy", "notifications", "input", "input/remap",
-  "theme/look", "windows/rule", "assistant" }
+  "theme/look", "windows/rule", "assistant", "lock" }
 
 for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. ": no label of a choice is cut off", function()

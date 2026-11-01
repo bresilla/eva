@@ -100,7 +100,7 @@ function V.build(model, w, h)
   }
 
   local opening = P.section { id = "lock-set-opening", width = w, title = "Opening",
-    F.choices { id = "lock-set-grace", width = inner, icon = "timer", title = "Require password",
+    F.choices { id = "lock-set-grace", width = inner, icon = "timer", title = "Require password", per_row = 3,
       subtitle = function()
         local seconds = model.get("grace_seconds")
         if seconds == 0 then return "As soon as it locks" end

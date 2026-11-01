@@ -17,18 +17,24 @@ end
 
 --- A title over a row of buttons, one per choice: `id`, `width`, `title`,
 --- `subtitle`, `icon`, `choices` (`{ value, label }`), `read` (fn), `set` (fn),
---- `enabled` (fn).
+--- `enabled` (fn), `per_row` (all of them, without it).
 function F.choices(spec)
-  local buttons = { id = spec.id .. "-choices", width = spec.width }
-  for _, choice in ipairs(spec.choices) do
-    buttons[#buttons + 1] = { id = spec.id .. "-" .. tostring(choice[1]), label = choice[2], group = spec.id,
-      enabled = spec.enabled, selected = function() return spec.read() == choice[1] end,
-      on_clicked = function() spec.set(choice[1]) end }
+  local per_row = spec.per_row or #spec.choices
+  local lines = { width = spec.width, gap = P.ROW_GAP }
+  for start = 1, #spec.choices, per_row do
+    local buttons = { id = spec.id .. "-choices" .. (start > 1 and "-" .. start or ""), width = spec.width }
+    for index = start, math.min(start + per_row - 1, #spec.choices) do
+      local choice = spec.choices[index]
+      buttons[#buttons + 1] = { id = spec.id .. "-" .. tostring(choice[1]), label = choice[2], group = spec.id,
+        enabled = spec.enabled, selected = function() return spec.read() == choice[1] end,
+        on_clicked = function() spec.set(choice[1]) end }
+    end
+    lines[#lines + 1] = P.buttons(buttons)
   end
   return ui.Column { id = spec.id, width = spec.width, gap = P.ROW_GAP / 2,
     P.row { id = spec.id .. "-row", width = spec.width, height = 44, icon = spec.icon, title = spec.title,
       subtitle = spec.subtitle },
-    P.buttons(buttons),
+    ui.Column(lines),
   }
 end
 
