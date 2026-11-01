@@ -75,7 +75,7 @@ function M.set_engine(id) M.engine:set(id) keep() end
 function M.privacy()
   local engine = M.current()
   if not engine then return "No translator here: install argos-translate or translate-shell" end
-  if engine.offline then return "Offline: " .. engine.name .. ". Nothing leaves this machine" end
+  if engine.offline then return "Offline: " .. engine.name .. ". Your text stays on this machine" end
   return "Online: your text goes to " .. engine.name .. " when you press Send"
 end
 

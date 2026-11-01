@@ -80,6 +80,7 @@ local GOOD = '{"responseStatus":200,"responseData":{"translatedText":"guten Tag 
 local function window(options)
   options = options or {}
   test.clear_stubs()
+  if options.argos then test.stub_run("argos-translate", options.argos) end
   local state = fresh("host")
   test.load("../apps/translate/app.lua", { source = host(options.web or GOOD),
     env = environment(state, options.style, options.programs) })
@@ -96,6 +97,16 @@ test.it("takes translate-shell's words, and its quiet refusals as refusals", fun
   test.eq(bad.words, nil)
   test.contains(bad.why, "Unknown target language")
   test.contains(test.ipc("read_trans", "", "[ERROR] Null response.\n", "0").why, "Null response")
+end)
+
+test.it("gives Argos's reason, without its usage", function()
+  window { programs = { "argos-translate" }, argos = { code = 2, stdout = "",
+    stderr = "usage: argos-translate [-h] [TEXT]\nargos-translate: error: 'en' is not an installed language.\n" } }
+  test.ipc("source", "en")
+  test.ipc("input", "hello")
+  test.ipc("go")
+  test.settle(100)
+  test.eq(test.ipc("state").message, "'en' is not an installed language.")
 end)
 
 test.it("turns the entities a web answer writes back into text", function()
@@ -136,7 +147,44 @@ test.it("takes what is on this machine first, and names it offline", function()
   local state = test.ipc("state")
   test.eq(state.engine, "argos")
   test.contains(state.privacy, "Offline: Argos Translate")
-  test.contains(state.privacy, "Nothing leaves")
+  test.contains(state.privacy, "stays on this machine")
+end)
+
+test.it("runs Argos with the splitter that needs no network, the text on stdin", function()
+  local state = fresh("argos")
+  test.clear_stubs()
+  test.load("../apps/translate/app.lua", { env = environment(state, nil, { "argos-translate" }), source = [[
+    local morf = require("morf")
+    local fed = {}
+    morf.process.run = function(argv, options, done)
+      fed[#fed + 1] = { argv = argv, stdin = options.stdin, env = options.env }
+      done { ok = true, stdout = "Hallo\n", stderr = "" }
+    end
+    require("morf.ui").Item { width = 1, height = 1 }
+    local model = require("model")
+    model.load()
+    morf.ipc.go = function()
+      model.input:set("private words")
+      model.set_source("en")
+      model.set_target("de")
+      model.translate()
+      return fed[1]
+    end
+  ]] })
+  local call = test.ipc("go")
+  test.eq(call.argv, { "argos-translate", "--from-lang", "en", "--to-lang", "de" })
+  test.eq(call.stdin, "private words")
+  test.eq(call.env.ARGOS_CHUNK_TYPE, "MINISBD")
+end)
+
+test.it("says what Argos needs when it has never had the network", function()
+  window { programs = { "argos-translate" }, argos = { code = 1, stdout = "",
+    stderr = "Traceback\nurllib.error.URLError: <urlopen error [Errno 101]>\n" } }
+  test.ipc("source", "en")
+  test.ipc("input", "hello")
+  test.ipc("go")
+  test.settle(100)
+  test.contains(test.ipc("state").message, "needs the network once")
 end)
 
 test.it("falls to an online engine and says that it is one", function()

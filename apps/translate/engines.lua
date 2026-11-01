@@ -13,6 +13,9 @@ M.URL = "https://api.mymemory.translated.net/get"
 M.TIMEOUT_MS = 20000
 -- Argos loads its models for each call.
 M.LOCAL_TIMEOUT_MS = 60000
+-- The splitter that runs with no network once it has its small model; the one
+-- a package brings asks the web for a list on every run.
+M.ARGOS_ENV = { ARGOS_CHUNK_TYPE = "MINISBD" }
 
 -- Languages some engines spell longer.
 local LONG = { zh = "zh-CN" }
@@ -28,6 +31,18 @@ end
 
 local function plain(text)
   return (tostring(text or ""):gsub("\27%[[%d;]*m", ""):match("^%s*(.-)%s*$"))
+end
+
+--- Why Argos failed: its last line, without the program's name for itself.
+function M.read_argos(stderr)
+  local says = tostring(stderr or "")
+  if says:find("URLError", 1, true) or says:find("ConnectionError", 1, true) then
+    return "Argos Translate needs the network once, for its sentence splitter"
+  end
+  local last = ""
+  for line in says:gmatch("[^\r\n]+") do last = line end
+  last = plain(last:gsub("^argos%-translate:%s*error:%s*", ""))
+  return last ~= "" and last or "Argos Translate failed"
 end
 
 --- What translate-shell said: words, or nil and why. An unknown language
@@ -61,8 +76,8 @@ M.LIST = {
     id = "argos", name = "Argos Translate", offline = true, auto = false, program = "argos-translate",
     run = function(request, done)
       sys.run({ "argos-translate", "--from-lang", request.source, "--to-lang", request.target },
-        { stdin = request.text, read = true, timeout_ms = M.LOCAL_TIMEOUT_MS }, function(result)
-          if not result.ok then done(nil, plain(result.stderr) ~= "" and plain(result.stderr) or "Argos Translate failed") return end
+        { stdin = request.text, read = true, timeout_ms = M.LOCAL_TIMEOUT_MS, env = M.ARGOS_ENV }, function(result)
+          if not result.ok then done(nil, M.read_argos(result.stderr)) return end
           done(plain(result.stdout))
         end)
     end,

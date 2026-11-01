@@ -1,8 +1,7 @@
 # eva-translate on the sealed session. MyMemory is real: one word and one short
 # phrase, over morf.http, sent by the scenario's own press. translate-shell and
 # argos-translate are not in the dev shell, so a stand-in script takes their place
-# to show the engine chooser and the offline note; a real `trans` run is noted by
-# hand in the report.
+# here, to show the engine chooser and the offline note.
 unset EVA_DRY_RUN
 state() { appipc state | tr -d ' \n' | cut -c1-300; }
 

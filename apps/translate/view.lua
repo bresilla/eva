@@ -17,6 +17,7 @@ local ENGINE_W = S.TARGET * 5
 
 local function area(spec)
   spec.color, spec.placeholder_color = kit.ink("hi"), kit.ink("lo")
+  spec.inset = { S.s, S.s, S.s, S.s }
   local node = kit.text_field("text_area", spec)
   return node
 end
@@ -79,9 +80,11 @@ local function sending_note(w)
     width = w, height = L.lh(theme.size.small),
     kit.icon(function() return offline() and "offline_pin" or "cloud_upload" end, S.l,
       function() return offline() and kit.ink("lo")() or kit.signal("warn")() end, { anchors = { vertical_center = true } }),
-    controls.note {
-      id = "translate-privacy", x = S.l + S.xs, width = function() return math.max(1, w() - S.l - S.xs) end,
-      text = model.privacy,
+    ui.Item {
+      x = S.l + S.xs, width = function() return math.max(1, w() - S.l - S.xs) end, height = L.lh(theme.size.small),
+      controls.note {
+        id = "translate-privacy", width = function() return math.max(1, w() - S.l - S.xs) end, text = model.privacy,
+      },
     },
   }
 end
@@ -89,7 +92,7 @@ end
 --- The window's content, `w` by `h` (fns).
 function M.build(w, h)
   local head = S.TARGET + S.s
-  local middle = 2 * (P.BUTTON_H + S.s) + S.TARGET + S.s + 2 * L.lh(theme.size.small) + S.m
+  local middle = P.BUTTON_H + S.TARGET + 2 * L.lh(theme.size.small) + 5 * S.s
   local function text_h() return math.max(S.TARGET * 2, math.floor((h() - head - middle) / 2)) end
   local function engine() return model.current() end
   return ui.Item {
