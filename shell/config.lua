@@ -14,7 +14,7 @@ end
 -- Each on-screen display: its place ("" for the default), whether it shows,
 -- its hold in ms (0 for the default) and whether it reads a percentage.
 local osd_kinds={}
-for _,kind in ipairs {"volume","brightness","mic","caps","num","layout","profile","dnd","awake","night",
+for _,kind in ipairs {"volume","brightness","mic","caps","num","layout","profile","dnd","focus","awake","night",
   "ring","bluetooth","headphones","media"} do
   osd_kinds[kind]={position="",enabled=true,hold=0,percent=true}
 end
@@ -152,6 +152,95 @@ local config = settings.open {
     airplane = { on = false, was = { wifi = false, bluetooth = false, mobile = false } },
     -- sound, vibrate or silent (lib/util/ringer.lua; vibrate where feedbackd is).
     ringer = { mode = "sound" },
+    -- The notification server and how it behaves (shell/notifs.lua).
+    notifications = {
+      -- Off, another daemon keeps the bus name; the shell's own still show.
+      daemon = true,
+      -- ms on screen, 0 for the default of 5 s.
+      timeout = 0,
+      ignore_app_timeouts = false,
+      max_popups = 5,
+      -- Popups of one app fold into one card with a count.
+      stack = true,
+      -- Sounds, off until asked for, at this volume; a file or event name
+      -- instead of the sound theme's own.
+      sounds = false,
+      volume = 60,
+      sound = "",
+      -- Repeated arrivals from one app stay silent for a while.
+      cooldown = true,
+      -- Action buttons, and code and link chips.
+      actions = true,
+      smart = true,
+      -- How long the buttons of an expired notification keep working, in ms.
+      keep_actions = 900000,
+      -- "show", or "hide": content stays hidden until a card is opened.
+      previews = "show",
+      -- What a lock screen may show: "all", "app", "count" or "none".
+      lock_previews = "app",
+      -- When the summary of `digest` apps arrives.
+      digest_times = { "08:00", "18:00" },
+      -- A screen flash and a ring round the edge on arrival.
+      flash = false,
+      edge_light = false,
+      -- Per-app rules (shell/notification_rules.lua) and who has notified.
+      rules = {},
+      apps = {},
+      history = {
+        enabled = true,
+        -- Entries kept, and for how many days; 0 days keeps them for good.
+        limit = 200,
+        days = 30,
+        keep_dismissed = true,
+        -- Groups stand open, and how many lines a shut one shows.
+        open_groups = false,
+        preview = 3,
+      },
+    },
+    -- Focus modes (shell/focus_model.lua).
+    focus = {
+      -- The mode on, when a timed one ends, and what turned it on.
+      active = "", ends = 0, source = "", last = "dnd",
+      -- The session length the tile starts: seconds, 0 until off, -1 until 8:00.
+      duration = 0,
+      -- Stay quiet while the screen is shared, or a window is fullscreen.
+      sharing = true,
+      fullscreen = false,
+      -- Windows turned off by hand: "<mode>@<date>".
+      skip = {},
+      modes = {
+        { id = "dnd", name = "Do not disturb", icon = "do_not_disturb_on",
+          allow = { urgency = 2, apps = {}, people = {}, calls = false, alarms = true },
+          schedule = { on = false, days = { 1, 2, 3, 4, 5, 6, 7 }, from = "22:00", to = "07:00", charging = false, paused = false },
+          triggers = { apps = {}, display = "", gamepad = false },
+          effects = { night = false, dark = false, saver = false, awake = false, ring = "" },
+          hide_badges = false, on_enter = {}, on_exit = {} },
+        { id = "work", name = "Work", icon = "work",
+          allow = { urgency = 2, apps = {}, people = {}, calls = true, alarms = true },
+          schedule = { on = false, days = { 1, 2, 3, 4, 5 }, from = "09:00", to = "17:00", charging = false, paused = false },
+          triggers = { apps = {}, display = "", gamepad = false },
+          effects = { night = false, dark = false, saver = false, awake = false, ring = "" },
+          hide_badges = false, on_enter = {}, on_exit = {} },
+        { id = "personal", name = "Personal", icon = "person",
+          allow = { urgency = 1, apps = {}, people = {}, calls = true, alarms = true },
+          schedule = { on = false, days = { 6, 7 }, from = "10:00", to = "20:00", charging = false, paused = false },
+          triggers = { apps = {}, display = "", gamepad = false },
+          effects = { night = false, dark = false, saver = false, awake = false, ring = "" },
+          hide_badges = false, on_enter = {}, on_exit = {} },
+        { id = "sleep", name = "Sleep", icon = "bedtime",
+          allow = { urgency = 2, apps = {}, people = {}, calls = false, alarms = true },
+          schedule = { on = false, days = { 1, 2, 3, 4, 5, 6, 7 }, from = "23:00", to = "07:00", charging = false, paused = false },
+          triggers = { apps = {}, display = "", gamepad = false },
+          effects = { night = true, dark = true, saver = false, awake = false, ring = "silent" },
+          hide_badges = true, on_enter = {}, on_exit = {} },
+        { id = "gaming", name = "Gaming", icon = "sports_esports",
+          allow = { urgency = 2, apps = {}, people = {}, calls = false, alarms = true },
+          schedule = { on = false, days = { 1, 2, 3, 4, 5, 6, 7 }, from = "20:00", to = "23:00", charging = false, paused = false },
+          triggers = { apps = {}, display = "", gamepad = false },
+          effects = { night = false, dark = false, saver = false, awake = true, ring = "" },
+          hide_badges = false, on_enter = {}, on_exit = {} },
+      },
+    },
     -- The shell as the session's polkit agent (polkit.lua): "on", or "off"
     -- to leave the job to another (hyprpolkitagent, polkit-gnome).
     polkit = { agent = "on" },
