@@ -40,7 +40,9 @@ bridge, PAM, and, optionally, phone gestures. Its options live under
 
 Idle lives in Settings, under Eva's Idle and sleep page, and runs in the shell.
 An `idle.*` timeout set in Nix wins over that page, which then shows it as set,
-and stays a timer of hypridle's, which runs without the shell. `lock.settings`
+and stays a timer of hypridle's, which runs without the shell. With no lock timeout
+set in Nix, hypridle keeps one backstop at 15 minutes: it asks the shell, and locks
+only if nothing answers, so a dead shell does not leave the session open. `lock.settings`
 does the same for the Lock screen page: it is written to `/etc/eva/lock.json`,
 with the keys of `models/lock_defaults.lua`, and anything left out stays the
 person's.
@@ -1189,9 +1191,8 @@ option. On NixOS that is usually `time.timeZone`, `i18n.defaultLocale`,
 `networking.hostName`, `networking.firewall` and `users.users`. Two settings
 overrule the configuration, and say so where they are set:
 
-- **Idle timeouts** start as `programs.eva.idle.*`. Changing one writes
-  `$XDG_STATE_HOME/eva/idle/hypridle.conf`, which wins for that account until
-  **Back to the system's** removes it.
+- **Idle timeouts** are the other way about: a `programs.eva.idle.*` set in Nix
+  wins over the Idle and sleep page, which shows it as set.
 - **Lid and power button** start as **System**, which is logind's. Anything else
   wins while the shell runs, by an inhibitor; at the login screen logind decides.
 
