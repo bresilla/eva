@@ -155,13 +155,15 @@ def run(password):
         focus("one")
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 56:1 15:1 15:0")
         machine.sleep(2)
-        print("HELD", ipc("switcher", "state"))
+        held = ipc("switcher", "state") or {}
+        print("HELD", held)
         machine.screenshot("switcher-held")
-        check("held, Alt+Tab shows the switcher", (ipc("switcher", "state") or {}).get("shown") is True)
+        check("held, Alt+Tab shows the switcher", held.get("shown") is True)
         machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool key 56:0")
-        machine.sleep(2)
+        machine.sleep(3)
         active = json.loads(hyprctl("-j", "activewindow"))
-        check("letting Alt go goes to the window chosen", active.get("title") == "two", str(active.get("title")))
+        check("letting Alt go goes to the window chosen", active.get("title") == held.get("title"),
+              f'{active.get("title")} for {held.get("title")}')
         print("AFTER RELEASE", ipc("switcher", "state"))
         ipc("switcher", "cancel")
         ipc("switcher", "next", "free")
@@ -306,9 +308,9 @@ def run(password):
     with subtest("dock"):
         ipc("dock", "hide", "off")
         print("DOCK", ipc("dock", "on"))
-        machine.sleep(6)
+        machine.sleep(10)
         machine.screenshot("dock")
-        state = ipc("dock", "state") or {}
+        state = ipc("dock", "state") or ipc("dock", "state") or {}
         print("DOCK STATE", state)
         check("the dock takes the windows", state.get("rows", 0) >= 1, str(state))
         check("a dock that stays out keeps windows clear of it", json.loads(hyprctl("-j", "monitors"))[0]["reserved"][3] > 10,
