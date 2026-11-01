@@ -60,6 +60,7 @@ return {
     island = "themes.layouts.views.island",
     tasks_page = "themes.layouts.views.tasks_page",
     calendar_page = "themes.layouts.views.calendar_page",
+    calendar_event = "themes.layouts.views.calendar_event",
     planner_widgets = "themes.layouts.views.planner_widgets",
     capture_view = "themes.layouts.views.capture_view",
     capture_editor = "themes.layouts.views.capture_editor",

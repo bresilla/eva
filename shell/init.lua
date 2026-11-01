@@ -667,6 +667,13 @@ ipc.note = function(name)
   require("notes_model").create(name)
   return true
 end
+-- `event [DAY]`: the calendar's form for a new event, on DAY or the day on show.
+ipc.event = function(day)
+  if not here() then return end
+  pages.reach("calendar")
+  morf.time.timer(1, function() require("calendar_page").new_event(day) end, false)
+  return true
+end
 -- `keyboard [how]`: the on-screen keyboard, for a key to bind. `how` is
 -- open, close, toggle or state, or a mode to open it in: full, dev,
 -- letters, numbers, phone or pattern. `keyboard VERB VALUE` is

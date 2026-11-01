@@ -1,0 +1,32 @@
+# The calendar page with an event of each kind, the form for a new one, and
+# what a read-only address shows on the Calendars page. The files are made here.
+export EVA_SETTINGS="$HOME/eva.json"
+export TZ=UTC
+STAMP=$(date -u -d "+2 hours" +%Y%m%dT%H0000Z)
+TODAY=$(date -u +%Y%m%d)
+cat > "$HOME/work.ics" <<ICS
+BEGIN:VCALENDAR
+VERSION:2.0
+X-WR-CALNAME:Work
+BEGIN:VEVENT
+UID:see-1
+SUMMARY:Design review
+DTSTART:$STAMP
+DURATION:PT1H
+LOCATION:Room 2
+RRULE:FREQ=WEEKLY
+END:VEVENT
+BEGIN:VEVENT
+UID:see-2
+SUMMARY:Conference
+DTSTART;VALUE=DATE:$TODAY
+END:VEVENT
+END:VCALENDAR
+ICS
+printf '{ "calendar": { "files": ["%s"], "urls": ["https://calendar.example.test/team.ics"] } }\n' "$HOME/work.ics" > "$EVA_SETTINGS"
+start shell
+ipc page calendar; pause 1.6; shot calendar
+ipc event; pause 1.2; shot event-new
+text "Lunch with Kate"; pause 0.4; shot event-typed
+ipc close; pause 0.6
+ipc settings calendars; pause 1.2; shot calendars-settings

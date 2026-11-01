@@ -32,10 +32,13 @@ function M.build(model, w, h)
     counts:set(out)
   end, { owner = month })
 
-  -- Today at its label's width, planning the rest of the row.
+  -- Today at its label's width, a new event and a task sharing the rest.
   local today = P.button { id = "planner-today", label = "Today", icon = "today", on_clicked = model.today }
-  local plan = P.button { id = "planner-add", label = "Plan a task", icon = "add", tone = "primary",
-    enabled = model.can_plan, width = function() return inner - (today.layout_width or 0) - 8 end, on_clicked = model.plan }
+  local function share() return (inner - (today.layout_width or 0) - 2 * P.ROW_GAP) / 2 end
+  local plan = P.button { id = "planner-add", label = "Task", icon = "add",
+    enabled = model.can_plan, width = share, on_clicked = model.plan }
+  local add_event = P.button { id = "planner-add-event", label = "Event", icon = "add", tone = "primary",
+    width = share, on_clicked = function() model.events.create(model.selected_day:get()) end }
 
   local function join_button(id, link)
     return P.button { id = id, label = "Join", icon = "videocam", tone = "primary",
@@ -53,7 +56,8 @@ function M.build(model, w, h)
           end
           return P.row { id = "planner-event-" .. item.uuid, width = inner, icon = "groups",
             title = item.description, subtitle = table.concat(parts, " · "),
-            trailing = item.link ~= "" and join_button("planner-join-" .. item.uuid, item.link) or nil }
+            on_clicked = function() model.events.open(item.uid, item.at) end,
+            trailing = item.link ~= "" and join_button("planner-join-" .. item.uuid, item.link) or P.chevron() }
         end
         return P.row { id = "planner-task-" .. item.uuid, width = inner, icon = "event",
           title = item.description,
@@ -84,7 +88,7 @@ function M.build(model, w, h)
   local page = P.page { id = "planner-scroll", width = w, height = h, active = model.active,
     P.section { id = "planner-month", width = w,
       month,
-      ui.Row { gap = 8, align = "center", today, plan },
+      ui.Row { gap = P.ROW_GAP, align = "center", today, add_event, plan },
     },
     P.section(day),
     P.section { id = "planner-work", caption_id = "planner-work-title", width = w, title = "Work calendar",
@@ -104,6 +108,8 @@ function M.build(model, w, h)
     },
     failure,
   }
-  return ui.Item { id = "planner-calendar", width = w, height = h, page }
+  page.visible = function() return model.events.mode:get() == "" end
+  return ui.Item { id = "planner-calendar", width = w, height = h, page,
+    require("themes").view("calendar_event").build(model.events, w, h) }
 end
 return M

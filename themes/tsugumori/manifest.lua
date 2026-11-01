@@ -20,6 +20,7 @@ return {
     side_panel = "themes.layouts.views.side_panel",
     tasks_page = "themes.layouts.views.tasks_page",
     calendar_page = "themes.layouts.views.calendar_page",
+    calendar_event = "themes.layouts.views.calendar_event",
     planner_widgets = "themes.layouts.views.planner_widgets",
     net_pages = "themes.layouts.views.net_pages",
     power_page = "themes.layouts.views.power_page",

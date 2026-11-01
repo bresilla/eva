@@ -441,9 +441,22 @@ such as `2026-10-01T09:00`. A repeating task needs a due date. Editing one
 occurrence does not propagate changes to its siblings. The editor also
 offers start/stop, completion, and deletion with a second click to confirm.
 
-Calendar shows a month and tasks scheduled or due on the selected day, in
-local time. “Plan a task” preselects that day. Work-mail meetings are not
-connected yet; the calendar explicitly shows that state.
+Calendar shows a month with the selected day's tasks and events, in local
+time. “Task” and “Event” preselect that day, and `eva event` or `morf ipc call
+event` open the same form from a key. An event goes in the file it came from:
+a line of a `.ics` file, or a file of its own in a vdir folder. Pressing one
+opens it to change or delete, with all-day, repeat and reminder; a repeating
+one asks whether that means this one or all of them. eva changes only the
+fields on the form, so a server's attendees and its own properties stay in the
+file. An event with no calendar to go in makes one, Personal, on this machine.
+
+What cannot be written shows the event and says why: an ICS address, a file
+without write permission, one your Nix configuration links in, and a folder
+khal or vdirsyncer marks read-only. An edit to a synced folder reaches the
+server at the next `vdirsyncer sync`; eva does not run it. Replying to an
+invitation, moving an event between calendars and changing “this and later”
+of a repeating event are not offered. A rule the form cannot say, such as every
+second Monday, stays as it is unless another is picked.
 
 Performance and battery graphs collect the latest 60 samples while their
 tabs are closed, except while a phone display is blanked. Old samples are
