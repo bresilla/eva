@@ -180,6 +180,14 @@ test.it("a held lock has no verb that moves it",function()
   test.falsy(have.card,"card")
 end)
 
+test.it("a lock in a window leaves the reason for the held one",function()
+  mark("idle")
+  test.load("../lock/init.lua",{size={800,600},args={"window","preview"},env={EVA_STYLE="material",
+    EVA_SCALE_MODE="compositor",EVA_DRY_RUN="1",XDG_RUNTIME_DIR=RUN,EVA_SETTINGS=SETTINGS,EVA_LOCK_POLICY=POLICY}})
+  test.settle(500)
+  test.truthy(morf.fs.exists(REASON),"the check before a lock must not use it up")
+end)
+
 test.it("a stale, unknown or missing reason leaves a plain lock",function()
   write(SETTINGS,{lock={grace_seconds=30}})
   write(REASON,{reason="idle",at=uptime()-600})

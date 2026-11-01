@@ -29,7 +29,7 @@ require("themes.ui_scale").apply()
 local HELD = morf.operands[1] ~= "window"
 -- Why this lock was asked for, and what it may show and do because of it.
 local lock_settings = require("models.lock_settings")
-local REASON = require("models.lock_reason").take()
+local REASON = HELD and require("models.lock_reason").take() or "manual"
 local prefs = lock_settings.load()
 if REASON == "lockdown" then lock_settings.lockdown(prefs) end
 -- A fingerprint stack to listen on (helpers/pam/readers.sh), said in the hint.
