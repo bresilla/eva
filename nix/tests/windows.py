@@ -181,6 +181,16 @@ def keys_section():
         machine.sleep(3)
         tool(keys, "reload")
         machine.sleep(2)
+        tool(keys, "record", "verb:snap picker")
+        machine.send_key("meta_l-j")
+        machine.sleep(2)
+        check("a row still hears after a reload", (tool(keys, "state") or {}).get("recording") == "", str(tool(keys, "state")))
+        tool(keys, "stop")
+        print("REPLY", hyprctl("activewindow")[:120], machine.execute("journalctl -b --user-unit eva.service --machine=alice@.host -n 4 --no-pager")[1][-300:])
+        tool(keys, "reset", "verb:snap picker")
+        machine.sleep(3)
+        tool(keys, "reload")
+        machine.sleep(2)
 
         machine.send_key("meta_l-w")
         machine.sleep(2)
@@ -438,7 +448,7 @@ def ddc_section():
     # A stand-in ddcutil: a VM has no monitor to answer on an I2C bus. What this
     # proves is the shell's side, and that the system lets the seat reach a bus.
     with subtest("external brightness, a stand-in monitor"):
-        machine.succeed("echo 60 > /tmp/ddc-level; chmod 666 /tmp/ddc-level; : > /tmp/ddc-calls; chmod 666 /tmp/ddc-calls")
+        machine.succeed(session("sh -c 'echo 60 > /tmp/ddc-level; : > /tmp/ddc-calls'"))
         print("I2C", machine.execute("lsmod | grep i2c_dev; udevadm verify /etc/udev/rules.d 2>&1 | tail -2; "
                                      "cat /run/current-system/sw/lib/udev/rules.d/70-eva-ddc.rules 2>&1 | head -3")[1])
         check("i2c-dev is loaded", machine.execute("lsmod | grep -q i2c_dev")[0] == 0)
