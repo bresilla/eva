@@ -263,8 +263,13 @@ in
         (lib.hiPrio morfDefault)
         bridge
         pkgs.hyprsunset
+        pkgs.libnotify
+        pkgs.pipewire
+        pkgs.qrencode
         tools
       ];
+      environment.sessionVariables.EVA_ALARM_SOUND =
+        "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga";
       hardware.sensor.iio.enable = lib.mkIf config.programs.eva.rotation.enable true;
       services.power-profiles-daemon.enable = lib.mkIf (
         !config.services.tlp.enable && !config.services.auto-cpufreq.enable
@@ -349,6 +354,18 @@ in
           ExecStart = "${pkgs.hyprsunset}/bin/hyprsunset --identity";
           Restart = "on-failure";
           RestartSec = 2;
+        };
+      };
+      # Alarms set before this login: each is a timer unit, gone with the last
+      # session, put back from the store here.
+      systemd.user.services.eva-clock-sync = {
+        description = "eva alarms and timers";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${tools}/bin/eva-clock sync";
         };
       };
       systemd.user.services.eva-clipboard = {

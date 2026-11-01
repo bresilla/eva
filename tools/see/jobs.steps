@@ -1,0 +1,25 @@
+# The commands that run the shell's own code, for real on this sway: as a job
+# with no shell, then through the shell's verbs, the settings file their one
+# state. hyprsunset is a stand-in; the sealed session has no Hyprland.
+unset EVA_DRY_RUN
+export EVA_NIGHTLIGHT_PLACE=52.37,4.90 EVA_NOW=1782043200
+
+note echo "--- no shell"
+note sh apps/bin/eva-nightlight times
+note sh apps/bin/eva-nightlight status
+note sh apps/bin/eva-nightlight temperature 3500
+note sh apps/bin/eva-nightlight sideways
+note sh apps/bin/eva-battery status
+note sh apps/bin/eva-battery limit on
+
+start shell
+pause 1
+note echo "--- with the shell"
+note sh apps/bin/eva-nightlight on 3200
+note sh apps/bin/eva-nightlight status
+note sh apps/bin/eva-nightlight toggle
+note sh apps/bin/eva-nightlight follow on
+note sh apps/bin/eva-nightlight times
+ipc settings nightlight
+pause 1.2
+shot nightlight-page

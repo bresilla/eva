@@ -13,6 +13,7 @@ local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local L = require("themes.layouts.parts")
+local P = require("themes.layouts.page")
 local S = theme.space
 
 local M = {}
@@ -51,16 +52,19 @@ function M.pages(spec)
   }, tab
 end
 
---- One choice of a few, the kit's segmented control, its mark travelling on the
---- theme's field: `id`, `width`, `items` (labels), `current` (fn, from 1),
+--- One choice of a few, the same exclusive group of presses the shell's Power
+--- page has: `id`, `width`, `items` (labels), `current` (fn, from 1),
 --- `on_changed(index)`.
 function M.segments(spec)
-  local count = #get(spec.items)
-  return kit.widgets.segmented {
-    id = spec.id, items = spec.items, current = spec.current, width = spec.width, height = S.TARGET,
-    item_width = function() return get(spec.width) / count end, item_height = S.TARGET,
-    on_current_changed = spec.on_changed,
-  }
+  local row = { width = spec.width }
+  for index, label in ipairs(get(spec.items)) do
+    row[index] = {
+      id = spec.id .. "-" .. index, label = label, group = spec.id,
+      selected = function() return spec.current() == index end,
+      on_clicked = function() spec.on_changed(index) end,
+    }
+  end
+  return P.buttons(row)
 end
 
 --- A search field, or any line of text kept in `value` (a signal): `id`,
@@ -101,17 +105,20 @@ function M.list(spec)
 end
 
 --- Cards made inside `build()` as layers of one field, under what `build`
---- returns: as they touch or pass they join on the theme's seam. `id`, `width`,
---- `height`, `blend` (the seam, the theme's by default). Holds at most sixteen
---- cards, the engine's limit on a field.
+--- returns: apart at rest, they run together on the theme's seam while `busy()`
+--- holds, as the dashboard's do while they bud. `id`, `width`, `height`, `busy`
+--- (a fn). Holds at most sixteen cards, the engine's limit on a field.
 function M.cards(spec, build)
   local list = {}
   kit.collect(list)
   local ok, content = pcall(build)
   kit.collect(nil)
   if not ok then error(content, 0) end
-  local field = { id = spec.id .. "-cards", anchors = { fill = true }, blend = spec.blend or theme.SEAM / 2,
-    blend_profile = "circular" }
+  local field = {
+    id = spec.id .. "-cards", anchors = { fill = true }, blend_profile = "circular",
+    blend = function() return spec.busy and spec.busy() and theme.SEAM or 0 end,
+    behavior = { blend = theme.spring.effects },
+  }
   for index, entry in ipairs(list) do
     if index <= 16 then field[#field + 1] = entry.shape end
   end
