@@ -95,18 +95,24 @@ eva_focused_output() {
   esac
 }
 
-# A notification with a thumbnail of file $1, titled $2, offering Open, and
-# Edit through the tool at $3. Waits for the answer: run it in the background.
+# A notification titled $3 for file $2 with thumbnail $1, offering Open, and
+# Edit through the tool at $4 when one is given. Waits for the answer: run it in
+# the background.
 eva_thumbnail() {
   if ! eva_has notify-send; then
-    eva_notify "$2" "$1"
+    eva_notify "$3" "$2"
     return 0
   fi
-  answer=$(notify-send --app-name=eva --icon="$1" --action=open=Open --action=edit=Edit \
-    --wait "$2" "$1" 2>/dev/null || true)
+  if [ -n "${4:-}" ]; then
+    answer=$(notify-send --app-name=eva --icon="$1" --action=open=Open --action=edit=Edit \
+      --wait "$3" "$2" 2>/dev/null || true)
+  else
+    answer=$(notify-send --app-name=eva --icon="$1" --action=open=Open \
+      --wait "$3" "$2" 2>/dev/null || true)
+  fi
   case "$answer" in
-    open) eva_has xdg-open && xdg-open "$1" ;;
-    edit) sh "$3" --edit-file "$1" ;;
+    open) if eva_has xdg-open; then xdg-open "$2"; fi ;;
+    edit) sh "$4" --edit-file "$2" ;;
   esac
 }
 

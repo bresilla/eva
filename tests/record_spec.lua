@@ -76,6 +76,18 @@ test.it("starts, refuses a second, and stops with SIGINT", function()
   test.eq(cli({ "status" }, log).stdout, "idle\n")
 end)
 
+test.it("offers Open on the recording itself, and no Edit", function()
+  host()
+  local result, _, log = cli({ "monitor" }, nil, { "STUB_NOTIFY=open" })
+  local file = result.stdout:match("%S+")
+  cli({ "stop" }, log, { "STUB_NOTIFY=open" })
+  test.wait(function() return (morf.fs.read(log) or ""):find("xdg-open", 1, true) end, 5000, "Open ran")
+  local calls = morf.fs.read(log)
+  test.contains(calls, "xdg-open " .. file)
+  test.contains(calls, "--icon=")
+  test.falsy(calls:find("--action=edit", 1, true))
+end)
+
 test.it("says when nothing is recording", function()
   host()
   local result = cli { "stop" }

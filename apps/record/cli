@@ -49,7 +49,7 @@ stop() {
   rm -f "$pid_file" "$file_file"
   if [ -n "$file" ]; then printf '%s\n' "$file"; fi
   if frame=$(poster "$file"); then
-    { eva_thumbnail "$frame" "Recording saved" "$apps/screenshot/cli"; rm -f "$frame"; } &
+    { eva_thumbnail "$frame" "$file" "Recording saved"; rm -f "$frame"; } &
   else
     eva_notify "Recording saved" "$file"
   fi
