@@ -198,56 +198,6 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   `max_output`, and `nix search` writes 8 MiB of progress to stderr. An option to send
   stderr to /dev/null would replace the `sh -c '... 2>/dev/null'` the Nix mode uses.
 
-## On-screen keyboard: open
-
-- A text field's content type. `zwp_input_method_v2` sends `content_type(hint,
-  purpose)` and `crates/platform/morf-app/src/backend/wayland/protocol_handlers.rs`
-  has no arm for it (it falls to `_ => {}`), so Lua cannot tell a password field
-  from a search box. Keep it on `InputMethodState` and pass it on as two more
-  arguments: `morf.input_method.subscribe(function(active, surrounding_text,
-  cursor, anchor, serial, purpose, hints) end)`, `purpose` the protocol's name
-  (`"password"`, `"phone"`, `"url"`, ...) and `hints` a list of its flag names
-  (`"hidden_text"`, `"sensitive_data"`, ...). `shell/keyboard_model.lua` already
-  takes both, so nothing else changes. Until then autocorrect and learning stay
-  off by default, and a window's class stands in for the field.
-- Layouts in `lib.shell.osk`. `PAGES` and `ALTS` are locals with no way in, so a
-  language can only be painted over the QWERTY keys. Wanted: `osk.new { pages =
-  { letters = rows, ... }, alts = { e = { "é" } } }`, and `shifted` taking
-  `options.upper(text)`, since `string.upper` is ASCII only. eva's workaround is
-  `shell/keyboard_board.lua`: it rewrites each key's place through `action`, its
-  label through `key_face` and its letter in `send`. It costs:
-  - osk.lua's row formula copied into `shell/keyboard_layouts.lua`, and its
-    key-height formula into `themes/keyboard.lua`'s `metrics`; a change in osk
-    breaks both without an error.
-  - `ALTS` copied as `ACCENTS`, because a moved letter needs the accents of the
-    letter it now shows.
-  - A key `id` format (`<prefix>.key.<mode>.<page>.<char>`) read as an interface.
-  - Only 36 letter keys exist, the 26 and the digit row's ten, so a language past
-    26 letters gives its digit row up. Russian and Ukrainian can have no number row.
-  - A press outside the language's letters (a long press on a digit's key) keeps
-    osk's offers for that key.
-- osk's alternates and preview have no API either. They are `morf.signal`s made
-  inside `osk.new`, and a signal's name finds nothing: `morf.signal` makes a new
-  signal each call. `boards.capture` in `shell/keyboard_board.lua` wraps
-  `morf.signal` for the length of `osk.new` to keep them, which depends on osk
-  calling it through the shared `morf` table. Wanted: `osk.new { offers =
-  function(key, list) return list end, preview = function(key, text) return text
-  end }`.
-- Keyboard metrics after build. `osk.new`'s `width` and `metrics` are fixed, so one
-  hand, floating, split, the height setting and a language change each destroy the
-  board and build another (`build_board` in `themes/layouts/views/keyboard.lua`).
-  Wanted: `kb.resize(width, metrics)`.
-- A hook on the whole press. `action` wraps `on_pressed` and `on_released`, but
-  `on_touch_canceled` is assigned to the node after `action` returns, so a cancelled
-  press is only heard through `keys.cancel`. Wanted: `options.on_cancel(id)`.
-- Text past ASCII with no field asking. `osk.sender` types key presses on a US
-  layout, so `é` or `я` goes nowhere when no input method is active: the shell's own
-  fields, and any program without text-input-v3. Wanted: `morf.virtual_keyboard.keymap
-  (text)` to upload one, or a Lua way to insert into the focused `ui.TextInput`.
-- A short sound with no process. A key click needs a sample played with no spawn
-  per press; `morf.audio` has streams and no sample player. Wanted:
-  `morf.audio.play(path, { volume })`. eva has no key sound until then.
-
 ## Convertible, battery and phone tiles: open
 
 - A pen's pressure and tilt. The compositor's `zwp_tablet_v2` events reach a

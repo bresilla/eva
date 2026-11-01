@@ -20,7 +20,6 @@ local builders={
   calendars=function(w,h) return require("themes").view("calendar_settings").page(require("calendar_sources"),w,h) end,
   notes=function(w,h) return require("notes_page").build(require("pages").shown("notes"),w,h) end,
   linked_phone=function(w,h) return require("linked_phone_page").build(require("pages").shown("linked_phone"),w,h) end,
-  keyboard=function(w,h) return require("keyboard_page").page(w,h) end,
   lock=function(w,h) return require("lock_page").page(w,h) end,
   idle=function(w,h) return require("idle_page").page(w,h) end,
   dock=function(w,h) return require("windows_page").dock_page(w,h) end,
@@ -52,7 +51,7 @@ local function themed(name) return require("themes").view(name) end
 builders.home=function(w,h)
   return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
 end
-for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard/more","lock/more","windows/more","phone"} do
+for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard","lock/more","windows/more","phone"} do
   builders[name]=function(w,h) return themed("settings_form").build(name,w,h) end
 end
 

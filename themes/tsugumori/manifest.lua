@@ -3,9 +3,6 @@ return {
   views = {
     keyboard = "themes.layouts.views.keyboard",
     call = "themes.layouts.views.call",
-    keyboard_strip = "themes.layouts.views.keyboard_strip",
-    keyboard_emoji = "themes.layouts.views.keyboard_emoji",
-    keyboard_page = "themes.layouts.views.keyboard_page",
     lule_page = "themes.layouts.views.lule_page",
     wallpaper_page = "themes.layouts.views.wallpaper_page",
     desktop = "themes.layouts.views.desktop",
