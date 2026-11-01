@@ -17,7 +17,10 @@ case "${1:-}" in
     echo "USB tethering" > "$root/strings/0x409/product"
     echo NCM > "$root/configs/c.1/strings/0x409/configuration"
     ln -sf "$root/functions/ncm.usb0" "$root/configs/c.1/"
-    ls /sys/class/udc | head -n 1 > "$root/UDC"
+    for controller in /sys/class/udc/*; do
+      basename "$controller" > "$root/UDC"
+      break
+    done
     ;;
   stop)
     echo "" > "$root/UDC" || true
