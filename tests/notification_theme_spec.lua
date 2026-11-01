@@ -46,6 +46,7 @@ local HOST=[[
   morf.ipc.forget=function(id) notifications.forget(tonumber(id)) end
   morf.ipc.clear=notifications.clear
   morf.ipc.place=function(position) require("config").set("osd.notifications",position) end
+  morf.ipc.buzzed=function() return require("haptics").last:get() end
 ]]
 local loads=0
 -- `position`, a top or bottom anchor, is written before the shell starts.
@@ -54,7 +55,7 @@ local function load(style,w,h,position)
   local settings=morf.fs.join(morf.env("XDG_CACHE_HOME"),"notification-spec-"..loads..".json")
   if position then morf.fs.write(settings,morf.json.encode {osd={notifications=position}}) end
   test.load("../shell/init.lua",{source=HOST,size={w or 1100,h or 750},env={
-    EVA_STYLE=style,TEST_WIDTH=tostring(w or 1100),TEST_HEIGHT=tostring(h or 750),EVA_SETTINGS=settings}})
+    EVA_STYLE=style,TEST_WIDTH=tostring(w or 1100),TEST_HEIGHT=tostring(h or 750),EVA_SETTINGS=settings,EVA_FAKE_HAPTICS="1"}})
 end
 local function snapshot(name)
   if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end
@@ -143,6 +144,7 @@ for _,style in ipairs {"material","tsugumori"} do
       test.drag({x,y},{x+side,y},{steps=6})
       test.advance(600)
       test.truthy(gone(),"a sideways swipe did not dismiss it")
+      test.eq(test.ipc("buzzed"),"commit","a swipe that dismisses buzzes")
     end
     -- Away from the top edge.
     local x,y=card()
