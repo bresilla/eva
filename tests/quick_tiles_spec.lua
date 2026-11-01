@@ -416,8 +416,8 @@ test.it("a first pull shrinks the sheet to its page on a spring, and it stays op
   test.eq(#test.logs("error"),0)
 end)
 
-test.it("a sheet with more than fits stops at four fifths and scrolls",function()
-  load({size={620,700},fake=true})
+test.it("a phone's sheet with more than fits stops at four fifths and scrolls",function()
+  load({size={500,700},fake=true})
   test.ipc("sidebar","open","settings") test.settle(2500)
   test.near(test.get("drawer-sidebar").height,test.ipc("q_most"),1)
   test.eq(#test.logs("error"),0)

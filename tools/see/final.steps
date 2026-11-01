@@ -1,0 +1,18 @@
+# The whole shell, one of each surface, for a last look at a form factor.
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging} EVA_FAKE_MODEM=1 EVA_FAKE_HARDWARE=1
+export EVA_FAKE_STATUS=${EVA_FAKE_STATUS:-wifi,bluetooth,dnd}
+start shell
+pause 1; shot rest
+ipc sidebar open settings; pause 1.6; shot quick
+ipc close; pause 0.8
+ipc dashboard open; pause 1.8; shot dashboard
+ipc close; pause 0.8
+ipc launcher open; pause 1.2; text 'fire'; pause 1.2; shot launcher
+ipc close; pause 0.8
+ipc osd volume; pause 1; shot osd
+pause 2.5
+ipc notify "A message" "Something happened and it is worth a look" normal Eva; pause 1.2; shot notification
+start lock
+key Return; pause 1; shot lock
+start greet
+key Return; pause 1; shot greet

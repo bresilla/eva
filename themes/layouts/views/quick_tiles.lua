@@ -101,9 +101,9 @@ function V.build(model, w, ctx)
     local fg = rows.ink(on, true, C.onSurface)
     local function sub() return on() and fg():alpha(0.8) or C.onSurfaceVariant end
     local more
-    -- A title reaches the chevron's glyph, a status stops at its box.
+    -- Title and status both reach the chevron's glyph.
     local TEXT_W = SLOT - S.xxl - S.l - (t.detail and S.xxl + S.xs or S.l + S.xs)
-    local STATUS_W = t.detail and TEXT_W - S.m or TEXT_W
+    local STATUS_W = t.detail and TEXT_W - S.xs or TEXT_W
 
     local area = kit.action {
       id = "utilities-toggle-" .. id, accessible_name = name, anchors = { fill = true }, cursor = "pointer",

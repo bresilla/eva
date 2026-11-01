@@ -17,7 +17,7 @@ M.MEDIUM_HEIGHT, M.EXPANDED_HEIGHT = 480, 900
 -- its width, and longer still past a short side a monitor can have.
 local PHONE_DIAGONAL_MM, PHONE_ASPECT, PHONE_SHORT, PHONE_LONG_ASPECT = 190, 1.75, 1000, 1.9
 -- A quick settings sheet where the screen has room to spare.
-local SHEET_W, SHEET_H = 560, 760
+local SHEET_W = 560
 
 local function output() return (morf.screens or {})[1] or {} end
 
@@ -110,10 +110,11 @@ function M.panel_width()
   return M.width_class() == "compact" and full or math.min(full, SHEET_W)
 end
 
---- How tall that sheet is, of a desk `h` tall: four fifths, up to a panel's.
+--- How tall that sheet may be, of a desk `h` tall: four fifths when it spans
+--- the desk, all of it as a panel in the corner.
 function M.panel_height(h)
-  local share = math.floor((h - 2 * require("theme").BORDER) * 0.8)
-  return M.width_class() == "compact" and share or math.min(share, SHEET_H)
+  local room = h - 2 * require("theme").BORDER
+  return M.width_class() == "compact" and math.floor(room * 0.8) or room
 end
 
 --- Where that sheet hangs: from the middle on a phone held upright, else

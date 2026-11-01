@@ -13,7 +13,6 @@ function V.build(model)
   local function height()
     local _, h = model.desk_size()
     if not top then return h - 2 * theme.BORDER end
-    -- A sheet leaves at least a fifth of the desk below it, to tap it shut.
     local most = responsive.panel_height(h)
     local wanted = model.fit()
     if not wanted then return most end
