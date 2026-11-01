@@ -440,6 +440,7 @@ it says nothing about real timing, real errors or real audio. `phone fake ring
 in for the rest. `tools/phone-wire.sh` sends every typed call through the engine's
 encoder onto a real `dbus-daemon` and reads the types back off the wire, which no
 spec can: it checks what goes out, not what a modem does with it.
+`FEEDBACKD=... tools/phone-daemons.sh` runs the ringer against the real feedbackd.
 
 ## Visual themes (in progress)
 
