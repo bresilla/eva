@@ -1,0 +1,21 @@
+#!/bin/sh
+# eva-kill: end a window, as the window menu's Force quit does.
+#
+#   eva-kill            press a window to end it, Escape cancels; a second launch
+#                       cancels too
+#   eva-kill --active   ends the focused window, with no overlay
+#
+# EVA_DRY_RUN holds the end back and logs it.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" kill ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  --active) exec sh "$apps/launch" kill --active ;;
+  *)
+    eva_say "eva-kill: no option $1"
+    exit 2
+    ;;
+esac

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=End a window
+Comment=Press a window to end it
+Exec=eva-kill
+Icon=process-stop
+Terminal=false
+Categories=Utility;System;
+StartupWMClass=eva.kill

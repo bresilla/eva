@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Find pointer
+Comment=A spotlight, crosshairs or rings to show where the pointer is
+Exec=eva-find
+Icon=preferences-desktop-accessibility
+Terminal=false
+Categories=Utility;Accessibility;
+StartupWMClass=eva.find

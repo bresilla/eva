@@ -1,0 +1,23 @@
+#!/bin/sh
+# eva-draw: draw on the screen. Press and drag, with a mouse or a finger, over
+# whatever is there; a second launch ends it, as Escape does.
+#
+#   r y g c b p      the pens, in the theme's colours
+#   + - [ ] wheel    the pen's width
+#   t                words: press where they go, type, Return keeps them
+#   w                a plain board behind the marks
+#   u, Ctrl+Z        takes back the last mark
+#   e                clears everything
+#   Escape           ends
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" draw ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *)
+    eva_say "eva-draw: takes no arguments"
+    exit 2
+    ;;
+esac
