@@ -22,11 +22,6 @@ local M = {}
 
 M.FITS = { crop = "preserve_aspect_crop", fit = "preserve_aspect_fit", stretch = "stretch" }
 
-local function expand(path)
-  if path:sub(1, 2) == "~/" then return morf.fs.home() .. path:sub(2) end
-  return path
-end
-
 local function state_file()
   local base = (morf.env and morf.env("XDG_STATE_HOME")) or (morf.fs.home() .. "/.local/state")
   return base .. "/eva/wallpaper/path.txt"
@@ -35,6 +30,7 @@ end
 M.current = morf.signal("eva.wallpaper", "")
 
 local lule = require("lib.integrations.lule")
+local expand = lule.expand
 local lule_scheme = lule.watch("eva.wallpaper.lule")
 
 -- The picture before the colour mode has its say.

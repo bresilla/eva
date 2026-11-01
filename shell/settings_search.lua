@@ -37,6 +37,8 @@ M.CONTROLS = {
   { "Hotspot password", "hotspot", "share wifi name", "wifi_tethering" },
   { "Wallpaper", "theme/lule", "background picture image", "image" },
   { "Colour scheme", "theme/lule", "palette accent", "palette" },
+  { "Summary times", "notifications", "digest schedule when held", "schedule" },
+  { "Notification buttons keep working", "notifications", "actions expired how long", "smart_button" },
   { "Dark mode", "theme", "night appearance", "dark_mode" },
   { "Light mode", "theme", "day appearance", "light_mode" },
   { "On-screen display position", "osd", "corner where", "picture_in_picture" },

@@ -18,6 +18,7 @@
 -- nearest its edge. A card goes sideways, or away from that edge, when swiped.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local L = require("themes.layouts.parts")
@@ -181,7 +182,7 @@ function V.build(M)
       active = function() return M.opened:get() and n() ~= nil end,
       ink = function() return kit.ink("hi")() end,
     }
-    local measure = kit.text { text = function() return summary_text():upper() end, font_size = SUM,
+    local measure = kit.text { text = function() return unicase.upper(summary_text()) end, font_size = SUM,
       height = 1, opacity = 0 }
     local function trail_x()
       local w = math.ceil((measure.layout_width or SUM_W) * 1.1) + 18

@@ -8,7 +8,7 @@ local live_folders={}
 local run
 function M.expand(path)
   local home=morf.fs.home()
-  return tostring(path or ""):gsub("^~/",function() return home.."/" end):gsub("%$HOME",function() return home end)
+  return (tostring(path or ""):gsub("^~/",function() return home.."/" end):gsub("%$HOME",function() return home end))
 end
 function M.kind()
   if morf.env("HYPRLAND_INSTANCE_SIGNATURE") then return "hyprland" end
@@ -167,7 +167,7 @@ function M.rebind(binding,previous,include_file,cb)
       local ok,error=morf.fs.write(path,plan.text) if not ok then cb(false,error or "Cannot write binding file") return end
     end
     local hypr=require("lib.compositor.hyprland")
-    if flavour=="lua" then hypr.eval(plan.text,function(reply,error) cb(reply and reply:match("^%s*ok%s*$")~=nil,error or reply) end)
+    if flavour=="lua" then hypr.eval(plan.text,function(reply,error) cb(require("lib.util.hypr").took(reply),error or reply) end)
     else hypr.keyword("unbind",plan.unbind,function()
       hypr.keyword("unbind",plan.new_unbind,function()
         hypr.keyword("bind",plan.bind,function(ok,error) cb(ok,error) end)

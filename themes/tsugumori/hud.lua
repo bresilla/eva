@@ -4,6 +4,7 @@
 -- Brought over from the Futuristic theme.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 
 return function(theme, kit)
   local C = theme.color
@@ -83,7 +84,7 @@ return function(theme, kit)
   function H.keycap(spec)
     local h = spec.height or 22
     local size = math.max(10, math.floor(h * .5))
-    local key = kit.text { text = function() return tostring(get(spec.text) or ""):upper() end, font_size = size,
+    local key = kit.text { text = function() return unicase.upper(tostring(get(spec.text) or "")) end, font_size = size,
       font_weight = 600, letter_spacing = .5, color = kit.ink("hi"), anchors = { vertical_center = true },
       height = h, vertical_alignment = "center" }
     local function W() return get(spec.width) or math.max(h + 2, (key.layout_width or 0) + 15) end

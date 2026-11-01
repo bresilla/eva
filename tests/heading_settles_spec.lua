@@ -4,7 +4,7 @@
 local test = morf.test
 local SOURCE = [[
   require("init")
-  morf.ipc.month = function() return require("dashboard_model").calendar().title:upper() end
+  morf.ipc.month = function() return require("lib.util.unicase").upper(morf.time.format("%B %Y")) end
 ]]
 local function load()
   test.stub_run("task", { code = 0, stdout = "[]" })

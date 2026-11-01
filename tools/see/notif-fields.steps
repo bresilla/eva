@@ -1,0 +1,6 @@
+# The Notifications page's two fields: how long buttons keep working, and the
+# summary's times. A desk needs SCREEN=1920x1800 to hold both without scrolling.
+start shell
+drawn
+ipc settings notifications; pause 2.6; shot page
+stop

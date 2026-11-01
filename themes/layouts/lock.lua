@@ -395,9 +395,10 @@ return function(W, H, NAME)
   if parts.power then
     local row = { id = "lock-power", gap = s(10), x = BORDER + s(22), y = TOP - s(6),
       visible = function() return main() and stage:get() == "rest" end }
-    for _, id in ipairs { "suspend", "reboot", "poweroff" } do
+    local login = require("models.auth_power")
+    for _, id in ipairs(login.ORDER) do
       if parts.power.available(id) then
-        local action = require("models.auth_power").ACTIONS[id]
+        local action = login.ACTIONS[id]
         row[#row + 1] = button.round(view, { id = "lock-power-" .. id, name = action.name, icon = action.icon,
           hold = 800, on_clicked = function()
             local ok, why = parts.power.run(id)

@@ -8,6 +8,7 @@
 -- drawn round them.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local stripes = require("themes.tsugumori.stripes")
 local stroke = require("themes.tsugumori.strokes")
 
@@ -127,7 +128,7 @@ return function(S, theme, M, hud)
 
   local function caps(text, props)
     props = props or {}
-    props.text = tostring(text):upper()
+    props.text = unicase.upper(tostring(text))
     return M.menu_label(props)
   end
 
@@ -367,10 +368,11 @@ return function(S, theme, M, hud)
               border_color = function() return stroke(C, "quiet") end } }
         end
         local n = tonumber(text)
+        local ink = type(value) == "table" and value.ink or function() end
         return ui.Item { anchors = { fill = true },
           frame(t, s),
           caps(n and ("%02d"):format(n) or text, { anchors = { center_in = true },
-            color = function() return s.current() and C.onPrimary or C.onSurface end }) }
+            color = function() return s.current() and C.onPrimary or ink() or C.onSurface end }) }
       end,
     })
   end
@@ -550,7 +552,7 @@ return function(S, theme, M, hud)
       local items = spec.items
       if type(items) == "function" then items = items() end
       local v = (items or {})[t.current or 0]
-      return v and label_of(v):upper() or ""
+      return v and unicase.upper(label_of(v)) or ""
     end
   end
   -- The shutter the highlight turns on.
@@ -691,7 +693,7 @@ return function(S, theme, M, hud)
         hud().corners { length = 6, weight = 2, color = function() return C.primary end,
           opacity = function() return t.visual_focus and 1 or 0.6 end } },
       item = function(_, value, s)
-        return M.text { anchors = { fill = true }, text = label_of(value):upper(), horizontal_alignment = "center",
+        return M.text { anchors = { fill = true }, text = unicase.upper(label_of(value)), horizontal_alignment = "center",
           vertical_alignment = "center", font_size = theme.size.larger, font_weight = 500,
           color = function() return s.current() and C.primary or C.onSurfaceVariant end }
       end,

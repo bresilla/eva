@@ -13,7 +13,7 @@ M.LAYOUTS = { "dwindle", "master", "scrolling", "monocle" }
 local KNOWN = {}
 for _, layout in ipairs(M.LAYOUTS) do KNOWN[layout] = true end
 
-local function quoted(text) return ("%q"):format(tostring(text)) end
+local quoted = require("lib.shell.window_dispatch").quoted
 -- Kept in the settings as a list of `{ id, value }`, handed out by id as text.
 local function stored(kind)
   local out = {}

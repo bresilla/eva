@@ -23,6 +23,17 @@ end
 
 local FORMS = { { "desk", { 1920, 1080 } }, { "tablet", { 1280, 800 } }, { "phone", { 868, 1932 } } }
 
+-- Scrolls the Notifications page until the node `id` is in sight.
+local function reach(id)
+  local page = test.get("notif-scroll")
+  for _ = 1, 40 do
+    local node = test.get(id)
+    if node.y >= page.y and node.y + node.height <= page.y + page.height then return end
+    test.wheel(0, node.y < page.y and -120 or 120, { x = page.x + page.width / 2, y = page.y + page.height / 2 })
+    test.advance(80)
+  end
+end
+
 for _, style in ipairs { "material", "tsugumori" } do
   for _, form in ipairs(FORMS) do
     local name, size = form[1], form[2]
@@ -72,6 +83,31 @@ for _, style in ipairs { "material", "tsugumori" } do
       local stored = saved(settings).notifications
       test.truthy(stored.sounds)
       test.eq(stored.timeout, 3000)
+      clean()
+    end)
+
+    test.it(style .. " " .. name .. ": how long buttons keep working is chosen on the page", function()
+      local settings = load(style, size)
+      test.ipc("settings", "notifications") test.settle(1800)
+      test.truthy(test.find { id = "notif-keep-900000", visible = true }, "the default is not on offer")
+      reach("notif-keep-300000")
+      test.click("notif-keep-300000") test.settle(300)
+      test.eq(saved(settings).notifications.keep_actions, 300000)
+      test.click("notif-keep-0") test.settle(300)
+      test.eq(saved(settings).notifications.keep_actions, 0)
+      clean()
+    end)
+
+    test.it(style .. " " .. name .. ": the summary's times read and write as one line", function()
+      local settings = load(style, size)
+      test.ipc("settings", "notifications") test.settle(1800)
+      test.eq(test.get("form-notifications-digest-times").text, "08:00 18:00")
+      reach("form-notifications-digest-times")
+      test.click("form-notifications-digest-times") test.settle(200)
+      test.key("a", "ctrl") test.type("21:30, 7:05 nonsense 25:00 21:30") test.key("Return") test.settle(300)
+      test.eq(saved(settings).notifications.digest_times, { "07:05", "21:30" })
+      test.eq(test.get("form-notifications-digest-times").text, "07:05 21:30", "the field shows what was kept")
+      test.falsy(test.find { id = "form-notifications-digest-times-save", visible = true }, "nothing is left to save")
       clean()
     end)
 

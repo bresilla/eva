@@ -179,63 +179,31 @@ return function(model, ROW1, ROW2, GAP)
     local iw, ih = P.tile_inner(W, H)
     local CELL_W = math.floor(iw / 7)
     local GX = math.floor((iw - 7 * CELL_W) / 2)
-    local month = model.calendar
-    local names_y = 32
-    local grid_y = names_y + L.lh(S.label) + 2
     local foot = L.lh(S.micro) + 4
-    local CELL_H = math.max(14, math.floor((ih - grid_y - foot) / 6))
-    local cells = {}
-    for i = 1, 42 do
-      local function day() return month().days[i] end
-      local mark = math.max(4, math.min(CELL_W - 10, CELL_H - 2))
-      cells[#cells + 1] = ui.Item {
-        width = CELL_W, height = CELL_H,
-        -- Today's mark blooms in each time the dashboard opens.
-        kit.shape { anchors = { center_in = true }, width = mark, height = mark,
+    local month = require("themes.kit.composites").calendar {
+      id = "calendar", x = GX, width = 7 * CELL_W, height = ih - foot, header_height = 32,
+      read_only = true, spill = true, weekends = true,
+      month = model.calendar_month,
+      on_month = function(_, delta) model.shift_month(delta) end,
+      heading = function(words)
+        return L.heading { scope = "dashboard.overview", level = "section", id = "calendar-title",
+          anchors = { center_in = true }, font_size = theme.size.larger, text = words }
+      end,
+      -- Today's mark blooms in each time the dashboard opens.
+      today_mark = function(cell_w, cell_h)
+        local mark = math.max(4, math.min(cell_w - 10, cell_h - 2))
+        return kit.shape { anchors = { center_in = true }, width = mark, height = mark,
           shape = function() return opened:get() and "cookie9" or "circle" end, duration = 700,
-          color = function() return kit.signal("accent")():alpha(.3) end, visible = function() return day().today end },
-        kit.text { anchors = { center_in = true }, font_size = theme.size.normal - 2,
-          text = function() return tostring(day().day) end,
-          color = function()
-            local d = day()
-            if d.today then return kit.ink("accent")() end
-            if not d.current then return kit.stroke("mark")() end
-            if d.weekend then return kit.signal("info")() end
-            return kit.ink("hi")()
-          end },
-      }
-    end
-    local names = {}
-    for i, n in ipairs { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" } do
-      names[#names + 1] = ui.Item { width = CELL_W, height = L.lh(S.label),
-        L.label { width = CELL_W, horizontal_alignment = "center", text = n,
-          color = (i == 1 or i == 7) and kit.signal("info") or kit.ink("lo") } }
-    end
-    local function arrow(icon, delta, id)
-      return kit.hover(kit.action {
-        id = id, width = 28, height = 26, cursor = "pointer",
-        accessible_name = delta < 0 and "Previous month" or "Next month",
-        on_clicked = function() model.shift_month(delta) end,
-        kit.icon(icon, 20, kit.ink("accent"), { anchors = { center_in = true } }),
-      }, function(hovered) return hovered and kit.signal("accent")():alpha(.15) or kit.signal("accent")():alpha(0) end, 13)
-    end
+          color = function() return kit.signal("accent")():alpha(.3) end }
+      end,
+    }
     return P.tile {
       id = "dashboard-calendar", title = "Calendar", width = W, height = H, clip = true,
       ui.MouseArea { anchors = { fill = true }, z = -1,
         on_wheel = function(_, _, _, _, _, step_y)
           if step_y ~= 0 then model.shift_month(step_y > 0 and 1 or -1) end
         end },
-      ui.Item { x = GX, y = 0, width = 7 * CELL_W, height = 26,
-        arrow("chevron_left", -1, "calendar-previous"),
-        L.heading { scope = "dashboard.overview", level = "section", id = "calendar-title",
-          anchors = { center_in = true }, font_size = theme.size.larger, text = function() return month().title end },
-        ui.Item { anchors = { right = true }, width = 28, height = 26, arrow("chevron_right", 1, "calendar-next") },
-      },
-      ui.Row { x = GX, y = names_y, gap = 0, table.unpack(names) },
-      L.item { x = GX, y = grid_y, width = 7 * CELL_W, height = 6 * CELL_H,
-        kit.decor("grid", { width = 7 * CELL_W, height = 6 * CELL_H, columns = 7, rows = 6, color = kit.stroke("faint") }),
-        ui.Grid { columns = 7, gap = 0, table.unpack(cells) },
-      },
+      month,
       L.code("calx", "SEGMENT ###/##  ·  CP-##", { x = GX, y = ih - L.lh(S.micro), width = 7 * CELL_W }),
     }
   end

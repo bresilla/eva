@@ -12,9 +12,8 @@ local stroke = require("themes.tsugumori.strokes")
 
 return function(S, theme, M, hud)
   local C = theme.color
-  local function get(v) if type(v) == "function" then return v() end return v end
-  local function clamp01(v) v = tonumber(v) or 0 return v < 0 and 0 or (v > 1 and 1 or v) end
-  local function num(v, d) v = get(v) return type(v) == "number" and v or d end
+  local common = require("themes.kit_common")
+  local get, clamp01, num = common.get, common.clamp01, common.num
   local quick = { duration = 140, easing = "out_cubic" }
 
   local function full(slots)

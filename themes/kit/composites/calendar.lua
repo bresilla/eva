@@ -22,8 +22,16 @@
 -- `first_weekday` (1 Monday .. 7 Sunday), `cell_height`, `header_height`,
 -- `band` (a binding to `from, to` dates drawn as a run, for a range) and
 -- `press_activates` (a press picks, not only moves) are optional; the
--- calendar is as tall as the month's weeks unless `fit = false`. Ids:
--- `<id>-previous`, `<id>-next`, `<id>-month-title`, `<id>-day-<date>`.
+-- calendar is as tall as the month's weeks unless `fit = false`, or exactly
+-- `height` if that is given, its cells sharing it. Ids: `<id>-previous`,
+-- `<id>-next`, `<id>-month-title`, `<id>-day-<date>`.
+--
+-- For a calendar to read rather than pick from: `read_only` (no day can be
+-- chosen), `spill` (six full weeks, the months beside it dimmed), `weekends`
+-- (in the info signal), `today_mark` (a function of the cell's width and height
+-- giving a node to draw under today, in place of the bar, with today's number in
+-- the accent), `heading` (a function of the month's words as a binding, giving
+-- the node for the title).
 local ui = require("morf.ui")
 local widgets = require("themes.kit.widgets")
 
@@ -103,6 +111,32 @@ local function as_index(v)
 end
 local function get(v) if type(v) == "function" then return v() end return v end
 
+--- Month `index`'s cells with the week starting on `first`: `list`, `blanks`
+--- (the cells no day can be chosen in) and `at` (a date's cell). What pads it is
+--- empty, or with `spill` the days of the months beside it, out to six weeks.
+function M.month_cells(index, first, spill)
+  local y, m = M.month_of(index)
+  local out, blanks, at = {}, {}, {}
+  -- (Padding, not a day: nothing a screen reader lands on.)
+  local function pad(label)
+    out[#out + 1] = { label = label, outside = label ~= "" or nil, accessible_role = "generic" }
+    blanks[#blanks + 1] = #out
+  end
+  local last = M.days_in(M.month_of(index - 1))
+  for back = (M.weekday(y, m, 1) - first) % 7 - 1, 0, -1 do pad(spill and tostring(last - back) or "") end
+  for d = 1, M.days_in(y, m) do
+    local date = M.key(y, m, d)
+    out[#out + 1] = { label = tostring(d), date = date, weekend = M.weekday(y, m, d) >= 6 }
+    at[date] = #out
+  end
+  local after = 0
+  while spill and #out < 42 do
+    after = after + 1
+    pad(tostring(after))
+  end
+  return { list = out, blanks = blanks, at = at }
+end
+
 -- ------------------------------------------------------------ the panel --
 
 local PAGES = { "a", "b", "c" }
@@ -118,9 +152,9 @@ function M.make(spec)
   local first = spec.first_weekday or 1
   local W = spec.width or 280
   local cw = math.floor(W / 7)
-  local ch = spec.cell_height or math.min(cw, 36)
   local HEAD = spec.header_height or 36
   local WEEK = 22
+  local ch = spec.cell_height or (spec.height and math.max(14, (spec.height - HEAD - 4 - WEEK) // 6)) or math.min(cw, 36)
   local GRID = 6 * ch
   local H = HEAD + 4 + WEEK + GRID
   local sy, sm = M.parse(M.parse(get(spec.value)) and get(spec.value) or M.today())
@@ -130,24 +164,33 @@ function M.make(spec)
   page_month[page_of(st.month)] = st.month
   local nav, grids = nil, {}
 
-  -- One month's cells: blanks before the first, then its days.
+  local cells
+
+  -- The ink of cell `i` on page `name`, nil for the theme's own. By position: a
+  -- page keeps its entries when the next month's labels are the same.
+  local function ink_of(name, i)
+    return function()
+      local cell = cells(page_month[name]).list[i]
+      if not cell then return nil end
+      if cell.outside then return kit.stroke("mark")() end
+      if spec.today_mark and cell.date == st.today then return kit.ink("accent")() end
+      if spec.weekends and cell.weekend then return kit.signal("info")() end
+      return nil
+    end
+  end
+  local inked = spec.spill or spec.weekends or spec.today_mark
+
+  -- One month's cells, each with what the configuration adds to it.
   local cache = {}
-  local function cells(index)
+  function cells(index)
     local hit = cache[index]
     if hit then return hit end
-    local y, m = M.month_of(index)
-    local out, blanks, at = {}, {}, {}
-    for _ = 1, (M.weekday(y, m, 1) - first) % 7 do
-      -- (Padding, not a day: nothing a screen reader lands on.)
-      out[#out + 1] = { label = "", accessible_role = "generic" }
-      blanks[#blanks + 1] = #out
+    hit = M.month_cells(index, first, spec.spill)
+    hit.every = {}
+    for i, cell in ipairs(hit.list) do
+      if inked then cell.ink = ink_of(page_of(index), i) end
+      hit.every[i] = i
     end
-    for d = 1, M.days_in(y, m) do
-      local date = M.key(y, m, d)
-      out[#out + 1] = { label = tostring(d), date = date }
-      at[date] = #out
-    end
-    hit = { list = out, blanks = blanks, at = at }
     cache[index] = hit
     return hit
   end
@@ -218,13 +261,20 @@ function M.make(spec)
           end }, look)
       end
     end
+    local function today_cell() return now().at[st.today] end
+    if spec.today_mark then
+      ui.reparent(ui.Item { id = id and (id .. "-today-" .. name), width = cw, height = ch,
+        x = function() local i = today_cell() return i and ((i - 1) % 7) * cw or 0 end,
+        y = function() local i = today_cell() return i and ((i - 1) // 7) * ch or 0 end,
+        visible = function() return today_cell() ~= nil end, spec.today_mark(cw, ch) }, look)
+    end
     local grid = widgets.day_grid {
       id = id and (id .. "-grid-" .. name), accessible_name = spec.accessible_name or "Days",
       items = function() return now().list end,
       columns = 7, gap = 0, item_width = cw, item_height = ch,
       press_activates = spec.press_activates,
       current = function() return now().at[st.selected] or 0 end,
-      disabled = function() return now().blanks end,
+      disabled = function() return spec.read_only and now().every or now().blanks end,
       item_id = function(_, cell) return (id and cell.date) and (id .. "-day-" .. cell.date) or nil end,
       on_current_changed = function(i)
         local cell = now().list[i]
@@ -238,11 +288,13 @@ function M.make(spec)
     grids[name] = grid
     ui.reparent(grid, look)
     -- Today, and the days the configuration marks.
-    ui.reparent(kit.surface { width = cw - 4, height = 3, radius = kit.round(1.5),
-      color = kit.signal("accent"),
-      x = function() local i = now().at[st.today] return i and ((i - 1) % 7) * cw + 2 or 0 end,
-      y = function() local i = now().at[st.today] return i and ((i - 1) // 7 + 1) * ch - 3 or 0 end,
-      visible = function() return now().at[st.today] ~= nil end }, look)
+    if not spec.today_mark then
+      ui.reparent(kit.surface { width = cw - 4, height = 3, radius = kit.round(1.5),
+        color = kit.signal("accent"),
+        x = function() local i = today_cell() return i and ((i - 1) % 7) * cw + 2 or 0 end,
+        y = function() local i = today_cell() return i and ((i - 1) // 7 + 1) * ch - 3 or 0 end,
+        visible = function() return today_cell() ~= nil end }, look)
+    end
     if spec.marked then
       for i = 1, 42 do
         local col, row = (i - 1) % 7, (i - 1) // 7
@@ -294,29 +346,38 @@ function M.make(spec)
   local week = { y = HEAD + 4, gap = 0 }
   for i = 0, 6 do
     -- 2024-01-01 was a Monday.
-    local name = morf.time.format("%a", morf.time.time { year = 2024, month = 1, day = 1 + (first - 1 + i) % 7, hour = 12 })
+    local weekday = 1 + (first - 1 + i) % 7
+    local name = morf.time.format("%a", morf.time.time { year = 2024, month = 1, day = weekday, hour = 12 })
     -- Its first two characters, not bytes.
     local cut = utf8 and utf8.offset(name, 3)
-    week[#week + 1] = kit.centred(cw, WEEK, kit.label { text = cut and name:sub(1, cut - 1) or name, color = kit.ink("lo") })
+    week[#week + 1] = kit.centred(cw, WEEK, kit.label { text = cut and name:sub(1, cut - 1) or name,
+      color = spec.weekends and weekday >= 6 and kit.signal("info") or kit.ink("lo") })
   end
+  local function month_words() return M.month_title(st.month) end
   local header = ui.Item { width = W, height = HEAD,
     widgets.icon { id = id and (id .. "-previous"), accessible_name = "Previous month", width = 32, height = 32,
       size = 18, icon_off = "chevron_left", anchors = { left = true, vertical_center = true },
       on_clicked = function() step(-1) end },
-    kit.text { id = id and (id .. "-month-title"), anchors = { center_in = true }, font_weight = 600,
-      text = function() return M.month_title(st.month) end },
+    spec.heading and spec.heading(month_words) or kit.text { id = id and (id .. "-month-title"),
+      anchors = { center_in = true }, font_weight = 600, text = month_words },
     widgets.icon { id = id and (id .. "-next"), accessible_name = "Next month", width = 32, height = 32,
       size = 18, icon_off = "chevron_right", anchors = { right = true, vertical_center = true },
       on_clicked = function() step(1) end },
   }
   -- As tall as the month's weeks (`fit = false`: always six).
   local function height()
+    if spec.height then return spec.height end
     if spec.fit == false then return H end
     local y, m = M.month_of(st.month)
     local weeks = math.ceil(((M.weekday(y, m, 1) - first) % 7 + M.days_in(y, m)) / 7)
     return HEAD + 4 + WEEK + weeks * ch
   end
   local root = ui.Item { id = id, x = spec.x, y = spec.y, width = W, height = height, header, ui.Row(week), days }
+  morf.effect("kit.calendar.today." .. tostring(root), function()
+    morf.time.minute_clock:get()
+    local today = M.today()
+    if today ~= st.today then st.today = today end
+  end, { owner = root })
   -- The configuration's day and month, when it keeps them.
   if type(spec.value) == "function" then
     morf.effect("kit.calendar.value." .. tostring(root), function()
@@ -345,7 +406,6 @@ function M.make(spec)
   function handle.selected() return st.selected end
   function handle.select(date) if M.parse(date) then choose(date, false) local y, m = M.parse(date) show(M.month_index(y, m)) end end
   function handle.focus() focus_grid() end
-  function handle.refresh_today() st.today = M.today() end
   return root, handle
 end
 

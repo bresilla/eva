@@ -9,6 +9,7 @@
 -- material's; only the style differs.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local stripes = require("themes.tsugumori.stripes")
 local stroke = require("themes.tsugumori.strokes")
 
@@ -47,7 +48,7 @@ return function(S, theme, M, hud)
     props.font_weight = props.font_weight or 500
     props.letter_spacing = props.letter_spacing or 0.4
     local text = props.text
-    props.text = function() return tostring(get(text) or ""):upper() end
+    props.text = function() return unicase.upper(tostring(get(text) or "")) end
     return M.text(props)
   end
   -- The keyboard's brackets on the current row.
@@ -63,26 +64,9 @@ return function(S, theme, M, hud)
           bottom_margin = 6 }, width = 36, clip = true,
         stripes.box { width = 36, height = 64, gap = 6, weight = 2, color = function() return C.primary:alpha(0.35) end } } or nil }
   end
-  local function initial(name) return (tostring(name or "?"):match("[%w]") or "?"):upper() end
-  local function show(v)
-    if type(v) ~= "number" then return tostring(v == nil and "" or v) end
-    if v == math.floor(v) and math.abs(v) < 1e15 then
-      local sign, digits = ("%d"):format(v):match("^(-?)(%d+)$")
-      digits = digits:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
-      return sign .. digits
-    end
-    return ("%.1f"):format(v)
-  end
-  local function bytes(n)
-    if type(n) ~= "number" then return n and tostring(n) or "" end
-    local units, i = { "B", "kB", "MB", "GB", "TB" }, 1
-    while n >= 1000 and i < #units do n, i = n / 1000, i + 1 end
-    return i == 1 and ("%d %s"):format(n, units[i]) or ("%.1f %s"):format(n, units[i])
-  end
-  local function date(v)
-    if type(v) == "number" then return os.date("%d %b %H:%M", v) end
-    return v and tostring(v) or ""
-  end
+  local function initial(name) return unicase.initial(tostring(name or "?")) end
+  local common = require("themes.kit_common")
+  local show, bytes, date = common.grouped, common.decimal_bytes, common.stamp
   local EXT = { png = "image", jpg = "image", jpeg = "image", svg = "image", gif = "image", webp = "image",
     mp4 = "movie", mkv = "movie", webm = "movie", mov = "movie", mp3 = "music_note", flac = "music_note",
     ogg = "music_note", wav = "music_note", pdf = "picture_as_pdf", zip = "folder_zip", gz = "folder_zip",
@@ -542,7 +526,7 @@ return function(S, theme, M, hud)
           caps { x = 18, y = 13, width = function() return s.width() - 50 end, elide = "right",
             text = function() return label_of(s.row() or row) end, color = function() return row_ink(s) end },
           M.text { x = 18, y = H - 30, visible = function() return tag() ~= nil end, font_family = theme.mono,
-            text = function() return "[ " .. (tag() or ""):upper() .. " ]" end, font_size = SZ.small,
+            text = function() return "[ " .. unicase.upper(tag() or "") .. " ]" end, font_size = SZ.small,
             color = function() return C.primary end },
           studs }
         return node, function() end
