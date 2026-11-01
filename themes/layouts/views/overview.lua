@@ -400,7 +400,7 @@ function V.build(model)
     end
     local limit, step = row_limit()
     if phase == "update" then
-      track.translate_x = math.max(limit, math.min(0, origin + dx))
+      track.translate_x = require("themes.rubber_band").between(origin + dx, limit, 0)
     else
       local throw = origin + dx + (vx or 0) * .15
       rest_at(math.max(limit, math.min(0, math.floor(throw / step + .5) * step)), vx)

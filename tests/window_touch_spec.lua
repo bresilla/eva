@@ -61,6 +61,19 @@ test.it("recents scroll along, and a card thrown up closes its window", function
   test.eq(#test.logs("warn"), 0)
 end)
 
+test.it("recents stretch past their first card and spring back", function()
+  load()
+  test.ipc("overview", "open") test.settle(3000)
+  local first = test.get("overview-card-1").x
+  pull(60, 500, 300, 500, 10)
+  local past = test.get("overview-card-1").x
+  test.truthy(past > first + 8, "the row did not stretch")
+  test.truthy(past < first + 240, "the row ran at the finger's pace")
+  test.touch("up", 0, 300, 500) test.settle(2000)
+  test.near(test.get("overview-card-1").x, first, 2)
+  test.eq(#test.logs("warn"), 0)
+end)
+
 test.it("clear all passes over a kept window", function()
   load()
   test.ipc("overview", "open") test.settle(3000)

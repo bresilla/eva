@@ -328,3 +328,14 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   `super`, not Caps Lock, so the login screens read the LED under
   `/sys/class/leds` a moment after each key. A keyboard without the LED gets no
   warning. xkb's locked modifiers are what the compositor already sends.
+- A point to a text offset. `ui.TextInput` has `cursor_position` but no way to
+  ask which offset lies under a point, or where the caret is drawn, so a field
+  cannot draw a caret handle a finger drags. `themes/kit/text_touch.lua` walks
+  the caret with the engine's drag selection instead, and drops the selection
+  on release. `:offset_at(x, y)` and a `cursor_rectangle` would allow a handle.
+- A touch mode for `ui.Terminal`. A finger is the left button, so one finger on
+  a terminal selects as it moves, held first or not, and `:scroll` has no way
+  in from a pan because a terminal keeps every drag. A `touch_selects = false`,
+  with selection beginning from `on_long_pressed`, would let one finger scroll.
+- A node's parent from Lua. `themes/overscroll.lua` finds an enclosing list and
+  the panel under a finger by comparing rectangles, for want of `node.parent`.

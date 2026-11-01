@@ -141,6 +141,10 @@ function M.build(model, style)
         elseif button == "right" then model.open_menu(key)
         else model.activate(key) end
       end,
+      on_long_pressed = function()
+        require("haptics").fire("long")
+        model.open_menu(key)
+      end,
       on_wheel = function(_, _, _, _, _, step) model.cycle(key, step) end,
       on_drag_started = function() if state.pinned then dragging = model.pin_index(key) end end,
       on_dragged = function(x, y)
