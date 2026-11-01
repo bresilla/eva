@@ -30,6 +30,8 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.truthy(tiles() >= 3, "no tiles")
       test.truthy(test.find { text = "Fixture Browser", visible = true }, "no app on show")
       test.truthy(test.get("launcher-chips").visible)
+      test.click { id = "launcher-summon-keyboard" }
+      test.advance(200)
       test.type("fix")
       test.advance(300)
       test.eq(test.ipc("state").mode, "apps")
@@ -111,14 +113,27 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.truthy(test.find { text = "Fixture Editor", visible = true })
       test.falsy(test.find { text = "Fixture Browser", visible = true })
       test.truthy(#rows > 0)
+      test.click { id = "launcher-chip-back" }
+      test.advance(300)
+      test.eq(test.ipc("state").folder, "")
+      test.truthy(test.ipc("state").open, "Back left the folder, not the launcher")
+    end)
+
+    test.it("leaves a folder with Escape, where there is a keyboard", function()
+      host.load { style = style, settings = { launcher = { layout = "grid",
+        folders = { { name = "Work", apps = { "fixture-editor" } } } } } }
+      local folder = test.get { text = "Work", visible = true }
+      test.click(folder.x + folder.width / 2, folder.y)
+      test.advance(300)
+      test.eq(test.ipc("state").folder, "Work")
       test.key("Escape")
       test.advance(300)
       test.eq(test.ipc("state").folder, "")
-      test.truthy(test.ipc("state").open, "Escape left the folder, not the launcher")
+      test.truthy(test.ipc("state").open)
     end)
 
     test.it("files an app in a folder from its actions", function()
-      phone { style = style }
+      host.load { style = style, settings = { launcher = { layout = "grid" } } }
       test.key("k", "ctrl")
       test.advance(200)
       test.ipc("q", "put")
@@ -134,7 +149,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     end)
 
     test.it("walks the tiles with the arrows", function()
-      host.load { style = style, size = TABLET, env = { EVA_INPUT_DEVICES = TOUCH } }
+      host.load { style = style, size = TABLET, settings = { launcher = { layout = "grid" } } }
       local function at()
         local state = test.ipc("state")
         return { state.selected, state.cell }
@@ -157,9 +172,26 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.it("keeps the on-screen keyboard down until the field is pressed", function()
       phone { style = style }
       test.falsy(test.ipc("keyboard_open"))
+      test.falsy(test.get("launcher-search").focused, "a focused field brings the keyboard by itself")
       test.click { id = "launcher-summon-keyboard" }
       test.advance(400)
       test.truthy(test.ipc("keyboard_open"))
+      test.truthy(test.get("launcher-search").focused)
+    end)
+
+    test.it("fits four tiles across a small phone", function()
+      host.load { style = style, size = { 360, 800 }, env = { EVA_INPUT_DEVICES = TOUCH } }
+      test.eq(test.ipc("columns"), 4)
+      local panel = test.get("drawer-launcher")
+      test.truthy(panel.x >= 0 and panel.x + panel.width <= 360, "wider than the phone")
+    end)
+
+    test.it("types straight away on a tablet with a keyboard", function()
+      host.load { style = style, size = TABLET, settings = { launcher = { layout = "grid" } } }
+      test.truthy(test.get("launcher-search").focused)
+      test.type("fix")
+      test.advance(300)
+      test.eq(test.ipc("state").mode, "apps")
     end)
 
     test.it("scrolls under a finger and a wheel", function()
@@ -268,11 +300,11 @@ for _, style in ipairs { "material", "tsugumori" } do
         return host.row("small.txt")
       end, 2000)
       test.falsy(test.find { id = "launcher-preview", visible = true }, "no room for a pane, so not unasked")
-      test.key("F1")
+      test.ipc("toggle_preview")
       test.advance(400)
       test.truthy(test.get("launcher-preview").visible)
       test.falsy(test.find { id = "launcher-results", visible = true })
-      test.key("F1")
+      test.ipc("toggle_preview")
       test.advance(400)
       test.truthy(test.get("launcher-results").visible)
     end)

@@ -105,6 +105,8 @@ M.SHELL = [==[
   morf.ipc.typed = function() return typed end
   morf.ipc.keyboard_open = function() return require("keyboard").drawer.open:get() end
   morf.ipc.preview_clear = function() launcher.preview_open:set(false) return true end
+  morf.ipc.toggle_preview = function() return launcher.toggle_preview() end
+  morf.ipc.columns = function() return launcher.columns:get() end
   local copied = {}
   morf.clipboard.set = function(data) copied[#copied + 1] = data end
   morf.ipc.q = function(text) launcher.set_query(text) return true end

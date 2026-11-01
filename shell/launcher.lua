@@ -641,8 +641,10 @@ morf.effect("eva.launcher.open", function()
     elseif config.get("launcher.keep_query") then view.set_query(M.query:get(), true)
     else M.set_query("") end
     opening_query = nil
-    view.focus(true)
-    if not M.grid_on() then M.bring_keyboard() end
+    -- A focused field brings the on-screen keyboard; over the grid it waits.
+    local waits = M.grid_on() and not keyboard_attached()
+    view.focus(not waits)
+    if not waits then M.bring_keyboard() end
     -- It rests small while shut: it lands at its size, unstretched, as it opens.
     morf.time.timer(1, function()
       morf.animation.finish(M.drawer.panel, "height")

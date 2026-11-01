@@ -1,6 +1,9 @@
 -- The launcher's icon grid: rows of tiles in the results' own list, category chips
 -- over them, and an alphabet down the side. A press opens, a long press or a right
 -- click lists a tile's actions.
+--
+-- A row is one press area over plain nodes, told which tile by where it was
+-- pressed: a screen of apps stays cheap to build and to rebind as it scrolls.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
@@ -9,20 +12,18 @@ local C = theme.color
 local S = theme.space
 local V = {}
 
-V.CELL_W = 96
+V.CELL_MIN, V.CELL_MAX = 72, 96
 V.CELL_H = 104
 V.CHIPS_H = 40
 local ICON = 48
-local LABEL_W = V.CELL_W - S.s
 
 --- One tile's art: its app's icon, or a glyph on a tinted ground.
 local function art(M, tile)
   local hit = tile.icon and tile.icon ~= "" and M.icon(tile.icon) or nil
   if tile.kind == "folder" or not hit then
-    local ground = kit.surface { width = ICON, height = ICON, radius = kit.round(ICON / 3),
+    return kit.surface { width = ICON, height = ICON, radius = kit.round(ICON / 3),
       color = function() return tile.kind == "folder" and C.secondaryContainer or C.surfaceContainerHighest end,
       kit.icon(tile.material or "apps", 26, function() return C.onSurfaceVariant end, { anchors = { center_in = true } }) }
-    return ground
   end
   if hit.name then
     return ui.Icon { width = ICON, height = ICON, name = hit.name, source_width = 96, source_height = 96 }
@@ -30,76 +31,81 @@ local function art(M, tile)
   return ui.Image { width = ICON, height = ICON, source = hit.path, fill_mode = "preserve_aspect_fit" }
 end
 
---- A row of `columns` tiles, rebindable as the list scrolls.
+--- A row of `columns` tiles, `ctx.cell` wide each, rebindable as the list scrolls.
 function V.row(M, entry, columns, ctx)
+  local cell_w = ctx.cell
   local bound = { entry = entry }
-  local revision = morf.signal("eva.launcher.tiles." .. tostring(bound), 0)
-  local function cell(i)
-    revision:get()
-    return bound.entry.cells[i]
-  end
-  local slots = {}
-  local boxes = {}
+  local cells = {}
   for i = 1, columns do
     local box = ui.Item { width = ICON, height = ICON, anchors = { horizontal_center = true }, y = S.s }
-    boxes[i] = box
-    local function tile() return cell(i) end
-    slots[i] = kit.action {
-      id = "launcher-tile-" .. tostring(entry.key) .. "-" .. i, x = (i - 1) * V.CELL_W, width = V.CELL_W, height = V.CELL_H, cursor = "pointer",
-      accessible_name = function() local t = tile() return t and t.name or "" end,
-      visible = function() return tile() ~= nil end,
-      on_clicked = function(_, _, _, _, button)
-        local t = tile()
-        if not t then return end
-        if button == "right" then M.act_on(t.key) return end
-        M.activate(M.tile_row(t.key))
-      end,
-      on_long_pressed = function()
-        local t = tile()
-        if t then M.act_on(t.key) end
-      end,
-      on_entered = function()
-        local t = tile()
-        if not t then return end
-        local at = ctx.index_of(bound.entry.key)
-        if at then M.selected:set(at) M.cell:set(i) end
-      end,
-      box,
-      kit.text {
-        y = S.s + ICON + S.xs, x = S.xs, width = LABEL_W, horizontal_alignment = "center", elide = "right",
-        font_size = theme.size.small, color = function() return C.onSurface end,
-        text = function() local t = tile() return t and t.name or "" end,
-      },
-      kit.icon("keep", 14, function() return C.primary end, {
-        x = V.CELL_W - S.l - S.s, y = S.xs, visible = function() local t = tile() return t ~= nil and t.pinned == true end }),
-      kit.shape { x = V.CELL_W - S.l - S.xs, y = S.s, width = S.s, height = S.s, shape = "circle",
-        color = function() return C.primary end,
-        visible = function() local t = tile() return t ~= nil and t.fresh == true end },
+    local label = kit.text {
+      y = S.s + ICON + S.xs, x = S.xs, width = cell_w - S.s, horizontal_alignment = "center", elide = "right",
+      font_size = theme.size.small, color = function() return C.onSurface end, text = "",
     }
+    local pin = kit.icon("keep", 14, function() return C.primary end, { x = cell_w - S.l - S.s, y = S.xs, visible = false })
+    local fresh = ui.Rect { x = cell_w - S.l - S.xs, y = S.s, width = S.s, height = S.s, radius = S.xs, visible = false,
+      color = function() return C.primary end }
+    local node = ui.Item { x = (i - 1) * cell_w, width = cell_w, height = V.CELL_H, visible = false,
+      accessible_role = "button", box, label, pin, fresh }
+    cells[i] = { node = node, box = box, label = label, pin = pin, fresh = fresh, key = "" }
   end
-  local shown, drawn = {}, {}
   local function refill()
-    for i = 1, columns do
-      local t = bound.entry.cells[i]
-      local key = t and t.key or ""
-      if shown[i] ~= key then
-        if drawn[i] then ui.destroy(drawn[i], true) drawn[i] = nil end
-        if t then
-          drawn[i] = art(M, t)
-          ui.reparent(drawn[i], boxes[i])
+    for i, cell in ipairs(cells) do
+      local tile = bound.entry.cells[i]
+      local key = tile and tile.key or ""
+      cell.node.visible = tile ~= nil
+      if cell.key ~= key then
+        if cell.art then ui.destroy(cell.art, true) cell.art = nil end
+        if tile then
+          cell.art = art(M, tile)
+          ui.reparent(cell.art, cell.box)
         end
-        shown[i] = key
+        cell.key = key
+      end
+      if tile then
+        cell.label.text = tile.name or ""
+        cell.node.accessible_name = tile.name or ""
+        cell.pin.visible = tile.pinned == true
+        cell.fresh.visible = tile.fresh == true
       end
     end
   end
   refill()
-  local row = ui.Item { id = "launcher-tiles-" .. entry.key, width = columns * V.CELL_W, height = V.CELL_H,
-    table.unpack(slots) }
+
+  local function tile_at(x)
+    local i = math.floor(x / cell_w) + 1
+    return bound.entry.cells[i], i
+  end
+  local press = ui.MouseArea {
+    anchors = { fill = true }, cursor = "pointer",
+    on_clicked = function(_, _, x, _, button)
+      local tile = tile_at(x)
+      if not tile then return end
+      if button == "right" then M.act_on(tile.key) return end
+      M.activate(M.tile_row(tile.key))
+    end,
+    on_long_pressed = function(_, _, x)
+      local tile = tile_at(x)
+      if tile then M.act_on(tile.key) end
+    end,
+    on_position_changed = function(_, _, _, _, x)
+      local tile, i = tile_at(x)
+      if not tile then return end
+      local at = ctx.index_of(bound.entry.key)
+      if at and (M.selected:get() ~= at or M.cell:get() ~= i) then
+        M.selected:set(at)
+        M.cell:set(i)
+      end
+    end,
+  }
+  local nodes = { id = "launcher-tiles-" .. entry.key, width = columns * cell_w, height = V.CELL_H }
+  for i, cell in ipairs(cells) do nodes[i] = cell.node end
+  nodes[#nodes + 1] = press
+  local row = ui.Item(nodes)
   return row, function(next_entry)
     bound.entry = next_entry
     row.id = "launcher-tiles-" .. next_entry.key
     refill()
-    revision:set(revision:get() + 1)
   end
 end
 

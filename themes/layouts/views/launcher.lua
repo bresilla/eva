@@ -50,9 +50,11 @@ function V.build(M)
   -- The grid: as wide as the desk lets it, up to this.
   local GRID_MAX = 960
   local ALPHABET = theme.space.xl
-  local GRID_W = responsive.fit(GRID_MAX, 8)
-  local COLUMNS = math.max(3, (GRID_W - 2 * PAD - ALPHABET) // grid_view.CELL_W)
-  local TILES = COLUMNS * grid_view.CELL_W
+  local GRID_ROOM = responsive.fit(GRID_MAX, 8) - 2 * PAD - ALPHABET
+  local COLUMNS = math.max(3, math.min(GRID_ROOM // grid_view.CELL_MIN,
+    math.ceil(GRID_ROOM / grid_view.CELL_MAX)))
+  local CELL = math.min(grid_view.CELL_MAX, GRID_ROOM // COLUMNS)
+  local TILES = COLUMNS * CELL
   local GRID_W_FIT = TILES + 2 * PAD + ALPHABET
   M.columns:set(COLUMNS)
 
@@ -326,7 +328,7 @@ function V.build(M)
     local function delegate(entry)
       if entry.kind == "header" then return header(entry) end
       if entry.kind == "hero" then return hero(entry) end
-      if entry.kind == "tiles" then return grid_view.row(M, entry, COLUMNS, { index_of = index_of }) end
+      if entry.kind == "tiles" then return grid_view.row(M, entry, COLUMNS, { index_of = index_of, cell = CELL }) end
       return plain_row(entry)
     end
 
@@ -480,8 +482,8 @@ function V.build(M)
     -- from row to row, so it stretches towards the next row and settles there.
     local highlight = ui.Item {
       id = "launcher-highlight",
-      x = function() return gridded() and (M.cell:get() - 1) * grid_view.CELL_W or 0 end,
-      width = function() return gridded() and grid_view.CELL_W or INNER end,
+      x = function() return gridded() and (M.cell:get() - 1) * CELL or 0 end,
+      width = function() return gridded() and CELL or INNER end,
       y = function() return (entry_span(math.max(1, M.selected:get()))) - scroll:get() end,
       height = function() local _, h = entry_span(math.max(1, M.selected:get())) return h end,
       behavior = { x = theme.spring.spatial, y = theme.spring.spatial, height = theme.spring.spatial },
