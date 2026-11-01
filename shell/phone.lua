@@ -91,6 +91,21 @@ local function start()
   M.ready:set(true)
 end
 
+-- The call as the bar's live pill reads it: there while its screen is minimised.
+if not services.call then
+  services.call = {
+    active = function() return M.ready:get() and M.model.minimised:get() and M.model.current() ~= nil end,
+    name = function()
+      local row = M.model.current()
+      return row and row.label or "Call"
+    end,
+    started = function() return morf.time.now() - M.model.seconds:get() end,
+    muted = function() return M.model.muted() end,
+    toggle_mute = function() M.model.set_muted(not M.model.muted()) end,
+    hang_up = function() M.model.hangup() end,
+  }
+end
+
 -- Calls are owned by the primary output's runtime alone.
 local function primary() return not morf.window.primary or morf.window.primary() end
 local is_primary = morf.signal("eva.phone.primary", primary())

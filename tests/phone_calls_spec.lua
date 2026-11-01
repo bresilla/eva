@@ -34,6 +34,37 @@ test.it("no modem, no surface and no call state",function()
   test.eq(call_surface(),nil)
 end)
 
+test.it("a minimised call is the bar's live pill, and its buttons reach the call",function()
+  run=run+1
+  local settings=morf.env("XDG_CACHE_HOME").."/phone-calls-"..run
+  test.load("../shell/init.lua",{size={868,1932},source=[[
+    require("init")
+    morf.ipc.live=function()
+      local out={}
+      for i,item in ipairs(require("bar").model.live.list()) do out[i]=item.key end
+      return out
+    end
+    morf.ipc.call=function()
+      local call=require("services").call
+      return {name=call.name(),muted=call.muted()}
+    end
+    morf.ipc.mute=function() require("services").call.toggle_mute() return true end
+    morf.ipc.end_call=function() require("services").call.hang_up() return true end
+  ]],env={EVA_WALLPAPER="",EVA_DRY_RUN="1",EVA_FAKE_MODEM="1",EVA_FAKE_HAPTICS="1",EVA_FAKE_PROXIMITY="1",
+    EVA_CONTACTS="tests/fixtures/contacts",EVA_SETTINGS=settings..".json",XDG_STATE_HOME=settings}})
+  test.advance(20)
+  ring()
+  test.ipc("phone","answer") test.advance(60)
+  test.falsy(test.ipc("live")[1]=="call","its screen is up: no pill")
+  test.ipc("phone","minimise") test.advance(60)
+  test.eq(test.ipc("live")[1],"call")
+  test.truthy(#test.ipc("call").name>0)
+  test.ipc("mute") test.advance(60)
+  test.eq(test.ipc("call").muted,state().muted)
+  test.ipc("end_call") test.advance(200)
+  test.falsy(test.ipc("live")[1]=="call","the call is over")
+end)
+
 test.it("an incoming call rings, names the caller and shows over everything",function()
   load()
   test.eq(state().stage,"idle")
