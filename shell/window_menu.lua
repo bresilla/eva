@@ -329,6 +329,8 @@ M.node = ui.Item { anchors = { fill = true },
       require("themes.kit.popup").track(view.box, { open = function() return M.opened:get() end,
         close_policy = "outside", modal = true, on_close = function() M.close() end })
       morf.effect("eva.window_menu.shown", function() view.shown(M.opened:get()) end, { owner = view.node })
+      -- Held shown from here on: the first opening's focus lands on a node on show.
+      wanted:set(true)
       return ui.Item { anchors = { fill = true }, view.node }
     end } }
 

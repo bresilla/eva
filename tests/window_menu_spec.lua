@@ -32,6 +32,12 @@ local function last() local e=state().evals return e[#e] or "" end
 local function open() test.eq(test.ipc("window_menu","open"),true) test.advance(800) end
 local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 for _,style in ipairs {"material","tsugumori"} do
+  test.it(style.." takes the keys the first time it opens, built ahead while idle",function()
+    load(style) test.settle(4000)
+    test.truthy(test.find("window-menu"),"it was not built ahead")
+    open()
+    test.key("Escape") test.advance(100) test.falsy(state().open,"Escape did not reach it")
+  end)
   test.it(style.." the window menu's buttons each act in one press",function()
     load(style) open()
     local box=test.get("window-menu")
