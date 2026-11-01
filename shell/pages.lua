@@ -85,11 +85,11 @@ function M.panel_name(key)
 end
 
 -- Panels as they are built: one asks after its own pages while it loads.
-local built = {}
+local built, publishes = {}, 0
 local published = morf.signal("eva.pages.published", 0)
 function M.publish(name, panel)
-  built[name] = panel
-  published:set(published:get() + 1)
+  built[name], publishes = panel, publishes + 1
+  published:set(publishes)
 end
 
 --- The panel holding `key`: its `drawer` and `panel`, or nil.
