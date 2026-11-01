@@ -423,11 +423,12 @@ test.it("a sheet with more than fits stops at four fifths and scrolls",function(
   test.eq(#test.logs("error"),0)
 end)
 
--- Every shown node's box and opacity, as one string.
+-- Every shown node's box and opacity, as one string, less a title's finite
+-- light pulses (`*-light`).
 local function at_rest()
   local parts={}
   for _,n in ipairs(test.nodes()) do
-    if n.visible then
+    if n.visible and not (n.id or ""):match("%-light$") then
       parts[#parts+1]=("%s:%.2f,%.2f,%.2f,%.2f,%.3f"):format(n.handle,n.x,n.y,n.width,n.height,n.opacity or 1)
     end
   end
