@@ -13,7 +13,7 @@ function V.build(model)
   -- What it last stood at, open: shut, it keeps that, so a pull starts from it
   -- whichever page the pull turns to.
   local stood
-  local function height()
+  local function standing()
     local _, h = model.desk_size()
     if not top then return h - 2 * theme.BORDER end
     local most = responsive.panel_height(h)
@@ -22,6 +22,10 @@ function V.build(model)
     stood = wanted and math.min(most, math.ceil(wanted) + tabbed_layout.TABS_H + 2 * tabbed_layout.PAD) or most
     return stood
   end
+  -- Worked out once as what it follows moves: every kept page reads it.
+  local stands = morf.signal("eva." .. model.id .. ".height", standing())
+  morf.effect("eva." .. model.id .. ".height", function() stands:set(standing()) end)
+  local function height() return stands:get() end
   local function page_width()
     if not top then return theme.SIDE_W end
     return responsive.panel_width()
