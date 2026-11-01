@@ -63,7 +63,11 @@ M.springs = {
 M.stretch = {
   drawer = { stiffness = 520, damping = 42, scale = 0.022, max = 0.05 },
   thumb = { stiffness = 420, damping = 26, scale = 0.9, max = 0.3 },
+  blob = { stiffness = 300, damping = 24, scale = 0.5, max = 0.9 },
 }
+
+-- How wide a seam opens between shapes that merge while they move.
+M.blend = { rail = 14 }
 
 -- What a press gives: how far a surface sinks under the finger, how much tighter
 -- its corners close, and how much wider a range's handle grows while held.

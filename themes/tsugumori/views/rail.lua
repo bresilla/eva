@@ -86,10 +86,16 @@ function V.build(model)
       behavior = { opacity = { duration = 180 } } }, function() return center(id()) end), root)
   end
 
-  -- The active marker has the same shape as every workspace slot.
+  -- The active marker has the same shape as every workspace slot and slides
+  -- hard; a thin tick follows it on a longer tween and lands under it.
+  local hard = { duration = theme.duration.normal, easing = theme.ease.emphasized }
+  local late = { duration = theme.duration.large, easing = theme.ease.emphasized }
+  ui.reparent(marker({ id = "rail-tick", opacity = .45,
+    color = function() return C.primary end,
+    behavior = { x = late, y = late } }, function() return center(model.active()) end), root)
   ui.reparent(marker({ id = "rail-selector",
     color = function() return C.primary end,
-    behavior = { x = { duration = 380, easing = "out_cubic" }, y = { duration = 380, easing = "out_cubic" } } },
+    behavior = { x = hard, y = hard } },
     function() return center(model.active()) end), root)
 
   -- -------------------------------------------------------------- card --
