@@ -118,7 +118,9 @@ in
       )
       {
         services.logind.settings.Login.HandlePowerKey = "lock";
-        users.users.${config.programs.eva.user}.extraGroups = [ "input" ];
+        # Only lisgd reads /dev/input; native gestures come over Wayland.
+        users.users.${config.programs.eva.user}.extraGroups =
+          lib.optional (config.programs.eva.phone.gestureDriver == "lisgd") "input";
         environment.systemPackages = [ screen ]
           ++ lib.optional (config.programs.eva.phone.gestureDriver == "lisgd") pkgs.lisgd;
         # Shared by the user's lockscreen and the separate greeter process.
