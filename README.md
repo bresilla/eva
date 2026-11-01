@@ -441,7 +441,7 @@ reads nothing while the session is locked.
 
 `keyboard.voice` names a command that listens and prints what it heard, for a
 microphone in the tools; eva ships no speech engine. Swipe typing is not here:
-there is no free decoder to build on.
+there is no free decoder to build on yet.
 
 `EVA_FAKE_IME=1` stands in for a text field: `keyboard field TEXT`, `keyboard
 type TEXT` and `keyboard pick N` drive the keyboard, as `tools/see/keyboard.steps`

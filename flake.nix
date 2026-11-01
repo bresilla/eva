@@ -81,6 +81,8 @@
             pkgs.wl-clipboard
             pkgs.tesseract
             pkgs.zbar
+            # A real text field for tools/see/keyboard-ime.steps.
+            pkgs.zenity
           ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.
