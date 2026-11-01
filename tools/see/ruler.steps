@@ -60,4 +60,5 @@ note echo "from the cli: $(state)"
 key Escape
 pause 1
 note echo "after Escape, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
+note echo "stale handles: $(grep -c 'stale scene' "$SEE_OUT/vertical.log")"
 ROLE=""

@@ -152,7 +152,7 @@ function M.overlay(done)
     if shown and not layer then
       layer = frozen_screen(done)
     elseif not shown and layer then
-      layer:destroy()
+      frame.dismiss(layer)
       layer = nil
     end
   end)

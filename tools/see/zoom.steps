@@ -8,6 +8,7 @@ state() { appipc state | tr -d ' \n' | cut -c1-220; }
 until_tool() { for _ in $(seq 80); do appipc state > /dev/null 2>&1 && return 0; sleep 0.25; done; }
 drawn() { swaymsg -t get_tree | jq -e --arg id "$1" '[.. | objects | select(.app_id? == $id)] | length > 0' > /dev/null; }
 until_window() { for _ in $(seq 80); do drawn "$1" && return 0; sleep 0.25; done; }
+until_open() { for _ in $(seq 80); do state | grep -q 'open\\":true' && return 0; sleep 0.25; done; }
 
 sh apps/launch keys > "$SEE_OUT/keys.log" 2>&1 &
 until_window eva.keys
@@ -24,7 +25,8 @@ shot window-factor
 note echo "window: $(state)"
 
 appipc lens > /dev/null
-pause 5
+until_open
+pause 1.5
 appipc point 300 240 > /dev/null
 pause 0.8
 shot lens
@@ -32,11 +34,22 @@ note echo "lens in the window: $(state)"
 appipc lens > /dev/null
 pause 0.5
 note echo "shut: $(state)"
+
+# A real Escape over the lens shuts it from its own handler: the window stays.
+appipc lens > /dev/null
+until_open
+pause 1.5
+key Escape
+pause 1
+note echo "after Escape in the window: $(state)"
+note echo "stale handles: $(grep -c 'stale scene' "$SEE_OUT/app-zoom.log")"
+shot after-escape
 stop
 
 EVA_ZOOM_LENS=lens BOOT=0.5 start app zoom
 until_tool
-pause 5
+until_open
+pause 1.5
 appipc point 500 420 > /dev/null
 appipc set 5 > /dev/null
 pause 0.8
@@ -48,7 +61,8 @@ note echo "second launch, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes 
 
 EVA_ZOOM_LENS=lens BOOT=0.5 start app zoom
 until_tool
-pause 5
+until_open
+pause 1.5
 key Escape
 pause 1
 note echo "after Escape, role alive: $(kill -0 "$ROLE" 2>/dev/null && echo yes || echo no)"
