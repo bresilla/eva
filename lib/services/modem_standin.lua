@@ -11,7 +11,7 @@
 --   standin.lock("sim-pin")
 --
 -- Every member here is one ModemManager's XML declares
--- (tests/fixtures/phone-bus.txt), checked by tests/phone_bus_spec.lua. It speaks
+-- (tests/fixtures/phone-bus.txt). It speaks
 -- only for the shape of the bus: timing, errors and audio are not a modem's.
 local morf = require("morf")
 local fake = require("lib.testing.dbus")

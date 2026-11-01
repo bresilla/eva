@@ -1,5 +1,5 @@
--- Every contact on a touchscreen, read beside the compositor: morf has no evdev
--- API, so `libinput debug-events --device` runs per touchscreen and its lines are
+-- Every contact on a touchscreen, read beside the compositor:
+-- `libinput debug-events --device` runs per touchscreen and its lines are
 -- parsed here. Apps keep their touches: nothing is grabbed.
 --
 --   local reader = require("lib.services.touch_reader").new {

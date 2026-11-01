@@ -1,4 +1,4 @@
--- Text turned into other text: encodings, a digest morf has no native for,
+-- Text turned into other text: encodings, an MD5 digest,
 -- case and naming styles, JSON, tokens and placeholder words. The launcher's modes
 -- and eva-text both call these.
 

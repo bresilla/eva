@@ -1,7 +1,7 @@
 -- Case and accents past ASCII, which Lua's own string.upper leaves alone: the
--- Latin (Latin-1 and the Extended blocks), Greek and Cyrillic letters. Morf has
--- no case functions of its own. Each is Unicode's simple mapping, one character
--- for one, so a letter with no single capital stays itself: ß, ŉ.
+-- Latin (Latin-1 and the Extended blocks), Greek and Cyrillic letters. Each is
+-- Unicode's simple mapping, one character for one, so a letter with no single
+-- capital stays itself: ß, ŉ.
 --
 --   unicase.upper("éя")       --> "ÉЯ"
 --   unicase.lower("ÉЯ")       --> "éя"

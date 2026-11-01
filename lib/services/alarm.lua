@@ -1,5 +1,5 @@
--- Alarms and timers, the one implementation behind eva-clock and the bar's
--- alarm indicator (`services.alarm`).
+-- Alarms and timers behind eva-clock and the bar's alarm indicator
+-- (`services.alarm`).
 --
 --   local alarm = require("lib.services.alarm").new { ring = true }
 --   alarm.add("timer 12 min pasta")

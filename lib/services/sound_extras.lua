@@ -1,5 +1,5 @@
--- What morf.audio leaves out: sound cards' profiles and a Bluetooth headset's
--- codec, through PipeWire's `pw-dump` and `wpctl`, and the event sound theme.
+-- Sound cards' profiles and a Bluetooth headset's codec, through PipeWire's
+-- `pw-dump` and `wpctl`, and the event sound theme.
 local morf = require("morf")
 local host = require("lib.services.host")
 local unicase = require("lib.util.unicase")

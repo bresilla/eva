@@ -1,4 +1,4 @@
--- UPower's charge threshold, the one client behind the Power page and
+-- UPower's charge threshold behind the Power page and
 -- eva-battery: its Charge* properties read and EnableChargeThreshold called. What
 -- the kernel's own files hold, and writing them, is lib/services/charger.lua's.
 --

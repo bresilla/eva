@@ -9,7 +9,7 @@
 -- `tablet_switch`.
 --
 -- Read from EVA_INPUT_DEVICES in place of /proc/bus/input/devices when that is
--- set. The specs set it, so what they see does not depend on their machine.
+-- set.
 local morf = require("morf")
 
 local M = {}

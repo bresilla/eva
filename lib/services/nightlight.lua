@@ -1,4 +1,4 @@
--- The night light, the one implementation behind the quick settings tile and
+-- The night light behind the quick settings tile and
 -- eva-nightlight: Hyprland's hyprsunset, told what to do with
 -- `hyprctl hyprsunset temperature N` and `hyprctl hyprsunset identity`, a
 -- daemon that is not up yet being started through the compositor; the sun's

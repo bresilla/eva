@@ -1,6 +1,6 @@
 -- Dates and clocks as people write them: "next friday", "in 3 weeks", "10am utc
 -- in tokyo", "days until 2027-01-01", "1700000000". Times are read with
--- morf.time, which knows every zone; `now` is an argument so a spec can fix it.
+-- morf.time, which knows every zone; `now` is an argument.
 
 local morf = require("morf")
 

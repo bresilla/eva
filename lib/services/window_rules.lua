@@ -1,5 +1,5 @@
 -- Hyprland's window rules, as `hl.window_rule` takes them on 0.55: pure plans
--- over a rule kept in the settings, proven by nix/tests/windows.py.
+-- over a rule kept in the settings.
 --
 -- A named rule added to again keeps what it had, so a rule's name carries a hash
 -- of what it says: an edit is a new name, and the old one is switched off. A

@@ -1,5 +1,5 @@
 -- QR codes in plain Lua (ISO/IEC 18004): byte mode, the four error levels, versions
--- 1 to 40. The one encoder for the launcher, eva-qr, eva-large and the Wi-Fi share
+-- 1 to 40. Encodes for the launcher, eva-qr, eva-large and the Wi-Fi share
 -- page. What it encodes stays in this process, on no command line and in no pipe.
 -- The work runs a slice to a timer tick, so a code of any size fits a handler's fuel.
 --
