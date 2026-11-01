@@ -73,6 +73,7 @@ function M.load()
   values.notifications.level = one_of(values.notifications.level, M.LEVELS, defaults.notifications.level)
   values.notifications.style = one_of(values.notifications.style, { "list", "dots" }, "list")
   values.keypad = one_of(values.keypad, { "text", "digits" }, "text")
+  values.scramble = values.scramble == true
   values.grace_seconds = math.max(0, math.min(M.GRACE_MAX, math.floor(tonumber(values.grace_seconds) or 0)))
   values.blur = math.max(0, math.min(64, tonumber(values.blur) or defaults.blur))
   values.tint = math.max(0, math.min(1, tonumber(values.tint) or defaults.tint))

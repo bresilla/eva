@@ -37,5 +37,7 @@ return {
   blank_after = 60,
   -- "text", or "digits" for the on-screen keyboard's number pad.
   keypad = "text",
+  -- With "digits", a pad whose digits change places each time it comes up.
+  scramble = false,
   always_on = { enabled = false, music = true, notifications = true },
 }

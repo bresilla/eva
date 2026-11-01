@@ -61,6 +61,12 @@ return function(W, H, NAME)
     clear()
     escape()
   end
+  local function send(event)
+    if event.text then type_text(event.text)
+    elseif event.key=="backspace" then backspace()
+    elseif event.key=="enter" then submit()
+    elseif event.key=="escape" then escape() end
+  end
   local kb=require("themes.auth_keyboard").new {
     prefix="lock",output=NAME,width=W,height=H,border=BORDER,embedded_width=FIELD_W,
     main=main,keyboard_attached=ctx.keyboard_attached,busy=busy,stage=stage,pull=pull,
@@ -73,13 +79,21 @@ return function(W, H, NAME)
       text=function() return C.onSurface end,dim=function() return C.onSurfaceVariant end,
       press=function() return C.secondaryContainer end,font=FONT,icons=ICONS,radius=skin.key_radius,
     },
-    send=function(event)
-      if event.text then type_text(event.text)
-      elseif event.key=="backspace" then backspace()
-      elseif event.key=="enter" then submit()
-      elseif event.key=="escape" then escape() end
-    end,
+    send=send,
   }
+  -- A scrambled number pad takes the keyboard's place: its keys send what the
+  -- keyboard's do, so a PIN goes the way a password goes.
+  if prefs.keypad=="digits" and prefs.scramble==true then
+    ui.reparent(require("themes.phone_pad").scrambled {
+      prefix="lock-pin",send=send,panel=function() return C.surfaceContainer end,
+      look={C=C,text=base_text,icon=icon,action=ui.MouseArea,
+        round=function(r) return skin.key_radius and math.min(r,skin.key_radius) or r end},
+      width=function() return kb.node.layout_width or W end,
+      height=function() return kb.node.layout_height or 0 end,
+      shown=function() return kb.active() and not bad:get() end,
+      enabled=function() return not busy:get() end,
+    },kb.node)
+  end
   local content_height=kb.content_height
   local form
   local formed=morf.signal("lock.formed."..NAME,0)

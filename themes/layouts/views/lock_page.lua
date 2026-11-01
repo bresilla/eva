@@ -123,6 +123,10 @@ function V.build(model, w, h)
     F.switch { id = "lock-set-keypad", width = inner, icon = "dialpad", title = "Number pad", subtitle = "For a numeric password",
       enabled = model.free("keypad"), on = function() return model.get("keypad") == "digits" end,
       set = function(on) model.set("keypad", on and "digits" or "text") end },
+    F.switch { id = "lock-set-scramble", width = inner, icon = "shuffle", title = "Scramble the number pad",
+      subtitle = "The digits change places each time. Only their places: it is checked as before",
+      enabled = model.free("scramble"), visible = function() return model.get("keypad") == "digits" end,
+      on = function() return model.get("scramble") == true end, set = function(on) model.set("scramble", on == true) end },
     P.row { id = "lock-set-readers", width = inner, icon = "fingerprint", title = "Readers", trailing = P.chevron(),
       on_clicked = function() require("utilities").request("lock/more") end },
   }
