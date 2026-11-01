@@ -18,6 +18,7 @@ function M.page(w, h)
   model.scopes = { { "all", "public", "All" }, { "workspace", "workspaces", "Space" },
     { "output", "monitor", "Screen" } }
   model.scrubs = { { "apps", "apps", "Apps" }, { "workspaces", "workspaces", "Workspaces" } }
+  model.dim_min, model.dim_max = require("window_rules_model").DIM_MIN, require("window_rules_model").DIM_MAX
   return require("themes").view("windows_page").build_windows(model, w, h)
 end
 
@@ -32,6 +33,47 @@ function M.dock_page(w, h)
   model.hides = { { "off", "visibility", "Never" }, { "windows", "select_window", "Under windows" }, { "on", "visibility_off", "Always" } }
   model.sizes = { { 40, "photo_size_select_small", "Small" }, { 48, "crop_square", "Medium" }, { 64, "photo_size_select_large", "Large" } }
   return require("themes").view("windows_page").build_dock(model, w, h)
+end
+
+--- The rules' list, and the running windows to start one from.
+function M.rules_page(w, h)
+  local model = model_of("windows/rules")
+  local rules = require("window_rules_model")
+  local windows = require("windows_model")
+  model.rules, model.windows = rules, windows
+  function model.rule(index) return rules.list()[index] end
+  function model.running() return windows.list() end
+  return require("themes").view("windows_page").build_rules(model, w, h)
+end
+
+--- The saved layouts.
+function M.layouts_page(w, h)
+  local model = model_of("windows/layouts")
+  model.layouts = require("layouts_model")
+  model.message = require("morf").signal("eva.layouts.message", "")
+  function model.saved(index) return model.layouts.list()[index] end
+  function model.count(layout) return ("%d windows"):format(#(layout.windows or {})) end
+  --- Says what was saved, and how many of those could not be started again.
+  function model.save(name)
+    model.layouts.save(name, function(count, why)
+      if not count then return model.message:set(why) end
+      local stuck = 0
+      for _, row in ipairs(model.layouts.get(name).windows) do
+        if row.startable == false then stuck = stuck + 1 end
+      end
+      model.message:set(("Saved %d windows as %s%s"):format(count, name,
+        stuck > 0 and ("; %d could not be started again if closed"):format(stuck) or ""))
+    end)
+  end
+  return require("themes").view("windows_page").build_layouts(model, w, h)
+end
+
+--- One rule, as the draft.
+function M.rule_page(w, h)
+  local model = model_of("windows/rule")
+  model.rules = require("window_rules_model")
+  model.layouts = { { "", "tab_unselected", "As it comes" }, { "float", "picture_in_picture", "Float" }, { "tile", "view_quilt", "Tile" } }
+  return require("themes").view("windows_page").build_rule(model, w, h)
 end
 
 return M

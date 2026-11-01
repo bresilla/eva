@@ -141,7 +141,8 @@ end
 
 --- Whether the settings page `route` takes text.
 function M.typed_route(route)
-  if route == "calendars" or require("settings_forms").PAGES[route] then return true end
+  if route == "calendars" or route == "windows/rule" or route == "windows/layouts"
+    or require("settings_forms").PAGES[route] then return true end
   return M.all[route] ~= nil and M.all[route].typed == true
 end
 

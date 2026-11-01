@@ -6,13 +6,18 @@ local HOST=[[
   local W,H=tonumber(morf.env("TEST_WIDTH")),tonumber(morf.env("TEST_HEIGHT"))
   morf.surface.height=H
   local prefs=morf.state {enabled=morf.env("TEST_BAR") or "on",side="top",titles="on",tray="on",
-    wheel_volume=false,wheel_workspace=false}
+    tray_limit=8,wheel_volume=false,wheel_workspace=false}
+  local arranged=morf.signal("tray.fixture.items",{})
   local original=require("config")
   package.loaded.config={get=function(key)
+    if key=="edgebar.tray_items" then return arranged:get() end
     local name=key:match("^edgebar%.(.+)$")
     if name then return prefs[name] end
     return original.get(key)
-  end,set=function(key,value) prefs[key:gsub("^edgebar%.","")]=value end}
+  end,set=function(key,value)
+    if key=="edgebar.tray_items" then arranged:set(value) return end
+    prefs[key:gsub("^edgebar%.","")]=value
+  end}
   package.loaded["lib.services.vpns"]={links=function() return {} end}
   local calls,subscribed,served,closed={},nil,0,0
   local volume,sets,steps=0.5,{},{}
@@ -83,6 +88,20 @@ local HOST=[[
   morf.ipc.activate=function(address) return model.tray.activate(address) end
   morf.ipc.turn=function(notches) model.wheel_workspace(tonumber(notches)) end
   local tray=require("tray_model")
+  morf.ipc.place=function(id,place) model.tray.place(id,place) end
+  morf.ipc.move=function(id,by) model.tray.move(id,tonumber(by)) end
+  morf.ipc.room_for=function(given,step,count) return tray.room_for(tonumber(given),tonumber(step),tonumber(count)) end
+  morf.ipc.more=function()
+    local out={}
+    for i=1,model.tray.more:len() do out[i]=model.tray.more:get(i).id end
+    return out
+  end
+  morf.ipc.arrange=function()
+    local rows={{id="a"},{id="b"},{id="new"},{id="quiet",passive=true},{id="gone"}}
+    local order,bar,more=tray.arrange(rows,{{id="b",place="bar"},{id="a",place="more"},{id="gone",place="hide"}},8)
+    local function ids(list) local out={} for i,row in ipairs(list) do out[i]=row.id end return out end
+    return {order=ids(order),bar=ids(bar),more=ids(more)}
+  end
   morf.ipc.rgba=function() return {tray.rgba("\1\2\3\4"):byte(1,4)} end
   morf.ipc.nearest=function()
     local big,small=string.rep("x",4*48*48),string.rep("x",4*16*16)
@@ -178,7 +197,63 @@ for _,style in ipairs {"material","tsugumori"} do
     load(style,1920,1080,false,{TEST_BAR="off"})
     test.eq(state().served,0)
   end)
+  test.it(style.." hides an item, tucks one behind the arrow, and shows what is there",function()
+    load(style,1920,1080)
+    test.ipc("items","5,6") test.advance(100)
+    test.truthy(item(5)~=nil) test.truthy(item(6)~=nil)
+    test.eq(test.find {id="bar-tray-more",visible=true},nil,"nothing is tucked away yet")
+    test.ipc("place","chat","hide") test.advance(100)
+    test.eq(item(6),nil) test.truthy(item(5)~=nil)
+    test.eq(#state().rows,1,"a hidden item is not shown anywhere")
+    test.ipc("place","chat","more") test.advance(100)
+    test.eq(item(6),nil)
+    test.truthy(test.find {id="bar-tray-more",visible=true},"the arrow shows")
+    test.eq(test.ipc("more"),{"chat"})
+    test.ipc("place","chat","bar") test.advance(100)
+    test.truthy(item(6)~=nil)
+    test.eq(test.find {id="bar-tray-more",visible=true},nil)
+    test.eq(#test.logs("error"),0)
+  end)
+  test.it(style.." keeps a person's order, whichever way items arrive",function()
+    load(style,1920,1080)
+    test.ipc("items","5,6") test.advance(100)
+    test.eq(state().rows[1].id,"notes")
+    test.ipc("move","chat",-1) test.advance(100)
+    test.eq(state().rows[1].id,"chat")
+    test.ipc("items","6,5") test.advance(100)
+    test.eq(state().rows[1].id,"chat")
+    test.ipc("items","5,6") test.advance(100)
+    test.eq(state().rows[1].id,"chat")
+  end)
+  test.it(style.." puts what is past its limit behind the arrow",function()
+    load(style,1920,1080)
+    test.ipc("items","5,6") test.advance(100)
+    test.ipc("set","tray_limit",1) test.advance(100)
+    test.truthy(item(5)~=nil) test.eq(item(6),nil)
+    test.eq(test.ipc("more"),{"chat"})
+    test.truthy(test.find {id="bar-tray-more",visible=true})
+  end)
 end
+test.it("what does not fit gives its place to the arrow",function()
+  load("material",1920,1080)
+  test.eq(test.ipc("room_for",128,32,5),3)
+  test.eq(test.ipc("room_for",32,32,3),1)
+  test.eq(test.ipc("room_for",96,32,3),1024)
+  test.eq(test.ipc("room_for",0,32,3),1)
+end)
+test.it("an item goes by its own name, the same each run",function()
+  load("material",1920,1080)
+  test.ipc("items","5") test.advance(100)
+  test.eq(state().rows[1].id,"notes")
+  test.eq(state().rows[1].address,":1.5/StatusNotifierItem")
+end)
+test.it("arranges by a person's list, new items last and passive ones away",function()
+  load("material",1920,1080)
+  local out=test.ipc("arrange")
+  test.eq(out.order,{"b","a","new"})
+  test.eq(out.bar,{"b","new"})
+  test.eq(out.more,{"a"})
+end)
 test.it("the wheel over the status changes the volume, with its setting",function()
   load("material",1920,1080)
   local status=test.get("bar-status")

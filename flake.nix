@@ -74,6 +74,7 @@
             import ./nix/tests/windows.nix {
               module = self.nixosModules.default;
               wallpaper = ./tests/fixtures/wallpaper.png;
+              only = builtins.getEnv "EVA_VM_ONLY";
             }
           );
           # The same again.
@@ -104,8 +105,10 @@
               chargeLimit = true;
               usbTether = true;
               hotspot = true;
+              ddc.enable = true;
             };
           };
+          module-remap = machine { programs.eva.remap.enable = true; };
           module-fixed = machine {
             programs.eva.idle = {
               lockTimeout = 300;

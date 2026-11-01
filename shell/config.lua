@@ -383,6 +383,10 @@ local config = settings.open {
       cutout = { x = 0, width = 0, height = 0 },
       -- "on" or "off": the system tray on a desk's bar.
       tray = "on",
+      -- A person's arrangement of its items, `{ id, title, place }`, in order;
+      -- how many icons stand on the bar at most, the rest behind an arrow.
+      tray_items = {},
+      tray_limit = 8,
       -- The wheel over a desk's bar: over the status it changes the volume,
       -- over the clock the workspace.
       wheel_volume = false,
@@ -666,6 +670,15 @@ local config = settings.open {
       workspaces = { names = {}, layouts = {} },
       -- The scratchpads: `name`, `command` to start, `icon`.
       scratchpads = {},
+      -- What windows open with (shell/window_rules_model.lua).
+      rules = {},
+      -- Unfocused windows darken, by `dim_strength`, 0 to 1.
+      dim_inactive = false,
+      dim_strength = 0.2,
+      -- Saved arrangements of windows, and the one put back after login, by
+      -- name (shell/layouts_model.lua).
+      layouts = {},
+      layout_login = "",
       switcher = {
         -- What Alt+Tab walks: "all", "workspace" or "output".
         scope = "all",
@@ -673,6 +686,16 @@ local config = settings.open {
         group = true,
       },
     },
+    -- External screens' brightness over DDC/CI, where the system allows it
+    -- (`programs.eva.hardware.ddc.enable`; shell/ddc_model.lua).
+    displays = { ddc = true },
+    -- Keys remapped for every program, where the system allows it
+    -- (`programs.eva.remap.enable`; shell/remap_model.lua). `caps` and `hyper`
+    -- choose what those keys do, `tap` and `hold` are in ms.
+    remap = { caps = "", hyper = "", swap_alt_super = false, home_row = false, tap = 200, hold = 200 },
+    -- New chords for the compositor's keys, eva-keys' to write: `{ id, keys }`,
+    -- an empty chord for none (shell/keys_model.lua).
+    keys = { overrides = {} },
     -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
     -- keeps it, a phone or a tablet follows the accelerometer).
     rotation = { lock = "auto" },

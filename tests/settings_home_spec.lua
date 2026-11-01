@@ -92,6 +92,8 @@ local HOST = [[
       "themes/layouts/views/idle_page.lua", "themes/layouts/views/lock_page.lua",
       "shell/windows_page.lua", "themes/layouts/views/windows_page.lua",
       "shell/touch_page.lua", "shell/touch_bindings.lua",
+      "shell/keys_model.lua", "shell/about_model.lua",
+      "shell/layouts_model.lua",
       "themes/layouts/views/assistant_settings.lua", "themes/layouts/views/calendar_settings.lua",
       "themes/layouts/views/look_page.lua", "themes/layouts/views/wallpaper_page.lua", "themes/layouts/views/desktop_page.lua",
       "themes/layouts/views/bar_page.lua", "themes/layouts/views/utilities.lua",

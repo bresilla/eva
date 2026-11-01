@@ -128,6 +128,29 @@ M.PAGES = {
       { "open", "Open a capture", "open_in_new" },
     }) },
   } },
+  ["input/remap"] = { status = "remap_model", sections = {
+    { title = "Caps Lock", fields = {
+      { key = "remap.caps", kind = "choice", title = "It acts as", per_row = 2, items = {
+        { "", "keyboard_capslock", "Caps Lock" }, { "escape", "keyboard", "Escape" },
+        { "control", "keyboard_control_key", "Control" }, { "hyper", "star", "Hyper" },
+        { "tap_escape_hold_control", "touch_app", "Tap Esc, hold Ctrl" },
+        { "tap_escape_hold_hyper", "touch_app", "Tap Esc, hold Hyper" } } },
+    } },
+    { title = "Hyper", note = "A key that holds Ctrl, Alt, Shift and Super at once", fields = {
+      { key = "remap.hyper", kind = "choice", title = "Hyper key", per_row = 2, items = {
+        { "", "block", "None" }, { "right_alt", "keyboard_option_key", "Right Alt" },
+        { "right_control", "keyboard_control_key", "Right Ctrl" }, { "menu", "menu", "Menu" } } },
+    } },
+    { title = "More", fields = {
+      { key = "remap.swap_alt_super", kind = "bool", title = "Swap Alt and Super", icon = "swap_horiz" },
+      { key = "remap.home_row", kind = "bool", title = "Modifiers on the home row", icon = "keyboard",
+        note = "A S D F and J K L ; type when tapped, and are Super, Alt, Shift, Ctrl when held" },
+    } },
+    { title = "Tap or hold", fields = {
+      { key = "remap.tap", kind = "number", title = "A tap lasts up to", icon = "touch_app", from = 100, to = 500, step = 10, unit = " ms" },
+      { key = "remap.hold", kind = "number", title = "A hold starts after", icon = "timer", from = 100, to = 500, step = 10, unit = " ms" },
+    } },
+  } },
   ["windows/more"] = { sections = {
     { title = "Scratchpads", fields = {
       { key = "windows.scratchpads", kind = "records", fields = { "name", "command", "icon" }, title = "Scratchpads",

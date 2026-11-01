@@ -20,7 +20,8 @@ end
 local function choice(field, inner)
   return ui.Column { width = inner, gap = P.ROW_GAP,
     F.note(inner, field.title),
-    F.choices { id = id_of(field.key), width = inner, items = field.items, now = function() return config.get(field.key) end,
+    F.choices { id = id_of(field.key), width = inner, items = field.items, per_row = field.per_row,
+      now = function() return config.get(field.key) end,
       pick = function(value) config.set(field.key, value) end },
   }
 end
@@ -104,6 +105,10 @@ end
 function M.build(name, w, h)
   local page = { id = "form-" .. name:gsub("/", "-") .. "-scroll", width = w, height = h,
     active = require("presentation").active("settings." .. name) }
+  local status = forms.PAGES[name].status
+  if status then
+    page[#page + 1] = F.note(w, function() return require(status).summary() end, { id = "form-status" })
+  end
   for _, block in ipairs(M.sections(name, w)) do page[#page + 1] = block end
   return P.page(page)
 end

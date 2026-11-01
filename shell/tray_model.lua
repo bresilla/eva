@@ -1,13 +1,57 @@
 -- The system tray: a StatusNotifier watcher where no other panel runs one, the
 -- engine's host, and a row per item. No nodes.
 --
--- A row: `{ address, service, path, title, icon, file, pixmap, passive }`.
--- `icon` is a theme icon's name, `file` a picture on disk, `pixmap` a source
--- for `ui.Image`: whichever the item gave. Rows are read from the item
--- without waiting on it, and again when it says it changed.
+-- A row: `{ address, id, service, path, title, icon, file, pixmap, passive }`.
+-- `id` is the item's own name, the same each run; `icon` is a theme icon's
+-- name, `file` a picture on disk, `pixmap` a source for `ui.Image`: whichever the
+-- item gave. Rows are read from the item without waiting on it, and again when
+-- it says it changed.
+--
+-- `edgebar.tray_items` keeps a person's arrangement, `{ id, title, place }` in
+-- their order: `bar`, `more` (behind the overflow arrow) or `hide`. What arrives
+-- unknown goes last, on the bar; a passive item stays away, as it asks.
 local morf = require("morf")
 
 local M = {}
+
+M.PLACES = { { "bar", "On the bar" }, { "more", "Tucked away" }, { "hide", "Hidden" } }
+-- As many as a bar will ever hold: no limit at all.
+M.ROOMY = 1024
+
+--- How many of `count` icons, each `step` along, stand in `given`: the arrow
+--- takes one's place where they do not all fit.
+function M.room_for(given, step, count)
+  local fits = math.floor(given / step)
+  if fits >= count then return M.ROOMY end
+  return math.max(1, fits - 1)
+end
+
+--- The arrangement kept.
+local function kept()
+  local list = require("config").get("edgebar.tray_items")
+  return type(list) == "table" and list or {}
+end
+
+--- `rows` in a person's order, split into what goes on the bar and behind the
+--- arrow; `room` is how many the bar has space for.
+function M.arrange(rows, list, room)
+  local order, by_id = {}, {}
+  for index, row in ipairs(list or {}) do by_id[row.id] = { index = index, place = row.place } end
+  local ranked = {}
+  for index, row in ipairs(rows) do
+    local keep = by_id[row.id]
+    if not row.passive and not (keep and keep.place == "hide") then
+      ranked[#ranked + 1] = { row = row, rank = keep and keep.index or (#(list or {}) + index), more = keep and keep.place == "more" }
+    end
+  end
+  table.sort(ranked, function(a, b) return a.rank < b.rank end)
+  local bar, more = {}, {}
+  for _, entry in ipairs(ranked) do
+    order[#order + 1] = entry.row
+    if entry.more or #bar >= room then more[#more + 1] = entry.row else bar[#bar + 1] = entry.row end
+  end
+  return order, bar, more
+end
 
 local ITEM = "org.kde.StatusNotifierItem"
 local PROPERTIES = "org.freedesktop.DBus.Properties"
@@ -74,7 +118,9 @@ function M.row(address, service, path, props)
   if not title or title == "" then title = props.Id or "" end
   local folder = props.IconThemePath or ""
   local file = name ~= "" and file_of(name, folder) or nil
-  return { address = address, service = service, path = path, title = title,
+  local id = props.Id
+  if not id or id == "" then id = title ~= "" and title or address end
+  return { address = address, id = id, service = service, path = path, title = title,
     icon = not file and name or "", file = file or "", passive = props.Status == "Passive",
     pixmap = (name == "" or (not file and morf.image and morf.image.has_icon and not morf.image.has_icon(name)))
       and publish(address, list) or nil }
@@ -96,16 +142,93 @@ end
 function M.new(opts)
   opts = opts or {}
   local client = require("lib.services.dbus").new { bus = "session", dbus = opts.dbus }
-  local model = { rows = morf.list_model({}) }
+  -- `rows` is all that shows, `bar` and `more` where.
+  local model = { rows = morf.list_model({}), bar = morf.list_model({}), more = morf.list_model({}),
+    -- How many icons the bar's slot has room for.
+    room = morf.signal("eva.tray.room", M.ROOMY), ROOMY = M.ROOMY }
   local order, known, listening = {}, {}, {}
 
-  local function publish_rows()
+  local function present()
     local rows = {}
     for _, address in ipairs(order) do
-      local row = known[address]
-      if row and not row.passive then rows[#rows + 1] = row end
+      if known[address] then rows[#rows + 1] = known[address] end
     end
-    model.rows:replace(rows, "address")
+    return rows
+  end
+
+  local function limit()
+    local value = tonumber(require("config").get("edgebar.tray_limit"))
+    return math.min(model.room:get(), value and value > 0 and value or model.ROOMY)
+  end
+
+  local function publish_rows()
+    local all, bar, more = M.arrange(present(), kept(), limit())
+    model.rows:replace(all, "address")
+    model.bar:replace(bar, "address")
+    model.more:replace(more, "address")
+  end
+
+  morf.effect("eva.tray.arrange", function()
+    kept()
+    limit()
+    publish_rows()
+  end)
+
+  --- Every item a person can arrange: those here and those kept, in order, each
+  --- `{ id, title, place, here }`.
+  function model.items()
+    local out, seen = {}, {}
+    for _, row in ipairs(kept()) do
+      seen[row.id] = #out + 1
+      out[#out + 1] = { id = row.id, title = row.title, place = row.place or "bar", here = false }
+    end
+    for _, row in ipairs(present()) do
+      local at = seen[row.id]
+      if at then
+        out[at].here, out[at].title = true, row.title
+      elseif not row.passive then
+        out[#out + 1] = { id = row.id, title = row.title, place = "bar", here = true }
+      end
+    end
+    return out
+  end
+
+  local function store(items)
+    local list = {}
+    for index, item in ipairs(items) do list[index] = { id = item.id, title = item.title, place = item.place } end
+    require("config").set("edgebar.tray_items", list)
+  end
+
+  --- Puts an item on the bar, behind the arrow, or nowhere.
+  function model.place(id, place)
+    local items = model.items()
+    for _, item in ipairs(items) do if item.id == id then item.place = place end end
+    store(items)
+  end
+
+  --- The next place for an item, round the three.
+  function model.next_place(id)
+    for _, item in ipairs(model.items()) do
+      if item.id == id then
+        for index, place in ipairs(M.PLACES) do
+          if place[1] == item.place then return model.place(id, M.PLACES[index % #M.PLACES + 1][1]) end
+        end
+      end
+    end
+  end
+
+  --- Moves an item `by` places along.
+  function model.move(id, by)
+    local items = model.items()
+    for index, item in ipairs(items) do
+      if item.id == id then
+        local to = math.max(1, math.min(#items, index + by))
+        table.remove(items, index)
+        table.insert(items, to, item)
+        break
+      end
+    end
+    store(items)
   end
 
   local function read(address, service, path)

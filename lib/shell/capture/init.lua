@@ -144,10 +144,10 @@ function M.binding_plan(binding,previous,flavour)
   end
   local keys,old=parts(binding),parts(previous or "Print")
   if not keys or not old then return nil,"Invalid key binding" end
-  local command="/usr/bin/morf ipc call capture open"
+  local command="morf ipc call capture open"
   if flavour=="lua" then
     local next=table.concat(keys," + ") local prev=table.concat(old," + ")
-    local bind=('hl.bind("%s", hl.dsp.exec_cmd("%s"))'):format(next,command)
+    local bind=('hl.bind("%s", hl.dsp.exec_cmd("%s"), { description = "Open the capture panel" })'):format(next,command)
     local unbind=('hl.unbind("%s")\n'):format(prev)
     if next~=prev then unbind=unbind..('hl.unbind("%s")\n'):format(next) end
     return {text=unbind..bind.."\n",binding=next,bind=bind}

@@ -819,10 +819,61 @@ The compositor keys are in `shell/keybinds.lua`. A session with no
 `always` or `never`, and `eva-keys` lists the ones that are not bound with the
 verb to bind.
 
+`eva-keys` also changes them: press a row and press the new keys. Hyprland's own
+bindings stand aside while it listens, so a chord already taken still reaches the
+window; it then says what has it, and waits to be confirmed. New chords live in
+`keys.overrides` and go through the same run-time path as every other pushed
+setting, now and after each reload, so no file of yours is written. A key from
+your own configuration moves with its action intact, and Reset takes a row back.
+The shell's Ctrl shortcuts are listed, not changed. Modifier order does not matter
+when eva finds a key, but `hl.unbind` goes by text, so an alias such as `MOD4`
+written in your configuration is not found.
+
+Settings, Windows, Window rules holds what windows open with: float, size, place,
+workspace, screen, opacity and the rest, started from nothing or from a running
+window (or the window menu's Rule). A rule acts as a window opens; what it says on
+looks reaches those already open. They need a Lua-configured Hyprland, and are
+spelled as Hyprland 0.55.4 reads them. The same page dims inactive windows.
+
+Saved layouts keeps what is open under a name and puts it back, on request or
+after login. Floating windows return to their exact box, tiled ones to their
+workspace, where Hyprland tiles them. A window that is closed is started again
+from its desktop entry and placed when it shows, but what was in it is not: tabs,
+documents and terminal sessions start fresh. An app with no desktop entry cannot
+be started, one that keeps to a single window comes back as one, and the page
+says which.
+
+In the overview a desk dragged onto another takes its place, or goes to that
+screen if the desk is on another one, and a right press offers Move left and
+right, Swap with, Move to and Swap screens. Windows, name and layout go together.
+`eva workspace_move`, `workspace_swap`, `workspace_reorder` and `workspace_screens`
+do the same.
+
 `EVA_FAKE_WINDOWS=1`, or a JSON file like `tests/fixtures/windows.json`, stands in
 for Hyprland: `shell/windows_stand_in.lua` is the same library over a list of its
 own, evaluating the same `hl.*` chunks, with what the compositor really has among
 its windows. `nix build .#windows-test` runs these against a real Hyprland in a VM.
+
+### Keys and external screens
+
+`programs.eva.remap.enable` lets Settings, Keyboard, Key remapping set Caps Lock,
+a hyper key, tap versus hold and home row modifiers for every program. It is off
+by default, as it reads every keyboard. kanata does the work, chosen over keyd
+because its NixOS service has a dynamic user, no capabilities and no network, and
+its stock build cannot run a command; keyd runs as root, and a line in its
+configuration can run anything as root. Nobody joins the `input` group: only the
+service's own dynamic user is in it. Settings writes words from a fixed list, and
+root turns those into kanata's file, so a choices file written by hand cannot
+reach kanata as text. With nothing chosen, nothing starts. Caps Lock alone needs
+none of this: Settings, Keyboard has Escape and Control through xkb.
+
+`programs.eva.hardware.ddc.enable` joins external monitors to the one brightness
+level: the slider, the bar's module, the on-screen display and the keys all act on
+the screen they are on, by DDC/CI where it answers and the backlight where it does
+not. It installs ddcutil, and a udev rule tags only the buses that lead to a
+display with `uaccess`, so it takes no group. This path has run against stand-ins
+only: `lib/services/host_fake.lua` and a fake `ddcutil` in a VM, which has no
+monitor on an I2C bus.
 
 ## Phone, tablet and desk
 

@@ -460,14 +460,8 @@ end
 function M.binding_key(key,text,mods,_,name)
   if not M.rebinding:get() then return end
   if key==65307 then M.rebinding:set(false) return end
-  name=name or text
-  if not name or name=="" or name:match("_[LR]$") then return end
-  local tokens={}
-  for _,entry in ipairs {{"logo","SUPER"},{"ctrl","CTRL"},{"alt","ALT"},{"shift","SHIFT"}} do
-    if (mods or ""):find(entry[1],1,true) then tokens[#tokens+1]=entry[2] end
-  end
-  tokens[#tokens+1]=name
-  local binding=table.concat(tokens," + ")
+  local binding=require("key_rows").recorded(name,text,mods)
+  if not binding then return end
   M.rebinding:set(false) apply_binding(binding)
 end
 local function output_name()

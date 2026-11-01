@@ -33,6 +33,8 @@ local function hypr()
   return require("lib.compositor.hyprland")
 end
 
+M.hyprland = hypr
+
 local function get(key) return config.get("input." .. key) end
 
 --- A list of `{ key, value }` kept in the configuration, as a table.

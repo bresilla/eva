@@ -22,7 +22,8 @@ M.CATEGORIES = {
 }
 
 -- `summary` is the home row's second line. `items` are the settings a page
--- holds, each `{ name, keywords }`, found by search on their own.
+-- holds, each `{ name, keywords }`, found by search on their own; `present` names
+-- the page whose presence an item goes by, where not its own.
 M.PAGES = {
   { key = "home", name = "All settings", icon = "settings", summary = "Every page, by category",
     keywords = "search find everything" },
@@ -60,7 +61,8 @@ M.PAGES = {
     keywords = "vpn wireguard openvpn mullvad proton tor" },
 
   { key = "displays", name = "Displays", icon = "monitor", category = "device", summary = "Monitors, scale and arrangement",
-    keywords = "screen monitor resolution refresh rate scale rotate mirror vrr" },
+    keywords = "screen monitor resolution refresh rate scale rotate mirror vrr",
+    items = { { "Brightness of external screens", "ddc ddcutil ci monitor brightness cable backlight" } } },
   { key = "sound", name = "Sound", icon = "volume_up", category = "device", summary = "Outputs, apps, equalizer",
     keywords = "audio volume speaker headphones output balance mute" },
   { key = "sound/more", name = "More sound settings", icon = "tune", parent = "sound",
@@ -79,7 +81,8 @@ M.PAGES = {
   { key = "input", name = "Keyboard", icon = "keyboard", category = "device", summary = "Layouts, switching, repeat",
     keywords = "layout language repeat delay rate numlock xkb compose caps",
     items = { { "Keyboard layouts", "add language qwerty dvorak azerty" }, { "Switch layout key", "alt shift super space" },
-      { "Key repeat", "rate delay speed" } } },
+      { "Key repeat", "rate delay speed" },
+      { "Keyboard shortcuts", "keybind keybinding rebind hotkey chord combination conflict binding" } } },
   { key = "input/pointer", name = "Mouse and touchpad", icon = "mouse", parent = "input", category = "device",
     summary = "Speed, tap to click, cursor",
     keywords = "mouse touchpad trackpad pointer cursor scroll natural tap click sensitivity acceleration left handed",
@@ -94,6 +97,9 @@ M.PAGES = {
       { "Try a gesture", "test fingers" } } },
   { key = "touch/gesture", name = "Gesture", icon = "gesture", parent = "touch",
     keywords = "action command custom" },
+  { key = "input/remap", name = "Key remapping", icon = "keyboard_command_key", parent = "input",
+    keywords = "remap hyper caps lock escape control tap hold kanata home row mods swap alt super",
+    items = { { "Caps Lock tap and hold", "escape control hyper" }, { "Hyper key", "modifier ctrl alt shift super" } } },
   { key = "power", name = "Power", icon = "battery_full", category = "device", summary = "Battery, profiles, sleep and lid",
     keywords = "battery charge profile saver performance",
     items = { { "When the lid closes", "lid suspend" }, { "Power button", "key action" },
@@ -130,6 +136,9 @@ M.PAGES = {
     keywords = "shell motion hover panels bounce" },
   { key = "bar", name = "Bar", icon = "toolbar", parent = "eva", category = "shell", summary = "Where it stands, what it shows",
     keywords = "edge top bottom tray titles" },
+  { key = "bar/tray", name = "Tray items", icon = "apps", parent = "bar",
+    keywords = "system tray hide reorder order overflow arrow icons indicators status notifier",
+    items = { { "Hide a tray icon", "tray overflow indicator" } } },
   { key = "bar/more", name = "Clock and screen shape", icon = "schedule", parent = "bar",
     keywords = "clock 12 hour cutout notch rounded corner bluetooth program" },
   { key = "osd", name = "On-screen displays", icon = "picture_in_picture", parent = "eva", category = "shell",
@@ -158,8 +167,16 @@ M.PAGES = {
     keywords = "taskbar pinned apps running badges edge autohide" },
   { key = "windows", name = "Windows", icon = "select_window", parent = "eva", category = "shell",
     summary = "Hot corners, the switcher and snapping",
-    keywords = "overview alt tab switcher snap hot corner split picture in picture pip recents workspace" },
+    keywords = "overview alt tab switcher snap hot corner split picture in picture pip recents workspace",
+    items = { { "Dim inactive windows", "focus darken unfocused strength", present = "windows/rules" } } },
   { key = "windows/more", name = "Scratchpads", icon = "stacks", parent = "windows", keywords = "scratchpad special workspace" },
+  { key = "windows/rules", name = "Window rules", icon = "rule", parent = "windows",
+    keywords = "rule per app float size workspace opacity transparent position always open",
+    items = { { "Rule from a running window", "app class title" } } },
+  { key = "windows/rule", name = "Rule", icon = "rule", parent = "windows/rules", keywords = "rule class title" },
+  { key = "windows/layouts", name = "Saved layouts", icon = "dashboard", parent = "windows",
+    keywords = "layout arrangement restore session save windows after login remember position",
+    items = { { "Restore a layout after login", "session startup windows" } } },
   { key = "lock", name = "Lock screen", icon = "lock", parent = "eva", category = "shell",
     summary = "What it shows, and how it opens", keywords = "password pin fingerprint face grace notifications widgets emergency" },
   { key = "lock/more", name = "Readers", icon = "fingerprint", parent = "lock", keywords = "fingerprint face tries reader" },
@@ -237,7 +254,8 @@ function M.entries()
     if page.key ~= M.HOME then
       out[#out + 1] = row(page)
       for _, item in ipairs(page.items or {}) do
-        out[#out + 1] = { key = page.key, name = item[1], icon = page.icon, keywords = item[2] or "", page = page.name }
+        out[#out + 1] = { key = page.key, name = item[1], icon = page.icon, keywords = item[2] or "", page = page.name,
+          present = item.present }
       end
     end
   end

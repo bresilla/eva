@@ -597,10 +597,21 @@ local PRESENT={
   hotspot=function() return M.CONTROLS.hotspot.present() end,
   nightlight=function() return M.CONTROLS.nightlight.present() end,
 }
+local function no_phone() return not require("responsive").phone() end
+--- The pages only some forms have.
+local FORMS={
+  ["windows/rules"]=no_phone,["windows/rule"]=no_phone,["windows/layouts"]=no_phone,["input/remap"]=no_phone,
+  ["bar/tray"]=function() return require("responsive").form()=="desk" end,
+}
+--- Whether page `key` is one this form has.
+function M.page_fits(key)
+  local check=FORMS[key]
+  return check==nil or check()==true
+end
 --- Whether page `key` is one this machine can show.
 function M.page_present(key)
   local check=PRESENT[key]
-  return check==nil or check()==true
+  return M.page_fits(key) and (check==nil or check()==true)
 end
 function M.capture()
   require("pages").close("settings")

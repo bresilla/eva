@@ -14,6 +14,7 @@ local builders={
   microphone=function(w,h) return require("sound_page").input_page(w,h) end,
   power=function(w,h) return require("power_page").page(w,h) end,
   bar=function(w,h) return require("bar_page").page(w,h) end,
+  ["bar/tray"]=function(w,h) return require("bar_page").tray_page(w,h) end,
   osd=function(w,h) return require("osd_page").page(w,h) end,
   touch=function(w,h) return require("touch_page").page(w,h) end,
   ["touch/gesture"]=function(w,h) return require("touch_page").gesture_page(w,h) end,
@@ -26,6 +27,9 @@ local builders={
   idle=function(w,h) return require("idle_page").page(w,h) end,
   dock=function(w,h) return require("windows_page").dock_page(w,h) end,
   windows=function(w,h) return require("windows_page").page(w,h) end,
+  ["windows/rules"]=function(w,h) return require("windows_page").rules_page(w,h) end,
+  ["windows/rule"]=function(w,h) return require("windows_page").rule_page(w,h) end,
+  ["windows/layouts"]=function(w,h) return require("windows_page").layouts_page(w,h) end,
   wired=function(w,h) return require("net_pages").wired_page(w,h) end,
   mesh=function(w,h) return require("net_pages").vpn_page("mesh",w,h,M.displayed) end,
   tunnel=function(w,h) return require("net_pages").vpn_page("tunnel",w,h,M.displayed) end,
@@ -53,7 +57,7 @@ local function themed(name) return require("themes").view(name) end
 builders.home=function(w,h)
   return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
 end
-for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard","lock/more","windows/more","phone","backups/more"} do
+for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard","lock/more","windows/more","phone","backups/more","input/remap"} do
   builders[name]=function(w,h) return themed("settings_form").build(name,w,h) end
 end
 
