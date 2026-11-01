@@ -7,6 +7,7 @@ local frozen = require("common.freeze").new("zoom")
 
 local M = {
   picture = frozen.picture,
+  overlay = frozen.overlay,
   factor = morf.signal("zoom.factor", 2),
   cursor = morf.signal("zoom.cursor", 1),
   radius = morf.signal("zoom.radius", 140),

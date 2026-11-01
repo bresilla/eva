@@ -59,6 +59,30 @@ test.it("reads the colour under the pointer and keeps it", function()
   test.contains(state.message, hover)
 end)
 
+test.it("reads the colour on a screen too large to read a pixel of at once", function()
+  local big = morf.env("XDG_STATE_HOME") .. "/colorpick-big.png"
+  test.load { source = ([[
+    local morf = require("morf")
+    require("morf.ui").Item { width = 1, height = 1 }
+    local done = false
+    morf.image.process { output = %q, ops = {}, on_done = function() done = true end,
+      source = '<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160"><rect width="3840" height="2160" fill="#336699"/></svg>' }
+    morf.ipc.done = function() return done end
+  ]]):format(big) }
+  test.wait(function() test.advance(16) return test.ipc("done") end, 8000, "the picture was made")
+  test.load("../apps/colorpick/app.lua", { env = ENV, source = morf.fs.read(ROOT .. "apps/colorpick/app.lua") .. ([[
+    require("model").picture:set { path = %q, width = 3840, height = 2160 }
+  ]]):format(big) })
+  test.settle(200)
+  test.ipc("point", "100", "100")
+  local hover = test.wait(function()
+    test.advance(16)
+    local seen = test.ipc("state").hover
+    return seen ~= "" and seen or nil
+  end, 5000, "the colour came back")
+  test.eq(hover, "#336699")
+end)
+
 test.it("keeps one of each recent colour, the newest first", function()
   test.load("../apps/colorpick/app.lua", { env = ENV, source = morf.fs.read(ROOT .. "apps/colorpick/app.lua") .. ([[
     local model = require("model")

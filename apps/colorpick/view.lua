@@ -163,15 +163,7 @@ end
 --- The frozen screen for as long as there is a picture: a click takes a colour,
 --- Escape lets go. `done(hex)` after either.
 function M.overlay(done)
-  local layer
-  morf.effect("eva.colorpick.overlay", function()
-    local shown = model.picture:get() ~= nil
-    if shown and not layer then layer = frozen_screen(done)
-    elseif not shown and layer then
-      require("common.frame").dismiss(layer)
-      layer = nil
-    end
-  end)
+  model.overlay(function() return frozen_screen(done) end)
 end
 
 return M

@@ -11,6 +11,7 @@ local frozen = require("common.freeze").new("ruler")
 
 local M = {
   picture = frozen.picture,
+  overlay = frozen.overlay,
   mode = morf.signal("ruler.mode", "spacing"),
   tolerance = morf.signal("ruler.tolerance", 30),
   at = morf.signal("ruler.at", nil),

@@ -58,6 +58,7 @@ function M.thaw()
 end
 
 M.scale = frozen.scale
+M.overlay = frozen.overlay
 
 --- The pointer at surface `x`, `y`; `scale` is pixels of the picture to a
 --- surface pixel.
@@ -66,8 +67,11 @@ function M.point(x, y, scale)
   if not picture then return end
   local px = math.max(0, math.min(picture.width - 1, math.floor(x * (scale or 1))))
   local py = math.max(0, math.min(picture.height - 1, math.floor(y * (scale or 1))))
+  local function hover(color)
+    M.hover:set { x = x, y = y, px = px, py = py, hex = color and color:hex() or "#000000" }
+  end
   local color = frozen.pixel(px, py)
-  M.hover:set { x = x, y = y, px = px, py = py, hex = color and color:hex() or "#000000" }
+  if color then hover(color) else frozen.sample(px, py, hover) end
 end
 
 --- `hex` in the chosen format, on the clipboard.

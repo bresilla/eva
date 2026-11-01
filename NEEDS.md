@@ -77,6 +77,17 @@ whether the compositor can hold one (docs/IO.md, "Idle").
   with a real key in `tools/see/` and has no spec.
 - ICO images. A favicon holding only BMP frames cannot be decoded: `eva-webapp`
   takes the PNG frames out of an `.ico` in Lua and otherwise draws a letter.
+- A panic on an empty field. `command_reach`
+  (`crates/graphics/morf-render/src/gpu/backend_render/frame_draw.rs:242`) indexes
+  out of bounds when a full-screen field resolves to no tiles and is the frame's
+  last instance: a box minus a circle wider than the screen does it on the first
+  frame. eva-find's centre dot and eva-kill's hint are drawn after the field so
+  it never is the last.
+- A layer surface with nothing to paint on its first frame never shows, so
+  `eva-find --ripple` keeps a hint card.
+- `morf.image.pixel` decodes the whole file on each call and refuses pictures over
+  4 MP. `common/freeze.lua` samples through `morf.image.preview`.
+- `morf.ipc` limits a call's arguments, so eva-draw's `stroke` verb takes one string.
 - `xdg_toplevel`'s suspended state. A window cannot hear that nothing shows it:
   `eva-monitor` stops sampling when minimised, paused or away, and keeps sampling
   on a hidden workspace.

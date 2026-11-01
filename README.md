@@ -133,6 +133,12 @@ Launching one a second time raises the window it has open; an overlay shuts.
 | `eva-webapp add NAME URL [--icon FILE]\|list\|remove NAME` | turn a site into an app with its own desktop entry and icon |
 | `eva-startup list\|enable NAME\|disable NAME\|remove NAME\|timers` | startup apps and scheduled jobs |
 | `eva-breaks [--watch\|status\|pause MINUTES\|resume]` | break reminders that count idle time as rest, and screen time; on NixOS `--watch` runs as a user service |
+| `eva-zoom [in\|out\|reset\|N\|get\|lens]` | a magnifier: Hyprland's cursor zoom, or a lens over the frozen screen |
+| `eva-ruler [horizontal\|vertical\|bounds]` | an on-screen pixel ruler: edge detection, a dragged box, a click copies |
+| `eva-find [--crosshairs\|--ripple]` | shows where the pointer is: a spotlight, crosshairs, or rings on a press |
+| `eva-kill [--active]` | press a window to end it, or end the focused one |
+| `eva-draw` | draw and write over the screen, with a toolbar |
+| `eva-large [WORDS]` | words huge across the screen, from arguments, stdin or the clipboard |
 
 `make app displays` runs one from a checkout.
 

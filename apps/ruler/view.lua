@@ -218,15 +218,7 @@ end
 
 --- The frozen screen for as long as there is a picture.
 function M.overlay(done)
-  local layer
-  morf.effect("ruler.overlay", function()
-    local shown = picture() ~= nil
-    if shown and not layer then layer = frozen_screen(done)
-    elseif not shown and layer then
-      frame.dismiss(layer)
-      layer = nil
-    end
-  end)
+  model.overlay(function() return frozen_screen(done) end)
 end
 
 return M

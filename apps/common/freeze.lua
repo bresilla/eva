@@ -17,7 +17,7 @@ function M.new(name)
     picture = morf.signal(name .. ".picture", nil),
     message = morf.signal(name .. ".frozen-message", ""),
   }
-  local session
+  local session, preview
 
   local function held(path)
     local info, why = morf.image.info(path)
@@ -46,7 +46,22 @@ function M.new(name)
   --- Lets go of the picture.
   function f.release()
     f.picture:set(nil)
+    if preview then preview.close() preview = nil end
     if session then session.close() session = nil end
+  end
+
+  --- Keeps the surface `build()` makes for as long as the picture is held.
+  function f.overlay(build)
+    local layer
+    morf.effect(name .. ".overlay", function()
+      local shown = f.picture:get() ~= nil
+      if shown and not layer then
+        layer = build()
+      elseif not shown and layer then
+        require("common.frame").dismiss(layer)
+        layer = nil
+      end
+    end)
   end
 
   --- Pixels of the picture to a surface pixel.
@@ -62,6 +77,17 @@ function M.new(name)
     x = math.max(0, math.min(picture.width - 1, math.floor(x)))
     y = math.max(0, math.min(picture.height - 1, math.floor(y)))
     return morf.image.pixel(picture.path, x, y)
+  end
+
+  --- The same on an image worker, `done(color)`, for a picture too large to
+  --- read a pixel of at once.
+  function f.sample(x, y, done)
+    local picture = f.picture:get()
+    if not picture then return done(nil) end
+    preview = preview or morf.image.preview(picture.path)
+    preview.render({ { "crop", math.floor(x), math.floor(y), 1, 1 } }, function(ok, result)
+      done(ok and morf.image.pixel(result.path, 0, 0) or nil)
+    end)
   end
 
   return f

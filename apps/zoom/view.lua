@@ -146,16 +146,7 @@ end
 --- The lens for as long as the screen is held; `done()` when it is let go by
 --- a press of its own.
 function M.overlay(done)
-  local layer
-  morf.effect("zoom.overlay", function()
-    local shown = picture() ~= nil
-    if shown and not layer then
-      layer = frozen_screen(done)
-    elseif not shown and layer then
-      frame.dismiss(layer)
-      layer = nil
-    end
-  end)
+  model.overlay(function() return frozen_screen(done) end)
 end
 
 --- The window's content, `w` by `h` (fns); `lens()` opens the lens.
