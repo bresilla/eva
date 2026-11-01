@@ -57,8 +57,7 @@ end
 -- A joystick handler in the kernel's device list.
 local function gamepad()
   if FAKE then return FAKE.words.gamepad == true end
-  local ok, text = pcall(morf.fs.read, morf.env("EVA_INPUT_DEVICES") or "/proc/bus/input/devices")
-  return ok and type(text) == "string" and text:find("Handlers=[^\n]*js%d") ~= nil
+  return require("lib.services.input_devices").first("joystick") ~= nil
 end
 
 --- Whether the compositor shows a fullscreen window.
