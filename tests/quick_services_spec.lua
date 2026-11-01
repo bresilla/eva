@@ -260,6 +260,106 @@ local HOST=[[
   morf.ipc.rotate_lock=function(on) rotate.locked:set(on=="yes") end
   morf.ipc.rotate_read=function() return {calls=rotate.calls,evals=rotate.evals} end
 
+  -- The real branches of quick_hardware, over stand-ins for the services.
+  local rig={}
+  local function hardware_rig()
+    local rows={}
+    local net={
+      state={available=true,wifi_enabled=false,devices={len=function() return 1 end},
+        active_connections={len=function() return #rows end,get=function(_,i) return rows[i] end}},
+      snapshot=function()
+        return {known=rig.known or {},devices={{type="wifi",path="/dev/wlan0",interface="wlan0",managed=true}}}
+      end,
+      refresh=function() end,
+      set_wifi=function(on,done) rig.wifi=on rig.net.state.wifi_enabled=on done(true) end,
+    }
+    rig.rows,rig.net=rows,net
+    rig.client=fake_client{props={WirelessCapabilities=0x40},reply={"/active/1"}}
+    local profiles={available=true,active="balanced",
+      list={len=function() return 2 end,get=function(_,i) return ({{name="power-saver"},{name="balanced"}})[i] end}}
+    rig.profiles=profiles
+    package.loaded.services={net=net,
+      upower={state={available=true,profiles=profiles},
+        set_profile=function(name) rig.profile=name profiles.active=name end},
+      installed=function(program) return rig.installed==nil or rig.installed[program]==true end}
+    local hypr=require("lib.compositor.hyprland")
+    hypr.available=function() return rig.hyprland~=false end
+    hypr.dispatch=function(what,argument) rig.dispatched=what.." "..tostring(argument) end
+    return require("quick_hardware")
+  end
+  morf.ipc.hw_hotspot=function()
+    local h=hardware_rig().hotspot()
+    truthy(h.present(),"an AP-capable radio offered")
+    falsy(h.saved(),"a saved profile")
+    eq(h.status(),"Wi-Fi is off")
+    rig.known={{id="eva-hotspot",path="/settings/3",uuid="u-3",ssid="Pocket"}}
+    truthy(h.saved(),"the saved profile") eq(h.ssid(),"Pocket")
+    h.set(true)
+    eq(rig.wifi,true,"Wi-Fi was not turned on first")
+    eq(#rig.client.calls,0,"it started before the radio was up")
+    return true
+  end
+  morf.ipc.hw_hotspot_after=function()
+    eq(rig.client.calls[1].method,"ActivateConnection")
+    rig.rows[1]={id="eva-hotspot",path="/active/1",state="activated"}
+    local h=require("quick_hardware").hotspot()
+    truthy(h.on(),"a running hotspot") eq(h.status(),"Pocket")
+    rig.rows[1].state="activating"
+    truthy(h.on(),"a starting hotspot") eq(h.status(),"Starting…")
+    h.set(false)
+    eq(rig.client.calls[2].method,"DeactivateConnection")
+    return true
+  end
+  morf.ipc.hw_hotspot_failed=function()
+    local h=hardware_rig().hotspot()
+    rig.known={{id="eva-hotspot",path="/settings/3",uuid="u-3",ssid="Pocket"}}
+    rig.net.state.wifi_enabled=true
+    rig.client.fail="no secrets"
+    h.set(true)
+    eq(h.message:get(),"no secrets","a failed start says nothing")
+    return true
+  end
+  morf.ipc.hw_power=function()
+    local p=hardware_rig().power()
+    truthy(p.present(),"power saver offered") falsy(p.on(),"power saver on")
+    rig.profiles.active="performance"
+    p.set(true)
+    eq(rig.profile,"power-saver") truthy(p.on(),"power saver off")
+    p.set(false)
+    eq(rig.profile,"performance","it did not go back to the profile it left")
+    rig.profiles.list={len=function() return 1 end,get=function() return {name="balanced"} end}
+    falsy(p.present(),"power saver without the profile")
+    return true
+  end
+  morf.ipc.hw_night_absent=function()
+    local hw=hardware_rig()
+    rig.installed={hyprctl=true}
+    falsy(hw.nightlight().present(),"night light without hyprsunset")
+    rig.installed={hyprctl=true,hyprsunset=true}
+    truthy(hw.nightlight().present(),"night light with it")
+    rig.hyprland=false
+    falsy(hw.nightlight().present(),"night light off Hyprland")
+    return true
+  end
+  morf.ipc.hw_night_on=function()
+    local n=hardware_rig().nightlight()
+    n.set(true)
+    return true
+  end
+  morf.ipc.hw_night_read=function() return rig.dispatched end
+  morf.ipc.hw_rotation=function()
+    local c=fake_client{props={HasAccelerometer=true,AccelerometerOrientation="normal"}}
+    local r=require("quick_hardware").rotation()
+    truthy(r.present(),"an accelerometer offered")
+    truthy(r.on(),"a desk starts locked")
+    r.set(false)
+    falsy(r.on(),"the lock did not come off") eq(r.status(),"Auto")
+    r.set(true)
+    truthy(r.on(),"the lock did not go on") eq(r.status(),"Locked")
+    eq(#c.calls,0)
+    return true
+  end
+
   local night_runs={}
   morf.ipc.night_start=function()
     night_runs={}
@@ -275,15 +375,39 @@ local HOST=[[
   morf.ipc.night_read=function() return night_runs end
   morf.ipc.night_off=function() night.apply(false,3500) return true end
 ]]
-local function load() test.load("../shell/init.lua",{source=HOST,size={320,240}}) end
+local serial=0
+local function load()
+  serial=serial+1
+  local settings=morf.env("XDG_CACHE_HOME").."/quick-services-"..serial..".json"
+  morf.fs.remove(settings)
+  test.load("../shell/init.lua",{source=HOST,size={1600,1000},
+    env={EVA_DRY_RUN="0",EVA_FAKE_HARDWARE="0",EVA_SETTINGS=settings}})
+end
 for _,name in ipairs {"grid_flow","grid_small_pack","grid_nearest","hotspot_profile","hotspot_check",
   "hotspot_first_save","hotspot_update","hotspot_refuses","hotspot_start_stop","hotspot_no_ap",
-  "sensors","sensors_absent","torch","torch_flash","torch_none","torch_refused","rotate_edge"} do
+  "sensors","sensors_absent","torch","torch_flash","torch_none","torch_refused","rotate_edge",
+  "hw_power","hw_night_absent","hw_rotation","hw_hotspot_failed"} do
   test.it(name:gsub("_"," "),function()
     load()
     test.eq(test.ipc(name),true)
   end)
 end
+test.it("a hotspot with Wi-Fi off brings the radio up, then starts, and stops",function()
+  load()
+  test.eq(test.ipc("hw_hotspot"),true)
+  test.advance(1600)
+  test.eq(test.ipc("hw_hotspot_after"),true)
+  test.eq(#test.logs("error"),0)
+end)
+test.it("a night light with no daemon up starts one through the compositor",function()
+  test.stub_run("hyprctl",{code=1})
+  load()
+  test.ipc("hw_night_on") test.advance(300)
+  test.eq(test.ipc("hw_night_read"),"exec hyprsunset -t 4500")
+  local ran=test.runs()
+  test.eq(ran[#ran],{"hyprctl","hyprsunset","temperature","4500"})
+  test.clear_stubs()
+end)
 test.it("auto-rotate turns the output and the touchscreen, and the lock stops it",function()
   load()
   test.ipc("rotate_start") test.advance(50)

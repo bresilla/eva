@@ -96,7 +96,19 @@ test.it("each kind of machine has its own defaults, and a tile without hardware 
   load({size={432,960}})
   test.eq(test.ipc("q_form"),"phone")
   test.truthy(index_of(test.ipc("q_saved","phone"),"flashlight"))
-  load({env={EVA_INPUT_DEVICES=morf.env("EVA_INPUT_DEVICES").."-touch"}})
+  test.eq(#test.logs("error"),0)
+end)
+
+test.it("a wide touchscreen with no keyboard is a tablet, with a tablet's tiles",function()
+  local devices=morf.env("XDG_CACHE_HOME").."/quick-tablet-devices"
+  morf.fs.write(devices,"N: Name=\"Goodix Capacitive TouchScreen\"\nH: Handlers=event5\nB: PROP=2\nB: EV=b\n")
+  load({size={1280,800},fake=true,env={EVA_INPUT_DEVICES=devices}})
+  test.eq(test.ipc("q_form"),"tablet")
+  open()
+  local shown=test.ipc("q_shown")
+  test.truthy(has(shown,"rotation"),"a tablet has its rotation at hand")
+  test.truthy(has(shown,"keyboard"),"a tablet has its keyboard at hand")
+  test.eq(test.get("drawer-sidebar").width,450,"a tablet keeps the panel")
   test.eq(#test.logs("error"),0)
 end)
 
@@ -196,6 +208,19 @@ test.it("two small tiles share a slot, and neither has a chevron",function()
   test.click("utilities-edit") test.settle(1500)
   test.falsy(test.find{id="utilities-more-wifi",visible=true},"a small tile kept its chevron")
   test.click("utilities-toggle-wifi") test.settle(400)
+  test.eq(#test.logs("error"),0)
+end)
+
+test.it("a long press on a small tile opens what its chevron would",function()
+  load({fake=true})
+  edit()
+  test.click("utilities-size-nightlight") test.settle(800)
+  test.click("utilities-edit") test.settle(1200)
+  test.falsy(test.find{id="utilities-more-nightlight",visible=true})
+  local x,y=centre(test.get("utilities-toggle-nightlight"))
+  test.move(x,y) test.press(x,y) test.advance(700) test.release(x,y) test.settle(1500)
+  test.eq(test.ipc("q_detail"),"nightlight","a long press did not open the page")
+  test.falsy(test.ipc("q_light","nightlight"),"a long press also toggled it")
   test.eq(#test.logs("error"),0)
 end)
 
@@ -397,6 +422,32 @@ test.it("a sheet with more than fits stops at four fifths and scrolls",function(
   test.near(test.get("drawer-sidebar").height,test.ipc("q_most"),1)
   test.eq(#test.logs("error"),0)
 end)
+
+-- Every shown node's box and opacity, as one string.
+local function at_rest()
+  local parts={}
+  for _,n in ipairs(test.nodes()) do
+    if n.visible then
+      parts[#parts+1]=("%s:%.2f,%.2f,%.2f,%.2f,%.3f"):format(n.handle,n.x,n.y,n.width,n.height,n.opacity or 1)
+    end
+  end
+  return table.concat(parts,";")
+end
+for _,style in ipairs {"material","tsugumori"} do
+  test.it(style.." nothing moves at rest, open or being edited",function()
+    load({style=style,fake=true})
+    open()
+    test.settle(2000)
+    local still=at_rest()
+    test.advance(1000)
+    test.truthy(at_rest()==still,"the open page moves at rest")
+    test.click("utilities-edit") test.settle(3000)
+    still=at_rest()
+    test.advance(1000)
+    test.truthy(at_rest()==still,"the editor moves at rest")
+    test.eq(#test.logs("error"),0)
+  end)
+end
 
 test.it("a desk keeps its panel width",function()
   load()
