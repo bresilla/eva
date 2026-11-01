@@ -271,6 +271,7 @@ function M.new(ctx)
   function model.when()
     local d = model.draft
     if d.all_day then return d.from_day == d.to_day and d.from_day .. " · All day" or (d.from_day .. " to " .. d.to_day) end
+    if d.from_time == d.to_time and d.from_day == d.to_day then return d.from_day .. " · " .. d.from_time end
     return d.from_day .. " · " .. d.from_time .. "–" .. d.to_time
   end
   return model

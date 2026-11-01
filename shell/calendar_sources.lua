@@ -118,9 +118,9 @@ end
 -- Why a file or folder cannot be written, or nil. A folder is asked for
 -- owner-write the way a file is; a write that fails anyway says so itself.
 local function locked_by_disk(path)
-  if require("lib.services.host").managed(path) then return "Your Nix configuration writes this one." end
+  if require("lib.services.host").managed(path) then return "Your Nix configuration writes this file." end
   local ok, entry = pcall(morf.fs.stat, path)
-  if ok and type(entry) == "table" and entry.mode and (entry.mode & 128) == 0 then return "This one is read-only on disk." end
+  if ok and type(entry) == "table" and entry.mode and (entry.mode & 128) == 0 then return "You do not have write permission here." end
 end
 
 --- Everything to read: `{ id, kind, name, path, locked }`; `locked` is why the
