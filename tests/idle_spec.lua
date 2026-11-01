@@ -124,6 +124,13 @@ test.it("the lock stage leaves the idle reason for the lock to read",function()
   test.contains(test.ipc("reason"),"idle")
 end)
 
+test.it("a lock command of the wrong shape still locks, with the session's own",function()
+  load{settings={idle={lock=300,suspend=0,blank=0,dim=0}},policy={commands={lock="loginctl lock-session"}}}
+  test.clear_logs()
+  test.eq(test.ipc("at","lock"),true)
+  test.truthy(said("idle lock (dry run)"))
+end)
+
 test.it("a warning shows, input takes it away, and a locked session is not locked twice",function()
   load{settings={idle={lock=60,suspend=0,blank=0,dim=10}}}
   test.eq(test.ipc("at","warning"),true)

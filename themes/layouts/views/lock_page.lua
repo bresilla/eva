@@ -4,7 +4,7 @@
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
-local F = require("themes.layouts.form")
+local F = require("themes.layouts.option_rows")
 
 local V = {}
 

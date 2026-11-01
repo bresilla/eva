@@ -77,7 +77,7 @@ in
     '';
     system.build.evaIdleLock = idleLock;
     # What the shell reads: the stages fixed here, and the commands to use.
-    environment.etc."eva/idle.json".text = builtins.toJSON {
+    environment.etc."eva/idle-stages.json".text = builtins.toJSON {
       inherit managed;
       commands = {
         lock = [

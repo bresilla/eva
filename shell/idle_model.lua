@@ -186,7 +186,9 @@ end
 --- Asks for the lock, saying it comes from idle: the window after it is for this.
 function M.lock_now(reason)
   if reason then reason_file.mark(reason) end
-  return run(M.system.commands.lock or config.get("session.commands.lock"), "lock")
+  local argv = M.system.commands.lock
+  if type(argv) ~= "table" or #argv == 0 then argv = config.get("session.commands.lock") end
+  return run(argv, "lock")
 end
 
 local blanked = false

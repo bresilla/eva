@@ -102,7 +102,7 @@ function M.model(active)
 
   function model.command(key) return table.concat(config.get("idle." .. key) or {}, " ") end
   function model.set_command(key, text)
-    set("idle." .. key, require("themes.layouts.form").words(text))
+    set("idle." .. key, require("themes.layouts.option_rows").words(text))
   end
   return model
 end

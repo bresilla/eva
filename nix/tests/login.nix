@@ -192,7 +192,7 @@ in
         machine.sleep(3)
 
     with subtest("the system's files are there for the shell and the lock"):
-        machine.succeed("jq -e '.managed.lock == 0 and .sleep_lock == true' /etc/eva/idle.json")
+        machine.succeed("jq -e '.managed.lock == 0 and .sleep_lock == true' /etc/eva/idle-stages.json")
         machine.succeed("jq -e 'type == \"object\"' /etc/eva/lock.json")
 
     with subtest("real PAM: a wrong password keeps the lock, the right one lifts it"):

@@ -1,5 +1,5 @@
 -- What the system's configuration says about idle: the stages it fixes and the
--- commands it provides, from /etc/eva/idle.json (under EVA_DRY_RUN,
+-- commands it provides, from /etc/eva/idle-stages.json (under EVA_DRY_RUN,
 -- EVA_IDLE_POLICY names another file). A stage it fixes wins over Settings, and
 -- runs under the system's idle daemon. Empty where nothing configures it.
 local morf = require("morf")
@@ -12,7 +12,7 @@ end
 
 --- `{ managed = { lock, blank, suspend }, commands = { lock, dpms } }`.
 function M.load()
-  local path = morf.env("EVA_DRY_RUN") == "1" and morf.env("EVA_IDLE_POLICY") or "/etc/eva/idle.json"
+  local path = morf.env("EVA_DRY_RUN") == "1" and morf.env("EVA_IDLE_POLICY") or "/etc/eva/idle-stages.json"
   local ok, text = pcall(morf.fs.read, path)
   if ok and type(text) == "string" then
     local fine, value = pcall(morf.json.decode, text)

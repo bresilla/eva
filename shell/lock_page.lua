@@ -74,7 +74,7 @@ function M.model(active)
     model.set("widgets", out)
   end
   function model.argv() return table.concat(model.get("command.argv") or {}, " ") end
-  function model.set_argv(text) model.set("command.argv", require("themes.layouts.form").words(text)) end
+  function model.set_argv(text) model.set("command.argv", require("themes.layouts.option_rows").words(text)) end
   return model
 end
 
