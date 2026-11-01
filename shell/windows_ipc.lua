@@ -27,6 +27,9 @@ function M.register(ipc)
     for _, c in ipairs(windows.recent()) do out[#out + 1] = brief(c) end
     return out
   end
+  if hyprland.stand_in then
+    ipc.stand_in_cursor = function(x, y) hyprland.set_cursor(tonumber(x), tonumber(y)) end
+  end
   local here = require("services").here
   local overview = require("overview")
   -- `overview [open|close|toggle|state]`.
@@ -63,6 +66,27 @@ function M.register(ipc)
   ipc.switcher_scope = function(scope)
     if scope then require("config").set("windows.switcher.scope", scope) end
     return switcher.scope()
+  end
+  local snap = require("snap")
+  -- `snap CELL`: the focused window into a cell (left, right, top, bottom,
+  -- top_left, ..., full, center). `snap layout KEY`: the workspace into a
+  -- layout. `snap picker`, and `snap drag` and `snap drop` as the compositor's
+  -- drag begins and ends.
+  ipc.snap = function(how, key)
+    if how == "drag" then return snap.drag() end
+    if how == "drop" then return snap.drop() end
+    if not here() then return end
+    if how == "picker" then snap.toggle_pick() return snap.picking:get() end
+    if how == "layout" then return snap.tile(key) end
+    if require("snap_model").CELLS[how or ""] then return snap.snap(how) end
+    error("`" .. tostring(how) .. "`: a cell, layout KEY, picker, drag or drop")
+  end
+  -- `kill_mode`: press a window to force quit it.
+  ipc.kill_mode = function(how)
+    local kill = require("kill_mode")
+    if how == "stop" then kill.stop() return false end
+    if not here() then return end
+    return kill.start()
   end
 end
 

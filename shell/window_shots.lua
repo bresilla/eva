@@ -20,6 +20,13 @@ function M.toplevel(client)
   return found
 end
 
+--- Whether pictures can stay on the GPU: a software renderer's dmabufs are
+--- refused by the compositor, and the refusal ends the connection.
+local function on_gpu()
+  local software = morf.env and morf.env("LIBGL_ALWAYS_SOFTWARE")
+  return not (software and software ~= "" and software ~= "0")
+end
+
 --- Lets a picture go.
 function M.release(source)
   if source and source ~= "" and morf.screencopy then pcall(morf.screencopy.release, source) end
@@ -41,7 +48,7 @@ function M.take(queue, wanted)
         item.deliver(frame.source)
       elseif why then M.refused = tostring(why) end
       next_one()
-    end, { gpu = true })
+    end, { gpu = on_gpu() })
     if not ok then next_one() end
   end
   next_one()

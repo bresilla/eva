@@ -275,6 +275,66 @@ function steps.box(x, y, w, h)
   return out
 end
 
+-- ------------------------------------------------------- kept in the shell --
+
+-- What the compositor keeps no record of: the windows kept above, and each
+-- window's opacity.
+local session = require("themes.session")
+local above = session.keep("eva.windows.above", {})
+local opacity = session.keep("eva.windows.opacity", {})
+M.OPACITIES = { 1, .85, .7 }
+
+function M.kept_above(address) return above:get()[address] == true end
+
+--- Keeps a window above the others, or lets it go: it floats, and comes back
+--- to the top whenever the focus moves.
+function M.keep_above(address)
+  local kept = {}
+  for k, v in pairs(above:get()) do kept[k] = v end
+  kept[address] = not kept[address] or nil
+  above:set(kept)
+  if kept[address] then
+    local list = steps.float(true)
+    list[#list + 1] = steps.raise()[1]
+    M.run(address, list)
+  end
+  return kept[address] == true
+end
+
+function M.opacity_of(address) return opacity:get()[address] or 1 end
+
+--- Sets a window's opacity, 1 being solid.
+function M.set_opacity(address, value)
+  local all = {}
+  for k, v in pairs(opacity:get()) do all[k] = v end
+  all[address] = value < 1 and value or nil
+  opacity:set(all)
+  return M.run(address, steps.opacity(value))
+end
+
+--- The next of the opacities on offer.
+function M.next_opacity(address)
+  local now = M.opacity_of(address)
+  for i, v in ipairs(M.OPACITIES) do
+    if math.abs(v - now) < .01 then return M.set_opacity(address, M.OPACITIES[i % #M.OPACITIES + 1]) end
+  end
+  return M.set_opacity(address, 1)
+end
+
+-- Raises the kept windows each time the focus moves, and forgets gone ones.
+local raised_for
+morf.effect("eva.windows.above", function()
+  local focused = (hyprland.state.active_window or {}).address
+  local kept = above:get()
+  if focused == raised_for or next(kept) == nil then return end
+  raised_for = focused
+  morf.time.timer(1, function()
+    for address in pairs(kept) do
+      if M.get(address) then M.run(address, steps.raise()) end
+    end
+  end, false)
+end)
+
 function M.focus(address)
   if not address or address == "" then return false end
   if dry_run() then

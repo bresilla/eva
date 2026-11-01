@@ -79,6 +79,11 @@ M.CARDS = {
       { key = "half", label = "50%", stay = true, steps = sized(0.5) },
       { key = "two_thirds", label = "66%", stay = true, steps = sized(0.66) },
       { key = "most", label = "85%", stay = true, steps = sized(0.85) },
+      { key = "above", label = "Keep above", on = windows.kept_above(w.address), stay = true,
+        press = function() windows.keep_above(w.address) end },
+      { key = "opacity", label = ("Opacity %d%%"):format(math.floor(windows.opacity_of(w.address) * 100 + .5)),
+        on = windows.opacity_of(w.address) < 1, stay = true, press = function() windows.next_opacity(w.address) end },
+      { key = "snap", label = "Snap", press = function() require("snap").pick() end },
     }
   end },
   { key = "left", number = "02", title = "Workspace", buttons = function()
@@ -110,8 +115,9 @@ M.CARDS = {
   end },
   { key = "bottom", number = "04", title = "Close", buttons = function()
     return {
-      { key = "close", label = "Close", primary = true, steps = { S({ "window.close", {} }, { "closewindow", "$W" }) } },
-      { key = "kill", label = "Force quit", steps = { S({ "window.kill", {} }, { "killwindow", "$W" }) } },
+      { key = "close", label = "Close", primary = true, steps = steps_of.close() },
+      { key = "kill", label = "Force quit", steps = steps_of.kill() },
+      { key = "kill_mode", label = "Kill mode", press = function() require("kill_mode").start() end },
     }
   end },
 }
