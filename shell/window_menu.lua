@@ -315,14 +315,14 @@ function M.rect()
     width = w.width * ratio, height = w.height * ratio }
 end
 
--- Built the first time it opens, and kept.
+-- Built ahead of its first opening while the shell is idle, and kept.
 local ui = require("morf.ui")
 local wanted = morf.signal("eva.window_menu.built", M.opened:get())
 morf.effect("eva.window_menu.build", function()
   if M.opened:get() and not wanted:get() then wanted:set(true) end
 end)
 M.node = ui.Item { anchors = { fill = true },
-  ui.Loader { anchors = { fill = true }, keep = true, active = function() return wanted:get() end,
+  ui.Loader { anchors = { fill = true }, keep = true, preload = true, active = function() return wanted:get() end,
     source = function()
       local view = require("themes").view("window_menu").build(M)
       -- A press anywhere off the cards shuts it.
