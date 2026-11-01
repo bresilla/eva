@@ -1,0 +1,32 @@
+#!/bin/sh
+# Stands in for the programs the command-line tools call, named by the link it
+# is run through: logs each call to $STUB_LOG and answers as the program would.
+name=$(basename "$0")
+printf '%s %s\n' "$name" "$*" >> "${STUB_LOG:-/dev/null}"
+case "$name" in
+  grim)
+    for last in "$@"; do :; done
+    printf 'picture' > "$last"
+    ;;
+  slurp) printf '10,20 300x200\n' ;;
+  swaymsg)
+    case "$*" in
+      *get_outputs*) printf '[{"name":"DP-1","focused":true}]\n' ;;
+      *get_tree*) printf '{"focused":true,"pid":9,"rect":{"x":5,"y":6,"width":70,"height":80}}\n' ;;
+    esac
+    ;;
+  hyprctl) printf '{"at":[5,6],"size":[70,80]}\n' ;;
+  tesseract) printf '%s\n' "${STUB_READ-hello words}" ;;
+  zbarimg) printf '%s\n' "${STUB_READ-https://example.test}" ;;
+  wl-copy) printf 'clipboard: %s\n' "$(cat)" >> "${STUB_LOG:-/dev/null}" ;;
+  notify-send) exit 0 ;;
+  gpu-screen-recorder)
+    stopped() {
+      printf 'recorder stopped\n' >> "${STUB_LOG:-/dev/null}"
+      exit 0
+    }
+    trap stopped INT
+    while :; do sleep 0.1; done
+    ;;
+esac
+exit 0

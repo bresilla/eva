@@ -10,7 +10,8 @@ M.tools={
   {"arrow","Arrow","a","arrow_forward"},{"pen","Pen","p","draw"},
   {"marker","Highlight","h","ink_highlighter"},{"text","Text","t","title"},
   {"step","Steps","n","format_list_numbered"},{"blur","Blur","b","blur_on"},
-  {"pixelate","Pixelate","x","grid_on"},{"zoom","Zoom","z","zoom_in"},
+  {"pixelate","Pixelate","x","grid_on"},{"redact","Redact","k","hide_source"},
+  {"zoom","Zoom","z","zoom_in"},
 }
 local valid={}
 for _,tool in ipairs(M.tools) do valid[tool[1]]=true end
@@ -91,6 +92,8 @@ function M.new(width,height,options)
       d.changed() return
     end
     local a=copy(d.styles[d.tool]) a.type=d.tool a.points={{x=x,y=y},{x=x,y=y}}
+    -- Solid redaction: an opaque filled rectangle, whatever the tool's style.
+    if d.tool=="redact" then a.type="rect" a.filled=true a.color="#000000" a.width=1 end
     a.strength=d.tool=="blur" and (options.blur or 24) or d.tool=="pixelate" and (options.pixelate or 14) or options.zoom or 2
     a.font=options.font or "sans-serif"
     if d.tool=="step" then

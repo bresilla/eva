@@ -406,6 +406,9 @@ ipc["capture-editor"] = function(action,...)
   if not here() then return end
   if action=="tool" then capture.editor.choose(...) return true end
   if action=="copy" or action=="save" or action=="upload" then capture.editor.export(action) return true end
+  if action=="ocr" or action=="qr" then capture.editor.export(action) return true end
+  if action=="last" then return capture.editor.restore_last() end
+  if action=="file" then return capture.editor.open_file((...)) end
   return {open=capture.editor.active:get(),pending=capture.editor.pending:get(),busy=capture.editor.busy:get(),phase=capture.editor.phase:get()}
 end
 ipc.screenshot = function(what,how)

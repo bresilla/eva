@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Screenshot
+Comment=Take, read and edit pictures of the screen
+Exec=eva-screenshot
+Icon=applets-screenshooter
+Terminal=false
+Categories=Utility;Graphics;
+StartupWMClass=eva.screenshot

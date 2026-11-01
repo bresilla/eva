@@ -59,6 +59,12 @@
             pkgs.grim
             pkgs.wtype
             pkgs.dbus
+            # What the tools of apps/ call, for tools/see.sh's scenarios.
+            pkgs.jq
+            pkgs.slurp
+            pkgs.wl-clipboard
+            pkgs.tesseract
+            pkgs.zbar
           ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.

@@ -29,6 +29,7 @@ mkdir -p "$XDG_STATE_HOME/eva/displays"
 touch "$XDG_STATE_HOME/eva/displays/outputs.sway"
 cat > "$CONFIG" <<CONF
 output * bg $SEE_EVA/tests/fixtures/wallpaper.png fill
+output * render_bit_depth 8
 xwayland disable
 default_border none
 include $XDG_STATE_HOME/eva/displays/outputs.sway
