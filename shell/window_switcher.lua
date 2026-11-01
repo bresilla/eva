@@ -22,9 +22,9 @@ M.plate = morf.signal("eva.switcher.plate", { x = 0, y = 0, width = 0, height = 
 
 local entries = {}
 local held, waiting = false, nil
--- When Alt last came up with nothing open: the key's call may reach the shell
--- after the release's.
-local released_at, RACE = -1e9, 200
+-- Alt came up a moment ago with nothing open: the key's call may reach the
+-- shell after the release's.
+local released, RACE = false, 200
 
 --- Which windows it walks: "all", "workspace" or "output".
 function M.scope()
@@ -136,7 +136,10 @@ function M.step(delta, hold)
   held = hold ~= false
   if M.opened:get() then move(delta) return true end
   local started = begin(candidates(), delta > 0 and 2 or math.huge)
-  if started and held and morf.time.now_ms() - released_at < RACE then return M.commit() end
+  if started and held and released then
+    released = false
+    return M.commit()
+  end
   return started
 end
 
@@ -166,7 +169,8 @@ end
 --- Goes to what is chosen.
 function M.commit()
   if not M.opened:get() then
-    released_at = morf.time.now_ms()
+    released = true
+    morf.time.timer(RACE, function() released = false end, false)
     return false
   end
   local c = M.chosen()
