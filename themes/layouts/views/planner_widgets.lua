@@ -28,11 +28,11 @@ function M.button(id, text, icon, width, action, selected)
     ink = function() return selected and selected() and C.onPrimary or C.onSurface end,
   }
 end
-function M.field(id, label, placeholder, width, changed, accepted, escaped)
+function M.field(id, label, placeholder, width, changed, accepted, escaped, size)
   local inner = type(width) == "function" and function() return width() - 24 end or width - 24
   local input_node, input = kit.text_field("entry", {
     id = id, x = 12, width = inner, height = 40,
-    font_family = theme.font, font_size = theme.size.normal,
+    font_family = theme.font, font_size = size or theme.size.normal,
     color = function() return C.onSurface end,
     placeholder_color = function() return C.onSurfaceVariant end,
     caret_color = function() return C.primary end,

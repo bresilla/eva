@@ -4,6 +4,7 @@
 local morf = require("morf")
 local ui = require("morf.ui")
 local kit = require("kit")
+local theme = require("theme")
 local P = require("themes.layouts.page")
 local widgets = require("planner_widgets")
 local V = {}
@@ -34,7 +35,7 @@ function V.page(model, w, h)
       local url = text:match("^%a+://")
       local done = url and model.add_url(text) or (not url and model.add_path(text))
       if done then add_input.text = "" end
-    end)
+    end, nil, theme.size.small)
   local leads = { id = "calendar-leads", width = inner }
   for _, minutes in ipairs(LEADS) do
     leads[#leads + 1] = { id = "calendar-lead-" .. minutes, label = minutes .. " min", group = "calendar-lead",
