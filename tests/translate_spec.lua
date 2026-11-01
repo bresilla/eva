@@ -341,6 +341,30 @@ test.it("translates by an engine named on the command line", function()
   test.eq(argv, { "trans", "-b", "-no-ansi", ":de" })
 end)
 
+test.it("detects the language on the command line, whatever the window last chose", function()
+  test.clear_stubs()
+  test.stub_run("trans", { code = 0, stdout = "Hallo\n", stderr = "" })
+  local state = fresh("saved-source")
+  local out = state .. "/job.out"
+  morf.fs.write(state .. "/eva/translate/prefs.json", morf.json.encode { source = "fr", target = "de" }, { parents = true })
+  test.load("../apps/translate/app.lua", { args = { "-e", "trans", "hello" },
+    env = environment(state, nil, { "trans" }, { EVA_JOB_OUT = out }) })
+  test.advance(300)
+  test.eq(test.runs()[#test.runs()], { "trans", "-b", "-no-ansi", ":de" })
+end)
+
+test.it("keeps the window's source where the engine cannot detect one", function()
+  test.clear_stubs()
+  test.stub_run("argos-translate", { code = 0, stdout = "Hallo\n", stderr = "" })
+  local state = fresh("argos-source")
+  local out = state .. "/job.out"
+  morf.fs.write(state .. "/eva/translate/prefs.json", morf.json.encode { source = "en", target = "de" }, { parents = true })
+  test.load("../apps/translate/app.lua", { args = { "hello" },
+    env = environment(state, nil, { "argos-translate" }, { EVA_JOB_OUT = out }) })
+  test.advance(300)
+  test.eq(test.runs()[#test.runs()], { "argos-translate", "--from-lang", "en", "--to-lang", "de" })
+end)
+
 test.it("refuses an engine this machine has not", function()
   test.clear_stubs()
   test.contains(job({ "-e", "argos", "hello" }, {}), "1\nNo engine argos here")

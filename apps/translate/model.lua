@@ -206,6 +206,8 @@ function M.job(args, input, done)
       return
     end
   end
+  local engine = M.current()
+  if not asked_for.source and engine and engine.auto then M.source:set("auto") end
   local function go()
     M.translate(function(words, why) done(words, why) end)
   end
