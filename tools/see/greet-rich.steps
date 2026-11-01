@@ -1,0 +1,12 @@
+# The greeter with its status row, layouts, the accessibility menu.
+BOOT=14
+export EVA_FAKE_BATTERY=64,discharging EVA_FAKE_STATUS=wifi EVA_FAKE_LAYOUTS=us,de
+export EVA_GREETER_MEMORY=$XDG_STATE_HOME/greeter.json
+export EVA_FAKE_LOGIND='{"can":{"suspend":"yes","reboot":"yes","power_off":"yes"},"firmware":"yes"}'
+start greet
+pause 1; shot rest
+key Return; pause 1; shot sheet
+key Escape; pause 0.6
+ipc access open; pause 0.8; shot access
+ipc access large; pause 1; shot large
+ipc access contrast; pause 1; shot contrast

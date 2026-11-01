@@ -284,3 +284,11 @@ whether the compositor can hold one (docs/IO.md, "Idle").
 - Video streams in `morf.audio`. `streams` lists audio alone, so the privacy
   module spawns `pw-dump` to see who reads a camera or a shared screen. Video
   nodes and links there would save the child process and hear each change.
+- A monotonic clock. `morf.time.now_ms` is the wall clock, which a suspend and a
+  changed date both move. The lock's window after an idle lock reads
+  `/proc/uptime` for its deadline and for the gap that says the machine slept;
+  `morf.time.monotonic()` and `morf.time.boottime()` would replace that file.
+- Lock keys with a key event. `modifiers` holds `ctrl`, `shift`, `alt` and
+  `super`, not Caps Lock, so the login screens read the LED under
+  `/sys/class/leds` a moment after each key. A keyboard without the LED gets no
+  warning. xkb's locked modifiers are what the compositor already sends.

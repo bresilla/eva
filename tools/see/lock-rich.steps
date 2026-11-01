@@ -1,0 +1,49 @@
+# The lock with everything on, each privacy level, the sheet, the card.
+BOOT=14
+# Settings and the shell's file stand in for the session: no shell runs here.
+SETTINGS=$XDG_STATE_HOME/lock-see.json
+export EVA_SETTINGS=$SETTINGS EVA_FAKE_BATTERY=64,charging EVA_FAKE_STATUS=wifi,bluetooth
+export EVA_FAKE_HARDWARE=1 EVA_FAKE_LAYOUTS=us,de EVA_FAKE_DIAL=1
+export EVA_FAKE_LOGIND='{"can":{"suspend":"yes","reboot":"yes","power_off":"yes"}}'
+VIEW=$XDG_RUNTIME_DIR/eva/lock-view.json
+mkdir -p "$XDG_RUNTIME_DIR/eva"
+now=$(date +%s)
+write_view() {
+  printf '{"notifications":%s,"mode":{"dnd":true,"ringer":"vibrate","airplane":false}}' "$1" > "$VIEW"
+}
+settings() {
+  cat > "$SETTINGS" <<JSON
+{"lock":{"notifications":{"level":"$1"},"power_buttons":true,"widgets":["calendar"],
+ "command":{"name":"Notes","icon":"edit_note","argv":["true"]},
+ "emergency":{"text":"If found call +49 555 0100","name":"Alex Doe","blood":"O+","allergies":"Penicillin","contact":"Sam, +49 555 0101"}}}
+JSON
+}
+settings all
+write_view "{\"level\":\"all\",\"count\":3,\"items\":[{\"app\":\"Signal\",\"summary\":\"Mira\",\"body\":\"Are we still on for tonight?\",\"time\":$now},{\"app\":\"Mail\",\"summary\":\"Invoice 4471\",\"body\":\"Your invoice is ready to download\",\"time\":$((now-300))},{\"app\":\"Calendar\",\"summary\":\"Stand-up\",\"body\":\"In ten minutes\",\"time\":$((now-4000))}]}"
+start lock
+pause 1; shot all
+ipc stage sheet; pause 1.5; shot sheet
+stop
+settings senders
+write_view "{\"level\":\"senders\",\"count\":3,\"items\":[{\"app\":\"Signal\",\"count\":2,\"time\":$now},{\"app\":\"Mail\",\"count\":1,\"time\":$((now-300))}]}"
+start lock
+pause 1; shot senders
+stop
+settings count
+write_view '{"level":"count","count":3,"items":[]}'
+start lock
+pause 1; shot count
+ipc card open; pause 1; shot card
+stop
+settings none
+write_view '{"level":"none","count":0,"items":[]}'
+start lock
+pause 1; shot none
+stop
+# The ambient face: a phone's panel said to stay lit.
+printf '{"command":"/bin/true","doubleTap":true,"alwaysOn":true}' > "$XDG_STATE_HOME/phone.json"
+export EVA_PHONE_SCREEN_CONFIG=$XDG_STATE_HOME/phone.json EVA_FAKE_AMBIENT=1
+printf '{"lock":{"always_on":{"enabled":true},"notifications":{"level":"senders"}}}' > "$SETTINGS"
+write_view "{\"level\":\"senders\",\"count\":3,\"items\":[{\"app\":\"Signal\",\"count\":2,\"time\":$now},{\"app\":\"Mail\",\"count\":1,\"time\":$((now-300))}]}"
+start lock
+pause 1; shot ambient

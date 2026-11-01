@@ -10,8 +10,12 @@ return function(ctx,s,role)
     ui.Rect {anchors={fill=true},color=function() return ctx.C.surfaceContainerLowest end},
     ui.Image {id=role.."-wallpaper",anchors={fill=true},fill_mode="preserve_aspect_crop",
       source=path,visible=function() return path()~="" end},
-    ui.Rect {id=role.."-veil",anchors={fill=true},backdrop_blur=s(28),
-      color=function() return ctx.C.surface:alpha(.4) end,
+    ui.Rect {id=role.."-veil",anchors={fill=true},backdrop_blur=s(ctx.blur or 28),
+      color=function()
+        local tint=ctx.tint
+        if type(tint)=="function" then tint=tint() end
+        return ctx.C.surface:alpha(tint or .4)
+      end,
       visible=function() return ctx.stage:get()~="left" end,
       opacity=function() return ctx.scene_leaving() and 0 or 1 end,
       behavior={opacity=reveal.MOTION}},

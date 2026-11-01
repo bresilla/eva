@@ -102,6 +102,12 @@ M.PAGES = {
       { "open", "Open a capture", "open_in_new" },
     }) },
   } },
+  ["lock/more"] = { sections = {
+    { title = "Readers", fields = {
+      { key = "lock.reader_tries", kind = "number", title = "Tries on a reader", icon = "fingerprint", from = 0, to = 10, step = 1,
+        note = "Then the password" },
+    } },
+  } },
   ["keyboard/more"] = { sections = {
     { title = "Typing", fields = {
       { key = "keyboard.replacements", kind = "records", fields = { 1, 2 }, title = "Text shortcuts", icon = "short_text",
@@ -149,9 +155,16 @@ M.PAGES = {
     } },
     { title = "Session", note = "$USER is your name", fields = commands("session.commands.", {
       { "lock", "Lock", "lock" }, { "logout", "Log out", "logout" }, { "suspend", "Suspend", "bedtime" },
-      { "hibernate", "Hibernate", "downloading" }, { "reboot", "Restart", "restart_alt" },
-      { "shutdown", "Power off", "power_settings_new" },
+      { "hibernate", "Hibernate", "downloading" }, { "suspend_hibernate", "Suspend, then hibernate", "hotel" },
+      { "reboot", "Restart", "restart_alt" }, { "shutdown", "Power off", "power_settings_new" },
     }) },
+    { title = "Session menu", fields = {
+      { key = "session.countdown", kind = "number", title = "Count down", icon = "timer", from = 0, to = 30, step = 1,
+        unit = " s" },
+      { key = "session.hide", kind = "list", title = "Left out", icon = "visibility_off", note = "Actions by id" },
+      { key = "session.custom", kind = "records", fields = { "id", "name", "icon", "command" }, title = "Your own",
+        icon = "terminal", note = "id, name, icon and the command in quotes, one after another" },
+    } },
     { title = "Utilities", note = "~/ and $HOME are your home folder", fields = commands("utilities.commands.", {
       { "mic_on", "Microphone on", "mic" }, { "mic_off", "Microphone off", "mic_off" },
       { "settings", "Settings program", "settings" }, { "gamemode_on", "Game mode on", "sports_esports" },
@@ -217,7 +230,10 @@ end
 function M.join_records(list, fields)
   local flat = {}
   for _, record in ipairs(list or {}) do
-    for _, name in ipairs(fields) do flat[#flat + 1] = record[name] or "" end
+    for _, name in ipairs(fields) do
+      local value = record[name] or ""
+      flat[#flat + 1] = type(value) == "table" and M.join(value) or value
+    end
   end
   return M.join(flat)
 end

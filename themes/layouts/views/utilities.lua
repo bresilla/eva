@@ -159,6 +159,14 @@ function V.eva_page(model,w,h)
         subtitle=function() return require("calendar_sources").summary() end,
         trailing=P.chevron(),on_clicked=function() model.request("calendars") end},
     },
+    P.section {id="settings-eva-lock-section",width=w,title="Lock and sleep",
+      P.row {id="settings-eva-lock",width=inner,icon="lock",title="Lock screen",
+        subtitle="What it shows, and how it opens",
+        trailing=P.chevron(),on_clicked=function() model.request("lock") end},
+      P.row {id="settings-eva-idle",width=inner,icon="bedtime",title="Idle and sleep",
+        subtitle="When the screen locks, dims and sleeps",
+        trailing=P.chevron(),on_clicked=function() model.request("idle") end},
+    },
   }
 end
 

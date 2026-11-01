@@ -50,7 +50,7 @@ local HOST = [[
   morf.ipc.history = function() return notifs.history:get() end
   morf.ipc.set = function(key, text) return config.set(key, morf.json.decode(text)) end
   morf.ipc.rule = function(app, field, text) return rules.set(app, field, morf.json.decode(text)) end
-  morf.ipc.lock = function() return notifs.lock_view() end
+  morf.ipc.lock = function() return require("lock_bridge").snapshot(notifs.records()).notifications end
   morf.ipc.pulse = function() return notifs.pulse:get() end
   morf.ipc.served = function() return served end
   morf.ipc.ongoing = function(text) return notifs.ongoing(morf.json.decode(text)) end
@@ -168,16 +168,17 @@ end)
 
 test.it("a lock screen is told only what the setting allows", function()
   load()
+  test.ipc("set", "lock.notifications.new_only", "false")
   push { app = "Mail", summary = "Subject", body = "Words" } test.advance(100)
   local view = test.ipc("lock")
-  test.eq(view.apps, { "Mail" }, "the default is the app's name")
-  test.eq(#view.entries, 0)
+  test.eq(view.items[1].app, "Mail", "the default is the app's name")
+  test.eq(view.items[1].summary, nil)
   test.ipc("set", "notifications.lock_previews", '"all"') test.advance(20)
-  test.eq(test.ipc("lock").entries[1].summary, "Subject")
+  test.eq(test.ipc("lock").items[1].summary, "Subject")
   test.ipc("set", "notifications.lock_previews", '"count"') test.advance(20)
   view = test.ipc("lock")
   test.eq(view.count, 1)
-  test.eq(#view.apps, 0)
+  test.eq(#view.items, 0)
   test.ipc("set", "notifications.lock_previews", '"none"') test.advance(20)
   test.eq(test.ipc("lock").count, 0)
   clean()
@@ -185,10 +186,15 @@ end)
 
 test.it("a lock screen never gets hidden content", function()
   load()
+  test.ipc("set", "lock.notifications.new_only", "false")
   test.ipc("rule", "Bank", "hide", "true")
   test.ipc("set", "notifications.lock_previews", '"all"') test.advance(20)
   push { app = "Bank", summary = "Balance", body = "12" } test.advance(100)
-  test.eq(#test.ipc("lock").entries, 0)
+  test.eq(test.ipc("lock").items[1].summary, nil)
+  test.ipc("rule", "Bank", "hide", "false")
+  test.ipc("set", "notifications.previews", '"hide"') test.advance(20)
+  test.eq(test.ipc("lock").items[1].summary, nil, "hiding previews reaches the lock too")
+  test.ipc("set", "notifications.previews", '"show"') test.advance(20)
   clean()
 end)
 

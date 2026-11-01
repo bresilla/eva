@@ -70,7 +70,7 @@ function M.host(scene, spec)
       ui.Item { id = "lock-emergency-button", z = 40,
         x = S.xl, y = spec.height - S.TOUCH - S.xxl - S.xl, width = BUTTON_W, height = S.TOUCH,
         visible = function() return not calling() and not sim.asking() end,
-        look.action { id = "lock-emergency", accessible_name = "Emergency call", anchors = { fill = true },
+        look.action { id = "lock-emergency-dial", accessible_name = "Emergency call", anchors = { fill = true },
           cursor = "pointer", on_clicked = function() M.open_emergency:set(true) end,
           ui.Rect { anchors = { fill = true }, radius = look.round(S.TOUCH / 2),
             color = function() return spec.C.surface:alpha(0.56) end },

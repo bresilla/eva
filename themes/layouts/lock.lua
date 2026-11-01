@@ -31,6 +31,8 @@ local FINGER = ctx.FINGER
 local FONT = ctx.FONT
 local ICONS = ctx.ICONS
 local key = ctx.key
+local parts = ctx.parts
+local prefs = parts.prefs
 return function(W, H, NAME)
   local desktop = ctx.desktop.for_output(NAME)
   -- In a window there is one screen, and it is the one.
@@ -63,7 +65,7 @@ return function(W, H, NAME)
     prefix="lock",output=NAME,width=W,height=H,border=BORDER,embedded_width=FIELD_W,
     main=main,keyboard_attached=ctx.keyboard_attached,busy=busy,stage=stage,pull=pull,
     claim=function() main_output:set(NAME) end,open_sheet=open_sheet,clear=clear,escape=escape,action=skin.action,
-    on_hide=dismiss,
+    on_hide=dismiss,on_tap=parts.on_tap,
     look=(skin.keyboard_look or function(v) return v end) {
       panel=function() return C.surfaceContainer end,
       key=function() return C.surfaceContainerHighest end,key_dim=function() return C.surfaceContainerHigh end,
@@ -179,7 +181,7 @@ return function(W, H, NAME)
   -- A compact row above the clock, centered independently from the date.
   local weather
   do
-    if desktop.weather_available() then
+    if prefs.weather and desktop.weather_available() then
       local now_w = desktop.weather
       weather = ui.Row {
         id="lock-weather",gap=s(8),align="center",
@@ -201,7 +203,7 @@ return function(W, H, NAME)
   -- What is playing, as a row: art in a turning cookie, the title, controls.
   local media_row
   do
-    if desktop.media_available() then
+    if prefs.media and desktop.media_available() then
       local active, control = desktop.player, desktop.control
       local function button(id, name, action, strong)
         local area
@@ -259,9 +261,54 @@ return function(W, H, NAME)
     end
   end
 
+  local view = { ui = ui, s = s, C = C, icon = icon, text = text }
+  local button = require("themes.layouts.auth.button")
+
+  -- What the machine is doing, in the corner: this screen only if it is the
+  -- one being used.
+  local TOP = BORDER + s(16)
+  local status_row = require("themes.layouts.auth.status").row(view, {
+    prefix = "lock", status = parts.status,
+    mode = prefs.status.mode ~= false and parts.notifications.mode or nil,
+    visible = function() return main() and not leaving() end,
+    anchors = { right = true, right_margin = BORDER + s(22), top = true, top_margin = TOP },
+  })
+
+  local notifications = require("themes.layouts.auth.notifications").build(view, {
+    model = parts.notifications, style = prefs.notifications.style,
+    width = H > W and W - 2 * s(32) or math.min(s(560), W - 2 * s(40)), rows = H > W and 4 or SHORT and 0 or 3,
+    now = function() return morf.time.now() end,
+    visible = function() return main() and parts.notifications.count() > 0 end,
+  })
+
+  -- Widgets get the drawing tools and nothing else, and a failing one is left out.
+  local UPRIGHT = H > W
+  local widgets = { id = "lock-widgets", gap = s(16),
+    visible = function() return main() and not SHORT and stage:get() == "rest" and not parts.card_open:get() end }
+  for _, widget in ipairs(parts.widgets) do
+    local ok, node = pcall(widget.build, { ui = ui, s = s, C = C, text = text, icon = icon,
+      id = "lock-widget-" .. widget.id })
+    if ok and node then widgets[#widgets + 1] = node end
+  end
+  -- Under the notifications when upright, else down the left side.
+  local widget_stand
+  if UPRIGHT then
+    widgets.align = "start"
+    widget_stand = ui.Row(widgets)
+  else
+    widgets.x = BORDER + s(104)
+    widgets.anchors = { vertical_center = true }
+    widget_stand = ui.Column(widgets)
+  end
+
+  -- The chosen line under the date.
+  local line = text { id = "lock-line", text = parts.emergency.text(), width = math.max(1, W - s(64)),
+    horizontal_alignment = "center", elide = "right", font_size = s(17), font_weight = 500,
+    color = C.onSurfaceVariant, visible = function() return main() and parts.emergency.text() ~= "" end }
+
   -- The time at rest sits a third of the way down; with the sheet up it
   -- steps aside above it, smaller.
-  local CLOCK_Y = geometry.clock_y
+  local CLOCK_Y = prefs.clock.position == "top" and BORDER + s(56) or geometry.clock_y
   -- Hidden under the sheet, and through the fade that follows it.
   local covered=false
   local glance = ui.Column {
@@ -280,18 +327,23 @@ return function(W, H, NAME)
     end,
     scale = function() return (stage:get() == "sheet" and main()) and 0.72 or 1 end,
     opacity = function()
+      if main() and parts.card_open:get() then return 0 end
       return resting() and (not main() or stage:get() ~= "sheet" or content_height() - sheet_h() > s(220)) and 1 or 0
     end,
     behavior = { y = GROW, scale = GROW, opacity = { duration = 320 } },
     weather or ui.Item {visible=false},
     (skin.clock or text) {
       id = "lock-clock", text = function() return clock:get() end, morph = true,
-      font_size = geometry.clock_size, font_weight = skin.clock_weight or 600, color = C.primary,
+      font_size = math.floor(geometry.clock_size * prefs.clock.size),
+      font_weight = skin.clock_weight or 600, color = C.primary,
     },
     text {id="lock-date",text=function() return day:get() end,width=math.max(1,W-s(64)),
       elide="right",horizontal_alignment="center",font_size=s(22),color=C.onSurfaceVariant},
+    line,
     ui.Item { width = 1, height = s(34) },
     media_row or ui.Item { width = 1, height = 1 },
+    notifications,
+    UPRIGHT and widget_stand or ui.Item { width = 1, height = 1 },
   }
 
   -- Where the way in is: a chevron bobbing over the bud, and what to do.
@@ -308,17 +360,77 @@ return function(W, H, NAME)
       end,
     }),
     text {
-      text = (FINGER and "Touch the sensor, or " or "")
-        .. (FINGER and "swipe up" or "Swipe up")
-        .. " to unlock",
+      id = "lock-hint",
+      text = function()
+        local left = parts.grace.left:get()
+        if left > 0 then return ("Any key opens it for %d s"):format(left) end
+        return (FINGER and "Touch the sensor, or " or "") .. (FINGER and "swipe up" or "Swipe up") .. " to unlock"
+      end,
       font_size = s(14), color = function() return C.onSurfaceVariant end,
     },
   }
 
+  -- The shortcuts stand in the bottom corners, the first half left, the rest
+  -- right. What is listed was checked as the lock started.
+  local corner_y = function() return content_height() - BORDER - s(104) end
+  local function corner(side, from, to, list)
+    local row = { id = "lock-shortcuts-" .. side, gap = s(10), y = corner_y,
+      visible = function() return main() and stage:get() == "rest" end }
+    if side == "left" then row.x = BORDER + s(24)
+    else row.anchors = { right = true, right_margin = BORDER + s(24) } end
+    for index = from, to do
+      local item = list[index]
+      row[#row + 1] = button.round(view, { id = "lock-shortcut-" .. item.id, name = item.name, icon = item.icon,
+        size = s(56), on = item.on, visible = item.shown, on_clicked = function() parts.shortcuts.press(item.id) end })
+    end
+    return ui.Row(row)
+  end
+  local shortcut_list = parts.shortcuts.list()
+  local split = math.ceil(#shortcut_list / 2)
+  local left_corner, right_corner = corner("left", 1, split, shortcut_list),
+    corner("right", split + 1, #shortcut_list, shortcut_list)
+
+  -- Power, off unless chosen: each must be held, and logind must answer yes.
+  local power_row
+  if parts.power then
+    local row = { id = "lock-power", gap = s(10), x = BORDER + s(22), y = TOP - s(6),
+      visible = function() return main() and stage:get() == "rest" end }
+    for _, id in ipairs { "suspend", "reboot", "poweroff" } do
+      if parts.power.available(id) then
+        local action = require("models.auth_power").ACTIONS[id]
+        row[#row + 1] = button.round(view, { id = "lock-power-" .. id, name = action.name, icon = action.icon,
+          hold = 800, on_clicked = function()
+            local ok, why = parts.power.run(id)
+            if not ok then say(why or "That did not work", true) end
+          end })
+      end
+    end
+    power_row = ui.Row(row)
+  end
+
+  -- The way to the emergency card, over the hint.
+  local emergency_chip = button.chip(view, { id = "lock-emergency", icon = "emergency", text = "Emergency",
+    name = "Emergency", width = s(148), on_clicked = parts.open_card,
+    visible = function()
+      return main() and stage:get() == "rest" and not parts.card_open:get() and parts.emergency.available()
+    end })
+  local emergency_at = ui.Item { width = s(148), height = s(40), anchors = { horizontal_center = true },
+    y = function() return content_height() - BORDER - BUD_H - s(126) end, emergency_chip }
+  local emergency_card = require("themes.layouts.auth.emergency").card(view, {
+    model = parts.emergency, width = math.min(s(480), W - 2 * s(32)),
+    open = function() return main() and parts.card_open:get() end,
+    close = parts.close_card,
+    say = function(words) parts.card_said:set(words or "") end,
+    said = function() return parts.card_said:get() end,
+    y = function() return math.max(s(40), math.floor(content_height() * .2)) end,
+  })
+
   -- -------------------------------------------------------------- the sheet --
 
   local cookie = skin.avatar_path or shapes.path("cookie9", { segments = false })
-  local avatar = skin.avatar and skin.avatar(me, AV, function() return true end, "lock-avatar") or ui.Item {
+  local face = prefs.avatar and me.face or nil
+  local avatar = skin.avatar and skin.avatar(prefs.avatar and me or { initial = me.initial }, AV,
+    function() return true end, "lock-avatar") or ui.Item {
     width = AV, height = AV,
     -- Only the cookie turns: a face or an initial stays upright on it.
     ui.Path {
@@ -330,35 +442,51 @@ return function(W, H, NAME)
         return { rotation = { to = 360, duration = 2400, hold = true } }
       end,
     },
-    me.face and ui.Image {
-      anchors = { fill = true }, fill_mode = "preserve_aspect_crop", source = me.face,
+    face and ui.Image {
+      anchors = { fill = true }, fill_mode = "preserve_aspect_crop", source = face,
       mask = ui.Path { anchors = { fill = true }, view_box = { 0, 0, 100, 100 }, d = cookie, fill_color = "#ffffff" },
     } or text {
-      anchors = { center_in = true }, text = me.initial or "?", font_size = s(22), font_weight = 600,
-      color = C.onPrimaryContainer,
+      anchors = { center_in = true }, text = prefs.name and (me.initial or "?") or "", font_size = s(22),
+      font_weight = 600, color = C.onPrimaryContainer,
     },
   }
+
+  -- The sheet's line: what PAM says, then the wait, then the Caps Lock warning.
+  local function sheet_line()
+    local value = message:get()
+    if busy:get() and value == "" then return "Checking password…" end
+    if value ~= "" then return value end
+    local wait = parts.tries.waiting()
+    if wait > 0 then return ("Too many tries. Wait %d s"):format(wait) end
+    if parts.keyboard.caps() then return "Caps Lock is on" end
+    local failed = parts.tries.count()
+    if failed > 0 then return failed == 1 and "1 failed attempt" or (failed .. " failed attempts") end
+    return ""
+  end
 
   local field=require("themes.auth_form").password {
     prefix="lock",ui=ui,s=s,C=C,width=FIELD_W,height=FIELD_H,text=text,icon=icon,
     typed=typed,shake=shake,bad=bad,busy=busy,max_dots=MAX_DOTS,
-    submit=submit,focus=function() kb.show() end,
+    submit=submit,focus=function() kb.show(prefs.keypad=="digits" and "numbers" or nil) end,
   }
 
   form=require("themes.auth_form").sheet {
     prefix="lock",output=NAME,ui=ui,s=s,C=C,skin=skin,width=SW,screen_width=W,
     border=BORDER,top=BORDER+s(12),footer=0,keyboard=kb,
-    text=text,heading=ctx.heading,avatar=avatar,name=me.label ~= "" and me.label or me.name,
+    text=text,heading=ctx.heading,avatar=avatar,
+    name=not prefs.name and "Locked" or me.label ~= "" and me.label or me.name,
     active=function() return main() and stage:get()=="sheet" end,
     visible=function() return main() and (stage:get()=="sheet" or stage:get()=="opening") end,
     entry_height=FIELD_H,
     entry=field,
     message=text {id="lock-message",width=FIELD_W,height=s(24),elide="right",font_size=s(14),
-      text=function()
-        local value=message:get()
-        return busy:get() and value=="" and "Checking password…" or value
-      end,
-      color=function() return bad:get() and C.error or C.onSurfaceVariant end},
+      text=sheet_line,
+      color=function()
+        if bad:get() or parts.tries.waiting()>0 then return C.error end
+        return parts.keyboard.caps() and message:get()=="" and C.tertiary or C.onSurfaceVariant
+      end},
+    session=#parts.keyboard.list()>1 and button.chip(view,{id="lock-layout",icon="keyboard",name="Keyboard layout",
+      text=parts.keyboard.current,on_clicked=parts.keyboard.step}) or nil,
   }
   local sheet=form.node
   formed:set(formed:get()+1)
@@ -380,8 +508,9 @@ return function(W, H, NAME)
       if stage:get()=="sheet" and not contains(sheet,x,y)
         and not (kb.active() and contains(kb.node,x,y)) then dismiss() end
     end,
-    on_pressed=function(_,_,_,_,button)
-      pointer_from_rest=button=="left" and stage:get()=="rest" and not busy:get()
+    on_pressed=function(_,_,_,_,pressed)
+      if pressed and parts.take_grace() then return end
+      pointer_from_rest=pressed=="left" and stage:get()=="rest" and not busy:get()
       if pointer_from_rest then main_output:set(NAME) end
     end,
     on_drag_finished=function(_,_,dx,dy)
@@ -422,11 +551,21 @@ return function(W, H, NAME)
         opacity = function() return leaving() and 0 or 1 end,
         behavior = { opacity = require("themes.reveal").MOTION },
         skin.chrome and skin.chrome(W, H, s, "lock") or ui.Item {},
-        frame,band,glance,hint,sheet,
+        frame,band,status_row,power_row or ui.Item {},glance,UPRIGHT and ui.Item {} or widget_stand,
+        hint,left_corner,right_corner,emergency_at,sheet,emergency_card,
       },
     },
     not kb.embedded and kb.node or ui.Item {}, kb.edge,
     reveal,
+    -- Lit dark and dim, on a panel that can stay lit. Under the wake shield.
+    require("themes.phone_wake").always_on() and prefs.always_on.enabled
+      and require("themes.layouts.auth.ambient").build(view, {
+        clock = clock, day = day, width = W, height = H,
+        shown = require("themes.phone_wake").ambient,
+        notifications = prefs.always_on.notifications and parts.notifications or nil,
+        title = prefs.always_on.music and desktop.media_available()
+          and function() return desktop.player().title or "" end or nil,
+      }) or ui.Item {},
   }
   require("themes.phone_wake").attach(root,{prefix="lock",output=NAME,width=W,height=H,
     rest=function() clear() if stage:get()=="sheet" then escape() end pull:set(0) end})

@@ -10,10 +10,17 @@ now=$(awk '{printf "%.0f", $1 * 1000}' /proc/uptime)
 last_wake=0
 if [[ -r "$state.wake" ]]; then read -r last_wake < "$state.wake"; fi
 powered=$(hyprctl -j monitors | jq -er 'if length == 0 then error("no outputs") else any(.[]; .dpmsStatus != false) end | tostring')
+status=on
+if [[ -r "$state.status" ]]; then read -r status < "$state.status"; fi
 
 wake() {
   if [[ "$powered" == false ]]; then
     phone-dpms on
+    printf '%s\n' "$now" > "$state.wake"
+  fi
+  # Lit dark and dim: the backlight goes back to where it stood.
+  if [[ "$status" == ambient ]]; then
+    brightnessctl -q -r || true
     printf '%s\n' "$now" > "$state.wake"
   fi
   publish on
@@ -32,7 +39,7 @@ if [[ "$action" == blank ]]; then
   exit
 fi
 if [[ "$action" == toggle ]]; then
-  if [[ "$powered" == false ]]; then wake; exit; fi
+  if [[ "$powered" == false || "$status" == ambient ]]; then wake; exit; fi
   # Ignore a duplicate power signal immediately after waking the display.
   if (( now - last_wake < 1000 )); then exit; fi
   sleep 0.25
@@ -51,6 +58,16 @@ if [[ "${EVA_PHONE_GREETER:-0}" != 1 ]]; then
     done
     locked || { echo 'eva did not acquire the session lock' >&2; exit 1; }
   fi
+fi
+# A panel the system says can stay lit, with a lock that chose to: the lock's
+# ambient face stands instead of a blank, the backlight at its lowest. This keeps
+# the panel and the GPU awake, so it spends power a blank does not.
+if [[ "${EVA_PHONE_GREETER:-0}" != 1 && -e "$state.ambient" ]]; then
+  if [[ "$status" != ambient ]]; then
+    brightnessctl -q -s set 1% || true
+    publish ambient
+  fi
+  exit
 fi
 # eva shields the sleeping authentication surface before the panel blanks.
 # Its file watch also works while Wayland frame callbacks are stopped.

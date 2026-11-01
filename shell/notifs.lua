@@ -1122,25 +1122,6 @@ morf.effect("eva.notifications.shown", function()
 end)
 --- The edge light and the flash of an arrival, for the frame to lay over all.
 function M.overlay() return visual.overlay() end
---- What a lock screen may say of the history: `{ count, apps = { names },
---- entries = { { app, summary, body } } }`, by `notifications.lock_previews`.
-function M.lock_view()
-  local level, list = config.get("notifications.lock_previews"), M.records()
-  local out = { count = level ~= "none" and #list or 0, apps = {}, entries = {} }
-  if level ~= "all" and level ~= "app" then return out end
-  local seen = {}
-  for i = #list, 1, -1 do
-    local e = list[i]
-    if not seen[e.app] then
-      seen[e.app] = true
-      out.apps[#out.apps + 1] = e.app
-    end
-    if level == "all" and not M.redacted(e) then
-      out.entries[#out.entries + 1] = { app = e.app, summary = e.summary, body = e.body }
-    end
-  end
-  return out
-end
 morf.effect("eva.notifications.presented", function() M.opened:set(M.drawer.open:get()) end)
 -- A drawer's edge is fixed as it is built: the other one builds this output's
 -- shell again in place. Along the edge the popups just move.

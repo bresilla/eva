@@ -6,35 +6,69 @@
 }:
 let
   cfg = config.programs.eva.idle;
-  lockSession = "${pkgs.systemd}/bin/loginctl lock-session";
-  suspendNow = "${pkgs.systemd}/bin/systemctl suspend";
-  # The timeouts Settings wrote for this account win over these options; taking
-  # them away there comes back here.
-  hypridleStart = pkgs.writeShellScript "eva-hypridle" ''
-    chosen="''${XDG_STATE_HOME:-$HOME/.local/state}/eva/idle/hypridle.conf"
-    file=/etc/xdg/hypr/hypridle.conf
-    if [ -r "$chosen" ]; then file=$chosen; fi
-    exec ${config.services.hypridle.package}/bin/hypridle --config "$file"
+  phone = config.programs.eva.phone;
+  timeout =
+    description:
+    lib.mkOption {
+      type = lib.types.nullOr lib.types.ints.unsigned;
+      default = null;
+      inherit description;
+    };
+  fixed = stage: "Idle seconds before ${stage}; zero never. Null leaves it to Settings, Idle and sleep.";
+  # What the system fixes wins over Settings; each stage it fixes stays a
+  # listener of hypridle's, and the shell only shows it.
+  managed =
+    if phone.enable then
+      {
+        lock = phone.idleTimeout;
+        blank = phone.idleTimeout;
+        suspend = 0;
+      }
+    else
+      lib.filterAttrs (_: value: value != null) {
+        lock = cfg.lockTimeout;
+        blank = cfg.screenOffTimeout;
+        suspend = cfg.suspendTimeout;
+      };
+  dpms = config.system.build.hyprlandIdleDpms;
+  loginctl = "${pkgs.systemd}/bin/loginctl";
+  # A lock asked for by the idle timer says so: the window after it depends on it.
+  idleLock = pkgs.writeShellScript "eva-idle-lock-mark" ''
+    run=''${XDG_RUNTIME_DIR:?}/eva
+    ${pkgs.coreutils}/bin/mkdir -p "$run"
+    read -r up _ < /proc/uptime
+    printf '{"reason":"idle","at":%s}' "$up" > "$run/lock-reason.tmp"
+    ${pkgs.coreutils}/bin/mv -f "$run/lock-reason.tmp" "$run/lock-reason"
+    exec ${loginctl} lock-session
+  '';
+  # With no lock timeout fixed here the shell's runner locks. A dead shell cannot,
+  # so this asks it, and locks only when nothing answers.
+  backstop = pkgs.writeShellScript "eva-idle-backstop" ''
+    if ${pkgs.coreutils}/bin/timeout 3 /run/current-system/sw/bin/morf ipc verbs > /dev/null 2>&1; then
+      exit 0
+    fi
+    exec ${idleLock}
+  '';
+  # Locks before sleep unless the system or the person said not to. A lock made
+  # for sleep is never an idle one.
+  beforeSleep = pkgs.writeShellScript "eva-before-sleep" ''
+    ${pkgs.coreutils}/bin/rm -f "''${XDG_RUNTIME_DIR:-/nonexistent}/eva/lock-reason"
+    jq=${pkgs.jq}/bin/jq
+    want=$($jq -r 'if has("on_suspend") then (.on_suspend | tostring) else "" end' /etc/eva/lock.json 2>/dev/null)
+    if [ -z "$want" ]; then
+      state=''${XDG_STATE_HOME:-$HOME/.local/state}
+      file=$(${pkgs.coreutils}/bin/cat "$state/eva/settings-path" 2>/dev/null)
+      want=$($jq -r 'if .lock.on_suspend == false then "false" else "true" end' "$file" 2>/dev/null)
+    fi
+    [ "$want" = false ] && exit 0
+    exec ${loginctl} lock-session
   '';
 in
 {
   options.programs.eva.idle = {
-    lockTimeout = lib.mkOption {
-      type = lib.types.ints.unsigned;
-      default = 300;
-      description = "Idle seconds before locking; zero disables automatic locking.";
-    };
-    screenOffTimeout = lib.mkOption {
-      type = lib.types.ints.unsigned;
-      default = cfg.lockTimeout + 30;
-      defaultText = lib.literalExpression "config.programs.eva.idle.lockTimeout + 30";
-      description = "Idle seconds before turning off displays; zero disables idle display power-off.";
-    };
-    suspendTimeout = lib.mkOption {
-      type = lib.types.ints.unsigned;
-      default = 1800;
-      description = "Idle seconds before suspending; zero leaves sleep to explicit actions such as closing the lid.";
-    };
+    lockTimeout = timeout (fixed "locking");
+    screenOffTimeout = timeout (fixed "turning off displays");
+    suspendTimeout = timeout (fixed "suspending");
   };
 
   config = lib.mkIf (config.programs.eva.enable && config.programs.hyprland.enable) {
@@ -49,48 +83,58 @@ in
       fi
       exec ${config.programs.hyprland.package}/bin/hyprctl dispatch dpms "$action"
     '';
-    # What Settings needs to write the same file with other timeouts.
-    environment.etc."eva/idle.json".text = builtins.toJSON {
-      inherit (cfg) lockTimeout screenOffTimeout suspendTimeout;
+    system.build.evaIdleLock = idleLock;
+    environment.etc."eva/idle-backstop".source = backstop;
+    # What the shell reads: the stages fixed here, and the commands to use.
+    environment.etc."eva/idle-stages.json".text = builtins.toJSON {
+      inherit managed;
       commands = {
-        lock_session = "${pkgs.systemd}/bin/systemctl --user start eva-idle-lock.service";
-        before_sleep = lockSession;
-        after_sleep = "${config.system.build.hyprlandIdleDpms} on";
-        lock = lockSession;
-        screen_off = "${config.system.build.hyprlandIdleDpms} off";
-        screen_on = "${config.system.build.hyprlandIdleDpms} on";
-        suspend = suspendNow;
+        lock = [
+          loginctl
+          "lock-session"
+        ];
+        dpms = "${dpms}";
       };
+      sleep_lock = true;
     };
     # Pass an explicit system config: ~/.config/hypr remains an editable
     # dotfiles symlink, and switching compositors drops this entire block.
     environment.etc."xdg/hypr/hypridle.conf".text = ''
       general {
         lock_cmd = ${pkgs.systemd}/bin/systemctl --user start eva-idle-lock.service
-        before_sleep_cmd = ${lockSession}
-        after_sleep_cmd = ${config.system.build.hyprlandIdleDpms} on
+        before_sleep_cmd = ${beforeSleep}
+        after_sleep_cmd = ${dpms} on
         inhibit_sleep = 3
+        # The shell holds org.freedesktop.ScreenSaver and passes requests on.
+        ignore_dbus_inhibit = true
       }
 
-      ${lib.optionalString (cfg.lockTimeout > 0) ''
+      ${lib.optionalString (cfg.lockTimeout != null && cfg.lockTimeout > 0) ''
       listener {
         timeout = ${toString cfg.lockTimeout}
-        on-timeout = ${lockSession}
+        on-timeout = ${idleLock}
       }
       ''}
 
-      ${lib.optionalString (cfg.screenOffTimeout > 0) ''
+      ${lib.optionalString (cfg.lockTimeout == null && !phone.enable) ''
+      listener {
+        timeout = 900
+        on-timeout = ${backstop}
+      }
+      ''}
+
+      ${lib.optionalString (cfg.screenOffTimeout != null && cfg.screenOffTimeout > 0) ''
       listener {
         timeout = ${toString cfg.screenOffTimeout}
-        on-timeout = ${config.system.build.hyprlandIdleDpms} off
-        on-resume = ${config.system.build.hyprlandIdleDpms} on
+        on-timeout = ${dpms} off
+        on-resume = ${dpms} on
       }
       ''}
 
-      ${lib.optionalString (cfg.suspendTimeout > 0) ''
+      ${lib.optionalString (cfg.suspendTimeout != null && cfg.suspendTimeout > 0) ''
       listener {
         timeout = ${toString cfg.suspendTimeout}
-        on-timeout = ${suspendNow}
+        on-timeout = ${pkgs.systemd}/bin/systemctl suspend
       }
       ''}
     '';
@@ -98,7 +142,7 @@ in
       partOf = [ "graphical-session.target" ];
       serviceConfig.ExecStart = lib.mkForce [
         ""
-        "${hypridleStart}"
+        "${config.services.hypridle.package}/bin/hypridle --config /etc/xdg/hypr/hypridle.conf"
       ];
       restartTriggers = [ config.environment.etc."xdg/hypr/hypridle.conf".source ];
     };

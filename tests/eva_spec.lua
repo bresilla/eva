@@ -390,10 +390,14 @@ test.describe("eva", function()
     test.settle(1500)
     test.falsy(shown("session"))
     no_action_commands()
-    -- Again, and Return on shut down.
+    -- Again, and Return on shut down: the first starts its countdown, the
+    -- second goes now.
     test.ipc("session", "open")
     test.settle(1500)
-    test.key("Down")
+    test.key("Up")
+    test.key("Return")
+    test.settle(300)
+    test.truthy(shown("session"), "the first press only counts down")
     test.key("Return")
     test.settle(1500)
     test.falsy(shown("session"))

@@ -68,21 +68,15 @@ function M.record()
   if capture.record then capture.record(capture.target and capture.target:get() or "screen") end
 end
 
--- The session row: Lock acts at once, what ends the session must be held.
-M.SESSION = {
-  { id = "lock", icon = "lock", name = "Lock", tone = "accent" },
-  { id = "logout", icon = "logout", name = "Log out", hold = true },
-  { id = "suspend", icon = "bedtime", name = "Suspend", hold = true, tone = "accent" },
-  { id = "reboot", icon = "restart_alt", name = "Restart", hold = true },
-  { id = "shutdown", icon = "power_settings_new", name = "Power off", hold = true },
-}
-
---- Whether the session action `id` has a command to run, and logind says it
---- can be done here.
-function M.session_available(id)
-  local words = config.get("session.commands." .. id)
-  return type(words) == "table" and #words > 0 and require("lib.services.power_extras").can_now(id)
+-- The session row: Lock acts at once, what ends the session must be held. One
+-- list with the session menu's (shell/session_model.lua).
+M.SESSION = {}
+for _, action in ipairs(require("session_model").ACTIONS) do
+  if action.quick then M.SESSION[#M.SESSION + 1] = action end
 end
+
+--- Whether the session action `id` can be done here.
+function M.session_available(id) return require("session_model").available(id) end
 
 --- Who is signed in: `label` (the name to show) and `face` (a picture, or nil).
 function M.session_user()
@@ -99,17 +93,10 @@ end
 
 -- ------------------------------------------------------------ keep awake --
 
-M.awake = require("themes.session").keep("eva.utilities.awake", false)
+local idle = require("idle_model")
+M.idle = idle
+M.awake = idle.awake
 local awake_since = require("themes.session").keep("eva.utilities.awake_since", "")
-
-morf.effect("eva.utilities.inhibit", function()
-  local on = M.awake:get()
-  if dry_run() then
-    morf.log("info", "eva: keep awake " .. (on and "on" or "off") .. " (dry run)")
-  elseif morf.idle and morf.idle.inhibit then
-    morf.idle.inhibit(on)
-  end
-end)
 
 local function clock(at)
   if config.get("bar.clock.twelve_hour") then
@@ -118,36 +105,17 @@ local function clock(at)
   return (morf.time.format("%H:%M", at))
 end
 
--- When a kept-awake with a time on it lets go, 0 for none.
-local awake_until = require("themes.session").keep("eva.utilities.awake_until", 0)
-local awake_timer
-
-function M.set_awake(on)
+--- Keeps the session awake, for `seconds` if given.
+function M.set_awake(on, seconds)
   if on and not M.awake:get() then awake_since:set(clock(morf.time.now())) end
-  M.awake:set(on and true or false)
-  if not on then awake_until:set(0) end
+  idle.set_awake(on, seconds)
 end
-
-morf.effect("eva.utilities.awake_until", function()
-  local stop = awake_until:get()
-  if awake_timer then awake_timer:cancel() awake_timer = nil end
-  if stop <= 0 then return end
-  awake_timer = morf.time.timer(math.max(0, (stop - morf.time.now()) * 1000), function()
-    awake_timer = nil
-    M.set_awake(false)
-  end, false)
-end)
 
 --- Stays awake for `minutes`, or until told otherwise without them.
-function M.awake_for(minutes)
-  M.set_awake(true)
-  awake_until:set(minutes and morf.time.now() + minutes * 60 or 0)
-end
+function M.awake_for(minutes) M.set_awake(true, minutes and minutes * 60 or nil) end
 
 --- `eva awake`'s answer: whether it is on, and when it lets go, 0 for never.
-function M.awake_state()
-  return { on = M.awake:get(), ["until"] = awake_until:get() }
-end
+function M.awake_state() return { on = M.awake:get(), ["until"] = idle.awake_until() } end
 
 local local_state = {
   wifi = morf.signal("eva.utilities.wifi", false),
@@ -451,6 +419,8 @@ M.TOGGLES = {
     set = function(now) M.set_awake(now) end,
     status = function()
       if not M.awake:get() then return "Off" end
+      local ends = idle.awake_until()
+      if ends > 0 then return "Until " .. clock(ends) end
       return "Since " .. awake_since:get()
     end,
   },

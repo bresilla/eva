@@ -35,14 +35,24 @@ require("themes.motion_style").install()
 -- `-- preview`: never talks to greetd, for pictures and tests.
 local PREVIEW = morf.operands[1] == "preview"
 
+local memory = require("models.greet_memory")
+local access = require("models.auth_access").new()
+
 local screen = morf.screens[1]
 local W = (screen and screen.width) or 1920
 local H = (screen and screen.height) or 1080
 local function keyboard_attached()
+  if access.on("keyboard") then return false end
   local ok, value = pcall(function() return require("models.keyboards").attached() end)
   return not ok or value
 end
-local s = require("themes.auth_metrics")(W, H, keyboard_attached())
+-- The metrics, a size larger where larger text is chosen.
+local function metrics(width, height)
+  local base = require("themes.auth_metrics")(width, height, keyboard_attached())
+  if not access.on("large") then return base end
+  return function(value) return base(value * 1.25) end
+end
+local s = metrics(W, H)
 
 morf.surface.width = W
 morf.surface.height = H
@@ -55,7 +65,7 @@ morf.surface.namespace = "eva-greet"
 
 -- Visual design is selected independently from the wallpaper's palette.
 local visual = require("themes").current
-local C, palette = require("themes.auth_palette")("greet")
+local C, palette = require("themes.auth_palette")("greet", function() return access.on("contrast") end)
 local FONT, ICONS = visual.tokens.auth_font or visual.tokens.font, visual.tokens.icon_font
 local text, icon = require("themes.typography")(visual.tokens, C, s)
 local function WALLPAPER()
@@ -70,8 +80,12 @@ local people = accounts.list()
 if #people == 0 then people = { { name = "", label = "Nobody to log in", initial = "?" } } end
 local list = sessions.list()
 
-local who = morf.signal("greet.who", 1)
-local which = morf.signal("greet.session", sessions.default_index(list))
+-- Whoever came last, on the session they chose.
+local function session_of(user) return memory.which(list, user) or sessions.default_index(list) end
+local who = morf.signal("greet.who", memory.who(people) or 1)
+local which = morf.signal("greet.session", session_of(people[who:get()].name))
+local keyboard = require("models.keyboard_state").new("greet")
+local power_actions = require("models.auth_power").new()
 local MAX_DOTS = 20
 local password = require("models.password").new("greet", MAX_DOTS)
 local typed = password.typed
@@ -132,7 +146,11 @@ local door = auth.greeter {
     clear()
     if outputs then outputs.release() end
   end,
-  on_verified = depart,
+  on_verified = function(start)
+    local chosen = session()
+    memory.remember(person().name, chosen and chosen.id)
+    depart(start)
+  end,
   on_open = leave,
 }
 local NOT_GREETD = "Not started by greetd: nothing to log in to"
@@ -144,6 +162,8 @@ local function choose(index)
   clear()
   say("")
   door:switch(person().name)
+  which:set(session_of(person().name))
+  door.session = session()
 end
 local function step_person(by)
   if #people < 2 then return end
@@ -207,8 +227,14 @@ local function escape()
   if stage:get() == "sheet" then stage:set("rest") say("") end
 end
 
-local function power(method, words)
-  local ok, why = auth.power(method)
+local function power(id, words)
+  if PREVIEW then
+    morf.log("info", "eva: greeter " .. id .. " (preview)")
+    return
+  end
+  local ok, why
+  if id == "firmware" then ok, why = power_actions.firmware()
+  else ok, why = power_actions.run(id, { offered = true }) end
   if not ok then say(why or ("Could not " .. words), true) end
 end
 
@@ -224,15 +250,22 @@ end, true)
 
 local function key(keysym, typed_text)
       local RETURN, KP_ENTER, BACKSPACE, ESCAPE = 0xff0d, 0xff8d, 0xff08, 0xff1b
-      local LEFT, RIGHT, F2 = 0xff51, 0xff53, 0xffbf
+      local LEFT, RIGHT, F2, F3 = 0xff51, 0xff53, 0xffbf, 0xffc0
       local st = stage:get()
       -- A real compositor key event proves this surface has the keyboard.
       -- The compositor may focus a different output before pointer entry.
       if outputs and not outputs.main() then outputs.claim() end
       if st ~= "rest" and st ~= "sheet" then return end
+      -- The light follows the key a moment later.
+      morf.time.timer(60, keyboard.look, false)
       if busy:get() then return end
-      if keysym == ESCAPE then escape() return end
+      if keysym == ESCAPE then
+        if access.open:get() then access.open:set(false) return end
+        escape()
+        return
+      end
       if keysym == F2 then step_session(1) return end
+      if keysym == F3 then keyboard.step() return end
       if st == "rest" then
         if keysym == LEFT then step_person(-1) return end
         if keysym == RIGHT then step_person(1) return end
@@ -264,6 +297,14 @@ local context = {
   main=outputs.main,
   claim=outputs.claim,
   hostname = hostname,
+  access = access,
+  access_options = require("models.auth_access").OPTIONS,
+  keyboard = keyboard,
+  power_actions = power_actions,
+  status = require("models.auth_status").new {
+    active = function() return stage:get() == "rest" or stage:get() == "sheet" end, status = {},
+  },
+  tint = function() return access.on("contrast") and .85 or .4 end,
   message = message, bad = bad,
   W = W,
   H = H,
@@ -311,12 +352,12 @@ morf.effect("greet.geometry",function()
   local width,height=root.layout_width or W,root.layout_height or H
   if width<=0 or height<=0 then return end
   width,height=math.floor(width+.5),math.floor(height+.5)
-  local signature=tostring(width)..":"..tostring(height)
+  local signature=tostring(width)..":"..tostring(height)..":"..access.signature()
   if signature==built then return end
   built=signature
   if child then ui.destroy(child,true) end
-  local ctx=setmetatable({W=width,H=height,output_name="main"}, {__index=context})
-  ctx.s=require("themes.auth_metrics")(width,height,keyboard_attached())
+  local ctx=setmetatable({W=width,H=height,output_name="main",reduce_motion=access.on("motion")}, {__index=context})
+  ctx.s=metrics(width,height)
   ctx.text,ctx.icon=require("themes.typography")(visual.tokens,C,ctx.s)
   child=require(visual.greet)(ctx)
   child.id="greet-view.main"
@@ -329,6 +370,13 @@ morf.ipc.stage = function(to)
   if to == "sheet" then stage:set("rest") open_sheet() elseif to == "rest" then stage:set("rest") end
   if to == "leaving" and PREVIEW then depart(function() end) end
   return stage:get()
+end
+-- For a picture: `access open`, or an option to toggle.
+if PREVIEW then
+  morf.ipc.access = function(what)
+    if what == "open" then access.open:set(true) else access.toggle(what) end
+    return true
+  end
 end
 
 morf.time.timer(30, function() stage:set("rest") end, false)

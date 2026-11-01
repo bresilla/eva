@@ -274,16 +274,6 @@ local HOST = [[
   end
 
   function tests.power()
-    local p = require("lib.services.power_extras")
-    truthy(p.allowed("yes"), "yes") truthy(p.allowed("challenge"), "challenge") truthy(p.allowed(nil), "no answer")
-    falsy(p.allowed("no"), "no") falsy(p.allowed("na"), "na")
-    local text = p.idle_text({ lock = 60, screen = 0, suspend = 120 }, { commands = { lock = "L", lock_session = "LS",
-      before_sleep = "B", after_sleep = "A", suspend = "S", screen_off = "O", screen_on = "N" } })
-    truthy(text:find("timeout = 60\n  on-timeout = L", 1, true), "the lock listener")
-    falsy(text:find("on-timeout = O", 1, true), "a listener for a zero timeout")
-    truthy(text:find("lock_cmd = LS", 1, true), "the lock command")
-    local extras = require("power_extras_model")
-    eq(extras.duration(0), "Never") eq(extras.duration(90), "1 min") eq(extras.duration(3600), "1 h")
     local lid = require("lid_watch")
     eq(lid.run_of("poweroff"), "shutdown") eq(lid.run_of("system"), nil) eq(lid.run_of("nothing"), nil)
   end

@@ -183,6 +183,7 @@ in
     ./compositor.nix
     ./hardware.nix
     ./idle.nix
+    ./lock.nix
     ./phone.nix
     ./seamless.nix
   ];

@@ -28,8 +28,14 @@ require("themes.ui_scale").apply()
 require("themes.motion_style").install()
 
 local HELD = morf.operands[1] ~= "window"
+-- Why this lock was asked for, and what it may show and do because of it.
+local lock_settings = require("models.lock_settings")
+local REASON, MARKED = "manual", nil
+if HELD then REASON, MARKED = require("models.lock_reason").take() end
+local prefs = lock_settings.load()
+if REASON == "lockdown" then lock_settings.lockdown(prefs) end
 -- A fingerprint stack to listen on (helpers/pam/readers.sh), said in the hint.
-local FINGER = morf.fs.exists("/etc/pam.d/eva-lock-finger")
+local FINGER = prefs.readers and morf.fs.exists("/etc/pam.d/eva-lock-finger")
 -- `-- window preview`: never asks PAM -- any password but "wrong" opens it.
 -- For pictures and tests: a lock that asked PAM and was killed mid-way
 -- would count as a failed login.
@@ -75,7 +81,8 @@ local FONT, ICONS = visual.tokens.auth_font or visual.tokens.font, visual.tokens
 local text, icon = require("themes.typography")(visual.tokens, C, s)
 local function WALLPAPER()
   local tool=palette:get()
-  local path=morf.env("EVA_WALLPAPER") or (tool and tool.wallpaper) or ""
+  local chosen=prefs.wallpaper~="" and prefs.wallpaper or nil
+  local path=morf.env("EVA_WALLPAPER") or chosen or (tool and tool.wallpaper) or ""
   return path~="" and morf.fs.exists(path) and path or ""
 end
 
@@ -101,14 +108,36 @@ local function say(words, wrong)
 end
 local clear = password.clear
 
+-- What the lock keeps while it stands. A phone has no window after an idle lock.
+local phone_screen = require("themes.phone_wake")
+local keyboard = require("models.keyboard_state").new("lock")
+local tries = require("models.lock_attempts").new(prefs.attempts)
+local guard = (REASON == "idle" and prefs.grace_seconds > 0) and require("models.logind").guard() or nil
+local grace = require("models.lock_grace").new {
+  seconds = prefs.grace_seconds, reason = REASON, guard = guard, phone = phone_screen.present(),
+  since = MARKED,
+}
+if prefs.force_layout ~= "" then keyboard.force(prefs.force_layout) end
+
+-- A shortcut waiting on the password: its id, handed to the shell once the
+-- door is open. Only the shell opens anything.
+local waiting
+local function forget_waiting() waiting = nil end
+
 -- The screen leaves the wallpaper, and the shell under it comes in as it did at
 -- login.
 local door
 local function lift()
   stage:set("opening")
   say("")
+  keyboard.restore()
+  phone_screen.allow_ambient(false)
   if HELD and morf.env("EVA_DRY_RUN") ~= "1" then
     morf.process.run({ "morf", "ipc", "call", "reveal" }, { timeout_ms = 2000, max_output = 256 }, function() end)
+    if waiting then
+      morf.process.run({ "morf", "ipc", "call", "lock_shortcut", waiting },
+        { timeout_ms = 2000, max_output = 256 }, function() end)
+    end
   end
   morf.time.timer(reveal.LEAVE, function()
     if HELD then morf.surface.session_lock = false else morf.quit() end
@@ -117,9 +146,12 @@ end
 local handlers = {
   user = me.name,
   listen = false,
+  tries = prefs.reader_tries,
   on_busy = function(b) busy:set(b) end,
   on_info = function(words, wrong) if not busy:get() then say(words, wrong) end end,
   on_failed = function(why)
+    grace.revoke("wrong password")
+    tries.failed()
     say(why ~= "" and why or "Wrong password", true)
     clear()
     shake:set(1)
@@ -127,6 +159,7 @@ local handlers = {
   end,
   on_open = lift,
 }
+if not prefs.readers then handlers.reader = false end
 if PREVIEW then
   door = {
     submit = function(_, pw)
@@ -150,6 +183,7 @@ local function poke()
     idle = nil
     if stage:get() == "sheet" and typed:get() == 0 and not busy:get() then
       stage:set("rest")
+      waiting = nil
       say("")
     end
   end, false)
@@ -162,14 +196,37 @@ local function open_sheet()
   poke()
 end
 
+-- The one opening without the password: a key in the window after an idle lock.
+local function take_grace()
+  if not grace.take() then return false end
+  if door.finish then door:finish() else lift() end
+  return true
+end
+
 local function submit()
   if busy:get() or stage:get() ~= "sheet" then return end
+  if not tries.allowed() then return end
   if password.empty() then
     say("Type your password", false)
     return
   end
   say("")
   door:submit(password.take())
+end
+
+-- The emergency card, over the lock. It opens nothing.
+local card_open = morf.signal("lock.emergency.open", false)
+local card_said = morf.signal("lock.emergency.said", "")
+local card_timer
+local function close_card()
+  if card_timer then card_timer:cancel() card_timer = nil end
+  card_open:set(false)
+  card_said:set("")
+end
+local function open_card()
+  card_open:set(true)
+  if card_timer then card_timer:cancel() end
+  card_timer = morf.time.timer(30000, close_card, false)
 end
 
 local function type_text(t)
@@ -182,11 +239,13 @@ local function backspace()
   poke()
 end
 local function escape()
+  if card_open:get() then close_card() return end
   if password.empty() then
     -- Looked at in a window, it holds nothing: Escape at rest is the way
     -- out, in case the door will not open.
     if stage:get() == "rest" and not HELD then morf.quit() return end
     stage:set("rest")
+    forget_waiting()
     say("")
   else
     clear()
@@ -197,10 +256,11 @@ end
 -- --------------------------------------------------------------- the time --
 
 local function now(format) return morf.time.format(format, morf.time.now()) end
-local clock = morf.signal("lock.clock", now("%H:%M"))
+local CLOCK = prefs.clock.twelve_hour and "%-I:%M" or "%H:%M"
+local clock = morf.signal("lock.clock", now(CLOCK))
 local day = morf.signal("lock.day", now("%A, %-d %B"))
 morf.time.timer(1000, function()
-  clock:set(now("%H:%M"))
+  clock:set(now(CLOCK))
   day:set(now("%A, %-d %B"))
 end, true)
 
@@ -226,11 +286,16 @@ local function keyboard_attached()
   return not ok or value
 end
 local function key(keysym, typed_text)
-        local RETURN, KP_ENTER, BACKSPACE, ESCAPE = 0xff0d, 0xff8d, 0xff08, 0xff1b
+        local RETURN, KP_ENTER, BACKSPACE, ESCAPE, F3 = 0xff0d, 0xff8d, 0xff08, 0xff1b, 0xffc0
         local st = stage:get()
         if st ~= "rest" and st ~= "sheet" then return end
+        if take_grace() then return end
+        -- The light follows the key a moment later.
+        morf.time.timer(60, keyboard.look, false)
         if busy:get() then return end
         if keysym == ESCAPE then escape() return end
+        if keysym == F3 then keyboard.step() return end
+        if card_open:get() then close_card() end
         if st == "rest" then
           -- Touch-only devices still require the upward reveal gesture.
           -- Modifiers and wake keys carry no text and leave the clock alone.
@@ -247,12 +312,52 @@ local function key(keysym, typed_text)
           type_text(typed_text)
         end
       end
+local function resting() return stage:get() == "rest" or stage:get() == "sheet" end
 local desktop = require("models.lock_desktop").new {
-  active = function() return stage:get() == "rest" or stage:get() == "sheet" end,
+  active = resting,
   primary = function(output) return not HELD or main_output:get() == output end,
 }
+
+-- What stands on the lock besides the time.
+local last_tap
+local parts = {
+  prefs = prefs, keyboard = keyboard, grace = grace, tries = tries,
+  status = require("models.auth_status").new { active = resting, status = prefs.status },
+  notifications = require("models.lock_notifications").reader(prefs),
+  emergency = require("models.lock_emergency").new(prefs),
+  widgets = require("models.desktop_widgets").for_lock(prefs.widgets),
+  power = prefs.power_buttons and require("models.auth_power").new() or nil,
+  card_open = card_open, card_said = card_said, open_card = open_card, close_card = close_card,
+  take_grace = take_grace,
+  -- On a phone, two taps on the empty lock put the panel to sleep.
+  on_tap = function()
+    if not phone_screen.present() then return end
+    local at = morf.time.now_ms()
+    if last_tap and at - last_tap < 400 then
+      last_tap = nil
+      phone_screen.sleep()
+    else
+      last_tap = at
+    end
+  end,
+  shortcuts = require("models.lock_shortcuts").new {
+    prefs = prefs,
+    media_available = function() return prefs.media and desktop.media_available() end,
+    has_player = function() return desktop.has_player() end,
+    play_pause = function() desktop.play_pause() end,
+    run = function(argv) morf.process.run(argv, { timeout_ms = 15000, max_output = 256 }, function() end) end,
+    ask = function(id, name)
+      waiting = id
+      open_sheet()
+      say("Unlock to open " .. name, false)
+    end,
+  },
+}
+
 local context = {
   desktop = desktop,
+  parts = parts,
+  blur = prefs.blur, tint = prefs.tint,
   message = message, bad = bad, clear = clear,
   HELD = HELD,
   main_output = main_output,
@@ -334,7 +439,6 @@ end
 -- time. With the sheet up they race, and the first yes opens the door.
 -- A blanked phone listens for nothing: a finger reader scans the sensor
 -- continuously, and the power key wakes the screen to listen again.
-local phone_screen = require("themes.phone_wake")
 morf.effect("lock.listen", function()
   local st = stage:get()
   if phone_screen.asleep() then
@@ -350,6 +454,27 @@ morf.effect("lock.listen", function()
   end
 end)
 
+-- The window after an idle lock starts when the compositor confirms the lock.
+if HELD then morf.lock.on_locked(function() grace.arm() end) end
+-- The screen script may leave the panel lit while this lock stands, if chosen.
+if prefs.always_on.enabled then phone_screen.allow_ambient(true) end
+
+-- A locked screen goes dark after a while at rest, and comes back with input.
+-- The phone's blanking is its own.
+if HELD and prefs.blank_after > 0 and not phone_screen.present() and morf.idle then
+  local idle_config = require("models.idle_config")
+  local dark = false
+  morf.idle.subscribe(prefs.blank_after * 1000, function(idle)
+    if idle and stage:get() == "rest" and not dark then
+      dark = true
+      idle_config.dpms("off")
+    elseif not idle and dark then
+      dark = false
+      idle_config.dpms("on")
+    end
+  end)
+end
+
 -- In a window, `morf ipc call stage sheet` puts it where a test wants it;
 -- a held lock answers no such thing.
 if not HELD then
@@ -357,6 +482,10 @@ if not HELD then
     if to == "sheet" then stage:set("rest") open_sheet() elseif to == "rest" then stage:set("rest") end
     if to == "opening" and PREVIEW then stage:set("opening") end
     return stage:get()
+  end
+  morf.ipc.card = function(how)
+    if how == "open" then open_card() else close_card() end
+    return card_open:get()
   end
 end
 

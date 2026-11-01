@@ -110,8 +110,6 @@ local config = settings.open {
       -- shell runs: system (logind decides), or nothing, lock, suspend,
       -- hibernate, poweroff.
       lid_battery = "system", lid_ac = "system", button = "system",
-      -- Idle seconds, -1 to keep what the system configuration says, 0 never.
-      idle_lock = -1, idle_screen = -1, idle_suspend = -1,
     },
     storage = {
       -- Warn when a disk has less than this share free, 0 never.
@@ -585,6 +583,12 @@ local config = settings.open {
       },
     },
     session = {
+      -- Seconds a confirmed action counts down in the menu; 0 runs it at once.
+      countdown = 5,
+      -- Actions left out of the menu and the quick settings, by id.
+      hide = {},
+      -- Entries of your own after the rest: `{ id, name, icon, command }`.
+      custom = {},
       -- What each of the session menu's actions runs (`$USER` is the
       -- user's name).
       commands = {
@@ -593,8 +597,23 @@ local config = settings.open {
         suspend = { "systemctl", "suspend" },
         shutdown = { "systemctl", "poweroff" },
         hibernate = { "systemctl", "hibernate" },
+        suspend_hibernate = { "systemctl", "suspend-then-hibernate" },
         reboot = { "systemctl", "reboot" },
       },
+    },
+    -- The lock screen: models/lock_defaults.lua.
+    lock = require("models.lock_defaults"),
+    -- Idle: seconds to each stage, 0 for never (shell/idle_model.lua). `dim` is
+    -- how long the warning shows before the lock; `battery` overrides a stage
+    -- on battery where it is above 0.
+    idle = {
+      enabled = true,
+      lock = 300, blank = 330, suspend = 1800, dim = 10,
+      battery = { lock = 0, blank = 0, suspend = 0 },
+      -- Window classes that keep the session awake while open.
+      apps = {},
+      fullscreen = true, media = false, charging = false,
+      resume_command = {}, before_sleep = {}, after_sleep = {},
     },
     -- The quick settings' tiles shown on each kind of machine, in order,
     -- and which of them are drawn small. A tile the machine lacks is skipped.

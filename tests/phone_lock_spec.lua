@@ -19,7 +19,7 @@ test.it("a machine with no modem builds none of it",function()
   load(false)
   test.eq(test.find("call-screen"),nil)
   test.eq(test.find("sim-prompt"),nil)
-  test.eq(test.find("lock-emergency"),nil)
+  test.eq(test.find("lock-emergency-dial"),nil)
   test.eq(test.ipc("stage"),"rest")
 end)
 
@@ -155,7 +155,7 @@ end)
 
 test.it("an emergency number dials from the lock, any other is refused",function()
   load(true)
-  test.click("lock-emergency")
+  test.click("lock-emergency-dial")
   test.advance(40)
   test.truthy(shown("lock-emergency-pad"))
   for _,key in ipairs{"5","5","5"} do test.click("emergency-key-"..key) end

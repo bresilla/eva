@@ -14,23 +14,13 @@ local LOGIND = { ignore = "nothing", poweroff = "power off", reboot = "restart",
   suspend = "suspend", hibernate = "hibernate", ["hybrid-sleep"] = "hybrid sleep",
   ["suspend-then-hibernate"] = "suspend, then hibernate", lock = "lock" }
 
-M.IDLE = { { "idle_lock", "lockTimeout", "Lock after", "lock" }, { "idle_screen", "screenOffTimeout", "Screen off after", "monitor" },
-  { "idle_suspend", "suspendTimeout", "Suspend after", "bedtime" } }
-
---- `seconds` as a person reads it.
-function M.duration(seconds)
-  if seconds <= 0 then return "Never" end
-  if seconds < 60 then return ("%d s"):format(seconds) end
-  if seconds % 3600 == 0 then return ("%d h"):format(seconds // 3600) end
-  return ("%d min"):format(seconds // 60)
-end
 
 --- Adds to `model` (from power_model).
 function M.extend(model)
   local page = page_model.new("power", model.active)
   model.say, model.action, model.failed = page.say, page.action, page.failed
   model.note = page.message
-  model.ACTIONS, model.IDLE, model.idle_format = M.ACTIONS, M.IDLE, M.duration
+  model.ACTIONS = M.ACTIONS
   local logind = morf.signal("eva.power.logind", {})
   local gpu = morf.signal("eva.power.gpu", { tool = "", modes = {} })
   page.on_show(function()
@@ -46,36 +36,6 @@ function M.extend(model)
   function model.lid_present() return logind:get().HandleLidSwitch ~= nil end
   function model.action_of(key) return config.get("power." .. key) end
   function model.set_action(key, value) config.set("power." .. key, value) end
-
-  local system = extras.idle_system()
-  function model.idle_managed() return system ~= nil end
-  function model.idle_seconds(entry)
-    local chosen = tonumber(config.get("power." .. entry[1])) or -1
-    if chosen >= 0 then return chosen end
-    return tonumber(system and system[entry[2]]) or 0
-  end
-  function model.idle_changed()
-    for _, entry in ipairs(M.IDLE) do
-      if (tonumber(config.get("power." .. entry[1])) or -1) >= 0 then return true end
-    end
-    return false
-  end
-  local function send()
-    local seconds = {}
-    for _, entry in ipairs(M.IDLE) do
-      seconds[({ idle_lock = "lock", idle_screen = "screen", idle_suspend = "suspend" })[entry[1]]] = model.idle_seconds(entry)
-    end
-    return model.action(function(done) extras.idle_apply(seconds, system, done) return true end)
-  end
-  function model.set_idle(entry, value)
-    config.set("power." .. entry[1], value)
-    return send()
-  end
-  --- Back to what the system configuration says.
-  function model.idle_reset()
-    for _, entry in ipairs(M.IDLE) do config.set("power." .. entry[1], -1) end
-    return model.action(function(done) extras.idle_reset(done) return true end)
-  end
 
   function model.gpu() return gpu:get() end
   function model.set_gpu(row)

@@ -288,6 +288,15 @@ local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.si
   island=require("island").build(bar.desk),overlays=overlays,triggers=triggers}
 require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)
+require("lock_bridge").start()
+require("idle_warning").attach(frame_root)
+do
+  local idle = require("idle_model")
+  idle.start()
+  idle.watch_sleep()
+  idle.watch_lid()
+  idle.lock_at_start()
+end
 -- The shell's window, to a screen reader.
 frame_root.accessible_name = "Eva"
 -- The focused window's menu, over it: in the screen's own coordinates.
@@ -396,7 +405,25 @@ ipc.reload = function()
   return true
 end
 -- The frame, the rail and the bar come in again: a lock lifting.
-ipc.reveal = function() return require("themes.reveal").replay() end
+-- What the lock asked to open once the password was right: an id, never a command.
+ipc.lock_shortcut = function(id) return require("lock_bridge").open(id) end
+-- `idle warn`: the warning before the lock, to look at; `idle stop` ends it.
+ipc.idle = function(how)
+  local idle = require("idle_model")
+  if how == "warn" then idle.warning_ms:set(8000) idle.phase:set("warning")
+  elseif how == "stop" then idle.phase:set("")
+  elseif how == "status" then
+    local holding, stages = {}, {}
+    for _, row in ipairs(idle.inhibitors()) do holding[#holding + 1] = row.who end
+    for _, item in ipairs(idle.plan()) do stages[#stages + 1] = item.stage .. ":" .. item.seconds end
+    return { phase = idle.phase:get(), holding = holding, stages = stages }
+  end
+  return idle.phase:get()
+end
+ipc.reveal = function()
+  require("lock_bridge").seen()
+  return require("themes.reveal").replay()
+end
 -- The scale, as the slider sets it: `scale -0.25` (smaller), `scale 0`
 -- (the compositor's), `scale 0.5` (bigger), or nothing to ask.
 ipc.scale = function(value)

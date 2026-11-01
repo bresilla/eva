@@ -162,11 +162,6 @@ end
 function M.security() return { secure_boot = true, encrypted = true } end
 function M.sound_themes() return { { key = "freedesktop", name = "Freedesktop", path = "/nonexistent" }, { key = "ocean", name = "Ocean", path = "/nonexistent" } } end
 function M.cursor_themes() return { { key = "Adwaita", name = "Adwaita" }, { key = "Bibata-Modern-Ice", name = "Bibata Modern Ice" } } end
-function M.idle_system()
-  return { lockTimeout = 300, screenOffTimeout = 330, suspendTimeout = 1800,
-    commands = { lock = "loginctl lock-session", lock_session = "eva-lock", before_sleep = "loginctl lock-session",
-      after_sleep = "dpms on", screen_off = "dpms off", screen_on = "dpms on", suspend = "systemctl suspend" } }
-end
 function M.about()
   return { ["/etc/os-release"] = 'PRETTY_NAME="Fixture Linux 26.11"\nNAME="Fixture"\n',
     ["/proc/cpuinfo"] = "processor : 0\nmodel name : Intel Core Ultra 7 155H\nprocessor : 1\n",

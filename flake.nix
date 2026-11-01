@@ -73,6 +73,7 @@
               enable = true;
               suspendTimeout = 900;
               wakeDevices = [ "/sys/devices/platform/modem" ];
+              alwaysOn = true;
             };
           };
           module-hardware = machine {
@@ -81,6 +82,15 @@
               chargeLimit = true;
               usbTether = true;
             };
+          };
+          module-fixed = machine {
+            programs.eva.idle = {
+              lockTimeout = 300;
+              screenOffTimeout = 330;
+              suspendTimeout = 900;
+            };
+            programs.eva.lock.settings.grace_seconds = 0;
+            programs.eva.greeter.keyboardLayouts = "us,de";
           };
         };
         devShells.default = pkgs.mkShell {

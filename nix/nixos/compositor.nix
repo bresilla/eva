@@ -91,7 +91,7 @@ let
     hl.config({
       animations = { enabled = false },
       general = { border_size = 0, gaps_in = 0, gaps_out = 0 },
-      input = { kb_layout = "us" },
+      input = { kb_layout = ${builtins.toJSON cfg.keyboardLayouts} },
     })
     ${cfg.extraConfig}
     apply_scale()
@@ -121,6 +121,13 @@ in
   };
 
   options.programs.eva.greeter = {
+    keyboardLayouts = lib.mkOption {
+      type = lib.types.str;
+      default = config.services.xserver.xkb.layout;
+      defaultText = lib.literalExpression "config.services.xserver.xkb.layout";
+      example = "us,de";
+      description = "Keyboard layouts the greeter offers, comma separated; with more than one a chip switches them.";
+    };
     extraConfig = lib.mkOption {
       type = lib.types.lines;
       default = "";

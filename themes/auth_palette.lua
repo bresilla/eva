@@ -5,7 +5,10 @@ local morf = require("morf")
 local lule = require("lib.integrations.lule")
 local material = require("lib.theme.material")
 local shared_watches={}
-return function(name)
+-- `contrast` (a tracked fn, optional): the quiet roles take the loud ones.
+local LOUDER={onSurfaceVariant="onSurface",onSecondaryContainer="onSurface",outline="onSurface",
+  surfaceContainer="surfaceContainerLowest",surfaceContainerHigh="surfaceContainerLowest"}
+return function(name,contrast)
   local accent = "#9ccbfb"
   local ok, words = pcall(morf.fs.read, "/etc/eva/accent")
   local wanted = ok and type(words) == "string" and words:match("#%x%x%x%x%x%x")
@@ -33,7 +36,11 @@ return function(name)
   end
   local colors = morf.theme(roles, { transition = { duration = 400 } })
   morf.effect("eva." .. name .. ".colors", function()
-    for key, value in pairs(scheme()) do if roles[key] then colors[key] = value end end
+    local values=scheme()
+    local loud=contrast and contrast()
+    for key, value in pairs(values) do
+      if roles[key] then colors[key] = loud and LOUDER[key] and values[LOUDER[key]] or value end
+    end
   end)
   return colors, current
 end

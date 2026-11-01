@@ -189,20 +189,6 @@ function M.build(model, w, h)
     F.note(inner, "System leaves it to logind, as the system configuration says. Anything else wins over that configuration while the shell runs; at the login screen logind decides."),
   }
 
-  -- How long before the machine locks, blanks and sleeps.
-  local idle = { id = "power-idle", caption_id = "power-heading-idle", width = w, title = "When idle", visible = model.idle_managed }
-  for _, entry in ipairs(model.IDLE) do
-    idle[#idle + 1] = F.slider { id = "power-" .. entry[1], width = inner, icon = entry[4], name = entry[3], from = 0, to = 3600,
-      step = 60, value = function() return model.idle_seconds(entry) end, set = function(v) model.set_idle(entry, v) end,
-      format = model.idle_format }
-  end
-  idle[#idle + 1] = F.note(inner, function()
-    if model.idle_changed() then return "These win over programs.eva.idle in the system configuration, on this account." end
-    return "These are programs.eva.idle from the system configuration. Change one and yours wins."
-  end)
-  idle[#idle + 1] = P.button { id = "power-idle-reset", label = "Back to the system's", width = inner,
-    visible = model.idle_changed, on_clicked = model.idle_reset }
-
   local graphics = { id = "power-gpu", caption_id = "power-heading-gpu", width = w, title = "Graphics",
     visible = function() return model.gpu().tool ~= "" end }
   for slot = 1, 4 do
@@ -215,7 +201,7 @@ function M.build(model, w, h)
   end
 
   return P.page { id = "power-scroll", width = w, height = h, active = model.active, summary, charging, profile, health, buttons,
-    P.section(idle), P.section(graphics), F.status("power-status", w, { message = model.note, failed = model.failed }) }
+    P.section(graphics), F.status("power-status", w, { message = model.note, failed = model.failed }) }
 end
 
 return M
