@@ -460,6 +460,41 @@ test.describe("one owner",function()
     lift(from) test.settle(1000)
     test.falsy(spy().keyboard)
   end)
+  test.it("a finger on the strip and one on an app are one gesture, however slow the frames",function()
+    load({EVA_FAKE_WINDOWS=morf.fs.join(morf.env("PWD"),"tests/fixtures/windows.json")})
+    local from={{640,795},{720,700}}
+    -- The strip hears the one finger on it; the reader hears both.
+    test.touch("down",1,640,795) test.advance(16)
+    land(from)
+    -- Past the strip's 8 pixels, short of the driver's start.
+    for i=1,3 do
+      test.touch("move",1,640,795-i*6)
+      test.advance(16)
+    end
+    test.eq(test.ipc("drawers"),"","the strip took no panel")
+    test.falsy(spy().overview)
+    -- A held finger is how the strip asks for recents: a slow frame looks the same.
+    test.advance(500)
+    test.falsy(spy().overview,"the strip opened nothing while it waited")
+    test.eq(test.ipc("drawers"),"")
+    move(from,0,-300,16,1)
+    for i=4,16 do test.touch("move",1,640,795-i*18) test.advance(16) end
+    test.touch("up",1,640,507)
+    lift(from) test.settle(1200)
+    local s=spy()
+    test.truthy(s.keyboard) test.eq(s.shown,1)
+    test.falsy(s.overview,"one gesture did one thing")
+    test.eq(test.ipc("drawers"):gsub("keyboard",""),"")
+  end)
+  test.it("a panel that opens during a gesture does not take it from the driver",function()
+    load()
+    local from={{640,770},{720,700}}
+    land(from)
+    test.ipc("bottom","open") test.advance(50)
+    move(from,0,-300,16,1)
+    lift(from) test.settle(1200)
+    test.truthy(spy().keyboard)
+  end)
   test.it("the bottom strip does not stretch while the driver reads",function()
     load()
     test.touch("down",10,640,795) test.advance(16)

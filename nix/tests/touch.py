@@ -475,6 +475,7 @@ def run(password):
             stroke([start, (start[0] - second[0], start[1] + second[1])], [end, (end[0] - second[0], end[1] + second[1])])
             machine.sleep(2)
             check(f"the keyboard comes up at transform {transform}", keyboard_up(), str(ipc("touch")))
+            check(f"and nothing else does at transform {transform}", ipc("overview", "state") is False, str(ipc("touch")))
             machine.screenshot(f"turned-{transform}")
             ipc("keyboard", "close")
             machine.sleep(2)

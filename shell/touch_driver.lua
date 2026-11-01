@@ -82,6 +82,9 @@ end
 --- Whether the reader is hearing the touchscreen, so gestures are its own.
 function M.owns() return M.state:get() == "running" end
 
+--- Whether two fingers or more landed together and are down now.
+function M.together() return recogniser ~= nil and recogniser.gathered() >= 2 end
+
 local function publish()
   if M.watching:get() then M.fingers:set(recogniser.contacts()) end
 end

@@ -111,7 +111,7 @@ function M.new(spec)
 
   local function claimed()
     for _, f in ipairs(fingers) do
-      if spec.owned and spec.owned(f.sx, f.sy) then return true end
+      if f.owned then return true end
     end
     return false
   end
@@ -253,7 +253,7 @@ function M.new(spec)
   --- A finger came down.
   function r.down(id, x, y, t)
     if contacts[id] then return end
-    local finger = { id = id, x = x, y = y, sx = x, sy = y }
+    local finger = { id = id, x = x, y = y, sx = x, sy = y, owned = spec.owned ~= nil and spec.owned(x, y) }
     contacts[id] = finger
     -- Fingers that have rested past the gather stay out of what comes next.
     if run and not run.gesture and t - run.start > M.GATHER then

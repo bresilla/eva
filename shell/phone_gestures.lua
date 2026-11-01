@@ -75,6 +75,12 @@ local function driven()
   return driver~=nil and driver.owns()
 end
 
+-- Two fingers landed together, read by the driver: no strip begins on one of them.
+local function together()
+  local driver=package.loaded.touch_driver
+  return driver~=nil and driver.owns() and driver.together()
+end
+
 --- Lets go of whatever an edge strip holds: two fingers landed together. With
 --- `panels`, what a panel's own pan holds as well: a global gesture has begun.
 function M.yield(panels)
@@ -209,7 +215,7 @@ function M.edge_pan(edge,phase,dx,dy,vx,vy,start_x,start_y)
   if not M.global_allowed() then return false end
   if phase == "begin" then
     edge_drawer,side_edge=nil,nil
-    if blocked() then return false end
+    if blocked() or together() then return false end
     local inward = ({top=dy,bottom=-dy,left=dx,right=-dx})[edge]
     if not inward or inward <= 0 then return false end
     edge_across = edge == "left" or edge == "right"
@@ -392,7 +398,7 @@ function M.attach(root)
     root.on_panned=function(phase,dx,dy,vx,vy,x)
       if phase=="begin" then
         rail=nil
-        if not M.global_allowed() or blocked() or require("responsive").sheets() then return false end
+        if not M.global_allowed() or blocked() or together() or require("responsive").sheets() then return false end
         if math.abs(dy)<=math.abs(dx)*1.2 or not x then return false end
         -- From the rail itself, or a finger's width in from a bare side.
         local width=(morf.screens[1] or {}).width or morf.surface.width
@@ -449,7 +455,7 @@ function M.attach(root)
     bottom.on_panned=function(phase,dx,dy,vx,vy)
       if phase=="begin" then
         tapped=nil
-        if not M.global_allowed() or blocked() then return false end
+        if not M.global_allowed() or blocked() or together() then return false end
         single("begin") single("update",dx,dy,vx,vy)
         return mode=="workspace" or mode=="dashboard"
       end
