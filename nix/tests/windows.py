@@ -47,12 +47,14 @@ def panels():
 
 
 def clients():
-    # A compositor stalled on a software GPU can answer nothing at all.
+    # A compositor stalled on a software GPU answers with a timeout, not a list.
     for _ in range(5):
         out = hyprctl("-j", "clients")
-        if out:
-            break
-        machine.sleep(2)
+        try:
+            return json.loads(out)
+        except ValueError:
+            print("CLIENTS", out[:120])
+            machine.sleep(3)
     return json.loads(out)
 
 
