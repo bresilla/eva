@@ -149,7 +149,6 @@ local function pictures_tab(state, pictures, w, h)
     on_activated = function(i)
       local row = rows:get(i)
       if not row then return end
-      -- The preview's change starts above the tile that asked for it.
       at.x, at.y = ((i - 1) % COLUMNS + 0.5) * CELL_W, PREVIEW_H
       state.select(row.path)
     end }

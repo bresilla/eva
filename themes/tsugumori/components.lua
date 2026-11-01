@@ -630,7 +630,6 @@ return function(theme)
   function M.round(r)
     r = tonumber(get(r)) or 0
     local corners = theme.corners or 1
-    -- Square is this theme's own; past its own measure the corners open up.
     if corners > 1 then return r * (corners - 1) end
     return math.max(0, math.min(theme.ROUNDING or 2, r))
   end
