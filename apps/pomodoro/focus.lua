@@ -1,5 +1,5 @@
--- What a focus session asks of the machine: quiet while it lasts. Today that is
--- the shell's `focus` verb, which is do not disturb.
+-- What a focus session asks of the machine: quiet while it lasts, through the
+-- shell's `focus` verb, which is do not disturb.
 local sys = require("common.sys")
 
 local M = {}

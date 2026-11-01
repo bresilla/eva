@@ -12,7 +12,7 @@ local M = {
 }
 
 M.EVERY = 4
--- What rings a phase's end when no shell keeps the time, after the shell and eva-clock.
+-- Milliseconds this window lets the shell and eva-clock ring a phase's end first.
 M.RING_DELAY = 3000
 -- How long a job stays for the units and the verbs it started.
 M.JOB_WAIT = 800
@@ -48,7 +48,7 @@ local function fresh()
   return enter({ plan = 1, round = 0, today = 0, total = 0, day = today() }, "work")
 end
 
--- The session as the file has it now, so two processes do not undo each other.
+-- The session as the file has it now.
 local function read()
   local session = sys.load(path(), nil)
   if type(session) ~= "table" or not M.PHASES[session.phase] or not M.PLANS[session.plan] then return fresh() end
@@ -85,8 +85,7 @@ local function quiet(session)
   end)
 end
 
--- Whether eva-clock's store holds `id`, read from the file: a session written
--- by another process names a timer this one may not have followed yet.
+-- Whether eva-clock's store holds `id`, read from the file.
 local function has_alarm(id)
   for _, item in ipairs(sys.load(store(), {})) do
     if item.id == id then return true end

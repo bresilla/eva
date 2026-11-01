@@ -1,6 +1,6 @@
 -- eva-qr's window: the fields, the code on its plate, and the code alone over the
 -- whole screen. The code is one path, its side a whole multiple of its modules,
--- dark on the lighter of the palette's two so a camera reads it in either mode.
+-- the darker of the palette's two on the lighter.
 local ui = require("morf.ui")
 local morf = require("morf")
 local kit = require("kit")
@@ -150,23 +150,19 @@ function M.build(w, h)
 end
 
 local function full_screen(done)
-  local root
-  local function w() return root and root.layout_width or 0 end
-  local function h() return root and root.layout_height or 0 end
-  local function room_w() return math.max(1, w()) end
-  local function room_h() return math.max(1, h()) end
+  -- The root, before what is sized from it.
+  local root = ui.Rect { id = "qr-full", anchors = { fill = true }, color = paper }
+  local function room_w() return math.max(1, root.layout_width or 1) end
+  local function room_h() return math.max(1, root.layout_height or 1) end
   local function close()
     model.full:set(false)
     if done then done() end
   end
-  root = ui.Rect {
-    id = "qr-full", anchors = { fill = true }, color = paper,
-    plate("qr-full-plate", room_w, room_h),
-    ui.MouseArea {
-      id = "qr-full-area", anchors = { fill = true }, cursor = "pointer", focus = true, on_clicked = close,
-      on_key_pressed = function() close() return true end,
-    },
-  }
+  ui.reparent(plate("qr-full-plate", room_w, room_h), root)
+  ui.reparent(ui.MouseArea {
+    id = "qr-full-area", anchors = { fill = true }, cursor = "pointer", focus = true, on_clicked = close,
+    on_key_pressed = function() close() return true end,
+  }, root)
   return frame.overlay { id = "qr", root = root }
 end
 

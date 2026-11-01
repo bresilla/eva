@@ -11,10 +11,9 @@ local M = { http = morf.http, ORDER = { "argos", "trans", "mymemory" } }
 
 M.URL = "https://api.mymemory.translated.net/get"
 M.TIMEOUT_MS = 20000
--- Argos loads its models for each call.
+-- How long a program on this machine may take.
 M.LOCAL_TIMEOUT_MS = 60000
--- The splitter that runs with no network once it has its small model; the one
--- a package brings asks the web for a list on every run.
+-- The sentence splitter Argos runs with.
 M.ARGOS_ENV = { ARGOS_CHUNK_TYPE = "MINISBD" }
 
 -- Languages some engines spell longer.

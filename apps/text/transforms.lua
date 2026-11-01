@@ -164,8 +164,8 @@ end
 
 -- -------------------------------------------------------------------- json --
 
---- `text` with white space outside strings taken out: keys keep their order
---- and numbers their spelling, which a decode and an encode would not.
+--- `text` with white space outside strings taken out, keys in their order and
+--- numbers as written.
 function M.json_minify(text)
   local ok = pcall(morf.json.decode, text)
   if not ok then return nil, "That is not JSON" end

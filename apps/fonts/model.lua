@@ -194,7 +194,7 @@ function M.apply(family, done)
       elseif why == "dry run" then
         finish(true, "Would ask the shell for " .. name)
       else
-        -- It refused, and says why in its state: a capture or a sign-in under way.
+        -- A refusal: the reason is in the shell's state.
         sys.shell({ "appearance", "state" }, { read = true }, function(state)
           local ok, seen = pcall(morf.json.decode, type(state) == "table" and state[1] or "")
           local reason = ok and type(seen) == "table" and seen.message or ""

@@ -18,7 +18,7 @@ local LIST_W = 340
 local CONTROLS_H = 4 * (P.BUTTON_H + S.s) + S.TARGET + S.s + L.lh(theme.size.small)
 local FILTER_H = S.TARGET + S.s
 
--- The picker takes its size as numbers: it is made again at a new size.
+-- The picker, made again at a new size.
 local function picker(w, h)
   local slot = ui.Item { id = "fonts-slot", width = w, height = h, clip = true }
   local node, made_w, made_h, waiting

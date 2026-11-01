@@ -1,8 +1,6 @@
 -- eva-translate: reading each engine's answer, the order and the chooser, that
 -- text leaves only on a press and only ever on stdin, the window and the command
--- line. Every engine here is a stand-in: morf test reaches no network, and neither
--- translate-shell nor argos-translate is in the dev shell. The one engine run for
--- real is MyMemory, in tools/see/translate.steps.
+-- line. Every engine here is a stand-in, as in tools/see/translate.steps.
 --
 --     morf test --no-dbus tests/translate_spec.lua
 
