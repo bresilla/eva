@@ -83,7 +83,8 @@ local function workspace(action, step, way)
   function action.follow(event) return event.direction == way and slide(event) or nil end
   function action.run()
     gestures().close_panels(nil)
-    require("services").workspace.step(step)
+    local target = step > 0 and "r+1" or "r-1"
+    require("windows_model").send(("hl.dispatch(hl.dsp.focus({ workspace = %q }))"):format(target), "workspace", target)
   end
   return action
 end
