@@ -14,6 +14,7 @@ local HOST = [[
   morf.ipc.refresh = client.refresh
   morf.ipc.tasks = function() return morf.json.encode(client.tasks:get()) end
   morf.ipc.error = function() return client.error:get() end
+  morf.ipc.missing = function() return client.missing:get() end
   morf.ipc.busy = function() return client.busy:get() end
   morf.ipc.save = function(id, json) return client.save(id ~= "" and id or nil, morf.json.decode(json)) end
   morf.ipc.action = client.action
@@ -75,7 +76,61 @@ test.describe("taskwarrior", function()
       test.eq(tasks()[1].description, "Weekly review")
       test.eq(tasks()[1].recur, "weekly")
     end)
+
+    test.it("makes a fresh machine work: no rc at all gets one of eva's", function()
+      local home = morf.env("XDG_CACHE_HOME") .. "/taskwarrior-fresh-home"
+      test.load { source = [[
+        local lib = require("lib.integrations.taskwarrior")
+        local client = lib.new()
+        morf.ipc.refresh = client.refresh
+        morf.ipc.error = function() return client.error:get() end
+        morf.ipc.busy = function() return client.busy:get() end
+        morf.ipc.count = function() return #client.tasks:get() end
+        morf.ipc.loaded = function() return client.loaded:get() end
+        morf.ipc.save = function(text) return client.save(nil, { description = text }) end
+        morf.ipc.rc = function() local e = lib.environment() return e and e.TASKRC or "" end
+      ]], env = { HOME = home, TASKRC = "", TASKDATA = "", XDG_CONFIG_HOME = home .. "/.config" } }
+      test.ipc("refresh") settled()
+      test.truthy(test.ipc("loaded"))
+      test.eq(test.ipc("count"), 0)
+      test.truthy(test.ipc("save", "First task"))
+      settled()
+      test.wait(function() return test.ipc("count") == 1 end, 5000, "the new task")
+      test.truthy(morf.fs.is_file(test.ipc("rc")), "eva's rc is written")
+      test.truthy(morf.fs.read(test.ipc("rc")):find("data.location=" .. home .. "/.task", 1, true),
+        "the rc names the home this run resolved")
+      test.falsy(morf.fs.is_file(home .. "/.taskrc"), "the person's home keeps no rc of ours")
+      test.truthy(morf.fs.is_file(home .. "/.task/taskchampion.sqlite3"), "the tasks stayed in the sandbox")
+    end)
+
+    test.it("leaves a person's own rc and TASKRC alone", function()
+      local home = morf.env("XDG_CACHE_HOME") .. "/taskwarrior-own-home"
+      assert(morf.fs.write(home .. "/.taskrc", "confirmation=off\n", { parents = true }))
+      local SOURCE = [[
+        local lib = require("lib.integrations.taskwarrior")
+        morf.ipc.rc = function() return lib.environment() == nil end
+      ]]
+      test.load { source = SOURCE, env = { HOME = home, TASKRC = "", XDG_CONFIG_HOME = home .. "/.config" } }
+      test.truthy(test.ipc("rc"), "~/.taskrc is the person's")
+      test.load { source = SOURCE, env = { HOME = home .. "/none", TASKRC = "/some/where/rc" } }
+      test.truthy(test.ipc("rc"), "TASKRC is the person's, even if it names nothing yet")
+    end)
   end
+
+  test.it("says nothing of its own when task is not installed, and flags it", function()
+    test.load { source = [[
+      local client = require("lib.integrations.taskwarrior").new { command = "/nonexistent/task" }
+      morf.ipc.refresh = client.refresh
+      morf.ipc.error = function() return client.error:get() end
+      morf.ipc.missing = function() return client.missing:get() end
+      morf.ipc.busy = function() return client.busy:get() end
+    ]] }
+    test.ipc("refresh")
+    test.wait(function() return not test.ipc("busy") end, 1000)
+    test.eq(test.ipc("error"), "")
+    test.eq(test.ipc("missing"), true)
+  end)
+
   test.it("rejects unscoped mutations and reports CLI errors", function()
     load()
     test.eq(test.ipc("action", "", "delete"), false)
@@ -84,7 +139,28 @@ test.describe("taskwarrior", function()
     test.stub_run("task", { code = 1, stderr = "Task database locked" })
     test.ipc("refresh")
     test.wait(function() return not test.ipc("busy") end, 1000)
-    test.eq(test.ipc("error"), "Task database locked")
+    test.eq(test.ipc("error"), "The task list could not be opened.")
   end)
+
+  test.it("speaks plainly for every way task fails, and keeps its words off the page", function()
+    local CASES = {
+      { "'notadate' is not a valid date in the 'Y-M-D' format.", "A date there could not be read. Try tomorrow or 2026-10-01T09:00." },
+      { "Invalid dependency value: 'zzz'", "A task it depends on could not be found." },
+      { "The duration value 'sometimes' is not supported.", "That repeat could not be read. Try daily, weekly or monthly." },
+      { "Could not read include file '/nonexistent/x'.", "Taskwarrior's settings could not be read." },
+      { "Cannot proceed without rc file.", "Taskwarrior's settings could not be read." },
+      { 'Task Database Error: Cannot create directory "/home/x/.task": Permission denied (os error 13)',
+        "The task list could not be opened." },
+      { "something task has never said before", "Tasks could not be read just now." },
+    }
+    load()
+    for _, case in ipairs(CASES) do
+      test.stub_run("task", { code = 2, stderr = case[1] })
+      test.ipc("refresh")
+      test.wait(function() return not test.ipc("busy") end, 1000)
+      test.eq(test.ipc("error"), case[2], case[1])
+    end
+  end)
+
 
 end)

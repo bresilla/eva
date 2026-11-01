@@ -1,9 +1,51 @@
 -- Taskwarrior's CLI is the database boundary: no private storage formats,
--- no shell interpolation. Uses the person's TASKRC/TASKDATA as task does.
+-- no shell interpolation. Uses the person's TASKRC/TASKDATA as task does; a
+-- person with no rc at all gets one of eva's, on the data folder `task` would
+-- have chosen, so the page works and the CLI finds the same tasks.
 -- https://taskwarrior.org/docs/commands/export/
 -- https://taskwarrior.org/docs/commands/modify/
 local morf = require("morf")
 local M = {}
+
+-- What `task` reads when nothing names an rc: the folder spelled out, so it
+-- is the home this process resolved whatever a child's environment says.
+local function default_rc(home)
+  return "# Written by eva for a machine with no taskrc of its own.\ndata.location=" .. home .. "/.task\n"
+end
+
+--- What `task` needs in its environment to run at all: nothing where the
+--- person has an rc, or set TASKRC themselves.
+function M.environment()
+  if (morf.env("TASKRC") or "") ~= "" then return nil end
+  local home = morf.env("HOME") or morf.fs.home()
+  local config = morf.env("XDG_CONFIG_HOME")
+  if config == nil or config == "" then config = home .. "/.config" end
+  if morf.fs.is_file(home .. "/.taskrc") or morf.fs.is_file(config .. "/task/taskrc") then return nil end
+  local rc = morf.paths.state("taskrc")
+  if morf.fs.read(rc) ~= default_rc(home)
+    and not morf.fs.write(rc, default_rc(home), { atomic = true, parents = true }) then return nil end
+  return { TASKRC = rc }
+end
+
+-- Taskwarrior's own words go to the log; a person reads these.
+local PLAIN = {
+  { "not a valid date", "A date there could not be read. Try tomorrow or 2026-10-01T09:00." },
+  { "invalid dependency", "A task it depends on could not be found." },
+  { "duration value", "That repeat could not be read. Try daily, weekly or monthly." },
+  { "database", "The task list could not be opened." },
+  { "include file", "Taskwarrior's settings could not be read." },
+  { "rc file", "Taskwarrior's settings could not be read." },
+}
+
+--- `said` as a person should read it; `fallback` for what `task` said that
+--- has no plain words.
+function M.plain(said, fallback)
+  local text = tostring(said or ""):lower()
+  for _, known in ipairs(PLAIN) do
+    if text:find(known[1], 1, true) then return known[2] end
+  end
+  return fallback
+end
 
 function M.timestamp(value)
   if not value or value == "" then return nil end
@@ -29,29 +71,55 @@ function M.new(options)
     error = morf.signal("taskwarrior.error", ""),
     loaded = morf.signal("taskwarrior.loaded", false),
     revision = morf.signal("taskwarrior.revision", 0),
+    -- `task` itself is not there to run.
+    missing = morf.signal("taskwarrior.missing", false),
   }
   local timer
-  local function run(args, callback)
+  -- What was last logged: a poll that keeps failing says so once.
+  local logged
+  local function failed(why, fallback)
+    why = trim(why):sub(1, 500)
+    if why ~= logged then
+      logged = why
+      morf.log("info", "eva: task: " .. why)
+    end
+    self.error:set(M.plain(why, fallback))
+  end
+  -- `polled`: a refresh on the timer leaves what the page says until it knows
+  -- better; a person's action starts clean.
+  local function run(args, callback, polled)
     local argv = { options.command or "task", "rc.confirmation=off", "rc.recurrence.confirmation=no",
       "rc.allow.empty.filter=off", "rc.verbose=nothing", "rc.color=off", "rc.json.array=on",
       "rc.context=", "rc.date.iso=on" }
     for _, arg in ipairs(args) do argv[#argv + 1] = arg end
     self.busy:set(true)
-    self.error:set("")
+    if not polled then self.error:set("") end
+    local fallback = polled and "Tasks could not be read just now." or "That change did not go through."
     local function done(result)
       self.busy:set(false)
       if not result or not result.ok or result.truncated then
-        local why = result and (result.error or result.stderr) or ""
-        if not why or trim(why) == "" then why = "Taskwarrior did not complete the command." end
-        if result and result.error then why = "Taskwarrior unavailable. Install task and check your configuration. " .. why end
-        if result and result.truncated then why = "Taskwarrior returned too much data. Narrow your task database." end
-        self.error:set(trim(why):sub(1, 500))
+        local absent = result ~= nil and result.error ~= nil and result.error_kind ~= "permission_denied"
+        self.missing:set(absent)
+        if absent then
+          failed(result.error, "")
+          self.error:set("")
+        elseif result and result.truncated then
+          failed("output past the limit", "There are too many tasks to show here.")
+        elseif result and result.timed_out then
+          failed("timed out", "Taskwarrior took too long to answer.")
+        else
+          failed(result and (result.error or result.stderr) or "", fallback)
+        end
         callback(false)
         return
       end
+      logged = nil
+      self.missing:set(false)
+      if polled then self.error:set("") end
       callback(true, result.stdout or "")
     end
-    local ok, why = pcall(morf.process.run, argv, { env = options.env, timeout_ms = 15000, max_output = 8 * 1024 * 1024 }, done)
+    local env = options.env or M.environment()
+    local ok, why = pcall(morf.process.run, argv, { env = env, timeout_ms = 15000, max_output = 8 * 1024 * 1024 }, done)
     if not ok then done { error = tostring(why), ok = false } end
   end
 
@@ -61,7 +129,7 @@ function M.new(options)
       if not ok then return end
       local parsed, rows = pcall(morf.json.decode, output)
       if not parsed or type(rows) ~= "table" or output:match("^%s*%[") == nil then
-        self.error:set("Taskwarrior returned invalid JSON.")
+        failed("export was not JSON", "Tasks could not be read just now.")
         return
       end
       local tasks = {}
@@ -77,7 +145,7 @@ function M.new(options)
       self.tasks:set(tasks)
       self.revision:set(self.revision:get() + 1)
       self.loaded:set(true)
-    end)
+    end, true)
     return true
   end
 
