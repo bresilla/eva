@@ -1,0 +1,60 @@
+# The notification server on a real session bus: notify-send and busctl as a
+# sender would use them, dbus-monitor as the sender's ears. notes.txt holds what
+# went over the wire.
+export BOOT=4
+start shell
+BUS() { local verb=$1; shift; busctl --address="$DBUS_SESSION_BUS_ADDRESS" "$verb" -- "$@"; }
+SERVICE="org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications"
+dbus-monitor --address "$DBUS_SESSION_BUS_ADDRESS" \
+  "type='signal',interface='org.freedesktop.Notifications'" > "$SEE_OUT/signals.txt" 2>&1 &
+sleep 0.5
+
+note echo "== server"
+note BUS call $SERVICE GetServerInformation
+note BUS call $SERVICE GetCapabilities
+
+note echo "== Notify with actions, then press one"
+ID=$(BUS call $SERVICE Notify susssasa{sv}i Mail 0 mail-unread "New mail" "<b>Ada</b> wrote &amp; waits" \
+  4 default Open archive Archive 1 urgency y 1 -1 | awk '{print $2}')
+note echo "id=$ID"
+pause 1
+shot popup-actions
+note ipc notifications invoke "$ID" archive
+pause 0.5
+
+note echo "== Inline reply"
+ID=$(BUS call $SERVICE Notify susssasa{sv}i Chat 0 "" "Ada" "Lunch?" 4 default Open inline-reply Reply \
+  1 category s im.received -1 | awk '{print $2}')
+pause 1
+note ipc notifications reply "$ID" "Yes, at noon"
+pause 0.5
+
+note echo "== Replacement keeps its id and updates history"
+ID=$(BUS call $SERVICE Notify susssasa{sv}i Files 0 "" "Copying" "2 files" 0 1 value i 10 -1 | awk '{print $2}')
+pause 0.4
+BUS call $SERVICE Notify susssasa{sv}i Files "$ID" "" "Copying" "2 files" 0 1 value i 60 -1 > /dev/null
+pause 0.6
+shot popup-progress
+note ipc notifications list
+
+note echo "== CloseNotification"
+BUS call $SERVICE CloseNotification u "$ID"
+pause 0.4
+
+note echo "== Inhibit and UnInhibit"
+COOKIE=$(BUS call $SERVICE Inhibit ssa{sv} presenter "Showing slides" 0 | awk '{print $2}')
+note echo "cookie=$COOKIE"
+note ipc focus status
+BUS call $SERVICE UnInhibit u "$COOKIE"
+pause 0.3
+note ipc focus status
+
+note echo "== A sender that waits with notify-send"
+note timeout 8 notify-send --app-name=Waiter --action=yes=Yes --action=no=No --wait "Well?" "Press one" &
+pause 1.5
+note ipc notifications invoke "" yes
+pause 1
+pause 0.5
+kill %1 2> /dev/null
+note echo "== signals on the wire"
+cat "$SEE_OUT/signals.txt" >> "$SEE_OUT/notes.txt"

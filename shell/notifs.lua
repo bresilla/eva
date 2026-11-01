@@ -87,8 +87,18 @@ local function public(n, m)
     urgency = m.urgency, icon = n.icon or "", image = n.image_path or "", image_source = n.image_source,
     category = n.category or "", desktop_entry = n.desktop_entry or "", actions = offered(n, m.out),
     hints = scalars(n.hints), resident = n.resident == true, transient = n.transient == true, own = n.own,
-    time = m.time, hide = m.out.hide or nil, highlight = m.out.highlight or nil,
+    time = m.time, hide = m.out.hide or nil, highlight = m.out.highlight or nil, eta = m.eta,
     no_buttons = (m.out.actions == false) or nil }
+end
+
+-- How long a job has left, by how fast its `value` hint moved.
+local function pace(n, m, at)
+  local value = type(n.hints) == "table" and tonumber(n.hints.value) or nil
+  if not value then m.eta = nil return end
+  if m.value and value > m.value and at > m.value_at then
+    m.eta = (100 - value) / ((value - m.value) / (at - m.value_at))
+  end
+  if value ~= m.value then m.value, m.value_at = value, at end
 end
 
 local function answers()
@@ -297,7 +307,7 @@ end
 
 local function popup_ms(m)
   if m.out.timeout >= 0 then return m.out.timeout end
-  if m.urgency >= 2 then return 0 end
+  if m.urgency >= 2 or (m.entry.category or ""):match("^call%.incoming") then return 0 end
   local chosen, sent = config.get("notifications.timeout"), m.entry.timeout_ms
   if sent == nil or sent < 0 or config.get("notifications.ignore_app_timeouts") then
     return chosen > 0 and chosen or 5000
@@ -382,6 +392,7 @@ local function admit(n, was)
   m.entry, m.out, m.urgency, m.key = n, out, urgency, rules.key(n)
   m.popup = through and not muted and not digest and out.popup
   m.gone = false
+  pace(n, m, at)
   if not was then
     live[n.id] = m
     order[#order + 1] = n.id
@@ -531,21 +542,28 @@ function act.hold(id, on)
 end
 function M.hold(id, on) ask("hold", id, on) end
 
-function M.begin_reply(id)
-  M.replying:set(id)
-  M.hold(id, true)
-end
-function M.cancel_reply(id)
-  M.replying:set(false)
-  M.hold(id, false)
-end
+function M.begin_reply(id) M.replying:set(id) end
+function M.cancel_reply() M.replying:set(false) end
 
 --- A card's own tools (snooze, mute, its rules) out or back.
-function M.toggle_tools(id)
-  local open = M.tools:get() ~= id
-  M.tools:set(open and id or false)
-  M.hold(id, open)
+function M.toggle_tools(id) M.tools:set(M.tools:get() ~= id and id or false) end
+
+--- Whether cards draw their senders' buttons, and their code and link chips.
+function M.buttons_on() return config.get("notifications.actions") end
+function M.smart_on() return config.get("notifications.smart") end
+--- How many cards stand on screen.
+function M.max_popups() return config.get("notifications.max_popups") end
+
+--- Whether `n`'s content stays hidden until it is opened.
+function M.redacted(n)
+  if n.hide or config.get("notifications.previews") == "hide" then return true end
+  return focus.auto:get() == "sharing"
 end
+
+--- Silences sender `key` for `seconds`, for good with 0.
+function M.mute_app(key, seconds) rules.mute(key, seconds or 0, now()) end
+--- Opens sender `key`'s rules, in Settings.
+function M.rules_of(key) require("notification_history").rules_of(key) end
 
 -- ------------------------------------------------------------ taken away --
 
@@ -854,7 +872,6 @@ function M.toggle(id)
   for k, v in pairs(open_ids:get()) do ids[k] = v end
   ids[key] = not ids[key] or nil
   open_ids:set(ids)
-  M.hold(id, ids[key] == true)
 end
 -- Expanded state belongs only to live popups, never to expired history.
 morf.effect("eva.notifications.expansion", function()

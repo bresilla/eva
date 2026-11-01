@@ -14,7 +14,7 @@ return function(theme)
       end
       known=present
       for id in pairs(pending) do if not present[id] then pending[id]=nil end end
-      local suppressed=model.dnd:get() or model.covered:get() or not require("services").here()
+      local suppressed=model.covered:get() or not require("services").here()
       local opened=model.opened:get()
       if suppressed then pending={} end
       for i,notification in ipairs(shown()) do
