@@ -152,6 +152,43 @@ local HOST = [[
     p.add("x", "not a uri", function(ok, why) refused = why end)
     truthy(refused, "a refusal of a bad address")
   end
+  -- What CUPS 2.4.19 printed for a cups-pdf queue.
+  function tests.printers_as_cups_prints_them()
+    local p = require("lib.services.printers")
+    local idle = p.parse_printers("printer pdf is idle.  enabled since Sun 01 Nov 2026 03:20:22 PM UTC\n")
+    eq(idle[1].state, "idle") eq(idle[1].enabled, true) eq(idle[1].reason, "")
+    local paused = p.parse_printers("printer pdf disabled since Sun 01 Nov 2026 03:55:58 PM UTC -\n\tOut of paper\n")
+    eq(paused[1].state, "stopped") eq(paused[1].enabled, false) eq(paused[1].reason, "Out of paper")
+    local busy = p.parse_printers("printer pdf now printing pdf-3.  enabled since Sun 01 Nov 2026 03:56:03 PM UTC\n"
+      .. "\tcfFilterChain: texttopdf (PID 12304) started.\n")
+    eq(busy[1].name, "pdf")
+    eq(busy[1].state, "printing", "a printer at work")
+    eq(busy[1].enabled, true)
+    eq(busy[1].reason, "", "its filters' progress is no reason")
+    local jobs = p.parse_jobs("pdf-1                   alice             1024   Sun 01 Nov 2026 03:55:59 PM UTC\n"
+      .. "pdf-2                   alice             1024   Sun 01 Nov 2026 03:55:59 PM UTC\n")
+    eq(#jobs, 2) eq(jobs[2].id, "pdf-2") eq(jobs[2].printer, "pdf") eq(jobs[2].user, "alice") eq(jobs[2].size, 1024)
+    eq(p.parse_devices("device for pdf: cups-pdf:/pdf\n").pdf, "cups-pdf:/pdf")
+    eq(p.parse_default("system default destination: pdf\n"), "pdf")
+    eq(#p.parse_printers("lpstat: No destinations added.\n"), 0)
+  end
+  function tests.printers_read()
+    local p = require("lib.services.printers")
+    local host = require("lib.services.host")
+    local installed, run = host.installed, morf.process.run
+    host.installed = function(program) return program == "lpstat" end
+    local locales = {}
+    morf.process.run = function(argv, options, done)
+      locales[#locales + 1] = options.env and options.env.LC_ALL or "the person's"
+      done { ok = false, code = 1, stdout = "", stderr = "lpstat: Scheduler is not running.\n" }
+    end
+    local snapshot
+    p.read(function(got) snapshot = got end)
+    host.installed, morf.process.run = installed, run
+    eq(snapshot.available, false, "a stopped scheduler is no printing here")
+    eq(#locales, 4)
+    for _, locale in ipairs(locales) do eq(locale, "C", "the language lpstat answers in") end
+  end
 
   function tests.udisks_parse()
     local lib = require("lib.services.udisks")

@@ -5,16 +5,21 @@ local host = require("lib.services.host")
 
 local M = {}
 
---- `lpstat -p`: `{ name, state, enabled, reason }`.
+-- CUPS answers in the person's language, and these parsers read its English.
+local ENGLISH = { env = { LC_ALL = "C" } }
+
+--- `lpstat -p`: `{ name, state, enabled, reason }`. `state` is idle, printing or
+--- stopped. What follows a printing printer's line is its filters' progress.
 function M.parse_printers(text)
   local out, current = {}, nil
   for line in (tostring(text or "") .. "\n"):gmatch("(.-)\n") do
     local name, rest = line:match("^printer (%S+)%s+(.*)$")
     if name then
-      local state = rest:match("^is (%a+)") or (rest:find("^disabled") and "stopped") or "idle"
+      local state = rest:match("^is (%a+)") or (rest:find("^disabled") and "stopped")
+        or (rest:find("^now printing") and "printing") or "idle"
       current = { name = name, state = state, enabled = not rest:find("disabled", 1, true), reason = "" }
       out[#out + 1] = current
-    elseif current and line:match("^%s+%S") then
+    elseif current and current.state ~= "printing" and line:match("^%s+%S") then
       current.reason = line:gsub("^%s+", "")
     end
   end
@@ -85,14 +90,14 @@ function M.read(done)
     done(snapshot)
   end
   host.read({ "lpstat", "-p" }, function(text, why)
-    if text == nil and tostring(why):find("not", 1, true) and tostring(why):find("scheduler", 1, true) then
+    if text == nil and tostring(why):lower():find("scheduler is not running", 1, true) then
       snapshot.available = false
     end
     snapshot.printers = M.parse_printers(text)
     one()
-  end)
-  host.read({ "lpstat", "-d" }, function(text) snapshot.default = M.parse_default(text) one() end)
-  host.read({ "lpstat", "-v" }, function(text) snapshot.devices = M.parse_devices(text) one() end)
+  end, ENGLISH)
+  host.read({ "lpstat", "-d" }, function(text) snapshot.default = M.parse_default(text) one() end, ENGLISH)
+  host.read({ "lpstat", "-v" }, function(text) snapshot.devices = M.parse_devices(text) one() end, ENGLISH)
   host.read({ "lpstat", "-o" }, function(text)
     snapshot.jobs = M.parse_jobs(text)
     if host.installed("scanimage") then
@@ -100,7 +105,7 @@ function M.read(done)
         { timeout_ms = 8000 })
     end
     one()
-  end)
+  end, ENGLISH)
 end
 
 --- `done(list)`: printers the network offers.
