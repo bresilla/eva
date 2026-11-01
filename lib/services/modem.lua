@@ -24,6 +24,7 @@ local MM = "org.freedesktop.ModemManager1"
 local ROOT = "/org/freedesktop/ModemManager1"
 local MODEM = "org.freedesktop.ModemManager1.Modem"
 local GPP = "org.freedesktop.ModemManager1.Modem.Modem3gpp"
+local SIM = "org.freedesktop.ModemManager1.Sim"
 local OBJECT_MANAGER = "org.freedesktop.DBus.ObjectManager"
 local NM = "org.freedesktop.NetworkManager"
 local NM_PATH = "/org/freedesktop/NetworkManager"
@@ -145,6 +146,12 @@ function modem.connect(options)
     if not client.has_owner(NM) then state.data = false return end
     local nm = client.get_all(NM, NM_PATH, NM) or {}
     state.data = nm.WwanEnabled == true
+  end
+
+  --- `method` on the SIM at `path`, over the system bus so a PIN is on no
+  --- command line: SendPin, ChangePin or EnablePin. `done(ok, why)`.
+  function mobile.sim_call(path, method, arguments, done)
+    return client.call_async(MM, path, SIM, method, arguments, 30000, function(_, err) done(err == nil, err) end)
   end
 
   --- Mobile data on or off: NetworkManager's WWAN switch.

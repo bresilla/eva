@@ -175,7 +175,7 @@ function M.new(active)
   morf.time.timer(15000,function() if active() then model.refresh() end end,true)
 
   -- A command-line action: label while it runs, the outcome after, a refresh.
-  local function steps(label,commands,after)
+  local function steps(label,commands,after,finally)
     if not active() or model.pending:get() then return false end
     if dry_run() then morf.log("info","eva: mobile "..label.." (dry run)") return false end
     serial=serial+1
@@ -186,17 +186,19 @@ function M.new(active)
       if request~=serial then return end
       if ok==false then
         model.pending:set(false) model.failed:set(true) model.message:set(err~="" and err or "Request failed")
+        if finally then finally() end
         model.refresh() return
       end
       i=i+1
       if i>#commands then
         model.pending:set(false) model.message:set("Done")
+        if finally then finally() end
         if after then after(out) end
         if services.net then pcall(services.net.refresh) end
         model.refresh() return
       end
       local c=commands[i]
-      cli.run(c,step,c.timeout)
+      if c.call then c.call(step) else cli.run(c,step,c.timeout) end
     end
     step(nil)
     return true
@@ -267,17 +269,17 @@ function M.new(active)
 
   --- SIM PIN: unlock, change, or turn the PIN lock on or off.
   local function sim_path() local m=(model.details:get() or {}).modem return m and m.sim end
-  local function sim_step(label,args)
-    local path=sim_path()
-    if not path then model.failed:set(true) model.message:set("No SIM") return false end
-    local argv={"mmcli","-i",path}
-    for _,a in ipairs(args) do argv[#argv+1]=a end
-    return steps(label,{argv})
+  local function sim_step(label,method,arguments)
+    local path,modem=sim_path(),services.modem
+    if not path or not modem.sim_call then model.failed:set(true) model.message:set("No SIM") return false end
+    return steps(label,{{call=function(done)
+      modem.sim_call(path,method,arguments,function(ok,why) done(ok,"",tostring(why or "")) end)
+    end}})
   end
-  function model.unlock(pin) return sim_step("Unlocking the SIM…",{"--pin="..pin}) end
-  function model.change_pin(old,new) return sim_step("Changing the PIN…",{"--pin="..old,"--change-pin="..new}) end
+  function model.unlock(pin) return sim_step("Unlocking the SIM…","SendPin",{pin}) end
+  function model.change_pin(old,new) return sim_step("Changing the PIN…","ChangePin",{old,new}) end
   function model.set_pin_lock(pin,on) return sim_step(on and "Turning the PIN on…" or "Turning the PIN off…",
-    {"--pin="..pin,on and "--enable-pin" or "--disable-pin"}) end
+    "EnablePin",{pin,on==true}) end
 
   --- USSD codes such as *100#; a session may ask for a reply.
   function model.ussd(code)
@@ -323,7 +325,7 @@ function M.new(active)
     local file=morf.paths.state("eva-sms.txt")
     morf.fs.write(file,text)
     local create={"sh","-c",'p=$(mmcli -m any --messaging-create-sms="number=\'$1\'" --messaging-create-sms-with-text="$2" | grep -o "/org/freedesktop/ModemManager1/SMS/[0-9]*") && mmcli -s "$p" --send',"sms",number,file,timeout=90000}
-    return steps("Sending the message…",{create},model.load_messages)
+    return steps("Sending the message…",{create},model.load_messages,function() pcall(morf.fs.remove,file) end)
   end
   return model
 end
