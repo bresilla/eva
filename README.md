@@ -1271,6 +1271,26 @@ the network. `EVA_FAKE_NET` picks how the stand-in network breaks: `portal`,
 `no-address`, `self-assigned`, `no-gateway`, `no-dns`, `no-internet`,
 `quiet-router`.
 
+## Backups
+
+The **Backups** page works over whichever of snapper, btrbk and restic is
+installed: it lists snapshots newest first, makes one on a press, and gets one
+file back. With none installed it says so and what would do. Its settings pick
+the tool, the snapper config, and restic's repository, password file and
+folders; the password stays in its file and only that path reaches restic, in
+its environment.
+
+A restored copy lands beside the file with `.restored` on its name and
+overwrites nothing. Replacing the file itself takes a second press that names
+it. Snapper replaces through `undochange`, btrbk by copying from the snapshot,
+and restic by restoring in place. Snapshots are often root's: a copy that
+cannot read one says so. btrbk needs root even to list, so that waits for a
+press and goes through polkit; `btrbk snapshot --preserve` keeps whatever a
+retention policy would have pruned. Snapper uses your own rights, which its
+`ALLOW_USERS` grants.
+
+`EVA_FAKE_BACKUPS=snapper,btrbk,restic` puts stand-ins on the fake machine.
+
 ## Sound and nested settings
 
 Sound opens **Equalizer**, which opens a deeper **Audiogram** editor. Back

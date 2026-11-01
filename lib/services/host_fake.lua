@@ -19,6 +19,10 @@ local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl
   scanimage = not NIXOS, lpstat = not NIXOS, ["firewall-cmd"] = not NIXOS, gsettings = true, lspci = true, ["xdg-open"] = true,
   gio = true, ["eva-battery"] = true, ping = true, getent = true }
 
+-- Which backup tools this machine has: EVA_FAKE_BACKUPS="snapper,restic". Their
+-- commands are answered below; the real ones never run.
+for tool in (morf.env("EVA_FAKE_BACKUPS") or ""):gmatch("[^,]+") do PROGRAMS[tool] = true end
+
 -- What the network does: `ok`, or how it breaks (`portal`, `no-address`,
 -- `self-assigned`, `no-gateway`, `no-dns`, `no-internet`, `quiet-router`).
 M.net = morf.env("EVA_FAKE_NET") or ""
@@ -76,8 +80,39 @@ local OUTPUT = {
 
 local function joined(argv, count) return table.concat(argv, " ", 1, math.min(count, #argv)) end
 
+M.snapshots = {
+  snapper = { root = { { number = 0, type = "single", date = "", description = "current" },
+    { number = 41, type = "pre", date = "2026-10-30 09:12:00", description = "nixos-rebuild" },
+    { number = 42, type = "post", date = "2026-10-30 09:14:30", description = "nixos-rebuild" },
+    { number = 43, type = "single", date = "2026-11-01 08:00:00", description = "timeline" } } },
+  btrbk = "snapshot_subvolume='/mnt/pool/_snap/home.20261030T0900' source_subvolume='/home' snapshot_name='home'\n"
+    .. "snapshot_subvolume='/mnt/pool/_snap/home.20261101T0900' source_subvolume='/home' snapshot_name='home.20261101T0900'\n",
+  restic = { { short_id = "1a2b3c4d", time = "2026-10-29T22:00:03.1Z", paths = { "/home/kate" }, hostname = "evabook" },
+    { short_id = "5e6f7a8b", time = "2026-10-31T22:00:01.9Z", paths = { "/home/kate" }, hostname = "evabook" } },
+}
+
+local function backup_answer(argv)
+  local line = table.concat(argv, " ")
+  if line:find("snapper --jsonout list-configs", 1, true) then
+    return { ok = true, stdout = morf.json.encode { configs = { { config = "root", subvolume = "/home" } } } }
+  end
+  if line:find("snapper --jsonout", 1, true) then return { ok = true, stdout = morf.json.encode(M.snapshots.snapper) } end
+  if line:find("btrbk list", 1, true) then
+    if argv[1] ~= "pkexec" then return { ok = false, code = 1, stderr = "ERROR: btrbk must be run as root" } end
+    return { ok = true, stdout = M.snapshots.btrbk }
+  end
+  if line:find("restic snapshots", 1, true) then return { ok = true, stdout = morf.json.encode(M.snapshots.restic) } end
+  if line:find("snapper -c root create", 1, true) then
+    table.insert(M.snapshots.snapper.root, { number = 44, type = "single", date = "2026-11-01 12:00:00", description = "Made in Settings" })
+    return { ok = true, stdout = "" }
+  end
+  return nil
+end
+
 local function answer(argv, options)
   local line = table.concat(argv, " ")
+  local backup = backup_answer(argv)
+  if backup then return backup end
   for _, take in ipairs { #argv, 3, 2, 1 } do
     local text = OUTPUT[joined(argv, take)]
     if text then return { ok = true, stdout = text } end

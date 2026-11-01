@@ -17,6 +17,7 @@ return {
     connectivity = "themes.layouts.views.connectivity",
     net_help = "themes.layouts.views.net_help",
     welcome = "themes.layouts.views.welcome",
+    backups_page = "themes.layouts.views.backups_page",
     utilities = "themes.layouts.views.utilities",
     bottom = "themes.layouts.views.bottom",
     dashboard = "themes.layouts.views.dashboard",

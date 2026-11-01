@@ -187,6 +187,11 @@ M.PAGES = {
     keywords = "ufw firewalld ports block" },
   { key = "updates", name = "Updates", icon = "system_update", category = "system", summary = "System and firmware",
     keywords = "upgrade update firmware fwupd nixos rebuild" },
+  { key = "backups", name = "Backups", icon = "backup", category = "system", summary = "Snapshots, and a file back",
+    keywords = "backup snapshot snapper btrbk restic btrfs restore undo recover",
+    items = { { "Make a snapshot", "backup now create" }, { "Restore a file", "recover deleted old version undo" } } },
+  { key = "backups/more", name = "Backup settings", icon = "tune", parent = "backups",
+    keywords = "snapper config restic repository password folders tool" },
   { key = "about", name = "About", icon = "info", category = "system", summary = "This machine and its versions",
     keywords = "hardware version hostname computer name cpu memory gpu kernel system information" },
 }
