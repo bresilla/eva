@@ -326,7 +326,7 @@ what Lua can reach today.
   cut. Starting the device with the first shown surface, and letting it go when
   none is left, would make a standby process cheap.
 - A hidden Loader item stops its bindings. `keep` keeps them running, so a colour
-  change reaches every page ever visited (1.6M of a pass, every Settings page
+  change reaches every page ever visited (1.8M of a pass, every Settings page
   visited). A `keep = "frozen"` catching them up as it shows again would cost less
   than building it again.
 
