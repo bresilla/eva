@@ -7,7 +7,7 @@ local V={}
 function V.build(model)
   local W,H,BADGE=320,76,52
   local content=ui.Item {id="headphones",anchors={fill=true},
-    ui.Row {x=14,anchors={vertical_center=true},gap=14,align="center",
+    ui.Row {x=14,anchors={vertical_center=true},gap=12,align="center",
       ui.Item {width=BADGE,height=BADGE,
         kit.shape {anchors={fill=true},shape="circle",color=function() return C.primaryContainer end},
         kit.icon(function() return model.device.kind=="earbuds" and "earbuds" or "headphones" end,

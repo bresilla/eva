@@ -434,7 +434,7 @@ function M.make(spec)
         if st.selected ~= "" then return basename(st.selected) end
         return ""
       end },
-    ui.Row { anchors = { right = true, right_margin = 10 }, y = 52, gap = 8,
+    ui.Row { anchors = { right = true, right_margin = 8 }, y = 52, gap = 8,
       widgets.flat { id = sid("cancel"), label = "Cancel", width = 84, height = 36,
         on_clicked = function() if spec.on_cancelled then spec.on_cancelled() end end },
       widgets.suggested { id = sid("accept"), label = accept_label, width = 92, height = 36,

@@ -42,7 +42,7 @@ function M.build(model)
   -- Desk: Charge over Readings on the left; History over Details and
   -- Health on the right, the lot the page's height. Phone: one under the
   -- other, each the page's width.
-  local ROW_H, ROW_GAP = 30, 6
+  local ROW_H, ROW_GAP = 30, 8
   local FACT_H = 20
   local READ_H = P.CAPTION_H + 2 * P.PAD + 4 * ROW_H + 3 * ROW_GAP
   local LOW_H = P.CAPTION_H + 2 * P.PAD + 5 * FACT_H

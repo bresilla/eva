@@ -83,7 +83,7 @@ function M.field(spec)
   end
   if kit.icon then
     children[#children + 1] = ui.Item { width = 20, height = 20,
-      anchors = { right = true, right_margin = 10, vertical_center = true },
+      anchors = { right = true, right_margin = 8, vertical_center = true },
       rotation = function() return spec.open and spec.open() and 180 or 0 end,
       behavior = { rotation = { duration = 200, easing = "out_cubic" } },
       kit.icon(spec.chevron or "expand_more", 20, kit.ink and kit.ink("lo")) }

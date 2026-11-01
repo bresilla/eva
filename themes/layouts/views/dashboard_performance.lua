@@ -136,7 +136,7 @@ function M.build(model)
         kit.panel { width = LW, height = CHAN_H - 8 },
         L.label { x = 6, y = 3, width = LW - 60, elide = "right", text = spec.channels_title or "Channels",
           font_size = S.micro, color = kit.ink("hi") },
-        L.code("chan" .. kind, "## CH", { anchors = { right = true, right_margin = 6 }, y = 3, width = 50,
+        L.code("chan" .. kind, "## CH", { anchors = { right = true, right_margin = 8 }, y = 3, width = 50,
           horizontal_alignment = "right" }),
       }
       local mh = CHAN_H - 8 - (lh + 6) - (lh + 6)
@@ -160,7 +160,7 @@ function M.build(model)
     return L.item(nodes)
   end
 
-  local STAT_H, STAT_GAP = 56, 10
+  local STAT_H, STAT_GAP = 56, 8
   --- The picked device's readings: its stats two to a row.
   local function readings(kind, width)
     local stats = model.readouts[kind].stats
@@ -283,7 +283,7 @@ function M.build(model)
         first = function() return history("cpu") end, columns = 10 },
       L.section { y = COL_H - CH - SPEC_H, width = MW, height = CH + SPEC_H, text = "Core clock",
         note = function() return ghz(cpu().frequency) end,
-        kit.spectrum { width = MW, height = SPEC_H - 8, values = clocks, gap = 10,
+        kit.spectrum { width = MW, height = SPEC_H - 8, values = clocks, gap = 8,
           color = function() return kit.signal("info")():alpha(.45) end },
         kit.decor("ticks", { y = SPEC_H - 6, length = MW, count = threads * 2, major = 2, size = 6,
           color = kit.stroke("idle") }),
@@ -304,7 +304,7 @@ function M.build(model)
   local mem_chart_h = math.floor(mem_charts * .64)
   local swap_chart_h = mem_charts - mem_chart_h
   local function legend(label, color)
-    return ui.Row { gap = 6, align = "center",
+    return ui.Row { gap = 8, align = "center",
       ui.Rect { width = 10, height = 8, color = color },
       L.label { text = label },
     }
@@ -346,7 +346,7 @@ function M.build(model)
           kit.meter { y = 20, width = MW, height = 6, count = math.floor(MW / 8), color = kit.signal("info"),
             value = function() local _, c = composition() return up_mem() and c or 0 end },
         },
-        ui.Row { y = 34, gap = 18,
+        ui.Row { y = 34, gap = 16,
           legend(function() local u = composition() return "In use " .. pct(u * 100) end, kit.signal("accent")),
           legend(function() local _, c = composition() return "Cached " .. pct(c * 100) end, kit.signal("info")),
           legend(function() return "Free " .. size_text(memory().available) end, kit.stroke("mark")),
@@ -649,7 +649,7 @@ function M.build(model)
         text = function() return row_title(row) end, font_size = S.body, color = kit.ink("hi") },
       L.label { x = TX, y = 5 + L.lh(S.body), width = W - TX - VW - 6, elide = "right", font_size = S.micro,
         text = function() return row_sub(row) end },
-      kit.text { anchors = { right = true, right_margin = 6 }, y = 5, width = VW, height = L.lh(S.body),
+      kit.text { anchors = { right = true, right_margin = 8 }, y = 5, width = VW, height = L.lh(S.body),
         horizontal_alignment = "right", elide = "right", font_size = S.body, color = color,
         text = function() return (row_value(row):gsub(" %(.*%)", "")) end },
       kit.meter { x = W - VW - 6, y = ROW_H - 14, width = VW, height = 5, count = 10, color = color,
@@ -709,7 +709,7 @@ function M.build(model)
     note = function() local n = list.devices:len() return ("%d device%s"):format(n, n == 1 and "" or "s") end,
     (kit.scroll({
       width = RW_, height = rows_h(DEV_IN), clip = true,
-      ui.Repeater { as = "column", gap = 3, width = RW_, model = list.devices, delegate = device_row },
+      ui.Repeater { as = "column", gap = 4, width = RW_, model = list.devices, delegate = device_row },
     })) }
   local side = ui.Column { id = "performance-devices", width = SIDE_T, height = DEV_T + GAP + RADAR_T, gap = GAP,
     devices_tile, mix_tile }

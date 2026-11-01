@@ -132,7 +132,7 @@ function V.build(model)
     id = "authsteps",
     anchors = { fill = true },
     ui.Row {
-      x = 14, anchors = { vertical_center = true }, gap = 14, align = "center",
+      x = 14, anchors = { vertical_center = true }, gap = 12, align = "center",
       translate_x = function() return shake:get() == 1 and 10 or 0 end,
       behavior = { translate_x = ui.spring { stiffness = 900, damping = 9 } },
       badge,

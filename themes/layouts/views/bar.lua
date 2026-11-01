@@ -101,7 +101,7 @@ function V.build(model)
   local function windows(as)
     if PHONE then return ui.Item { width = 0, height = 0 } end
     local vertical = as == "column"
-    local list = ui.Repeater { as = as, gap = 6, model = model.rows, delegate = window_delegate }
+    local list = ui.Repeater { as = as, gap = 8, model = model.rows, delegate = window_delegate }
     local function room()
       local w, h = model.screen()
       w, h = w or 0, h or 0
@@ -216,7 +216,7 @@ function V.build(model)
         kit.text { text = function() return stamp:get()[3] end,
           font_size = theme.size.small - 3, color = kit.ink("lo") },
       } or ui.Row {
-        anchors = { center_in = true }, gap = 10, align = "center",
+        anchors = { center_in = true }, gap = 8, align = "center",
         kit.text { text = function() return stamp:get()[2] end, font_size = theme.size.small,
           color = kit.ink("lo") },
         kit.text { text = function() return stamp:get()[1] end, font_weight = 700 },
@@ -238,8 +238,8 @@ function V.build(model)
     if side == "left" then return 0, 0, i.left + theme.LEFT, h end
     return w - i.right - theme.BORDER, 0, i.right + theme.BORDER, h
   end
-  local head_h = PHONE and ui.Row { gap = 10, align = "center", phone_clock(), windows("row") }
-    or ui.Row { gap = 10, align = "center", logo(""), windows("row") }
+  local head_h = PHONE and ui.Row { gap = 8, align = "center", phone_clock(), windows("row") }
+    or ui.Row { gap = 8, align = "center", logo(""), windows("row") }
   local tail_h, row_h = tail(false)
   local head_v = ui.Column { gap = 8, align = "center", logo("-v"), windows("column") }
   local tail_v, row_v = tail(true)

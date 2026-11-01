@@ -317,14 +317,14 @@ return function(model, ROW1, ROW2, GAP)
     end
     local rest = ui.Column {
       x = beside and CS + 16 or nil, anchors = beside and { vertical_center = true } or nil,
-      width = IW, gap = 6, align = "center",
+      width = IW, gap = 8, align = "center",
       (not beside) and cover or nil,
       kit.meter { width = beside and IW or CS, height = 4, count = 25, value = progress },
       kit.text { id = "media-title", width = IW, height = L.lh(theme.size.normal), horizontal_alignment = "center",
         elide = "right", text = field("title", "Nothing playing"), font_size = theme.size.normal, color = kit.ink("accent") },
       line { text = field("album", "") },
       line { text = field("artist", ""), color = kit.ink("hi") },
-      ui.Row { gap = 6, align = "center",
+      ui.Row { gap = 8, align = "center",
         button("skip_previous", "previous", "media-previous", "Previous"),
         button(function() return active().playing and "pause" or "play_arrow" end, "play_pause", "media-play",
           function() return active().playing and "Pause" or "Play" end, true),

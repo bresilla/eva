@@ -53,7 +53,7 @@ function V.build(M)
   local picture = ui.Item {
     id = "session-picture", x = PAD, y = HEAD_H + 4, width = PIC, height = PIC,
     kit.shape { anchors = { fill = true }, shape = "square", color = function() return C.surfaceContainerHigh end },
-    face and ui.Image { anchors = { fill = true, margins = 3 }, source = face, fill_mode = "preserve_aspect_crop",
+    face and ui.Image { anchors = { fill = true, margins = 4 }, source = face, fill_mode = "preserve_aspect_crop",
       mask = kit.shape { width = PIC - 6, height = PIC - 6, shape = "square", color = "#ffffff" } }
       or kit.icon("person", 30, kit.signal("accent"), { anchors = { center_in = true }, fill = true }),
     L.decor_box("corners", { length = 7, color = kit.signal("accent"), inset = -3 }),
@@ -99,7 +99,7 @@ function V.build(M)
           opacity = { duration = theme.duration.small } },
         L.decor_box("hatch", { width = 76, height = 16, spacing = 8, weight = 3.5, color = signal }) },
       -- Its code holds the same slot while the row rests.
-      kit.label { anchors = { right = true, right_margin = 10 }, y = 4 + math.floor((NAME_H - LABEL_H) / 2),
+      kit.label { anchors = { right = true, right_margin = 8 }, y = 4 + math.floor((NAME_H - LABEL_H) / 2),
         width = 84, horizontal_alignment = "right", elide = "left", color = kit.stroke("mark"),
         opacity = function() return on() and 0 or 1 end, behavior = { opacity = { duration = theme.duration.small } },
         text = kit.code(item.id, "##-### // SYS") },

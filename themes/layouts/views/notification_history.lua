@@ -54,7 +54,7 @@ function V.build(state, width, height)
       color = kit.ink("lo"),
     }
     return ui.Row {
-      width = INNER, height = LINE, gap = 7, align = "center",
+      width = INNER, height = LINE, gap = 8, align = "center",
       visible = function() return n_of() ~= nil end,
       ui.Item { width = 6, height = 6 },
       kit.surface { width = 6, height = 6, radius = L.control_round(6), color = signal },
@@ -106,7 +106,7 @@ function V.build(state, width, height)
     local function kind() return group_kind(g()) end
     local function signal() return kit.signal(kind())() end
     local function is_open() local x = g() return x ~= nil and state.is_open(x.app) end
-    local lines, items = { width = INNER, gap = 0 }, { width = INNER, gap = 6 }
+    local lines, items = { width = INNER, gap = 0 }, { width = INNER, gap = 8 }
     local item_nodes = {}
     for k = 1, LINES do
       local function n_of()

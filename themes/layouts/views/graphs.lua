@@ -113,7 +113,7 @@ function V.new(samples)
     }
     if not mark then return column end
     return ui.Row {
-      gap = 6,
+      gap = 8,
       kit.surface {
         width = 2, height = 40, radius = 1,
         color = function() return color():alpha(mark == "dashed" and 0.5 or 1) end,
@@ -129,7 +129,7 @@ function V.new(samples)
   --- What a device is: label, value lines (a value may be a function).
   function M.facts(rows, width)
     width = width or 300
-    local column = { gap = 9 }
+    local column = { gap = 8 }
     for _, row in ipairs(rows) do
       column[#column + 1] = ui.Row {
         gap = 8,

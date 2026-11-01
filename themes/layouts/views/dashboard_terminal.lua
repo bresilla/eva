@@ -137,7 +137,7 @@ function M.build(ctx)
   }
   -- (The places then the new one: an unpacked list keeps all its values
   -- only as the last of a constructor's.)
-  local row = { y = 3, gap = 6, align = "center" }
+  local row = { y = 3, gap = 8, align = "center" }
   for i = 1, MAX do row[#row + 1] = tabs[i] end
   row[#row + 1] = add
   local strip = kit.scroll({ id = "terminal-strip", x = 0, y = 0, width = W, height = STRIP, clip = true,

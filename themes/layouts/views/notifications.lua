@@ -90,12 +90,12 @@ function V.build(M)
     -- The micro row: the urgency when it is not the usual one, and the age
     -- at the right (the source and the card's word are the header's).
     local function urgency() local x = n() return x and x.urgency or 1 end
-    local micro = ui.Row { x = TEXT_X, y = MICRO_Y, height = math.max(13, LABEL_H), gap = 5, align = "center",
+    local micro = ui.Row { x = TEXT_X, y = MICRO_Y, height = math.max(13, LABEL_H), gap = 4, align = "center",
       ui.Item { width = 58, height = 13, visible = function() return urgency() ~= 1 end,
         kit.chip { text = function() local u = urgency() return L.term("notice.urgency." .. u, URGENCY[u] or "Normal") end,
           color = signal, filled = true, width = 58 } },
     }
-    local age = kit.label { anchors = { right = true, right_margin = 14 }, y = MICRO_Y, width = 120, color = signal,
+    local age = kit.label { anchors = { right = true, right_margin = 12 }, y = MICRO_Y, width = 120, color = signal,
       horizontal_alignment = "right", elide = "left",
       text = function()
         local x = n()
@@ -160,7 +160,7 @@ function V.build(M)
     }
 
     -- The footer rule: the verdict and the theme's code for the card.
-    local footer = ui.Item { anchors = { left = true, right = true, bottom = true, left_margin = 10,
+    local footer = ui.Item { anchors = { left = true, right = true, bottom = true, left_margin = 8,
       right_margin = 12, bottom_margin = 4 }, height = FOOT_H,
       L.rule { y = 1, width = CARD_W - 22 },
       kit.label { y = 4, width = 250, elide = "right", color = signal, text = function() return text_of.verdict(kind()) end },

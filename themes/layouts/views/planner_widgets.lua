@@ -39,7 +39,7 @@ function M.field(id, label, placeholder, width, changed, accepted, escaped)
     placeholder = placeholder, on_text_changed = changed, on_accepted = accepted,
     on_escape = escaped,
   })
-  local node = ui.Column { width = width, gap = 5,
+  local node = ui.Column { width = width, gap = 4,
     M.label(label),
     rows.well { width = width, height = 40, input_node },
   }

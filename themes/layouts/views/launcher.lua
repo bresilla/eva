@@ -32,7 +32,7 @@ local CHIPS = {
 function V.build(M)
   local row_of = M.row_of
   local WIDTH, WIDE = require("responsive").fit(620, 8), 1180
-  local PAD = 10
+  local PAD = 12
   local SEARCH = 50
   local HEAD = 30
   local INSTRUMENT = theme.appearance.id == "tsugumori"
@@ -133,7 +133,7 @@ function V.build(M)
     -- The chosen row's own hint: Tab, while it has other actions to list.
     local function hints(selected, has_actions)
       return ui.Row {
-        anchors = { right = true, right_margin = 12, vertical_center = true }, gap = 6, align = "center",
+        anchors = { right = true, right_margin = 12, vertical_center = true }, gap = 8, align = "center",
         opacity = function() return (selected() and has_actions()) and 1 or 0 end,
         behavior = { opacity = { duration = theme.duration.small } },
         kit.text { text = "Actions", font_size = theme.size.smaller, color = kit.ink("lo") },
@@ -150,7 +150,7 @@ function V.build(M)
         kit.heading {
           id = "launcher-section-" .. entry.key, scope = "launcher", level = "section",
           viewport = function() return results end,
-          anchors = { left = true, left_margin = 12, bottom = true, bottom_margin = 5 }, width = INNER - 24,
+          anchors = { left = true, left_margin = 12, bottom = true, bottom_margin = 4 }, width = INNER - 24,
           elide = "right", text = entry.name, font_size = theme.size.smaller, font_weight = 600,
           color = kit.ink("lo"), ink = kit.ink("accent"),
         },
@@ -178,13 +178,13 @@ function V.build(M)
           anchors = { fill = true, top_margin = 4, bottom_margin = 4 }, radius = kit.round(16),
           color = function() return C.surfaceContainerHigh end,
           ui.Column {
-            anchors = { left = true, left_margin = 18, vertical_center = true }, gap = 2,
+            anchors = { left = true, left_margin = 16, vertical_center = true }, gap = 2,
             kit.text {
               text = question, font_size = theme.size.small, width = INNER - 160, elide = "middle",
               color = function() return C.onSurfaceVariant end, visible = question ~= "",
             },
             ui.Row {
-              gap = 10, align = "center",
+              gap = 8, align = "center",
               kit.text {
                 text = "=", font_size = 28, visible = question ~= "",
                 color = function() return C.primary end,
@@ -222,7 +222,7 @@ function V.build(M)
         end,
         on_clicked = function() M.activate(bound.row) end,
         ui.Row {
-          anchors = { left = true, left_margin = 10, vertical_center = true }, gap = 12, align = "center",
+          anchors = { left = true, left_margin = 8, vertical_center = true }, gap = 12, align = "center",
           INSTRUMENT and kit.text {
             width = NUMBER - 12, horizontal_alignment = "right", font_size = theme.size.smaller, font_weight = 600,
             text = function()
@@ -486,7 +486,7 @@ function V.build(M)
       },
       kit.decor("corners", { length = 7 }) or ui.Item {},
       ui.Column {
-        anchors = { left = true, left_margin = 14, top = true, top_margin = 10 }, gap = 0,
+        anchors = { left = true, left_margin = 12, top = true, top_margin = 8 }, gap = 0,
         table.unpack(prefixes),
       },
     }
@@ -515,7 +515,7 @@ function V.build(M)
     local function badge_of() return BADGES[(M.mode_name())] or BADGES.Search end
     local badge = ui.Item {
       id = "launcher-badge",
-      anchors = { left = true, left_margin = 7, vertical_center = true }, width = 36, height = 36,
+      anchors = { left = true, left_margin = 8, vertical_center = true }, width = 36, height = 36,
       kit.shape {
         anchors = { fill = true }, shape = function() return badge_of()[1] end,
         color = function() return C.primaryContainer end,
@@ -526,7 +526,7 @@ function V.build(M)
 
     field = ui.TextInput {
       id = "launcher-search",
-      anchors = { left = true, right = true, top = true, bottom = true, left_margin = 54, right_margin = 46 },
+      anchors = { left = true, right = true, top = true, bottom = true, left_margin = 56, right_margin = 48 },
       vertical_alignment = "center", tab_navigation = false,
       font_family = theme.font, font_size = theme.size.larger,
       color = function() return C.onSurface end,
@@ -543,7 +543,7 @@ function V.build(M)
     local clear = kit.action {
       id = "launcher-clear",
       width = 32, height = 32, cursor = "pointer",
-      anchors = { right = true, right_margin = 9, vertical_center = true },
+      anchors = { right = true, right_margin = 8, vertical_center = true },
       visible = function() return M.query:get() ~= "" end,
       on_clicked = function() field.text = "" M.query:set("") field.focus = true end,
       kit.icon("close", 18, function() return C.onSurfaceVariant end, { anchors = { center_in = true } }),

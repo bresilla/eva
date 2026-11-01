@@ -118,7 +118,7 @@ local function tile(t)
     more = kit.action {
       id = "utilities-more-" .. t.id,
       accessible_name = "Open " .. (t.name or t.id),
-      anchors = { right = true, top = true, bottom = true, top_margin = 8, bottom_margin = 8, right_margin = 6 },
+      anchors = { right = true, top = true, bottom = true, top_margin = 8, bottom_margin = 8, right_margin = 8 },
       width = 40, cursor = "pointer",
       on_clicked = function() M.detail:set(t.detail) end,
       kit.icon("chevron_right", 22, fg, { anchors = { center_in = true } }),
@@ -269,8 +269,8 @@ function M.page(w, h)
     width = w, height = h, clip = true,
     shortcuts = model.navigation.shortcuts(),
     ui.Row {
-      gap = 22,
-      translate_x = function() return M.detail:get() ~= "" and -(w + 22) or 0 end,
+      gap = 24,
+      translate_x = function() return M.detail:get() ~= "" and -(w + 24) or 0 end,
       behavior = { translate_x = SWITCH },
       main, detail,
     },

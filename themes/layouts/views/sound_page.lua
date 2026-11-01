@@ -41,7 +41,7 @@ end
 
 --- A line inside a card saying what is missing, centred in it.
 local function nothing(icon, text, visible)
-  return ui.Column { width = INNER, gap = 6, align = "center", visible = visible,
+  return ui.Column { width = INNER, gap = 8, align = "center", visible = visible,
     ui.Item { width = 1, height = 6 },
     kit.icon(icon, 30, kit.ink("lo")),
     kit.text { text = text, width = INNER, horizontal_alignment = "center", elide = "right",

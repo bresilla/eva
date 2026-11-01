@@ -259,7 +259,7 @@ function M.build(ctx)
       text = "Play something and it shows up here" },
     ui.Item { x = 16, y = NH - SIL_H - 14, width = SIL_W, height = SIL_H,
       P.decor_box("grid", { width = SIL_W, height = SIL_H, columns = 14, rows = 3, color = kit.stroke("faint") }),
-      kit.spectrum { width = SIL_W, height = SIL_H, values = silhouette, gap = 3,
+      kit.spectrum { width = SIL_W, height = SIL_H, values = silhouette, gap = 4,
         color = function() return accent():alpha(.22) end },
     },
     P.decor_box("ticks", { x = 16, y = NH - 12, length = SIL_W, count = 28, major = 4, size = 5, flip = true }),
@@ -403,7 +403,7 @@ function M.build(ctx)
         font_size = theme.size.small, font_weight = now and 500 or 400,
         color = function() return now and kit.ink("hi")() or kit.ink("lo")() end,
         opacity = now and 1 or (math.abs(offset) == 1 and .8 or math.max(.25, .7 - .15 * math.abs(offset))) },
-      kit.label { anchors = { right = true, right_margin = 6 }, y = math.floor((LROW - LABEL_H) / 2), width = 44,
+      kit.label { anchors = { right = true, right_margin = 8 }, y = math.floor((LROW - LABEL_H) / 2), width = 44,
         horizontal_alignment = "right", text = kit.code("lyric" .. offset, "L##.#") },
     }
   end
@@ -442,7 +442,7 @@ function M.build(ctx)
   local function band_readout(label, y, key, dkey)
     return ui.Item { y = y, width = 150, height = 44,
       kit.label { text = label, color = kit.ink("hi") },
-      ui.Row { y = LABEL_H - 2, gap = 6, align = "center",
+      ui.Row { y = LABEL_H - 2, gap = 8, align = "center",
         kit.readout { value = function() return ("%.0f"):format(band(key)()) end, size = READ,
           color = kit.signal("info") },
         kit.icon(function() return band(dkey)() >= 0 and "arrow_drop_up" or "arrow_drop_down" end, 20,

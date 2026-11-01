@@ -100,7 +100,7 @@ function M.build(model, w, h)
           input.text = date .. time
           model.set_field(name, input.text)
         end }
-      node = ui.Row { gap = 6, align = "end", node, picker }
+      node = ui.Row { gap = 8, align = "end", node, picker }
     end
     fields[#fields + 1], inputs[name] = node, input
   end

@@ -6,7 +6,7 @@ local kit = require("kit")
 local C = theme.color
 local V = {}
 function V.build(M)
-  local W, PAD = 452, 28
+  local W, PAD = 452, 24
   local INNER = W - 2 * PAD
   local FIELD_H, DOT, MAX_DOTS = 52, 11, 18
   local typed = M.typed
@@ -31,7 +31,7 @@ function V.build(M)
   local submit_area
   submit_area = kit.action {
     id = "polkit-submit",
-    anchors = { right = true, right_margin = 7, vertical_center = true },
+    anchors = { right = true, right_margin = 8, vertical_center = true },
     width = FIELD_H - 14, height = FIELD_H - 14, cursor = "pointer",
     on_clicked = function() M.submit() end,
     kit.icon("arrow_forward", 22, function() return typed:get() > 0 and C.onPrimary or C.onSurfaceVariant end,
@@ -71,7 +71,7 @@ function V.build(M)
       color = kit.ink("lo"),
       visible = function() return typed:get() == 0 end,
     },
-    ui.Row { x = 56, anchors = { vertical_center = true }, gap = 5, table.unpack(dots) },
+    ui.Row { x = 56, anchors = { vertical_center = true }, gap = 4, table.unpack(dots) },
     submit_area,
   }
 
@@ -149,7 +149,7 @@ function V.build(M)
   end
 
   local column = ui.Column {
-    x = PAD, y = PAD, width = INNER, gap = 14,
+    x = PAD, y = PAD, width = INNER, gap = 12,
     ui.Row {
       gap = 16, align = "center",
       badge,

@@ -200,7 +200,7 @@ function M.build(state, width)
   end
   local generator = ui.Column { width = li, gap = ROW, visible = generating,
     entry("lule-logo", state.logo, "SVG or PNG logo path", li),
-    ui.Row { width = li, gap = 10, align = "center",
+    ui.Row { width = li, gap = 8, align = "center",
       small("Logo size (%)", { width = 112 }), entry("lule-logo-size", state.logo_size, "40", 74) },
     bar(li, {
       { id = "lule-generate", label = "Preview", on_clicked = function() state.generate(false) end },

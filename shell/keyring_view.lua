@@ -40,7 +40,7 @@ function M.build(model)
       kit.icon(index==1 and "key" or "lock",20,function() return C.primary end,{x=16,y=15}),
       text(label,{x=48,y=16,font_size=13,visible=function() return model.lengths[index]:get()==0 end,
         color=function() return C.onSurfaceVariant end}),
-      ui.Row {x=48,y=21,gap=5,table.unpack(dots)},
+      ui.Row {x=48,y=21,gap=4,table.unpack(dots)},
     }
   end
   local column = ui.Column {x=PAD,y=PAD,width=inner,gap=12,

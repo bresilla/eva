@@ -27,13 +27,14 @@ local L = require("themes.layouts.parts")
 local C = theme.color
 
 local P = {}
+local S = theme.space
 
-P.GAP = 12            -- between blocks, and between a caption and its card
-P.PAD = 14            -- inside a card
+P.GAP = S.m             -- between blocks, and between a caption and its card
+P.PAD = S.l             -- inside a card
 P.ROW_H = 64          -- a row
-P.ROW_GAP = 6         -- between rows in a card
-P.BUTTON_H = 36       -- a button
-P.RADIUS = 18         -- a card's rounding, where the theme rounds
+P.ROW_GAP = S.s         -- between rows in a card
+P.BUTTON_H = S.TARGET   -- a button
+P.RADIUS = S.l          -- a card's rounding, where the theme rounds
 
 local function get(v) if type(v) == "function" then return v() end return v end
 
@@ -161,7 +162,7 @@ function P.row(spec)
     },
   }
   if trailing then
-    body[#body + 1] = ui.Item { anchors = { right = true, right_margin = 14, vertical_center = true },
+    body[#body + 1] = ui.Item { anchors = { right = true, right_margin = 12, vertical_center = true },
       -- (Never 0x0, though its control be hidden: it holds a place.)
       width = function() return math.max(1, trailing_w()) end,
       height = function() return math.max(1, trailing.layout_height or get(trailing.height) or 0) end,

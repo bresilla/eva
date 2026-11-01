@@ -134,7 +134,7 @@ function V.build(M)
       kit.icon(t[4],22,ink,{anchors={horizontal_center=true},y=7,fill=on}),
       kit.text {text=t[2],font_size=12,font_weight=500,color=ink,anchors={horizontal_center=true},y=34},
       kit.label {text=t[3]:upper(),font_size=9,color=function() return C.onSurfaceVariant:alpha(.6) end,
-        anchors={right=true,right_margin=7},y=5},
+        anchors={right=true,right_margin=8},y=5},
     }
     kit.hover(area,function(hovered) return on() and C.primaryContainer or C.primary:alpha(hovered and .10 or .025) end,12)
     palette_items[#palette_items+1]=area
