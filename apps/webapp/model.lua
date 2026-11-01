@@ -105,7 +105,7 @@ local function little(bytes, at, count)
   return value
 end
 
---- The largest PNG inside an `.ico`, or nil: the engine decodes no other kind.
+--- The largest PNG inside an `.ico`, or nil.
 function M.ico_png(bytes)
   if little(bytes, 1, 2) ~= 0 or little(bytes, 3, 2) ~= 1 then return nil end
   local best, area
@@ -126,8 +126,8 @@ local function save(path, bytes)
   return morf.fs.write(path, bytes, { atomic = true, parents = true })
 end
 
--- Makes the file at `path`, of `kind`, a PNG at the slug's icon: `done(path)`,
--- nil where the engine cannot read it.
+-- Makes the picture at `source` a PNG at the slug's icon: `done(path)`, nil
+-- where it cannot be read.
 local function as_png(source, slug, done)
   local target = icon_path(slug)
   local ok, queued = pcall(morf.image.process, { source = source, output = target,

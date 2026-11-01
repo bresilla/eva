@@ -80,8 +80,7 @@ function M.ask(done)
   end)
 end
 
---- Follows the shell for as long as the window is open: nothing tells a tool
---- when the tile changes.
+--- Asks the shell how things stand, every POLL_MS while the window is open.
 function M.start()
   M.ask()
   morf.time.timer(POLL_MS, function() M.ask() end, true)
