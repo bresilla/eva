@@ -220,8 +220,9 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
       return not capture.drawer.open:get() and (phase == "ready" or phase == "error")
     end,
   },
-  -- Near the right edge, anywhere down it, the sidebar opens; near the
-  -- left edge (the rail's pills with it), the left panel.
+  -- Near the right edge, anywhere down it, the sidebar opens; near the left
+  -- edge above or below the rail, the left panel. The rail's own stretch is
+  -- for the workspaces.
   require("hover").edge {
     name = "sidebar", drawer = sidebar.drawer, edge = "right",
     from = function() return theme.BORDER + theme.ROUNDING end,
@@ -236,11 +237,27 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
     from = function() return theme.BORDER + theme.ROUNDING end,
     length = function()
       local _, _, _, h = bar.desk()
-      return h - 2 * (theme.BORDER + theme.ROUNDING)
+      local from = rail.span()
+      return (from or h - theme.BORDER - theme.ROUNDING) - theme.BORDER - theme.ROUNDING
+    end,
+    setting = "leftbar.hover",
+  },
+  require("hover").edge {
+    name = "leftbar-below", drawer = leftbar.drawer, edge = "left",
+    from = function()
+      local _, to = rail.span()
+      return to or 0
+    end,
+    length = function()
+      local _, _, _, h = bar.desk()
+      local _, to = rail.span()
+      return to and h - theme.BORDER - theme.ROUNDING - to or 0
     end,
     setting = "leftbar.hover",
   },
 }
+-- The rail's targets, over the panels.
+if rail.hits then triggers[#triggers+1]=rail.hits end
 local frame_view=require("themes").view("frame")
 local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
   rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape},
@@ -569,3 +586,5 @@ end
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)
+-- Settings, back open after a change that moved it to another panel.
+require("utilities").panels.settle()

@@ -540,6 +540,7 @@ M.DETAILS = {
   {key="sound",name="Sound"}, {key="microphone",name="Microphone"},
   {key="power",name="Power"}, {key="eva",name="Eva"}, {key="bar",name="Bar",parent="eva"}, {key="wired",name="Wired"},
   {key="osd",name="On-screen displays",parent="eva"},
+  {key="panels",name="Panels",parent="eva"},
   {key="mesh",name="Mesh"}, {key="tunnel",name="Tunnel"}, {key="focus",name="Focus"},
   {key="hotspot",name="Hotspot"}, {key="nightlight",name="Night light"},
   {key="theme",name="Theme"}, {key="theme/lule",name="Lule",parent="theme"},
@@ -578,6 +579,7 @@ for index, control in ipairs(M.TOGGLES) do
   M.TOGGLES[index]=toggle
 end
 M.tiles=require("tiles_model").new(M.TOGGLES,function() return require("responsive").form_factor() end)
+M.panels=require("panels_board").new(function() return M.opened:get() and M.detail:get()=="panels" end)
 M.focus={}
 local function focus_active() return M.opened:get() and M.displayed:get()=="focus" end
 for _,id in ipairs {"awake","ringer","dnd"} do

@@ -44,6 +44,7 @@ return {
     power_page = "themes.layouts.views.power_page",
     bar_page = "themes.layouts.views.bar_page",
     quick_tiles = "themes.layouts.views.quick_tiles",
+    panels_page = "themes.layouts.views.panels_page",
     quick_session = "themes.layouts.views.quick_session",
     quick_pages = "themes.layouts.views.quick_pages",
   },
