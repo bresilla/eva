@@ -1048,7 +1048,7 @@ press and a right press; a right press also arranges the bar or removes that
 module, and a long press does the same on a touchscreen. A cutout parts the row:
 the centre zone joins the end one and the live pill wraps the camera.
 
-The modules: launcher, workspaces, windows, window title, clock, world clock,
+The modules: launcher, windows, window title, clock, world clock,
 fuzzy clock, binary clock, countdown, next event, tasks, status, system tray,
 privacy, live activity, notifications, dashboard, terminal, quick settings,
 session, assistant, clipboard, colour picker, displays, keybindings, screenshot, wallpaper,

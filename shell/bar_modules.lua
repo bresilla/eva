@@ -165,27 +165,6 @@ function M.batteries()
   return out
 end
 
--- The screen's own workspaces, in decades, as the rail numbers them.
-local STRIDE = 10
-
---- The workspaces a bar shows: `{ id, active, occupied }`, its decade's first
---- `bar.workspaces.shown`, and any past them that are in use.
-function M.workspaces()
-  local workspace = services().workspace
-  local active = workspace.active()
-  local base = active - ((active - 1) % STRIDE)
-  local shown = math.max(1, math.min(STRIDE, tonumber(config().get("bar.workspaces.shown")) or 5))
-  for id = base + STRIDE - 1, base + shown, -1 do
-    if workspace.occupied(id) or id == active then shown = id - base + 1 break end
-  end
-  local out = {}
-  for i = 1, shown do
-    local id = base + i - 1
-    out[i] = { id = id, active = id == active, occupied = workspace.occupied(id) == true }
-  end
-  return out
-end
-
 -- ------------------------------------------------------------- the modules --
 
 --- The catalogue, for the bar model `bar`.
@@ -199,15 +178,6 @@ function M.list(bar)
   -- The bar's own parts.
   add { id = "logo", name = "Launcher", icon = "apps", kind = "logo", tier = 3,
     tooltip = function() return "Launcher" end, press = bar.toggle_launcher }
-  add { id = "workspaces", name = "Workspaces", icon = "view_week", kind = "workspaces", tier = 3,
-    tooltip = function() return "Workspace " .. tostring(services().workspace.active()) end,
-    wheel = function(steps) bar.wheel_workspaces(steps) end,
-    present = function()
-      local workspace = services().workspace
-      return workspace ~= nil and workspace.occupied ~= nil
-    end,
-    menu = function() return { item("Next workspace", "chevron_right", function() bar.step_workspace(1) end),
-      item("Previous workspace", "chevron_left", function() bar.step_workspace(-1) end) } end }
   add { id = "windows", name = "Windows", icon = "select_window", kind = "windows", tier = 0 }
   add { id = "clock", name = "Clock", icon = "schedule", kind = "clock", tier = 0, press = bar.press_clock,
     tooltip = function() return morf.time.format("%A, %-d %B %Y") end,

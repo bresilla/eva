@@ -193,8 +193,6 @@ local config = settings.open {
       standby = true,
     },
     bar = {
-      -- How many workspace buttons stand on the bar, past the ones in use.
-      workspaces = { shown = 5 },
       clock = {
         twelve_hour = false,
         seconds = false,

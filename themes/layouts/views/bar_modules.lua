@@ -12,7 +12,6 @@ local S = theme.space
 local V = {}
 local NOTCH_PX = 15
 local TEXT_MAX = 220
-local CELL = S.xl + S.xxs
 
 local function get(v)
   if type(v) == "function" then return v() end
@@ -210,79 +209,6 @@ function V.context(spec)
     end }
   end
 
-  -- The workspaces: a distance field whose occupied ones run together where
-  -- they stand side by side, and the active one sliding over them.
-  local function workspaces(m, vertical)
-    local AT, MOST = vertical and "y" or "x", 10
-    local function rows() return require("bar_modules").workspaces() end
-    local function count() return #rows() end
-    local field = { anchors = { fill = true }, blend = S.s, blend_profile = "circular",
-      fill_color = function() return C.onSurface:alpha(0.12) end }
-    local nodes = {}
-    for i = 1, MOST do
-      local inset = S.xxs
-      field[#field + 1] = ui.SdfShape { id = "bar-workspace-occupied-" .. i, shape = "box",
-        operation = i == 1 and "union" or "smooth_union", radius = kit.round((CELL - 2 * inset) / 2),
-        [AT] = (i - 1) * CELL + inset, [vertical and "x" or "y"] = (ITEM - CELL) / 2 + inset,
-        width = CELL - 2 * inset, height = CELL - 2 * inset,
-        opacity = function()
-          local row = rows()[i]
-          return row and row.occupied and 1 or 0
-        end, behavior = { opacity = theme.spring.effects } }
-      nodes[i] = kit.action { id = "bar-workspace-" .. i .. (vertical and "-v" or ""), cursor = "pointer",
-        accessible_name = "Workspace " .. i, [AT] = (i - 1) * CELL, [vertical and "x" or "y"] = (ITEM - CELL) / 2,
-        width = CELL, height = CELL, visible = function() return i <= count() end,
-        on_clicked = function()
-          local row = rows()[i]
-          if row then model.go_workspace(row.id) end
-        end,
-        on_long_pressed = function() M.open_menu(nodes[i], m) end,
-        kit.text { anchors = { center_in = true }, font_size = theme.size.small, font_weight = 600,
-          text = function()
-            local row = rows()[i]
-            return row and ("%d"):format((row.id - 1) % 10 + 1) or ""
-          end,
-          color = function()
-            local row = rows()[i]
-            if row and row.active then return C.onPrimary end
-            return row and row.occupied and C.onSurface or C.onSurfaceVariant
-          end } }
-    end
-    local function index()
-      for i, row in ipairs(rows()) do if row.active then return i end end
-      return 1
-    end
-    local active = ui.Item { id = "bar-workspace-active" .. (vertical and "-v" or ""), width = CELL, height = CELL,
-      [AT] = function() return (index() - 1) * CELL end, [vertical and "x" or "y"] = (ITEM - CELL) / 2,
-      behavior = { [AT] = theme.spring.spatial }, stretch = { stiffness = 300, damping = 22, scale = 0.12 } }
-    local mark = ui.Sdf { anchors = { fill = true }, fill_color = function() return C.primary end,
-      ui.SdfShape { shape = "box", radius = kit.round(CELL / 2), track = active } }
-    local holder = { id = "bar-module-workspaces" .. (vertical and "-v" or ""), anchors = { fill = true },
-      ui.Sdf(field), active, mark }
-    for _, node in ipairs(nodes) do holder[#holder + 1] = node end
-    local area
-    area = ui.MouseArea { anchors = { fill = true }, z = -1,
-      on_wheel = function(_, _, _, pixels, _, steps) m.wheel((steps and steps ~= 0) and steps or (pixels or 0) / NOTCH_PX) end,
-      accepted_buttons = { "right" }, on_pressed = function() M.open_menu(area, m) end }
-    holder[#holder + 1] = area
-    M.tip(area, m.tooltip, vertical)
-    local node
-    -- A finger along them scrubs through them.
-    holder.on_panned = require("workspace_scrub").pan {
-      vertical = function() return vertical end,
-      slot = function(x, y)
-        local at = vertical and y - (node.layout_y or 0) or x - (node.layout_x or 0)
-        return math.max(1, math.min(count(), math.floor(at / CELL) + 1))
-      end,
-      go = function(slot)
-        local row = rows()[slot]
-        if row then model.go_workspace(row.id) end
-      end,
-    }
-    node = ui.Item(holder)
-    return { node = node, across = ITEM, size = function() return count() * CELL end }
-  end
-
   -- What is using the microphone, camera and screen: a mark for each, on a
   -- tinted pill, and a press names them.
   local function privacy(m, vertical)
@@ -448,7 +374,7 @@ function V.context(spec)
     return readout(m, vertical)
   end
 
-  local KINDS = { workspaces = workspaces, privacy = privacy, batteries = batteries, battery = battery, cores = cores,
+  local KINDS = { privacy = privacy, batteries = batteries, battery = battery, cores = cores,
     binary = binary, media = media, visualiser = visualiser, spacer = spacer, divider = divider, title = title }
 
   --- The part of module `m`.

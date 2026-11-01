@@ -1,5 +1,5 @@
 -- A finger along a row of workspaces: whichever it stands over comes on show,
--- one by one as it goes. The bar's module and the rail share it.
+-- one by one as it goes. The rail uses it.
 local M = {}
 
 --- `vertical` (fn: the row stands upright), `slot(x, y)` (the slot under a

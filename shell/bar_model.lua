@@ -33,31 +33,9 @@ function M.new(ctx)
     local volume=require("osd").volume()
     require("settings_model").levels.set_volume(math.max(0,math.min(1,volume-steps*VOLUME_STEP)))
   end
-  --- The workspace `delta` along, or a dry run's note of it.
-  function model.step_workspace(delta)
-    if not model.on() then return end
-    if dry() then
-      morf.log("info","eva: workspace "..delta.." (dry run)")
-      return
-    end
-    services.workspace.step(delta)
-  end
-  function model.wheel_workspaces(steps)
-    if not model.on() then return end
-    require("workspace_turn")(steps)
-  end
   function model.wheel_workspace(steps)
     if not model.on() or not model.wheel_on("workspace") then return end
-    model.wheel_workspaces(steps)
-  end
-  --- Workspace `id` on show.
-  function model.go_workspace(id)
-    if not model.on() then return end
-    if dry() then
-      morf.log("info","eva: workspace "..tostring(id).." (dry run)")
-      return
-    end
-    services.workspace.go(id)
+    require("workspace_turn")(steps)
   end
   -- What collapses, in `room` pixels: status_model.arrange.
   function model.arrange(room,sizes)

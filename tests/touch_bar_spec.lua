@@ -60,21 +60,6 @@ for _, form in ipairs(touch.FORMS) do
       test.truthy(test.find { text = "Sound settings", visible = true } or test.find { text = "SOUND SETTINGS", visible = true }, "the menu is out")
       test.eq(test.logs("error"), {})
     end)
-
-    test.it(tag .. ": a finger along the workspaces scrubs through them", function()
-      touch.load(form, style, SOURCE)
-      test.ipc("bar_show", "top") test.settle(1200)
-      test.ipc("bar", "add", "workspaces", "start") test.settle(900)
-      local one, two = test.get("bar-workspace-1"), test.get("bar-workspace-2")
-      local y = one.y + one.height / 2
-      touch.drag(one.x + 4, y, two.x + two.width - one.x, 0)
-      local went = 0
-      for _, line in ipairs(test.logs("info")) do
-        if tostring(line.message or line):find("eva: workspace", 1, true) then went = went + 1 end
-      end
-      test.truthy(went >= 1, "the finger went to another")
-      test.eq(test.logs("error"), {})
-    end)
   end
 end
 

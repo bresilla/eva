@@ -75,7 +75,7 @@ function M.build(model, w, h)
     choices(w, { group = "bar-side", caption_id = "bar-heading-position", title = "Position",
       items = model.sides, now = model.side, pick = model.set_side }),
     P.section { id = "bar-more", width = w,
-      P.row { id = "bar-more-open", width = P.inner(w), icon = "tune", title = "Clock, workspaces, screen shape",
+      P.row { id = "bar-more-open", width = P.inner(w), icon = "tune", title = "Clock, screen shape",
         trailing = P.chevron(), on_clicked = function() require("utilities").request("bar/more") end } },
     choices(w, { group = "bar-titles", caption_id = "bar-heading-window-titles", title = "Window titles",
       items = { { "on", "title", "Shown" }, { "off", "apps", "Icons only" } },

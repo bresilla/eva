@@ -147,10 +147,8 @@ end
 function M.painting() return layer ~= nil end
 
 -- How far across the workspaces this one stands, 0 to 1.
-local function along()
-  local shown = math.max(2, tonumber(config.get("bar.workspaces.shown")) or 5)
-  return ((M.workspace() - 1) % shown) / (shown - 1)
-end
+local SPAN = 5
+local function along() return ((M.workspace() - 1) % SPAN) / (SPAN - 1) end
 
 --- How wide the picture stands: wider than the screen by the parallax.
 function M.overscan() return 1 + math.max(0, math.min(0.5, tonumber(config.get("wallpaper.parallax")) or 0)) end

@@ -31,14 +31,6 @@ test.it("a workspace is named on the compositor, and the name stays in the setti
   test.eq(test.ipc("workspace_name"), "1")
 end)
 
-test.it("the bar numbers a workspace as a whole number", function()
-  load()
-  test.ipc("bar", "show", "on")
-  test.settle(500)
-  test.eq(test.text_of(test.get("bar-workspace-1")), "1")
-  test.eq(test.text_of(test.get("bar-workspace-2")), "2")
-end)
-
 test.it("a double press on a desk asks for a name", function()
   load()
   test.ipc("overview", "open") test.settle(3000)

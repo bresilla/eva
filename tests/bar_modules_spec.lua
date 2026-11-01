@@ -71,7 +71,7 @@ local function sample(ms) test.advance(ms or 2200) end
 -- The modules with no press of their own: their press is the menu.
 local LAYOUT={spacer=true,spacer_2=true,divider=true,divider_2=true}
 local OWN={logo="bar-logo",clock="bar-clock",status="bar-status",windows="bar-windows",tray="bar-tray",
-  live="bar-live",workspaces="bar-module-workspaces"}
+  live="bar-live"}
 
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." draws every module the machine has, with no errors",function()
@@ -233,14 +233,6 @@ test.describe("the readings",function()
 end)
 
 test.describe("a press",function()
-  test.it("goes to the workspace it names, and shows which is active",function()
-    load_shell {env={EVA_DRY_RUN="0"}}
-    test.click("bar-workspace-3") test.settle(900)
-    test.eq(test.ipc("q_run",[[return require('services').workspace.active()]]),3)
-    local active=test.get("bar-workspace-active")
-    local button=test.get("bar-workspace-3")
-    test.near(active.x,button.x,1)
-  end)
   test.it("toggles keep awake and focus",function()
     load_shell {}
     add("idle") add("focus")

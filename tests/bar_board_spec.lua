@@ -42,7 +42,7 @@ for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." starts as the bar always stood",function()
     load {style=style}
     test.truthy(up("bar-logo")) test.truthy(up("bar-clock")) test.truthy(up("bar-status"))
-    test.truthy(up("bar-module-workspaces"))
+    test.falsy(up("bar-module-workspaces"),"the rail has the workspaces")
     test.eq(#test.logs("error"),0)
   end)
   test.it(style.." adds, moves between zones and removes a module",function()
@@ -162,9 +162,8 @@ test.describe("the Bar page",function()
       return test.ipc("q_run",("return require('bar').model.board.step('logo',%d)"):format(delta))
     end
     test.truthy(step(1)) test.eq(index_of(modules().start,"logo"),2)
-    test.truthy(step(1)) test.eq(index_of(modules().start,"logo"),3)
     test.truthy(step(1)) test.eq(index_of(modules().centre,"logo"),1,"it did not cross into the centre")
-    test.truthy(step(-1)) test.eq(index_of(modules().start,"logo"),3,"it did not cross back")
+    test.truthy(step(-1)) test.eq(index_of(modules().start,"logo"),2,"it did not cross back")
   end)
   test.it("stops at the ends of the board",function()
     open {}
