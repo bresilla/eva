@@ -9,6 +9,7 @@
 -- Nothing squashes or stretches. Behaviour is themes.kit.drag's and the
 -- archetype's.
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local stripes = require("themes.tsugumori.stripes")
 local stroke = require("themes.tsugumori.strokes")
 
@@ -138,7 +139,7 @@ return function(S, theme, M, hud)
         spec.icon and M.icon(spec.icon, 18, function() return t.active and C.primary or C.onSurfaceVariant end,
           { x = 36, anchors = { vertical_center = true } }) or nil,
         M.menu_label { x = spec.icon and 66 or 36, anchors = { vertical_center = true },
-          text = tostring(spec.label or ""):upper(),
+          text = unicase.upper(tostring(spec.label or "")),
           color = function() return t.active and C.primary or C.onSurface end } },
     }
   end
@@ -160,7 +161,7 @@ return function(S, theme, M, hud)
           color = function() return t.highlighted and C.primary or stroke(C, "idle") end },
         brackets(t, 5) },
       content = M.menu_label { anchors = { fill = true }, horizontal_alignment = "center", vertical_alignment = "center",
-        text = tostring(spec.label or ""):upper(),
+        text = unicase.upper(tostring(spec.label or "")),
         color = function() return (t.highlighted or t.active) and C.primary or C.onSurfaceVariant end },
     }
   end
@@ -186,7 +187,7 @@ return function(S, theme, M, hud)
         M.icon(spec.icon or "apps", 28, function() return t.active and C.primary or C.onSurface end,
           { anchors = { horizontal_center = true }, y = function() return H(t) / 2 - 30 end }),
         M.section_label { anchors = { left = true, right = true }, y = function() return H(t) / 2 + 8 end,
-          horizontal_alignment = "center", elide = "right", text = tostring(spec.label or ""):upper(),
+          horizontal_alignment = "center", elide = "right", text = unicase.upper(tostring(spec.label or "")),
           color = function() return t.active and C.primary or C.onSurfaceVariant end } },
     }
   end
@@ -201,7 +202,7 @@ return function(S, theme, M, hud)
       background = frame(t),
       content = ui.Item { anchors = { fill = true },
         ui.Rect { x = 0, width = 3, anchors = { top = true, bottom = true }, color = function() return C.primary end },
-        M.menu_label { x = 16, y = function() return H(t) / 2 - 19 end, text = tostring(spec.label or ""):upper(),
+        M.menu_label { x = 16, y = function() return H(t) / 2 - 19 end, text = unicase.upper(tostring(spec.label or "")),
           color = function() return C.onSurface end },
         M.section_label { x = 16, y = function() return H(t) / 2 + 3 end, text = spec.detail or "" },
         ui.Rect { anchors = { left = true, bottom = true }, height = 2,
@@ -235,7 +236,7 @@ return function(S, theme, M, hud)
           { anchors = { horizontal_center = true }, y = function() return H(t) / 2 - 19 end, opacity = uncovered,
             translate_x = function() return (1 - uncovered()) * 12 end }),
         M.section_label { anchors = { left = true, right = true }, y = function() return H(t) / 2 + 4 end,
-          horizontal_alignment = "center", text = tostring(action.label or ""):upper(), opacity = uncovered,
+          horizontal_alignment = "center", text = unicase.upper(tostring(action.label or "")), opacity = uncovered,
           color = function() local _, ink = tone() return ink end } }, plates)
     end
     return {
@@ -247,7 +248,7 @@ return function(S, theme, M, hud)
         ui.Rect { anchors = { left = true, right = true, bottom = true }, height = 1,
           color = function() return stroke(C, "idle") end },
         brackets(t, 5) },
-      content = M.menu_label { x = 16, anchors = { vertical_center = true }, text = tostring(spec.label or ""):upper(),
+      content = M.menu_label { x = 16, anchors = { vertical_center = true }, text = unicase.upper(tostring(spec.label or "")),
         color = function() return C.onSurface end },
       drop_indicator = plates,
     }
@@ -316,7 +317,7 @@ return function(S, theme, M, hud)
           color = function() return t.active and C.primary or C.primary:alpha(0.4) end },
         brackets(t, 5) },
       content = M.menu_label { anchors = { fill = true }, horizontal_alignment = "center",
-        vertical_alignment = "center", text = tostring(spec.label or ""):upper(),
+        vertical_alignment = "center", text = unicase.upper(tostring(spec.label or "")),
         color = function() return t.active and C.primary or C.onSurface end },
       handle = ui.Item {},
     }
@@ -325,7 +326,7 @@ return function(S, theme, M, hud)
   local function chip_face(spec, ink)
     return ui.Row { anchors = { center_in = true }, gap = 8, align = "center",
       spec.icon and M.icon(spec.icon, 16, ink) or nil,
-      M.menu_label { text = tostring(spec.label or ""):upper(), color = ink } }
+      M.menu_label { text = unicase.upper(tostring(spec.label or "")), color = ink } }
   end
 
   --- Something to drag out: a square chip frame; carried, a hatched
@@ -380,7 +381,7 @@ return function(S, theme, M, hud)
           { anchors = { horizontal_center = true }, y = function() return H(t) / 2 - 32 end,
             scale = function() return t.accepting and 1.25 or 1 end, behavior = { scale = snap } }),
         M.menu_label { anchors = { left = true, right = true }, y = function() return H(t) / 2 + 8 end,
-          horizontal_alignment = "center", text = tostring(spec.label or "Drop here"):upper(),
+          horizontal_alignment = "center", text = unicase.upper(tostring(spec.label or "Drop here")),
           color = function() return t.accepting and C.primary or C.onSurfaceVariant end } },
     }
   end
@@ -413,7 +414,7 @@ return function(S, theme, M, hud)
       content = M.text { anchors = { fill = true, left_margin = K, right_margin = 12 }, horizontal_alignment = "center",
         vertical_alignment = "center", elide = "right",
         text = function()
-          return tostring(t.done and (spec.done_label or "Done") or (spec.label or "Slide to confirm")):upper()
+          return unicase.upper(tostring(t.done and (spec.done_label or "Done") or (spec.label or "Slide to confirm")))
         end,
         font_size = theme.typography.menu, font_weight = 500, color = function() return C.onSurfaceVariant end,
         opacity = function() return t.done and 1 or math.max(0, 1 - (t.value or 0) * 1.8) end,

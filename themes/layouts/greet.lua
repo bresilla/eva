@@ -335,11 +335,11 @@ if ctx.status then
   power_nodes[#power_nodes + 1] = require("themes.layouts.auth.status").row(view, { prefix = "greet", status = ctx.status })
 end
 if ctx.access then power_nodes[#power_nodes + 1] = access_parts.button(view, { access = ctx.access }) end
-for _, action in ipairs {
-  { "suspend", "bedtime", "suspend" }, { "reboot", "restart_alt", "reboot" },
-  { "poweroff", "power_settings_new", "power off" } } do
-  if not actions or actions.offered(action[1]) then
-    power_nodes[#power_nodes + 1] = round_button("greet-" .. action[1], action[2], function() power(action[1], action[3]) end)
+local login = require("models.auth_power")
+for _, id in ipairs(login.ORDER) do
+  if not actions or actions.offered(id) then
+    local action = login.ACTIONS[id]
+    power_nodes[#power_nodes + 1] = round_button("greet-" .. id, action.icon, function() power(id, action.verb) end)
   end
 end
 if actions and actions.firmware_available() then

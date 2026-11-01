@@ -4,11 +4,7 @@ local morf = require("morf")
 local lule = require("lib.integrations.lule")
 local config = require("config")
 local M = {}
-local function expand(path)
-  if path == "~" then return morf.fs.home() end
-  if path:sub(1, 2) == "~/" then return morf.fs.home() .. path:sub(2) end
-  return path
-end
+local expand = lule.expand
 M.scheme = lule.watch("eva.lule.scheme")
 local initial = M.scheme:get() or {}
 M.selected = require("themes.session").keep("eva.lule.selected", initial.wallpaper or "")

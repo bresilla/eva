@@ -46,6 +46,10 @@ local function line(field, inner, read, write)
   save = function()
     local value = handle.text
     write(value)
+    if field.clean then
+      value = read()
+      handle.text = value
+    end
     typed:set(value)
   end
   morf.effect("eva.form.fill." .. id, function()
@@ -68,7 +72,10 @@ end
 
 local function words(field, inner)
   return line(field, inner, function() return forms.join(config.get(field.key)) end,
-    function(value) config.set(field.key, forms.split(value)) end)
+    function(value)
+      local list = forms.split(value)
+      config.set(field.key, field.clean and field.clean(list) or list)
+    end)
 end
 
 local function records(field, inner)
@@ -77,6 +84,9 @@ local function records(field, inner)
 end
 
 local KINDS = { bool = bool, choice = choice, number = number, text = text, words = words, list = words, records = records }
+
+--- One field, for a page of its own to place.
+function M.field(field, inner) return KINDS[field.kind](field, inner) end
 
 --- The sections of form `name` as blocks, for a page to place.
 function M.sections(name, w)

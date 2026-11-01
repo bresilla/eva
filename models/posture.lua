@@ -17,15 +17,6 @@ local morf = require("morf")
 
 local M = { SETTLE = 700, RECHECK = 20000, RETRY = 30000, LONGEST = 600000, EVTEST = "evtest" }
 
--- SW_TABLET_MODE is switch 1, the second bit of the device's SW word.
-local TABLET_BIT = 2
-
-local function devices_file()
-  local path = morf.env and morf.env("EVA_INPUT_DEVICES")
-  if path == false or path == "" then path = nil end
-  return path or "/proc/bus/input/devices"
-end
-
 local function fake_switch()
   local spec = morf.env and morf.env("EVA_FAKE_TABLET")
   if spec == "on" then return true end
@@ -34,14 +25,9 @@ end
 
 --- The input device with a tablet switch: `{ name, node }`, or nil.
 function M.find(path)
-  local ok, text = pcall(morf.fs.read, path or devices_file())
-  if not ok or type(text) ~= "string" then return nil end
-  for block in (text .. "\n\n"):gmatch("(.-)\n\n") do
-    local words = block:match("B: SW=([%x ]+)")
-    local low = words and words:match("(%x+)%s*$")
-    local event = block:match("H: Handlers=[^\n]-(event%d+)")
-    if low and event and tonumber(low, 16) & TABLET_BIT ~= 0 then
-      return { name = block:match('N: Name="([^"]*)"') or "", node = "/dev/input/" .. event }
+  for _, device in ipairs(require("lib.services.input_devices").list(path)) do
+    if device.tablet_switch and device.event then
+      return { name = device.name or "", node = "/dev/input/" .. device.event }
     end
   end
 end

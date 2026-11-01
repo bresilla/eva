@@ -2,6 +2,7 @@
 -- defaults as read, and the graphics mode.
 local morf = require("morf")
 local host = require("lib.services.host")
+local unicase = require("lib.util.unicase")
 
 local M = {}
 
@@ -28,7 +29,7 @@ function M.gpu(done)
   local function rows(list)
     local out = {}
     for index, word in ipairs(list) do
-      out[index] = { key = word, name = word:sub(1, 1):upper() .. word:sub(2), hint = M.GPU_MODES[word] or "" }
+      out[index] = { key = word, name = unicase.capitalise(word), hint = M.GPU_MODES[word] or "" }
     end
     return out
   end

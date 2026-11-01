@@ -5,11 +5,15 @@ local morf = require("morf")
 local auth = require("lib.shell.auth")
 local M = {}
 
-M.ACTIONS = {
-  suspend = { can = "suspend", method = "Suspend", icon = "bedtime", name = "Suspend" },
-  reboot = { can = "reboot", method = "Reboot", icon = "restart_alt", name = "Restart" },
-  poweroff = { can = "power_off", method = "PowerOff", icon = "power_settings_new", name = "Power off" },
-}
+-- The session's actions a login screen offers, by the name they go by there, and
+-- the order they stand in.
+M.ACTIONS, M.ORDER = {}, {}
+for _, action in ipairs(require("models.session_actions").LIST) do
+  if action.login then
+    M.ACTIONS[action.login] = action
+    M.ORDER[#M.ORDER + 1] = action.login
+  end
+end
 
 local function dry()
   local v = morf.env("EVA_DRY_RUN")

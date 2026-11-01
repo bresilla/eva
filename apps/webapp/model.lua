@@ -5,6 +5,7 @@ local morf = require("morf")
 local sys = require("common.sys")
 local desktop = require("lib.util.desktop")
 local remote = require("lib.util.remote")
+local unicase = require("lib.util.unicase")
 
 local M = {
   rows = morf.signal("webapp.rows", {}),
@@ -168,8 +169,8 @@ end
 
 --- The first letter of `name`, for a tile.
 function M.letter(name)
-  local first = tostring(name or ""):match("[%z\1-\127\194-\244][\128-\191]*") or "?"
-  return first:upper():gsub("[&<>]", "?")
+  local first = unicase.first(tostring(name or ""))
+  return unicase.upper(first == "" and "?" or first):gsub("[&<>]", "?")
 end
 
 local function letter_tile(name, slug, done)

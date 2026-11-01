@@ -5,6 +5,7 @@
 -- the window moves or changes size. Only kit calls and theme tokens draw.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local L = require("themes.layouts.parts")
@@ -70,7 +71,7 @@ function V.build(model)
     local children = {
       kit.card { anchors = { fill = true } },
       L.label { x = 14, y = 12, width = 22, text = card.number, font_size = L.SIZE.label, color = kit.ink("lo") },
-      kit.text { x = 42, y = 8, width = CW - 56, elide = "right", text = card.title:upper(),
+      kit.text { x = 42, y = 8, width = CW - 56, elide = "right", text = unicase.upper(card.title),
         font_size = theme.size.normal, font_weight = 600, color = kit.ink("hi") },
       L.rule { x = 12, y = 34, width = CW - 24 },
     }
@@ -107,7 +108,7 @@ function V.build(model)
           on_clicked = function() model.press(id()) end,
           L.label { anchors = { center_in = true }, width = function() local s = cell().span return s * bw + (s - 1) * BG - 8 end,
             horizontal_alignment = "center", elide = "right", font_size = L.SIZE.body, color = ink,
-            text = function() local b = button() return b and b.label:upper() or "" end },
+            text = function() local b = button() return b and unicase.upper(b.label) or "" end },
           ui.Item { anchors = { fill = true }, visible = function() return model.focus:get() == id() and id() ~= "" end,
             L.decor_box("corners", { length = 6, weight = 2, inset = -2, color = kit.stroke("hot") }) },
         }

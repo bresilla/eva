@@ -253,14 +253,20 @@ local function page(key)
   end
 end
 
+-- A session action as a row: `run`, and the name and icon the session menu has.
+local function session_entry(id, run_it, name)
+  local action = require("models.session_actions").BY_ID[id]
+  return { id = id, name = name or action.name, material = action.icon, run = run_it }
+end
+
 local function system_entries()
   local entries = {
-    { id = "lock", name = "Lock the screen", material = "lock", run = function() run.start { "morf", "lock" } return "close" end },
-    { id = "suspend", name = "Suspend", material = "bedtime", run = function() run.start { "systemctl", "suspend" } return "close" end },
-    { id = "hibernate", name = "Hibernate", material = "downloading", run = confirmed("hibernate", session("hibernate")) },
-    { id = "logout", name = "Log out", material = "logout", run = confirmed("logout", session("logout")) },
-    { id = "reboot", name = "Restart", material = "restart_alt", run = confirmed("reboot", session("reboot")) },
-    { id = "shutdown", name = "Power off", material = "power_settings_new", run = confirmed("shutdown", session("shutdown")) },
+    session_entry("lock", function() run.start { "morf", "lock" } return "close" end, "Lock the screen"),
+    session_entry("suspend", function() run.start { "systemctl", "suspend" } return "close" end),
+    session_entry("hibernate", confirmed("hibernate", session("hibernate"))),
+    session_entry("logout", confirmed("logout", session("logout"))),
+    session_entry("reboot", confirmed("reboot", session("reboot"))),
+    session_entry("shutdown", confirmed("shutdown", session("shutdown"))),
     { id = "dashboard", name = "Dashboard", material = "dashboard", run = drawer("dashboard") },
     { id = "settings", name = "Settings", material = "tune", run = page("settings") },
     { id = "notifications", name = "Notifications", material = "notifications", run = page("notifications") },

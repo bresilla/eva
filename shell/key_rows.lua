@@ -1,6 +1,7 @@
 -- The live bindings of the compositor and the shell's own, as rows: what
 -- eva-keys lists and the launcher's `keys` mode searches.
 local shortcuts = require("shortcuts")
+local unicase = require("lib.util.unicase")
 
 local M = {}
 
@@ -31,9 +32,9 @@ end
 --- A shell chord as binds are spelled: "CTRL + SHIFT + C".
 local function spelled(chord)
   local parts = {}
-  for part in chord:gmatch("[^+]+") do parts[#parts + 1] = #part > 1 and part or part:upper() end
+  for part in chord:gmatch("[^+]+") do parts[#parts + 1] = utf8.len(part) == 1 and unicase.upper(part) or part end
   for i, part in ipairs(parts) do
-    if part == "ctrl" or part == "alt" or part == "shift" then parts[i] = part:upper() end
+    if part == "ctrl" or part == "alt" or part == "shift" then parts[i] = unicase.upper(part) end
   end
   return table.concat(parts, " + ")
 end

@@ -6,6 +6,7 @@
 -- for that moment -- a shutter, like the theme's page cuts.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local stripes = require("themes.tsugumori.stripes")
 local stroke = require("themes.tsugumori.strokes")
 
@@ -44,7 +45,7 @@ return function(S, theme, M, hud)
   local function wash(t) return function() return C.primary:alpha(t.down and .18 or (t.hovered and .06 or 0)) end end
   local function caps(text, props)
     props = props or {}
-    props.text = tostring(text or ""):upper()
+    props.text = unicase.upper(tostring(text or ""))
     return M.menu_label(props)
   end
   local function room(t, used) return function() return math.max(0, (t.width or 0) - used) end end
@@ -161,7 +162,7 @@ return function(S, theme, M, hud)
         ui.Rect { anchors = { bottom = true }, height = 2, color = function() return C.primary end,
           width = function() return t.expanded and (t.width or 0) or 0 end, behavior = { width = { duration = 320, easing = "out_expo" } } } },
       header = ui.Item { width = function() return t.width end, height = H,
-        M.text { x = 4, anchors = { vertical_center = true }, text = tostring(spec.title or ""):upper(),
+        M.text { x = 4, anchors = { vertical_center = true }, text = unicase.upper(tostring(spec.title or "")),
           font_size = theme.typography.title, color = function() return t.expanded and C.primary or C.onSurface end },
         brackets(t) },
       indicator = ui.Item {
@@ -215,7 +216,7 @@ return function(S, theme, M, hud)
     local H = spec.header_height or 36
     local more, less = spec.title or "Show more", spec.title_expanded or "Show less"
     local text = caps("", { color = function() return C.primary end })
-    text.text = function() return (t.expanded and less or more):upper() end
+    text.text = function() return unicase.upper(t.expanded and less or more) end
     local function left() return ((t.width or 0) - (text.layout_width or 0)) / 2 - 12 end
     return {
       background = ui.Rect { x = function() return left() - 12 end, y = 2, height = H - 4,

@@ -5,6 +5,7 @@
 --
 --   local filter = require("lib.services.screen_filter")
 --   filter.source { grayscale = true, dim = 0.4 }    -- GLSL, or nil for none
+local hypr = require("lib.util.hypr")
 local M = { ORDER = { "correction", "reading", "grayscale", "invert", "extradim" } }
 
 local HEAD = [[#version 300 es
@@ -83,10 +84,8 @@ function M.new(options)
 
   local function tell(path)
     local hyprland = options.hyprland
-    hyprland.eval(("hl.config({decoration={screen_shader=%q}})"):format(path), function(reply)
-      if not (type(reply) == "string" and reply:match("^%s*ok%s*$")) then
-        hyprland.keyword("decoration:screen_shader", path)
-      end
+    hypr.eval_or(hyprland, ("hl.config({decoration={screen_shader=%q}})"):format(path), function()
+      hyprland.keyword("decoration:screen_shader", path)
     end)
   end
 

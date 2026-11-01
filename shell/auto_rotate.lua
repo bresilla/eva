@@ -4,6 +4,7 @@
 -- Every screen runs the shell once; only the one the sensor belongs to acts.
 local morf = require("morf")
 local hyprland = require("lib.compositor.hyprland")
+local hypr = require("lib.util.hypr")
 local M = {}
 
 M.TRANSFORMS = { normal = 0, ["left-up"] = 1, ["bottom-up"] = 2, ["right-up"] = 3 }
@@ -40,13 +41,11 @@ function M.apply(orientation, name)
     return true
   end
   if not hyprland.available() then return false end
-  hyprland.eval(("hl.monitor({output=%q, transform=%d})"):format(name, transform), function(reply)
-    if type(reply) == "string" and reply:match("^%s*ok%s*$") then
+  hypr.eval_or(hyprland, ("hl.monitor({output=%q, transform=%d})"):format(name, transform),
+    function() legacy(name, transform) end,
+    function()
       hyprland.eval(("hl.config({input={touchdevice={transform=%d},tablet={transform=%d}}})"):format(transform, transform))
-    else
-      legacy(name, transform)
-    end
-  end)
+    end)
   return true
 end
 

@@ -21,6 +21,7 @@
 -- when it opens something. A button fits its label.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local L = require("themes.layouts.parts")
@@ -67,7 +68,7 @@ function P.button(spec)
   -- Measured the way the theme's pill sets its caption: a menu face in
   -- capitals where the theme has one, its body text where not.
   local menu = theme.typography and theme.typography.menu
-  local caption = menu and function() return tostring(get(label) or ""):upper() end or label
+  local caption = menu and function() return unicase.upper(tostring(get(label) or "")) end or label
   local size = menu or theme.size.normal
   local measure = menu and kit.menu_label { text = caption, font_size = size, height = 18, opacity = 0 }
     or kit.text { text = caption, font_size = size, opacity = 0 }

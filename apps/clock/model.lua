@@ -3,6 +3,7 @@
 local morf = require("morf")
 local sys = require("common.sys")
 local lib = require("lib.services.alarm")
+local unicase = require("lib.util.unicase")
 
 local M = {
   alarm = lib.new { ring = true, delay = 1500 },
@@ -168,7 +169,7 @@ function M.add_city(name)
   end
   local list = {}
   for _, entry in ipairs(M.world:get()) do list[#list + 1] = entry end
-  list[#list + 1] = { name = name:gsub("^%l", string.upper), zone = zone }
+  list[#list + 1] = { name = unicase.capitalise(name), zone = zone }
   M.world:set(list)
   sys.save(saved("world.json"), list)
   M.city:set("")

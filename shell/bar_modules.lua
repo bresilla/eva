@@ -9,6 +9,7 @@
 -- is when it folds (bar_layout.lua). `kind` picks its drawing, a readout without.
 local morf = require("morf")
 local poll = require("lib.util.poll")
+local unicase = require("lib.util.unicase")
 local clock = require("clock_format")
 
 local M = {}
@@ -42,10 +43,7 @@ end
 
 local function percent(value) return ("%d%%"):format(math.floor((value or 0) + 0.5)) end
 
-local function size_text(bytes)
-  local text, unit = require("performance_model").bytes(bytes or 0)
-  return text .. " " .. unit
-end
+local function size_text(bytes) return require("performance_model").size_text(bytes) end
 
 -- A rate, short enough for a bar.
 local function rate_text(bytes)
@@ -406,7 +404,7 @@ function M.list(bar)
       local power = services().upower
       return power ~= nil and power.state ~= nil and power.state.profiles ~= nil and power.state.profiles.available == true
     end,
-    text = function() return (services().upower.state.profiles.active or ""):gsub("^%l", string.upper) end,
+    text = function() return unicase.capitalise(services().upower.state.profiles.active or "") end,
     tooltip = function() return "Power profile: " .. tostring(services().upower.state.profiles.active or "") end,
     press = function() bar.next_profile() end, menu = function() return { item("Power settings", "bolt", settings_page("power")) } end }
 
@@ -686,7 +684,7 @@ function M.list(bar)
       local h = services().hyprland
       return h ~= nil and h.available ~= nil and h.available()
     end,
-    text = function() return (tostring(services().hyprland.state.keyboard_layout or ""):sub(1, 2):upper()) end,
+    text = function() return unicase.upper(unicase.first(tostring(services().hyprland.state.keyboard_layout or ""), 2)) end,
     tooltip = function() return tostring(services().hyprland.state.keyboard_layout or "") end,
     press = function() bar.next_layout() end }
   add { id = "lock_keys", name = "Caps and Num Lock", icon = "keyboard_capslock", tier = 2,

@@ -102,4 +102,43 @@ function M.summary(list)
   return (list and list[#list]) or 0, n > 0 and sum / n or 0, peak
 end
 
+--- A spec value that should be a number, or `d`.
+function M.num(v, d)
+  v = M.get(v)
+  return type(v) == "number" and v or d
+end
+
+--- A number with its thousands marked, one decimal where it has any. What is
+--- no number stands as it is.
+function M.grouped(v)
+  if type(v) ~= "number" then return tostring(v == nil and "" or v) end
+  if v == math.floor(v) and math.abs(v) < 1e15 then
+    local sign, digits = ("%d"):format(v):match("^(-?)(%d+)$")
+    digits = digits:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+    return sign .. digits
+  end
+  return ("%.1f"):format(v)
+end
+
+--- Bytes in decimal units: "1.5 kB". What is no number stands as it is.
+function M.decimal_bytes(n)
+  if type(n) ~= "number" then return n and tostring(n) or "" end
+  local units, i = { "B", "kB", "MB", "GB", "TB" }, 1
+  while n >= 1000 and i < #units do n, i = n / 1000, i + 1 end
+  return i == 1 and ("%d %s"):format(n, units[i]) or ("%.1f %s"):format(n, units[i])
+end
+
+--- A moment as a cell shows it: "28 Sep 08:24". What is no number stands as it is.
+function M.stamp(v)
+  if type(v) == "number" then return os.date("%d %b %H:%M", v) end
+  return v and tostring(v) or ""
+end
+
+--- A number to two places, without the zeros that end it: "1.5".
+function M.trim_number(v)
+  local s = ("%.2f"):format(v)
+  s = s:gsub("0+$", ""):gsub("%.$", "")
+  return s
+end
+
 return M

@@ -2,6 +2,7 @@
 -- The rows are the engine's list view, a pool rebound as it scrolls.
 local morf = require("morf")
 local ui = require("morf.ui")
+local unicase = require("lib.util.unicase")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
@@ -127,7 +128,7 @@ local function connection_line(index, w)
         local entry = item()
         if not entry then return "" end
         local there = entry.state == "Listening" and "" or (" to " .. entry.there)
-        return ("%s %s%s, %s"):format(entry.protocol:upper(), entry.here, there, entry.state)
+        return ("%s %s%s, %s"):format(unicase.upper(entry.protocol), entry.here, there, entry.state)
       end,
     },
   }

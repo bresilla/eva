@@ -275,11 +275,8 @@ local function bind_output()
   local hyprland = require("lib.compositor.hyprland")
   if not hyprland.available() then return end
   bound = panel.name
-  hyprland.eval(("hl.config({input={touchdevice={output=%q}}})"):format(bound), function(reply)
-    if not (type(reply) == "string" and reply:match("^%s*ok%s*$")) then
-      hyprland.keyword("input:touchdevice:output", bound)
-    end
-  end)
+  require("lib.util.hypr").eval_or(hyprland, ("hl.config({input={touchdevice={output=%q}}})"):format(bound),
+    function() hyprland.keyword("input:touchdevice:output", bound) end)
 end
 
 --- Starts it: from here on it follows the setting, the screens, plug and unplug,

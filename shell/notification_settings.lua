@@ -3,6 +3,7 @@
 local morf = require("morf")
 local config = require("config")
 local rules = require("notification_rules")
+local unicase = require("lib.util.unicase")
 local M = {}
 
 M.TIMES = { { 0, "Auto" }, { 3000, "3 s" }, { 5000, "5 s" }, { 10000, "10 s" } }
@@ -14,6 +15,9 @@ M.PREVIEWS = { { 1, "1" }, { 2, "2" }, { 3, "3" }, { 4, "4" } }
 M.URGENCY = { { -1, "App's" }, { 0, "Low" }, { 1, "Normal" }, { 2, "Critical" } }
 M.APP_TIMES = { { -1, "Auto" }, { 3000, "3 s" }, { 10000, "10 s" }, { 0, "Stays" } }
 M.APP_SOUND = { { "default", "Default" }, { "off", "Off" } }
+M.KEEP = { { 0, "Off" }, { 60000, "1 m" }, { 300000, "5 m" }, { 900000, "15 m" }, { 3600000, "1 h" } }
+M.DIGEST = { key = "notifications.digest_times", kind = "list", title = "Summary times", icon = "schedule",
+  note = "24-hour, as 08:00 18:00", clean = require("settings_forms").times }
 
 function M.model()
   local notifs = require("notifs")
@@ -23,7 +27,7 @@ function M.model()
   function model.ring()
     local ringer = require("services").ringer
     local mode = ringer and ringer.state.mode or config.get("ringer.mode")
-    return mode:sub(1, 1):upper() .. mode:sub(2)
+    return unicase.capitalise(mode)
   end
   --- Plays the sound a notification would make now.
   function model.try()

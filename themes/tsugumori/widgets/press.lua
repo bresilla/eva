@@ -10,6 +10,7 @@
 -- checkbox, radio, menu items) keep the archetype's look (skins.lua). The
 -- behaviour is the archetype's.
 local morf = require("morf")
+local unicase = require("lib.util.unicase")
 local ui = require("morf.ui")
 local stripes = require("themes.tsugumori.stripes")
 local stroke = require("themes.tsugumori.strokes")
@@ -120,7 +121,7 @@ return function(S, theme, M, hud)
   --- pointer arrives (the theme's button label). `text` a string or fn.
   local function caption(t, text, ink, size, available)
     size = size or FS
-    local function words() return tostring(get(text) or ""):upper() end
+    local function words() return unicase.upper(tostring(get(text) or "")) end
     local measure=not available and M.menu_label {text=words,font_size=size,height=18,opacity=0} or nil
     local function width() return available and available() or math.max(1,(measure.layout_width or 0)+2) end
     local strip = ui.Column { y = -36, gap = 0,
@@ -153,7 +154,7 @@ return function(S, theme, M, hud)
     if o.pre then before[#before+1]=o.pre end
     if glyph then before[#before+1]=M.icon(glyph,o.glyph or 17,o.icon_ink or ink) end
     if o.post then after[#after+1]=o.post end
-    local measure=M.menu_label {text=function() return tostring(get(text) or ""):upper() end,
+    local measure=M.menu_label {text=function() return unicase.upper(tostring(get(text) or "")) end,
       font_size=o.size or FS,height=18,opacity=0}
     return require("lib.kit.archetypes.press").caption {width=spec.width,height=function() return H(t) end,
       gap=o.gap or 8,left=o.start,right=o.end_space,align=o.start and "start" or nil,
@@ -581,7 +582,7 @@ return function(S, theme, M, hud)
       content = ui.Row { anchors = { left = true, left_margin = 14, vertical_center = true }, gap = 12, align = "center",
         M.icon(spec.icon or "toggle_on", 22, ink, { fill = function() return t.checked end }),
         with(ui.Column, { gap = 2 },
-          M.menu_label { text = tostring(spec.label or ""):upper(), font_size = theme.size.normal, color = ink,
+          M.menu_label { text = unicase.upper(tostring(spec.label or "")), font_size = theme.size.normal, color = ink,
             elide = "right", width = words },
           spec.subtitle and M.text { text = spec.subtitle, font_size = FS, color = function() return C.onSurfaceVariant end,
             elide = "right", width = words } or nil) } })
@@ -604,7 +605,7 @@ return function(S, theme, M, hud)
           border_width = 1, border_color = function() return stroke(C, "hover") end,
           M.icon(spec.icon, 20, function() return C.primary end, { anchors = { center_in = true } }) } or nil,
         with(ui.Column, { gap = 3 },
-          M.menu_label { text = tostring(spec.label or ""):upper(), font_size = theme.size.normal,
+          M.menu_label { text = unicase.upper(tostring(spec.label or "")), font_size = theme.size.normal,
             color = function() return C.onSurface end, elide = "right", width = words },
           spec.subtitle and M.text { text = spec.subtitle, font_size = FS, color = function() return C.onSurfaceVariant end,
             elide = "right", width = words } or nil)) })
@@ -648,7 +649,7 @@ return function(S, theme, M, hud)
           behavior = { height = quick, translate_y = quick } } },
       label = M.menu_label { anchors = { horizontal_center = true }, height = 18,
         y = function() return (H(t) - 3) / 2 - 9 + (t.down and 2 or 0) end, behavior = { y = quick },
-        text = tostring(spec.label or spec.text or ""):upper(), font_size = FS,
+        text = unicase.upper(tostring(spec.label or spec.text or "")), font_size = FS,
         color = function() return C.onSurface end },
       badge = feedback(t, spec.id),
     }
