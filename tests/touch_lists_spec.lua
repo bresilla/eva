@@ -22,6 +22,10 @@ local SOURCE = [[
       room = (view.state.content_height or 0) - (view.flick.layout_height or 0),
       sidebar = require("sidebar").drawer.open:get() }
   end
+  morf.ipc.list_end = function(id)
+    local view = views[id]
+    view.flick.content_y = math.max(0, (view.state.content_height or 0) - (view.flick.layout_height or 0))
+  end
   morf.ipc.show_view = function(panel, key)
     local target = require(panel)
     target.select(key)
@@ -44,6 +48,28 @@ for _, form in ipairs(touch.FORMS) do
       touch.lift(x, y + 240)
       test.near(test.ipc("list_state", "settings-overview-scroll").offset, 0, 1)
       test.truthy(test.ipc("list_state", "settings-overview-scroll").sidebar, "the panel stays")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a pull past the bottom stretches a side panel's list and shuts a top sheet", function()
+      touch.load(form, style, SOURCE)
+      test.ipc("show_view", "sidebar", "settings") test.advance(900)
+      local box = test.get("drawer-sidebar")
+      local x, y = box.x + box.width / 2, box.y + box.height * .7
+      local room = test.ipc("list_state", "settings-overview-scroll").room
+      test.ipc("list_end", "settings-overview-scroll") test.advance(60)
+      touch.drag(x, y, 0, -200, { hold = true })
+      if form.sheet then
+        test.near(test.ipc("list_state", "settings-overview-scroll").offset, math.max(0, room), 2, "the list stays put")
+        touch.lift(x, y - 200)
+        test.falsy(test.ipc("list_state", "settings-overview-scroll").sidebar, "the sheet shuts")
+      else
+        local past = test.ipc("list_state", "settings-overview-scroll").offset
+        test.truthy(past > math.max(0, room) + 8, "it stretches past its end, got " .. tostring(past))
+        touch.lift(x, y - 200)
+        test.near(test.ipc("list_state", "settings-overview-scroll").offset, math.max(0, room), 1)
+        test.truthy(test.ipc("list_state", "settings-overview-scroll").sidebar, "the panel stays")
+      end
       test.eq(test.logs("error"), {})
     end)
   end
