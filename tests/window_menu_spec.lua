@@ -32,6 +32,19 @@ local function last() local e=state().evals return e[#e] or "" end
 local function open() test.eq(test.ipc("window_menu","open"),true) test.advance(800) end
 local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snapshot(name..".png") end end
 for _,style in ipairs {"material","tsugumori"} do
+  test.it(style.." the window menu swipes away, following the finger",function()
+    load(style) open()
+    local box=test.get("window-menu")
+    local x,y=box.x+6,box.y+box.height/2
+    test.touch("down",0,x,y) test.advance(16)
+    for i=1,10 do test.touch("move",0,x-12*i,y) test.advance(16) end
+    test.near(test.get("window-menu").x,box.x-120,2,"it follows the finger")
+    test.touch("up",0,x-120,y) test.advance(600)
+    test.falsy(state().open)
+    open()
+    test.near(test.get("window-menu").x,box.x,2,"it opens where it stood")
+    test.eq(test.logs("error"),{})
+  end)
   test.it(style.." the window menu's buttons each act in one press",function()
     load(style) open()
     local box=test.get("window-menu")

@@ -1,0 +1,198 @@
+-- What comes and goes under a finger, on a phone, a tablet and a desk with a
+-- touchscreen, in both themes: popups swipe away, latch open on their snooze and
+-- expand under two fingers, OSDs swipe away, and a meter keeps its own drag.
+
+local test = morf.test
+local touch = require("touch_forms")
+
+local SOURCE = [[
+  local notifs
+  require("init")
+  notifs = require("notifs")
+  local levels, osd = require("levels"), require("osd")
+  morf.ipc.q_push = function(summary, body)
+    return notifs.push { summary = summary, body = body, urgency = 1, timeout_ms = 60000, app = summary }
+  end
+  morf.ipc.q_state = function()
+    local ids, snoozed = {}, #notifs.snoozed:get()
+    for i, entry in ipairs(notifs.list:get()) do ids[i] = entry.id end
+    return { ids = ids, snoozed = snoozed, shown = levels.shown:get(), active = levels.active:get(),
+      volume = osd.volume(), tools = notifs.tools:get(), haptic = require("haptics").last:get(),
+      open = ids[1] ~= nil and notifs.expanded(ids[1]) or false }
+  end
+  morf.ipc.q_pop = levels.pop
+  morf.ipc.q_spot = function(kind) return { edge = levels.spot(kind).edge } end
+  morf.ipc.q_history = function()
+    for _, entry in ipairs(notifs.list:get()) do notifs.dismiss(entry.id) end
+    local sidebar = require("sidebar")
+    sidebar.select("notifications")
+    sidebar.drawer.set(true)
+  end
+  morf.ipc.q_group_open = function()
+    local history = require("notification_history")
+    local group = history.groups()[1]
+    return group ~= nil and history.is_open(group.key)
+  end
+  morf.ipc.q_records = function() return #notifs.records() end
+  morf.ipc.q_drive = function()
+    require("themes").view("drive_popup").show({ name = "Stick", size = 1024, encrypted = false },
+      { open = function() end, eject = function() end, settings = function() end, human = tostring })
+  end
+]]
+
+local function card()
+  test.ipc("q_push", "Swipe me", "Some long body text that wraps past a line for sure and then some more") test.advance(2400)
+  local node = test.get("notification-1")
+  return node.x + node.width / 2, node.y + node.height / 2, node
+end
+
+local function pinch(x, y, from, to)
+  test.touch("down", 0, x - from, y) test.touch("down", 1, x + from, y) test.advance(16)
+  for i = 1, 8 do
+    local at = from + (to - from) * i / 8
+    test.touch("move", 0, x - at, y) test.touch("move", 1, x + at, y) test.advance(16)
+  end
+  test.touch("up", 0, x - to, y) test.touch("up", 1, x + to, y) test.advance(500)
+end
+
+for _, form in ipairs(touch.FORMS) do
+  for _, style in ipairs { "material", "tsugumori" } do
+    local tag = style .. " " .. form.name
+
+    test.it(tag .. ": a popup follows a swipe and goes, and a short pull springs back", function()
+      touch.load(form, style, SOURCE)
+      local x, y, node = card()
+      local start = node.x
+      touch.drag(x, y, 40, 0, { hold = true })
+      test.near(test.get("notification-1").x, start + 40, 2)
+      touch.lift(x + 40, y, 700)
+      test.near(test.get("notification-1").x, start, 2)
+      test.eq(#test.ipc("q_state").ids, 1)
+      touch.drag(x, y, 160, 0)
+      test.eq(#test.ipc("q_state").ids, 0, "past its distance it goes")
+      test.eq(test.ipc("q_state").haptic, "commit")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a partial swipe latches a popup open on its snooze", function()
+      touch.load(form, style, SOURCE)
+      local x, y, node = card()
+      local start = node.x
+      touch.drag(x, y, -100, 0, { slow = true })
+      test.truthy(test.get("notification-1").x < start - 50, "it stays uncovered")
+      test.truthy(test.find { id = "notification-reveal-1", visible = true }, "the snooze shows")
+      test.eq(#test.ipc("q_state").ids, 1)
+      test.click("notification-snooze-1") test.advance(800)
+      test.eq(test.ipc("q_state").snoozed, 1, "it snoozed")
+      test.eq(#test.ipc("q_state").ids, 0)
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a drive's card swipes off", function()
+      touch.load(form, style, SOURCE)
+      test.ipc("q_drive") test.advance(400)
+      local on, labels = nil, {}
+      for _, surface in ipairs(test.surfaces()) do
+        labels[#labels + 1] = surface.label
+        if surface.label:find("eva-drive", 1, true) then on = { surface = surface.label } end
+      end
+      test.truthy(on, "no drive surface among " .. table.concat(labels, " "))
+      test.touch("down", 0, 300, 20, on) test.advance(16)
+      for i = 1, 10 do test.touch("move", 0, 300 + 16 * i, 20, on) test.advance(16) end
+      test.touch("up", 0, 460, 20, on) test.advance(700)
+      local still = false
+      for _, surface in ipairs(test.surfaces()) do
+        if surface.label:find("eva-drive", 1, true) then still = true end
+      end
+      test.falsy(still, "it went")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": the island opens down, shuts up and walks its faces across", function()
+      local settings = morf.env("XDG_CACHE_HOME") .. "/touch-island.json"
+      morf.fs.write(settings, morf.json.encode { island = { enabled = true } })
+      touch.load(form, style, SOURCE, { EVA_SETTINGS = settings })
+      local node = test.get("island")
+      local x, y = node.x + node.width / 2, node.y + node.height / 2
+      local face = test.ipc("island", "state").face
+      touch.drag(x, y, 70, 0)
+      test.ne(test.ipc("island", "state").face, face, "across walks the faces")
+      test.falsy(test.ipc("island", "state").open)
+      touch.drag(x, y, 0, 70)
+      test.truthy(test.ipc("island", "state").open, "down opens it")
+      node = test.get("island")
+      touch.drag(node.x + node.width / 2, node.y + node.height / 2, 0, -60)
+      test.falsy(test.ipc("island", "state").open, "up shuts it")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a latch left alone shuts by itself", function()
+      touch.load(form, style, SOURCE)
+      local x, y, node = card()
+      local start = node.x
+      touch.drag(x, y, -100, 0, { slow = true })
+      test.truthy(test.get("notification-1").x < start - 50, "it stands latched")
+      test.advance(5400)
+      test.near(test.get("notification-1").x, start, 2)
+      test.falsy(test.find { id = "notification-reveal-1", visible = true })
+      test.eq(#test.ipc("q_state").ids, 1, "it is still there")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a long press opens a popup's tools, two fingers spread it", function()
+      touch.load(form, style, SOURCE)
+      local x, y = card()
+      pinch(x, y, 40, 120)
+      test.truthy(test.ipc("q_state").open, "spread, it opens")
+      pinch(x, y, 120, 40)
+      test.falsy(test.ipc("q_state").open, "closed, it shuts")
+      test.touch("down", 0, x, y) test.advance(700) test.touch("up", 0, x, y) test.advance(300)
+      test.truthy(test.ipc("q_state").tools, "the tools are out")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": an OSD swipes away toward its edge, and a meter keeps a drag along it", function()
+      touch.load(form, style, SOURCE)
+      test.ipc("q_pop", "brightness") test.advance(700)
+      test.truthy(test.ipc("q_state").active, "it is out")
+      local spot = test.ipc("q_spot", "brightness")
+      local way = ({ left = { -1, 0 }, right = { 1, 0 }, top = { 0, -1 }, bottom = { 0, 1 } })[spot.edge or "right"]
+      local bud = test.get("levels-swell")
+      local x, y = bud.x + bud.width / 2, bud.y + bud.height / 2
+      touch.drag(x, y, way[1] * 110, way[2] * 110, { hold = true })
+      local moved = test.get("levels-swell")
+      test.truthy(math.abs(moved.x - bud.x) + math.abs(moved.y - bud.y) > 40, "it follows the finger")
+      touch.lift(x + way[1] * 110, y + way[2] * 110, 500)
+      test.falsy(test.ipc("q_state").active, "let go past its distance, it goes")
+      test.eq(test.ipc("q_state").haptic, "commit")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a status pill swipes away along its edge too", function()
+      touch.load(form, style, SOURCE)
+      test.ipc("q_pop", "caps") test.advance(700)
+      local bud = test.get("levels-swell")
+      local x, y = bud.x + bud.width / 2, bud.y + bud.height / 2
+      touch.drag(x, y, 120, 0)
+      test.falsy(test.ipc("q_state").active, "it went")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a row of the history swipes away, and two fingers open its group", function()
+      touch.load(form, style, SOURCE)
+      test.ipc("q_push", "History", "First") test.ipc("q_push", "History", "Second") test.advance(400)
+      test.ipc("q_history") test.advance(1200)
+      local group = test.get("sidebar-group-1")
+      local x, y = group.x + group.width / 2, group.y + group.height / 2
+      pinch(x, y, 40, 120)
+      test.truthy(test.ipc("q_group_open"), "spread, the group opens")
+      test.advance(700)
+      local row = test.find { id = "sidebar-item-title-1-1", visible = true }
+      test.truthy(row, "a row of it is on show")
+      local before = test.ipc("q_records")
+      touch.drag(row.x + 40, row.y + 8, 160, 0)
+      test.eq(test.ipc("q_records"), before - 1, "it went")
+      test.eq(test.logs("error"), {})
+    end)
+  end
+end

@@ -78,6 +78,18 @@ end
 
 for _, style in ipairs { "material", "tsugumori" } do
   test.describe(style .. " panel", function()
+    test.it("pulls shut under a finger", function()
+      tool(style, { size = { 1920, 1080 } })
+      test.ipc("capture", "open") test.settle(1000)
+      local d = test.get("drawer-capture")
+      local x, y = d.x + 30, d.y + 40
+      test.touch("down", 0, x, y) test.advance(16)
+      for i = 1, 10 do test.touch("move", 0, x, y + 16 * i) test.advance(16) end
+      test.near(test.get("drawer-capture").y, d.y + 160, 2, "it follows the finger")
+      test.touch("up", 0, x, y + 160) test.settle(800)
+      test.falsy(test.get("drawer-capture").visible)
+      test.eq(test.logs("error"), {})
+    end)
     test.it("stands on the bottom edge, every control shown", function()
       tool(style, { size = { 1920, 1080 } })
       test.falsy(test.get("drawer-capture").visible, "capture must only open explicitly")

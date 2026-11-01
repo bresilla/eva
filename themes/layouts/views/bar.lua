@@ -120,6 +120,7 @@ function V.build(model)
     modules.tip(area, function() return client.title end)
     ui.reparent(ui.MouseArea { anchors = { fill = true }, accepted_buttons = { "right" },
       on_pressed = function() model.window_menu(client.address) end }, area)
+    area.on_long_pressed = function() model.window_menu(client.address) end
     return kit.hover(area, function(hovered)
       if focused() then return C.primary:alpha(0.16) end
       return hovered and C.onSurface:alpha(0.07) or C.onSurface:alpha(0)
@@ -282,6 +283,7 @@ function V.build(model)
     -- The kit's press takes the left button alone: the right one comes here.
     ui.reparent(ui.MouseArea { anchors = { fill = true }, accepted_buttons = { "right" },
       on_pressed = function() item.open_menu() end }, node)
+    node.on_long_pressed = function() item.open_menu() end
     modules.tip(node, function() return row.title end)
     return node
   end
@@ -483,11 +485,16 @@ function V.build(model)
   local along = strip(false)
   local down = strip(true)
   local ground
-  ground = ui.MouseArea { id = "bar-ground", anchors = { fill = true }, z = -1, accepted_buttons = { "right" },
-    on_pressed = function() modules.open_bar_menu(ground) end }
+  ground = ui.MouseArea { id = "bar-ground", anchors = { fill = true }, z = -1, accepted_buttons = { "left", "right" },
+    on_pressed = function(_, _, _, _, button) if button == "right" then modules.open_bar_menu(ground) end end,
+    on_long_pressed = function() modules.open_bar_menu(ground) end }
   return ui.Item {
     id = "bar",
     visible = function() return model.on() end,
+    -- A pull off the bar brings out what hangs from its edge, under the finger.
+    on_panned = function(phase, dx, dy, vx, vy, x, y)
+      return require("phone_gestures").edge_pan(model.side(), phase, dx, dy, vx, vy, x, y)
+    end,
     x = function() local x = strip_box() return x end,
     y = function() local _, y = strip_box() return y end,
     width = function() local _, _, w = strip_box() return w end,

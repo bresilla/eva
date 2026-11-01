@@ -122,6 +122,21 @@ test.it("it hides when a window lies under it, and comes back to the pointer", f
   test.truthy(test.ipc("dock", "state").shown, "the edge did not bring it back")
 end)
 
+test.it("a finger held on an icon offers the same menu", function()
+  load()
+  test.ipc("dock", "on")
+  test.ipc("dock", "peek")
+  test.advance(300)
+  local icon = test.get("dock-icon-area-1")
+  local x, y = icon.x + icon.width / 2, icon.y + icon.height / 2
+  test.touch("down", 0, x, y) test.advance(700)
+  test.touch("up", 0, x, y) test.advance(100)
+  test.truthy(test.get("dock-menu").visible, "let go, it is out and stays")
+  test.advance(600)
+  test.truthy(test.get("dock-menu").visible)
+  test.eq(test.logs("error"), {})
+end)
+
 test.it("the right button offers the app's windows, pinning and closing", function()
   load()
   test.ipc("dock", "on")

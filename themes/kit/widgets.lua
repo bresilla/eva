@@ -256,7 +256,11 @@ local MAKE = {
     return (archetype("selection").make(w, with_item_role(w, with_defaults("Selection", w, spec))))
   end,
   Popup = function(w, spec) return require("themes.kit.popup").make(w, spec) end,
-  TextField = function(w, spec) return archetype("text_field").make(w, with_defaults("TextField", w, spec)) end,
+  TextField = function(w, spec)
+    local root, input, t, ctl = archetype("text_field").make(w, with_defaults("TextField", w, spec))
+    if input then require("themes.kit.text_touch").attach(input) end
+    return root, input, t, ctl
+  end,
   Scroll = function(w, spec) return require("themes.kit.scroll").make(w, spec) end,
   Collection = function(w, spec)
     local merged = with_defaults("Collection", w, spec)

@@ -121,6 +121,13 @@ function V.build(M, width, height)
     fill_mode = "preserve_aspect_fit", source = function() return state.image end,
     visible = function() return state.image ~= "" end,
   }
+  -- Two fingers look closer at the picture.
+  local under_fingers = ui.MouseArea { anchors = { fill = true } }
+  ui.reparent(under_fingers, picture)
+  local zoom = require("pinch_zoom").attach { node = picture, area = under_fingers }
+  morf.effect("eva.launcher.preview.zoom", function()
+    if state.image ~= "" then morf.time.timer(1, zoom.reset, false) end
+  end, { owner = picture })
   local words = kit.text {
     id = "launcher-preview-text", width = function() return width() - 2 * S.m end, wrap = true,
     font_size = theme.size.small, font_family = theme.mono or theme.font,

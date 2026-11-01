@@ -179,7 +179,7 @@ function M.overlay(finish)
     },
     toolbar(finish),
   }
-  return frame.overlay { id = "draw", root = root }
+  return frame.overlay { id = "draw", root = root, close = finish }
 end
 
 return M

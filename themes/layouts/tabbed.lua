@@ -82,21 +82,24 @@ function M.new(spec)
   local opened = morf.signal("eva." .. spec.id .. ".opened", false)
   local seen = {}
   for i in ipairs(tabs) do seen[i] = morf.signal("eva." .. spec.id .. ".seen." .. i, false) end
+  -- A finger drags the neighbours in by hand: they are seen as it does.
+  local reach = (phone or require("models.touchscreens").attached()) and 1 or 0
   morf.effect("eva." .. spec.id .. ".seen", function()
     if not opened:get() then return end
     local now = tab:get()
-    -- A phone drags the neighbours in by hand: they are seen as it does.
-    for i = now - (phone and 1 or 0), now + (phone and 1 or 0) do
+    for i = now - reach, now + reach do
       if seen[i] and not seen[i]:get() then seen[i]:set(true) end
     end
   end)
+  -- Whether a finger has the track, its neighbours on show beside the page.
+  local peeking = morf.signal("eva." .. spec.id .. ".peeking", false)
   local pages = {}
   for i, t in ipairs(tabs) do
     pages[i] = ui.Item {
       id = spec.id .. "-page-" .. t.key,
       width = page_w, height = page_h,
       x=page_wipe and function() return (i-1)*(page_w()+2*PAD) end or nil,
-      visible=function() return not page_wipe or display:get()==i end,
+      visible=function() return not page_wipe or display:get()==i or peeking:get() end,
       -- A page beside the one on show is out of Tab's way.
       enabled=function() return tab:get()==i end,
       ui.Loader {
@@ -111,9 +114,22 @@ function M.new(spec)
     id=spec.id.."-page-track",
     width=page_wipe and function() return #tabs*(page_w()+2*PAD) end or nil,height=page_h,
     gap = not page_wipe and 2 * PAD or nil,
-    translate_x = phone and -(tab:get()-1)*(page_w()+2*PAD) or function() return -(display:get() - 1) * (page_w() + 2 * PAD) end,
-    behavior = (page_wipe or phone) and {} or { translate_x = SWITCH },
     table.unpack(pages),
+  }
+  local running
+  local pager=require("pager_drag").new {
+    id=spec.id,track=track,tab=tab,shown=display,count=#tabs,
+    offset=function(i) return (i-1)*(page_w()+2*PAD) end,
+    spring=phone and theme.spring.spatial or SWITCH,
+    -- A wipe swaps the pages under its cover, the track jumping there.
+    instant=page_wipe and function() return not peeking:get() end or nil,
+    peeking=function(on) peeking:set(on) end,
+    prepare=function()
+      if running then for _,h in ipairs(running) do h:stop() end running=nil end
+      for _,page in ipairs(pages) do page.opacity,page.scale=1,1 end
+      local now=tab:get()
+      for i=now-1,now+1 do if seen[i] and not seen[i]:get() then seen[i]:set(true) end end
+    end,
   }
   -- `tabs_at = "bottom"`: the row under the pages (a drawer from the bottom
   -- edge has it by the edge, under the thumb).
@@ -145,19 +161,20 @@ function M.new(spec)
     if spec.on_present then spec.on_present(index) end
   end
 
-  -- The incoming page grows in evenly as it fades in.
-  local running
+  -- The incoming page grows in evenly as it fades in; a page a finger brought
+  -- in is already there.
   local was = tab:get()
   morf.effect("eva." .. spec.id .. ".page", function()
     local now = tab:get()
     if now == was then return end
     was = now
     if running then for _, h in ipairs(running) do h:stop() end end
+    local slid = pager.slid()
     local function enter()
       present(now)
-      if not phone then running = kit.bud({ pages[now] }, true, { from = 0.97, delay = 60 }) end
+      if not phone and not slid then running = kit.bud({ pages[now] }, true, { from = 0.97, delay = 60 }) end
     end
-    if wipe then wipe(enter, not presented:get(), {
+    if wipe and not slid then wipe(enter, not presented:get(), {
       index=now,name=tabs[now].name,key=tabs[now].key,
     }) else enter() end
     if spec.on_tab then spec.on_tab(tabs[now].key) end
@@ -187,16 +204,14 @@ function M.new(spec)
     end
   end
 
-  local pager=phone and require("pager_drag").new {
-    id=spec.id,track=track,tab=tab,count=#tabs,offset=function(i) return (i-1)*(page_w()+2*PAD) end,
-    prepare=function()
-      if running then for _,h in ipairs(running) do h:stop() end running=nil end
-      for _,page in ipairs(pages) do page.opacity,page.scale=1,1 end
-    end,
-  }
   root = ui.Item {
     anchors = { fill = true },
-    on_panned = require("phone_gestures").pan {drawer=spec.id,dismiss=spec.dismiss,pager=pager},
+    on_panned = require("phone_gestures").pan {drawer=spec.id,dismiss=spec.dismiss,pager=pager,
+      grip=function(_,y)
+        local top=root.layout_y or 0
+        if below then return y>=top+spec.height()-TABS_H end
+        return y<top+TABS_H
+      end},
     on_swiped = require("phone_gestures").panel {
       tab = tab, count = #tabs, close = spec.close, dismiss = spec.dismiss,
     },

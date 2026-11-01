@@ -157,7 +157,7 @@ local function frozen_screen(done)
     },
     lens, label, hint,
   }
-  return require("common.frame").overlay { id = "colorpick", root = root }
+  return require("common.frame").overlay { id = "colorpick", root = root, close = function() model.thaw() finish(nil) end }
 end
 
 --- The frozen screen for as long as there is a picture: a click takes a colour,

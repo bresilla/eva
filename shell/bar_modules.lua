@@ -594,7 +594,7 @@ function M.list(bar)
       return artist ~= "" and (title .. "\n" .. artist) or title
     end,
     press = function() require("media_state").control("play_pause") end,
-    wheel = function(steps) require("media_state").control(steps > 0 and "next" or "previous") end,
+    wheel = function(steps) require("media_state").control(steps > 0 and "next" or "previous") end, slide_px = 64,
     menu = function() return { item("Previous", "skip_previous", function() require("media_state").control("previous") end),
       item("Next", "skip_next", function() require("media_state").control("next") end),
       item("Open the player", "queue_music", dashboard_tab("media")) } end }

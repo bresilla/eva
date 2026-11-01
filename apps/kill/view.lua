@@ -112,7 +112,8 @@ function M.overlay()
     stretch = kit.STRETCH,
   }
   local close = ui.Item {
-    id = "kill-cancel-box", z = 3, width = S.TARGET, height = S.TARGET, visible = responsive.sheets(),
+    id = "kill-cancel-box", z = 3, width = S.TARGET, height = S.TARGET,
+    visible = responsive.sheets() or require("models.touchscreens").attached(),
     anchors = { horizontal_center = true, bottom = true, bottom_margin = S.l + S.TARGET + S.s },
     L.icon_button {
       id = "kill-cancel", name = "Cancel", icon = "close", width = S.TARGET, height = S.TARGET,
@@ -136,7 +137,7 @@ function M.overlay()
     },
     chip(), hint(), close,
   }
-  return frame.overlay { id = "kill", root = root }
+  return frame.overlay { id = "kill", root = root, close = model.cancel }
 end
 
 return M

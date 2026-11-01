@@ -137,7 +137,8 @@ end
 -- Over the press area: what ends the rings for a finger.
 local function finger_end()
   return ui.Item {
-    id = "find-end-box", anchors = { fill = true }, visible = responsive.sheets(),
+    id = "find-end-box", anchors = { fill = true },
+    visible = responsive.sheets() or require("models.touchscreens").attached(),
     pill.new {
       id = "find-controls", cells = {
         L.icon_button {
@@ -178,7 +179,7 @@ function M.overlay()
   morf.effect("find.shown", function()
     if (root.layout_width or 0) > 0 then model.shown() end
   end, { owner = root })
-  return frame.overlay { id = "find", root = root }
+  return frame.overlay { id = "find", root = root, close = model.finish }
 end
 
 return M

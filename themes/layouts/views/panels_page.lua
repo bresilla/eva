@@ -33,6 +33,8 @@ function V.build(model, w, h)
   -- Every panel, then the spare pages, each with where it stands in the card.
   local plan = morf.signal("eva.panels.plan." .. stamp, { groups = {}, height = 0, at = {} })
   local carried = morf.signal("eva.panels.carried." .. stamp, "")
+  local lifted = morf.signal("eva.panels.lifted." .. stamp, "")
+  local fingers = require("models.touchscreens").attached()
 
   local function laid_out()
     local y, groups, at = P.PAD, {}, {}
@@ -85,8 +87,13 @@ function V.build(model, w, h)
       return last
     end
     local function spare() return box().spare end
+    -- Under a finger a page takes a long press to come loose, so a drag over
+    -- the rest scrolls.
+    local function loose() return not fingers or lifted:get() == key end
     local area = kit.action { id = "panels-page-" .. key, accessible_name = page.name, anchors = { fill = true },
-      cursor = "pointer", enabled = spare, on_clicked = function() board.add(key) end,
+      cursor = "pointer", enabled = function() return spare() or not loose() end,
+      on_clicked = function() if spare() then board.add(key) end end,
+      on_long_pressed = function() lifted:set(key) end,
       kit.icon(page.icon, 22, function() return C.onSurface end, { x = S.l, anchors = { vertical_center = true } }),
       kit.text { x = S.xxl + S.l, width = SLOT - S.xxl - S.l - S.xl, elide = "right", text = page.name,
         anchors = { vertical_center = true }, font_size = theme.size.small, font_weight = 500,
@@ -116,14 +123,18 @@ function V.build(model, w, h)
       width = function() return box().width end, height = TILE_H,
       behavior = { x = TRAVEL, y = TRAVEL, width = TRAVEL },
       z = function() return carried:get() == key and 10 or 0 end,
-      armed = function() return not spare() end, enabled = function() return not spare() end,
+      armed = function() return not spare() and loose() end, enabled = function() return not spare() and loose() end,
       focus_policy = function() return spare() and "none" or "tab" end,
       on_drag_started = function()
         local b = box()
         origin = { x = b.x + b.width / 2, y = b.y + TILE_H / 2 }
         carried:set(key)
       end,
-      on_dropped = function() carried:set("") end,
+      on_dropped = function()
+        carried:set("")
+        lifted:set("")
+        require("haptics").fire("commit")
+      end,
       on_reorder = function(step) board.step(key, step) end,
     }
     ui.reparent(body, holder)

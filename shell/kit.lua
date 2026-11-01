@@ -85,12 +85,18 @@ function kit.icon_button(spec)
   return widgets.icon(copy(spec))
 end
 
+-- What a range stands: `height`, or where a finger may reach it, a finger's.
+local function reachable(height)
+  local fingers = require("models.touchscreens").attached()
+  return fingers and math.max(height, require("themes.spacing").TOUCH) or height
+end
+
 --- A slider: `id`, `width`, `height` (the bar's, 44), `value` (fn, 0..1),
 --- `set(v)`, `icon`, `label` (false hides the reading).
 function kit.slider(spec)
   local s = copy(spec)
   s.bar_height = spec.height or 44
-  s.height = s.bar_height + 8
+  s.height = reachable(s.bar_height + 8)
   s.value, s.set = spec.value, nil
   s.on_moved = spec.set
   return widgets.slider(s)
@@ -100,7 +106,7 @@ end
 --- `seek(v)`, `active` and `playing` (fns).
 function kit.media_progress(spec)
   local s = copy(spec)
-  s.height = 34
+  s.height = reachable(34)
   s.id = s.id or "media-seek"
   s.on_moved, s.seek = spec.seek, nil
   return widgets.seek_bar(s)

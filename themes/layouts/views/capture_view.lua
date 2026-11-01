@@ -203,6 +203,7 @@ function M.build(capture, w, h)
     },
   }
   return ui.Item {id="capture-page",width=w,height=h,controls,
+    on_panned=function(...) return capture.drawer.on_panned(...) end,
     kit.heading {id="capture-title",text="Capture",scope="capture",level="section",x=16,y=8,width=w-32}}
 
 end

@@ -166,7 +166,7 @@ function M.overlay()
       end,
     },
   }
-  return frame.overlay { id = "large", root = root }
+  return frame.overlay { id = "large", root = root, close = model.finish }
 end
 
 return M

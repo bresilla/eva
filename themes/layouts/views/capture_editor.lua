@@ -49,19 +49,25 @@ function V.build(M)
         border_width=1,border_color=function() return C.onPrimary end},
     }
   end
-  local canvas,gesture
+  local canvas,gesture,zoom
+  -- Where a surface point falls on the picture, as two fingers have it zoomed.
+  local function picture(sx,sy)
+    local x,y=zoom.point(sx,sy)
+    local a=g()
+    return (x-a.x)/a.scale,(y-a.y)/a.scale
+  end
   canvas=ui.MouseArea {id="capture-editor-canvas",x=function() return g().x end,y=function() return g().y end,
     width=function() return g().iw end,height=function() return g().ih end,cursor="crosshair",
     focus=function() return M.active:get() and not text_draft() and not M.settings:get() and not M.picker:get() and not M.upload_confirm:get() end,
     on_key_pressed=M.key,
-    on_pressed=function(_,_,x,y,button)
+    on_pressed=function(sx,sy,_,_,button)
       gesture=false
       if button=="right" then if not M.dismiss_tools() then M.cancel() end return end
       if button and button~="left" then return end
-      gesture=M.begin(x/g().scale,y/g().scale)
+      gesture=M.begin(picture(sx,sy))
     end,
-    on_position_changed=function(_,_,_,_,x,y) if gesture then M.move(x/g().scale,y/g().scale) elseif not canvas.pressed then M.hover(x/g().scale,y/g().scale) end end,
-    on_released=function(_,_,x,y) if gesture then M.finish(x/g().scale,y/g().scale) end gesture=false end,
+    on_position_changed=function(sx,sy) if gesture then M.move(picture(sx,sy)) elseif not canvas.pressed then M.hover(picture(sx,sy)) end end,
+    on_released=function(sx,sy) if gesture then M.finish(picture(sx,sy)) end gesture=false end,
     on_wheel=function(_,_,_,_,_,steps) if editing() then M.wheel(steps) end end,
     ui.Image {id="capture-editor-image",x=function() return M.preview_geometry().x end,y=function() return M.preview_geometry().y end,
       width=function() return M.preview_geometry().w end,height=function() return M.preview_geometry().h end,source=function() return M.preview:get() end,fill_mode="stretch"},
@@ -336,6 +342,10 @@ function V.build(M)
       button("capture-upload-back","Back",nil,function() M.upload_confirm:set(false) end,18,94,76),
       button("capture-upload-confirm-send","Upload",nil,function() M.export("upload") end,220,94,82),
     }
+  -- One finger marks; a second takes the mark back and zooms and pans the picture.
+  zoom=require("pinch_zoom").attach {node=canvas,pan=false,
+    on_start=function() gesture=false M.abandon() end}
+  morf.effect("capture.editor.zoom",function() if not M.active:get() then zoom.reset() end end,{owner=canvas})
   local editor = ui.Item {id="capture-editor",anchors={fill=true},visible=function() return M.active:get() end,z=100,
     kit.surface {anchors={fill=true},color=scrim(1)},
     ui.MouseArea {anchors={fill=true},on_key_pressed=M.key},

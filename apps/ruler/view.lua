@@ -213,7 +213,7 @@ local function frozen_screen(done)
     },
     reading_card(), modes_pill(done),
   }
-  return frame.overlay { id = "ruler", root = root }
+  return frame.overlay { id = "ruler", root = root, close = done }
 end
 
 --- The frozen screen for as long as there is a picture.

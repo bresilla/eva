@@ -48,10 +48,11 @@ local function pulls_sidebar(edge,drawer)
   return edge=="top" and drawer==require("sidebar").drawer
 end
 
-local function blocked()
+-- `own`: the drawer asking, which does not block its own pull.
+local function blocked(own)
   for _, name in ipairs { "polkit", "keyring", "authsteps", "session" } do
     local controller = package.loaded[name]
-    if controller and controller.drawer and controller.drawer.open:get() then return true end
+    if name ~= own and controller and controller.drawer and controller.drawer.open:get() then return true end
   end
   local capture = package.loaded.capture
   return capture and capture.editor and capture.editor.active:get()
@@ -107,44 +108,72 @@ end
 
 -- Horizontal navigation belongs to a panel, not a fullscreen gesture
 -- overlay. The runtime bubbles a swipe past passive content, retaining a
--- slider's drag and a notification's own dismissal. A swipe toward the edge
--- the panel hangs from (`dismiss`) shuts it; one across it turns the tab.
+-- slider's drag and a notification's own dismissal. A swipe turns the tab
+-- while a page lies that way; toward the edge the panel hangs from (`dismiss`)
+-- with none left, it shuts it.
 function M.panel(spec)
   return function(direction)
     if blocked() then return end
-    if direction == spec.dismiss and spec.close and
+    local step = ({ left = 1, right = -1 })[direction]
+    local next_tab = step and spec.tab:get() + step
+    if next_tab and next_tab >= 1 and next_tab <= spec.count then
+      spec.tab:set(next_tab)
+    elseif direction == spec.dismiss and spec.close and
         (not spec.can_dismiss or spec.can_dismiss()) then
       spec.close()
-    elseif direction == "left" or direction == "right" then
-      local next_tab = spec.tab:get() + (direction == "left" and 1 or -1)
-      spec.tab:set(math.max(1, math.min(spec.count, next_tab)))
     end
   end
 end
 
+-- The open panel over (`x`, `y`), if there is one.
+local function over_panel(x, y)
+  if not (x and y) then return nil end
+  local drawers = package.loaded.drawer
+  for _, drawer in ipairs(drawers and drawers.all or {}) do
+    local panel = drawer.panel
+    if drawer.name ~= "keyboard" and drawer.open:get()
+      and x >= (panel.layout_x or 0) and x < (panel.layout_x or 0) + (panel.layout_width or 0)
+      and y >= (panel.layout_y or 0) and y < (panel.layout_y or 0) + (panel.layout_height or 0) then
+      return drawer
+    end
+  end
+end
+
+--- Whether a pull `direction` from (`x`, `y`) drags an open panel shut, so a
+--- list under the finger leaves it to the panel.
+function M.pulls_shut(direction, x, y)
+  local drawer = over_panel(x, y)
+  return drawer ~= nil and drawer.pulled == direction
+end
+
 -- Each recognizer owns one contact; its begin can decline to a parent. A
--- drag toward the edge the panel hangs from pulls it shut under the finger;
--- one across the panel pages, when it has a pager.
+-- page beside the one on show takes a sideways drag first; past the last, or
+-- with none, a drag toward the edge the panel hangs from pulls it shut under
+-- the finger, and the pager's ends take the rest on their rubber band. On
+-- the panel's `grip` (fn of the start point: its tab row) it always shuts.
 function M.pan(spec)
   if not M.continuous then return nil end
-  local across = spec.dismiss == "left" or spec.dismiss == "right"
   local drawer, pager
-  return function(phase, dx, dy, vx, vy)
+  return function(phase, dx, dy, vx, vy, x, y)
     if phase == "begin" then
-      if blocked() then return false end
+      if blocked(spec.drawer) then return false end
+      local dismiss = type(spec.dismiss) == "function" and spec.dismiss() or spec.dismiss
+      local across = dismiss == "left" or dismiss == "right"
       local horizontal = math.abs(dx) >= math.abs(dy)
-      local toward = ({ up = -dy, down = dy, left = -dx, right = dx })[spec.dismiss or ""]
-      if toward and toward > 0 and horizontal == across
-        and (not spec.can_dismiss or spec.can_dismiss()) then
+      local toward = ({ up = -dy, down = dy, left = -dx, right = dx })[dismiss or ""]
+      local shuts = toward and toward > 0 and horizontal == across
+        and (not spec.can_dismiss or spec.can_dismiss())
+      local gripped = shuts and spec.grip and spec.grip(x, y)
+      if horizontal and spec.pager and not gripped and (not shuts or spec.pager.can(dx)) then
+        pager = spec.pager
+        return pager.begin()
+      end
+      if shuts then
         drawer = require(spec.drawer).drawer
         return drawer.begin_drag()
       end
-      if horizontal then
-        pager=spec.pager
-        return pager and pager.begin() or false
-      end
       return false
-    elseif (pager or drawer) and blocked() then
+    elseif (pager or drawer) and blocked(spec.drawer) then
       if pager then pager.finish(0,true) pager=nil end
       if drawer then drawer.end_drag(0,true) drawer=nil end
     elseif pager then
@@ -152,7 +181,7 @@ function M.pan(spec)
       else pager.finish(vx,phase=="cancel") pager=nil end
     elseif drawer then
       local travel, velocity = dy, vy
-      if across then travel, velocity = dx, vx end
+      if drawer.edge == "left" or drawer.edge == "right" then travel, velocity = dx, vx end
       if phase == "update" then drawer.drag_by(travel)
       else drawer.end_drag(velocity,phase=="cancel") drawer=nil end
     end
@@ -172,6 +201,8 @@ function M.edge_pan(edge,phase,dx,dy,vx,vy,start_x,start_y)
     local inward = ({top=dy,bottom=-dy,left=dx,right=-dx})[edge]
     if not inward or inward <= 0 then return false end
     edge_across = edge == "left" or edge == "right"
+    -- On an open panel its own gestures come first.
+    if edge_across and over_panel(start_x,start_y) then return false end
     if edge_across then
       local height=(morf.screens[1] or {}).height or morf.surface.height
       local bottom=height-require("themes.keyboard").inset:get()-EDGE

@@ -32,6 +32,9 @@ function V.build(M)
   local WIDTH, CARD_W, GAP = 430, 408, 8
   local TOP, BOTTOM, MAX = 6, 16, 5
   local TEXT_X, EMBLEM = 66, 40
+  -- How far a partial swipe latches a card open: two finger-sized buttons.
+  local REVEAL = 2 * theme.space.TOUCH + 3 * theme.space.xs
+  local LATCHED_MS = 5000
   local plain, progress_of, kind_of = text_of.plain, text_of.progress, text_of.kind
   local function shown() return M.shown(math.min(MAX, M.max_popups())) end
   local is_open = M.expanded
@@ -265,33 +268,18 @@ function V.build(M)
     kit.hover(tools_area, function(hovered) return signal():alpha(hovered and .2 or .06) end, L.control_round(EXPAND))
 
     -- Swiped sideways, or away from the stack's edge, a card follows the
-    -- finger and goes past its distance or speed, and springs back short of
-    -- them (kit Drags). The first move picks the axis; a stack that scrolls
-    -- keeps the vertical one for itself.
-    local swiped, axis, start_x, start_y = false, nil, 0, 0
-    local function swipe_with(on_axis, go)
-      return require("lib.kit.control").headless("Drag", { mode = "swipe", axis = on_axis,
-        on_swiped = function(direction)
-          if not go(direction) then return end
-          swiped = true
-          require("haptics").fire("commit")
-          M.dismiss_at(i, direction)
-        end })
+    -- finger, flies off past its distance or speed and springs back short of
+    -- them; pulled partly left it latches open on what lies under it. A stack
+    -- that scrolls keeps the vertical drag for itself.
+    local swiped, sent, swipe, latch = false, false, nil, nil
+    local function ways()
+      return { left = true, right = true, [AWAY] = total() <= room() or nil }
     end
-    local across = swipe_with("x", function() return true end)
-    local away = swipe_with("y", function(direction) return direction == AWAY end)
-    local function held() return axis == "y" and away or across end
     card = kit.action {
       id = "notification-" .. i,
       width = CARD_W, cursor = "pointer", accepted_buttons = { "left", "right", "middle" },
       height = function() return card_height(n()) end,
-      translate_x = function() return across.t.delta_x end,
-      translate_y = function()
-        local moved = away.t.delta_y
-        return at_bottom and math.min(0, moved) or math.max(0, moved)
-      end,
-      behavior = { height = motion, translate_x = { duration = 160, easing = "out_cubic" },
-        translate_y = { duration = 160, easing = "out_cubic" } },
+      behavior = { height = motion },
       clip = true,
       on_pressed = function(sx, sy, _, _, button)
         -- The right button opens the tools, the middle one dismisses.
@@ -301,28 +289,19 @@ function V.build(M)
           return
         end
         if button == "middle" then M.dismiss_at(i) return end
-        swiped, axis, start_x, start_y = false, nil, sx, sy
-        across.send("pressed", sx, sy)
-        away.send("pressed", sx, sy)
+        swiped, sent = false, false
+        swipe.press(sx, sy)
       end,
-      on_dragged = function(sx, sy)
-        if not axis then
-          local dx, dy = math.abs(sx - start_x), math.abs(sy - start_y)
-          if math.max(dx, dy) < theme.space.s then return end
-          axis = dy > dx and total() <= room() and "y" or "x"
-        end
-        held().send("dragged", sx, sy)
-      end,
-      on_released = function()
-        across.send("released", 0, 0)
-        away.send("released", 0, 0)
-      end,
-      on_swiped = function(_, vx, vy) held().send("fling", vx, vy) end,
+      on_touch_pressed = function() swipe.touched() end,
+      on_dragged = function(sx, sy) swipe.drag(sx, sy) end,
+      on_released = function() swiped = swipe.release() end,
+      on_swiped = function(direction) if swiped and not sent then swipe.fling(direction) end end,
       -- A left click runs the sender's default or dismisses -- unless it ended
-      -- a swipe that already did. A long press opens the tools.
+      -- a swipe. On a latched card it shuts the latch. A long press opens the tools.
       on_clicked = function(_, _, _, _, button)
         if button == "right" or button == "middle" then return end
         if swiped then swiped = false return end
+        if swipe.opened() then swipe.shut() return end
         M.click_at(i)
       end,
       on_long_pressed = function() local x = n() if x then M.toggle_tools(x.id) end end,
@@ -342,20 +321,77 @@ function V.build(M)
       expand_area, tools_area,
     }
     card.stretch = kit.STRETCH
-    -- Its clock stops while it is under the pointer or in use.
+    swipe = require("themes.swipe_dismiss").new {
+      id = "notification." .. i, node = card, ways = ways, axes = { x = true, y = true },
+      reveal = { left = REVEAL }, distance = function(way) return way == "left" and REVEAL + 72 or 72 end,
+      extent = function() return CARD_W end,
+      on_dismiss = function(way) swiped, sent = true, true M.dismiss_at(i, way) end,
+      -- A latch left alone shuts, and the card's clock runs again.
+      on_revealed = function(way)
+        if latch then latch:cancel() latch = nil end
+        if not way then return end
+        latch = morf.time.timer(LATCHED_MS, function()
+          latch = nil
+          if swipe.opened() then swipe.shut() end
+        end, false)
+      end,
+    }
+    card.on_panned = swipe.on_panned
+    -- Two fingers spreading open a card, closing shut it.
+    card.on_pinched = function(scale, phase)
+      local x = n()
+      if phase ~= "end" or not x or scale == 1 then return end
+      if (scale > 1) ~= (is_open(x.id) == true) then
+        require("haptics").fire("commit")
+        M.toggle(x.id)
+      end
+    end
+    -- Its clock stops while it is under the pointer, a finger or in use.
     local holding
+    local shown_id
     morf.effect("eva.notifications.hold." .. i, function()
       local x = n()
-      local keep = x ~= nil and (card.contains_pointer or is_open(x.id) or replying(x) or tooled(x))
+      local now = x and x.id or nil
+      if now ~= shown_id then
+        shown_id = now
+        morf.time.timer(1, swipe.reset, false)
+      end
+      local keep = x ~= nil and (card.contains_pointer or is_open(x.id) or replying(x) or tooled(x)
+        or swipe.moved:get() ~= 0)
       local id = keep and x.id or nil
       if id == holding then return end
       if holding then M.hold(holding, false) end
       if id then M.hold(id, true) end
       holding = id
     end, { owner = card })
+    -- Under the card, where a partial swipe uncovers them: snooze for an
+    -- hour, and the rest of its tools.
+    local function uncovered() return math.min(1, math.max(0, -swipe.moved:get() / REVEAL)) end
+    local function under(id, name, icon, press)
+      local area = kit.action { id = id .. "-" .. i, accessible_name = name, width = theme.space.TOUCH, height = theme.space.TOUCH,
+        cursor = "pointer", enabled = function() return uncovered() > 0 end, on_clicked = press,
+        kit.surface { anchors = { fill = true }, radius = theme.space.TOUCH / 2,
+          color = function() return C.surfaceContainerHigh end },
+        kit.icon(icon, 20, kit.ink("hi"), { anchors = { center_in = true } }) }
+      return area
+    end
+    local reveal = ui.Row { id = "notification-reveal-" .. i, gap = theme.space.xs, align = "center",
+      anchors = { right = true, vertical_center = true },
+      visible = function() return n() ~= nil and uncovered() > 0 end, opacity = uncovered,
+      under("notification-snooze", "Snooze for an hour", "snooze", function()
+        local x = n()
+        swipe.shut()
+        if x then M.snooze(x.id, 3600) end
+      end),
+      under("notification-more", "Snooze, mute, rules", "more_horiz", function()
+        local x = n()
+        swipe.shut()
+        if x then M.toggle_tools(x.id) end
+      end),
+    }
     -- The slot slides it in and out; the card itself is the finger's.
     slots[i] = ui.Item { width = CARD_W, height = function() return card_height(n()) end,
-      visible = function() return n() ~= nil end, behavior = { height = motion }, card }
+      visible = function() return n() ~= nil end, behavior = { height = motion }, reveal, card }
 
     -- The card's ground is a layer of the popups' field, in the theme's
     -- corners; seams soften only while a card comes or goes.

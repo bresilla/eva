@@ -175,7 +175,16 @@ function V.build(model)
   for _, n in ipairs(arrows) do box_children[#box_children + 1] = n end
   for _, key in ipairs { "top", "left", "right", "bottom", "center" } do box_children[#box_children + 1] = cards[key] end
   box_children[#box_children + 1] = keys
+  -- Under the cards, so a finger between them is on the menu.
+  box_children[#box_children + 1] = ui.MouseArea { anchors = { fill = true }, z = -1 }
   local box = ui.Item(box_children)
+  -- Swiped any way it goes, following the finger.
+  local swipe = require("themes.swipe_dismiss").new { id = "window-menu", node = box,
+    ways = { left = true, right = true, up = true, down = true }, on_dismiss = model.close }
+  box.on_panned = swipe.on_panned
+  morf.effect("eva.window-menu.swipe", function()
+    if opened:get() then morf.time.timer(1, swipe.reset, false) end
+  end, { owner = box })
   local function box_at()
     local r, sw, sh = rect(), model.screen()
     local h = total_h()

@@ -88,7 +88,7 @@ function M.build(model, w, h)
     note = function() return tostring(model.count:get()) .. " · Taskwarrior" end,
     visible = function() return rows:len() > 0 end,
     task_list }
-  local browse = P.page { id = "tasks-list", width = w, height = h,
+  local browse = P.page { id = "tasks-list", width = w, height = h, on_refresh = model.refresh,
     ui.Row { gap = 8, align = "center", add, refresh },
     notice("tasks-error"),
     P.section { id = "tasks-find", width = w, search, P.buttons(filters) },

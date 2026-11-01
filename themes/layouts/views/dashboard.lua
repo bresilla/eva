@@ -250,11 +250,12 @@ end
 
 local seen = {}
 for i = 1, #TABS do seen[i] = morf.signal("eva.dashboard.seen." .. i, i == 1) end
+-- A finger drags the neighbours in by hand: they are seen as it does.
+local reach = (PHONE or require("models.touchscreens").attached()) and 1 or 0
 morf.effect("eva.dashboard.seen", function()
   if not opened:get() then return end
   local now = M.tab:get()
-  -- A phone drags the neighbours in by hand: they are seen as it does.
-  for i = now - (PHONE and 1 or 0), now + (PHONE and 1 or 0) do
+  for i = now - reach, now + reach do
     if seen[i] and not seen[i]:get() then seen[i]:set(true) end
   end
 end)
@@ -277,15 +278,17 @@ local displayed = model.displayed
 local track = ui.Row {
   id="dashboard-page-track",
   gap = PAD * 2,
-
-  translate_x = PHONE and -offset(M.tab:get()) or function() return -offset(displayed:get()) end,
-  behavior = (theme.motion.page_wipe or PHONE) and {} or { translate_x = SWITCH },
   table.unpack(pages),
 }
 ui.reparent(track, strip)
 local page_wipe = not PHONE and theme.motion.page_wipe and theme.motion.page_wipe(strip, function() return width()-PAD*2 end, "dashboard")
-local pager=PHONE and require("pager_drag").new {
-  id="dashboard",track=track,tab=M.tab,count=#TABS,offset=offset,
+local peeking = morf.signal("eva.dashboard.peeking", false)
+local pager=require("pager_drag").new {
+  id="dashboard",track=track,tab=M.tab,shown=displayed,count=#TABS,offset=offset,
+  spring=PHONE and theme.spring.spatial or SWITCH,
+  -- A wipe swaps the pages under its cover, the track jumping there.
+  instant=page_wipe and function() return not peeking:get() end or nil,
+  peeking=function(on) peeking:set(on) end,
   prepare=function()
     for _,handles in pairs(running) do for _,h in ipairs(handles) do h:stop() end end
     running={}
@@ -293,6 +296,8 @@ local pager=PHONE and require("pager_drag").new {
       entry.node.opacity,entry.node.scale=1,1
       if entry.shape then entry.shape.opacity=1 end
     end end
+    local now=M.tab:get()
+    for i=now-1,now+1 do if seen[i] and not seen[i]:get() then seen[i]:set(true) end end
   end,
 }
 
@@ -326,16 +331,18 @@ local content = ui.Item {
 local was_open, was_tab = false, M.tab:get()
 morf.effect("eva.dashboard.liquid", function()
   local open, tab = opened:get(), M.tab:get()
-  if not page_wipe then model.present(tab) end
+  -- A page a finger brought in is already there: no wipe covers it.
+  local slid = tab ~= was_tab and pager.slid()
+  if not page_wipe or slid then model.present(tab) end
   if open ~= was_open then
     was_open = open
     if page_wipe then page_wipe(function() model.present(tab) end, true) end
     bud(tab, open)
   elseif open and tab ~= was_tab then
-    if page_wipe then page_wipe(function() model.present(tab) bud(tab, true) end,false,{
+    if page_wipe and not slid then page_wipe(function() model.present(tab) bud(tab, true) end,false,{
       index=tab,name=TABS[tab].name,key=TABS[tab].key,
     })
-    else bud(was_tab, false) bud(tab, true) end
+    elseif not page_wipe then bud(was_tab, false) bud(tab, true) end
   end
   was_tab = tab
 end)

@@ -26,6 +26,8 @@ function M.show(row, actions)
   local inner = WIDTH - 2 * P.PAD
   local function act(fn) return function() M.close() fn(row) end end
   local card = kit.card { width = WIDTH, height = HEIGHT, radius = kit.round(P.RADIUS),
+    -- Under what it says, so a finger on its bare parts is on the card.
+    ui.MouseArea { anchors = { fill = true }, z = -1 },
     ui.Column { x = P.PAD, y = P.PAD, gap = S.s, width = inner,
       P.row { id = "drive-popup-row", width = inner, height = 56, icon = row.encrypted and "lock" or "usb", title = row.name,
         subtitle = actions.human(row.size) .. (row.encrypted and " · Encrypted" or "") },
@@ -35,6 +37,9 @@ function M.show(row, actions)
         { id = "drive-popup-eject", label = "Eject", on_clicked = act(actions.eject) },
         { id = "drive-popup-close", label = "Close", on_clicked = M.close } },
     } }
+  -- Swiped off toward either side or the top of the screen, it closes.
+  card.on_panned = require("themes.swipe_dismiss").new { id = "drive-popup", node = card,
+    ways = { left = true, right = true, up = true }, on_dismiss = M.close }.on_panned
   layer = morf.window.layer { blend = "srgb", namespace = "eva-drive", layer = "overlay",
     anchors = { top = true, right = true }, margin_top = S.xl + S.xl, margin_right = S.xl,
     width = WIDTH, height = HEIGHT, exclusive_zone = -1, keyboard_focus = "none", visible = true,

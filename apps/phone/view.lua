@@ -139,11 +139,19 @@ function M.build(w, h)
       { key = "people", name = "Contacts", icon = "contacts" } } }
   local top = S.TOUCH + S.xl
   local function body() return math.max(1, h() - top) end
+  local peeking = morf.signal("eva.phone.peeking", false)
   local function page(index, node)
-    return ui.Item { y = top, width = w, height = body, visible = function() return model.tab:get() == index end, node }
+    return ui.Item { x = function() return (index - 1) * w() end, width = w, height = body,
+      visible = function() return model.tab:get() == index or peeking:get() end, node }
   end
-  return ui.Item { id = "phone-root", width = w, height = h, tabs,
+  local track = ui.Item { width = function() return 3 * w() end, height = body,
     page(1, dial(w, body)), page(2, recents(w, body)), page(3, people(w, body)) }
+  local pager = require("pager_drag").new { id = "phone", track = track, tab = model.tab, count = 3,
+    offset = function(i) return (i - 1) * w() end, peeking = function(on) peeking:set(on) end,
+    instant = function() return not peeking:get() end }
+  return ui.Item { id = "phone-root", width = w, height = h, tabs,
+    ui.Item { y = top, width = w, height = body, clip = true, on_panned = pager.on_panned,
+      ui.MouseArea { anchors = { fill = true }, z = -1 }, track } }
 end
 
 return M

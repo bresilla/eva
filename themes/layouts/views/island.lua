@@ -84,6 +84,14 @@ function V.build(model, desk)
       end },
     rest, wide,
   }
+  -- A finger down opens it, up shuts it, and across walks its faces; it leans
+  -- with the finger and springs home.
+  panel.on_panned = require("themes.swipe_dismiss").new { id = "island", node = panel, axes = { x = true, y = true },
+    stays = true, distance = S.xl,
+    ways = function() return { left = true, right = true, [opened() and "up" or "down"] = true } end,
+    on_dismiss = function(way)
+      if way == "left" or way == "right" then model.cycle() else model.toggle() end
+    end }.on_panned
   local shape = ui.SdfShape { id = "island-background", shape = "box", operation = "smooth_union", blend_group = 900,
     track = panel, radius = function() return kit.round(opened() and S.xl or S.m) end,
     behavior = { radius = theme.spring.spatial } }

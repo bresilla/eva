@@ -293,6 +293,8 @@ local stack = ui.Item { width = CARD_W, height = M.height,
 --- over them as a tile's ">" opens one. The panel's frame draws the head:
 --- "Settings", or a detail's name with the way back (`M.head`).
 local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
+-- How far in from a detail's left edge a swipe back may start.
+local BACK_EDGE = theme.space.xxl + theme.space.s
 function M.page(w, h)
   overview_viewport_node, overview_viewport, overview_viewport_t, overview_viewport_ctl = kit.scroll({id="settings-overview-scroll",width=w,height=h,clip=true,
     stack})
@@ -342,16 +344,12 @@ function M.page(w, h)
       width = w, height = h,
       visible = function() return M.detail:get() == d.key or peeked() end,
       opacity=function() return M.detail:get()==d.key and 1 or peeked() and .4+.6*peek() or 0 end,
-      translate_x=function()
-        if M.detail:get()==d.key then return nested() and pull() or 0 end
-        return peeked() and 0 or 20
-      end,
       scale=function()
         if M.detail:get()==d.key then return 1-.06*peek() end
         return peeked() and .94+.06*peek() or 1
       end,
       z=function() return M.detail:get()==d.key and 1 or 0 end,
-      behavior={opacity={duration=theme.duration.small},translate_x=SWITCH},
+      behavior={opacity={duration=theme.duration.small}},
       ui.Loader {
         anchors = { fill = true }, keep = true,
         active = function() return wanted:get() end,
@@ -363,6 +361,13 @@ function M.page(w, h)
         end,
       },
     }
+    -- A page pulled back from its parent is the finger's; else it eases in.
+    ui.claims(stack[#stack], { motion = SWITCH,
+      a_hand = { when = function() return pull() > 0 and M.detail:get() == d.key and nested() end,
+        motion = { duration = 0 }, set = { translate_x = pull } },
+      b_rest = { set = { translate_x = function()
+        return (M.detail:get() == d.key or peeked()) and 0 or 20
+      end } } })
   end
   -- The pencil: edits the tiles, and says done while they are.
   local pencil = kit.action { id = "utilities-edit", width = 40, height = 40, cursor = "pointer",
@@ -406,30 +411,28 @@ function M.page(w, h)
     if M.detail:get() == "panels" then return false end
     return pop()
   end
+  local row = ui.Row { gap = 24, main, detail }
+  -- Under a finger the row is the finger's; on its own it eases there.
+  ui.claims(row, { motion = SWITCH,
+    a_hand = { when = function() return pull() > 0 and not nested() end, motion = { duration = 0 },
+      set = { translate_x = function() return -(w + 24) + pull() end } },
+    b_rest = { set = { translate_x = function() return M.detail:get() == "" and 0 or -(w + 24) end } } })
   local holder = ui.Item {
     width = w, height = h, clip = true,
     shortcuts = shortcuts,
-    ui.Row {
-      gap = 24,
-      translate_x = function()
-        if M.detail:get() == "" then return 0 end
-        return -(w + 24) + (nested() and 0 or pull())
-      end,
-      behavior = { translate_x = SWITCH },
-      main, detail,
-    },
+    row,
   }
   -- A pull in from the page's left edge goes back, what it goes back to
-  -- showing under the finger; let go early, it stays.
+  -- showing under the finger; let go early, it stays. Further in, a sideways
+  -- drag is the panel's, for its tabs.
   local gesture = require("gesture_motion")
-  local EDGE, COMMIT = 28, .35
+  local COMMIT = .35
   local pulling
   holder.on_panned = function(phase, dx, dy, vx, _, start_x)
     if phase == "begin" then
       pulling = false
       if M.detail:get() == "" or dx <= 0 or math.abs(dx) <= math.abs(dy) * 1.2 then return false end
-      if not start_x or start_x - (holder.x or 0) > EDGE + (require("responsive").panel_width and 0 or 0) + w then return false end
-      if model.page_left and start_x - model.page_left() > EDGE then return false end
+      if not start_x or start_x - (holder.layout_x or 0) > BACK_EDGE then return false end
       pulling = true
       return true
     end
@@ -439,7 +442,10 @@ function M.page(w, h)
       local done = phase == "end" and (dx >= w * COMMIT or gesture.fling(dx, vx) and (vx or 0) > 0)
       pulling = false
       pull_x:set(0)
-      if done then model.back() end
+      if done then
+        require("haptics").fire("commit")
+        model.back()
+      end
     end
   end
   return holder

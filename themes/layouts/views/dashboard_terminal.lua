@@ -93,6 +93,9 @@ function M.build(ctx)
       colors = colours,
       on_title = function(title) if title and title ~= "" then titles[i]:set(title) end end,
       on_exit = function() close(i) end,
+      -- Two fingers scroll its history; a finger held still says the drag
+      -- that follows selects.
+      on_long_pressed = function() require("haptics").fire("long") end,
     }
     ui.reparent(term, area)
     sessions[i] = term
