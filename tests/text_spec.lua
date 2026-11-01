@@ -13,6 +13,7 @@ local PIECES = [[
   local morf = require("morf")
   require("morf.ui").Item { width = 1, height = 1 }
   local transforms = require("transforms")
+  local codec = require("lib.shell.launcher.codec")
   local secrets = require("secrets")
   local words = require("words")
   local latest = {}
@@ -23,10 +24,22 @@ local PIECES = [[
     transforms.run(item, text or "", function(answer, why) latest.answer, latest.why = answer, why end)
     return latest
   end
-  morf.ipc.not_utf8 = function() return transforms.upper("ab\xff") == "AB\xff" end
+  morf.ipc.not_utf8 = function() return codec.upper("ab\xff") == "AB\xff" end
   morf.ipc.counts = function(text) return transforms.counts(text) end
-  morf.ipc.lorem = function(count) return transforms.lorem(tonumber(count)) end
+  morf.ipc.lorem = function(count) return codec.lorem(tonumber(count)) end
   morf.ipc.words = function() return words end
+  -- The transforms that are the launcher's codec itself, by name.
+  morf.ipc.shared = function()
+    local same = {}
+    for _, id in ipairs { "upper", "lower", "title", "sentence", "camel", "pascal", "snake", "kebab", "constant" } do
+      same[id] = transforms.find(id).run == codec[id]
+    end
+    same.md5 = transforms.find("md5").run == codec.md5
+    same.hex = transforms.find("hex").run == codec.hex_encode
+    same.html = transforms.find("html").run == codec.html_encode
+    same.minify = transforms.find("minify").run == codec.json_minify
+    return same
+  end
   -- The bytes each draw of /dev/urandom gives, in turn.
   morf.ipc.script = function(...)
     local draws = { ... }
@@ -95,7 +108,7 @@ test.it("changes case, letters past ASCII too", function()
   pieces()
   test.eq(run("upper", "hello ëç"), "HELLO ËÇ")
   test.eq(run("lower", "HELLO ËÇ"), "hello ëç")
-  test.eq(run("upper", "straße ÿ"), "STRAßE ÿ")
+  test.eq(run("upper", "straße ÿ"), "STRAßE Ÿ")
   test.eq(run("upper", "привет"), "ПРИВЕТ")
   test.eq(run("title", "the quick-brown fox"), "The Quick-Brown Fox")
   test.eq(run("sentence", "HELLO THERE. HOW ARE YOU? fine"), "Hello there. How are you? Fine")
@@ -145,6 +158,14 @@ test.it("encodes and decodes", function()
   test.eq(run("hex", "AZ"), "415a")
   test.eq(run("unhex", "41 5a"), "AZ")
   test.eq(run("html", [[<a href="x">&</a>]]), "&lt;a href=&quot;x&quot;&gt;&amp;&lt;/a&gt;")
+  test.eq(run("html", "it's"), "it&#39;s")
+  test.eq(run("unhex", "0x415a"), "AZ")
+end)
+
+test.it("runs the launcher's codec itself, with no copy of its own", function()
+  pieces()
+  local same = test.ipc("shared")
+  for id, shared in pairs(same) do test.truthy(shared, id .. " has a copy of its own") end
 end)
 
 test.it("says what is not what it decodes", function()
@@ -179,13 +200,10 @@ test.it("hashes to the published values", function()
   test.eq(run("sha256", "abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
 end)
 
-test.it("hashes md5 through its program, the text on stdin", function()
+test.it("hashes md5 in the tool, with no program", function()
   pieces()
-  test.stub_run("md5sum", { code = 0, stdout = "900150983cd24fb0d6963f7d28e17f72  -\n" })
-  test.ipc("run", "md5", "abc")
-  test.advance(50)
-  test.eq(test.ipc("latest").answer, "900150983cd24fb0d6963f7d28e17f72")
-  test.eq(test.runs()[#test.runs()], { "md5sum" })
+  test.eq(run("md5", "abc"), "900150983cd24fb0d6963f7d28e17f72")
+  test.eq(#test.runs(), 0)
 end)
 
 test.it("turns epochs into dates and dates into epochs", function()
@@ -316,11 +334,11 @@ test.it("says why a transform refused and leaves the pad as it was", function()
   test.eq(test.ipc("state").undo, 0)
 end)
 
-test.it("hides what has no program behind it", function()
+test.it("offers every transform on a machine with no programs", function()
   test.clear_stubs()
   test.load("../apps/text/app.lua", { env = environment(fresh("nomd5"), nil, { PATH = "/nonexistent" }) })
   test.settle(200)
-  test.falsy(test.find { id = "text-do-md5-box" }, "no md5sum, no button")
+  test.truthy(test.find { id = "text-do-md5-box" })
   test.truthy(test.find { id = "text-do-sha256-box" })
 end)
 
@@ -387,11 +405,11 @@ test.it("makes things from nothing", function()
   test.eq(#job({ "password", "4", "--no-symbols" }), #"0\n" + 4 + 1)
 end)
 
-test.it("lists what it does, without what this machine lacks", function()
+test.it("lists what it does, whatever this machine has", function()
   test.clear_stubs()
   test.contains(job { "list" }, "case   upper lower")
   test.contains(job { "list" }, "make   uuid lorem password passphrase")
-  test.falsy(job({ "list" }, nil, { PATH = "/nonexistent" }):find("md5", 1, true))
+  test.contains(job({ "list" }, nil, { PATH = "/nonexistent" }), "md5")
 end)
 
 test.it("hands what is piped in to the tool, in a file it reads", function()

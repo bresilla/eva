@@ -1,7 +1,9 @@
 -- Text turned into other text: encodings, a digest morf has no native for,
--- naming styles, tokens and placeholder words.
+-- case and naming styles, JSON, tokens and placeholder words. The launcher's modes
+-- and eva-text both call these.
 
 local morf = require("morf")
+local unicase = require("lib.util.unicase")
 
 local M = {}
 
@@ -39,35 +41,85 @@ function M.rot13(text)
   end))
 end
 
+-- ----------------------------------------------------------------- case --
+
+M.upper, M.lower = unicase.upper, unicase.lower
+
+local function capitalise(word)
+  local first = word:match("^[%z\1-\127\194-\244][\128-\191]*")
+  if not first then return word end
+  return M.upper(first) .. M.lower(word:sub(#first + 1))
+end
+
+--- Each word of `text` capitalised, its separators kept.
+function M.title(text)
+  return (text:gsub("[^%s%-_/]+", capitalise))
+end
+
+--- `text` in lower case with each sentence's first word capitalised.
+function M.sentence(text)
+  local low, start = M.lower(text), true
+  return (low:gsub("[^%s]+", function(word)
+    local out = start and capitalise(word) or word
+    start = word:match("[.!?]$") ~= nil
+    return out
+  end))
+end
+
 --- `text` split into lower-case words, whatever style it was written in.
 function M.words(text)
-  local spaced = text:gsub("(%l)(%u)", "%1 %2"):gsub("(%u)(%u%l)", "%1 %2"):gsub("[_%-%./]+", " ")
+  local spaced = text:gsub("(%l)(%u)", "%1 %2"):gsub("(%u)(%u%l)", "%1 %2"):gsub("(%d)(%a)", "%1 %2")
   local out = {}
-  for word in spaced:gmatch("%S+") do out[#out + 1] = word:lower() end
+  for word in spaced:gmatch("[%w\128-\255]+") do out[#out + 1] = M.lower(word) end
   return out
 end
 
-local function title(word) return word:sub(1, 1):upper() .. word:sub(2) end
+-- A style: each line's words through `shape`, joined by `mark`.
+local function joined(mark, shape)
+  return function(text)
+    local out = {}
+    for line in (text .. "\n"):gmatch("(.-)\n") do
+      local words = M.words(line)
+      if shape then words = shape(words) end
+      out[#out + 1] = table.concat(words, mark)
+    end
+    return (table.concat(out, "\n"):gsub("\n$", ""))
+  end
+end
+
+local function camel(words)
+  for index, word in ipairs(words) do
+    if index > 1 then words[index] = capitalise(word) end
+  end
+  return words
+end
+
+local function pascal(words)
+  for index, word in ipairs(words) do words[index] = capitalise(word) end
+  return words
+end
+
+local function constant(words)
+  for index, word in ipairs(words) do words[index] = M.upper(word) end
+  return words
+end
+
+M.camel, M.pascal, M.constant = joined("", camel), joined("", pascal), joined("_", constant)
+M.snake, M.kebab, M.dot = joined("_"), joined("-"), joined(".")
 
 --- `text` in every naming style: a list of `{ style, text }`.
 function M.cases(text)
-  local words = M.words(text)
-  local titled, camel = {}, {}
-  for i, word in ipairs(words) do
-    titled[i] = title(word)
-    camel[i] = i == 1 and word or title(word)
-  end
   return {
-    { "UPPER CASE", text:upper() },
-    { "lower case", text:lower() },
-    { "Title Case", table.concat(titled, " ") },
-    { "Sentence case", title(text:lower()) },
-    { "camelCase", table.concat(camel) },
-    { "PascalCase", table.concat(titled) },
-    { "snake_case", table.concat(words, "_") },
-    { "kebab-case", table.concat(words, "-") },
-    { "CONSTANT_CASE", table.concat(words, "_"):upper() },
-    { "dot.case", table.concat(words, ".") },
+    { "UPPER CASE", M.upper(text) },
+    { "lower case", M.lower(text) },
+    { "Title Case", table.concat(pascal(M.words(text)), " ") },
+    { "Sentence case", M.sentence(text) },
+    { "camelCase", M.camel(text) },
+    { "PascalCase", M.pascal(text) },
+    { "snake_case", M.snake(text) },
+    { "kebab-case", M.kebab(text) },
+    { "CONSTANT_CASE", M.constant(text) },
+    { "dot.case", M.dot(text) },
   }
 end
 
@@ -127,35 +179,85 @@ end
 
 -- ----------------------------------------------------------------- json --
 
-local function pretty(value, depth, out)
-  local pad = string.rep("  ", depth)
-  if type(value) ~= "table" then
-    out[#out + 1] = morf.json.encode(value)
-    return
+--- `text` with white space outside strings taken out, keys in their order and
+--- numbers as written.
+function M.json_minify(text)
+  local ok = pcall(morf.json.decode, text)
+  if not ok then return nil, "That is not JSON" end
+  local out, inside, at = {}, false, 1
+  while at <= #text do
+    local char = text:sub(at, at)
+    if inside then
+      out[#out + 1] = char
+      if char == "\\" then
+        at = at + 1
+        out[#out + 1] = text:sub(at, at)
+      elseif char == '"' then
+        inside = false
+      end
+    elseif char == '"' then
+      inside = true
+      out[#out + 1] = char
+    elseif not char:find("%s") then
+      out[#out + 1] = char
+    end
+    at = at + 1
   end
-  local keys = {}
-  for key in pairs(value) do keys[#keys + 1] = key end
-  if #keys == 0 then out[#out + 1] = "{}" return end
-  local list = value[1] ~= nil
-  if not list then table.sort(keys, function(a, b) return tostring(a) < tostring(b) end) end
-  out[#out + 1] = list and "[\n" or "{\n"
-  local count = list and #value or #keys
-  for i = 1, count do
-    out[#out + 1] = pad .. "  "
-    if not list then out[#out + 1] = morf.json.encode(tostring(keys[i])) .. ": " end
-    pretty(list and value[i] or value[keys[i]], depth + 1, out)
-    out[#out + 1] = i < count and ",\n" or "\n"
+  return table.concat(out)
+end
+
+--- `text` laid out with `width` spaces to a level, its keys in their order.
+function M.json_pretty(text, width)
+  local flat, why = M.json_minify(text)
+  if not flat then return nil, why end
+  local step = (" "):rep(width or 2)
+  local out, depth, inside, at = {}, 0, false, 1
+  local function newline() out[#out + 1] = "\n" .. step:rep(depth) end
+  while at <= #flat do
+    local char = flat:sub(at, at)
+    if inside then
+      out[#out + 1] = char
+      if char == "\\" then
+        at = at + 1
+        out[#out + 1] = flat:sub(at, at)
+      elseif char == '"' then
+        inside = false
+      end
+    elseif char == '"' then
+      inside = true
+      out[#out + 1] = char
+    elseif char == "{" or char == "[" then
+      local next_char = flat:sub(at + 1, at + 1)
+      out[#out + 1] = char
+      if next_char == "}" or next_char == "]" then
+        out[#out + 1] = next_char
+        at = at + 1
+      else
+        depth = depth + 1
+        newline()
+      end
+    elseif char == "}" or char == "]" then
+      depth = depth - 1
+      newline()
+      out[#out + 1] = char
+    elseif char == "," then
+      out[#out + 1] = char
+      newline()
+    elseif char == ":" then
+      out[#out + 1] = ": "
+    else
+      out[#out + 1] = char
+    end
+    at = at + 1
   end
-  out[#out + 1] = pad .. (list and "]" or "}")
+  return table.concat(out)
 end
 
 --- `text` as indented JSON and as one line, or nil when it is not JSON.
 function M.json(text)
-  local ok, value = pcall(morf.json.decode, text)
-  if not ok or value == nil then return nil end
-  local out = {}
-  pretty(value, 0, out)
-  return table.concat(out), morf.json.encode(value)
+  local line = M.json_minify(text)
+  if not line then return nil end
+  return M.json_pretty(line), line
 end
 
 -- ---------------------------------------------------------------- lorem --
@@ -169,7 +271,7 @@ local LOREM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do e
 --- `paragraphs` paragraphs of placeholder text.
 function M.lorem(paragraphs)
   local out = {}
-  for i = 1, math.max(1, math.min(20, paragraphs or 1)) do out[i] = LOREM end
+  for i = 1, math.max(1, math.min(100, paragraphs or 1)) do out[i] = LOREM end
   return table.concat(out, "\n\n")
 end
 

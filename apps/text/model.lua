@@ -3,6 +3,7 @@
 -- signal; `made` says only that there is one. No nodes.
 local morf = require("morf")
 local sys = require("common.sys")
+local codec = require("lib.shell.launcher.codec")
 local transforms = require("transforms")
 local secrets = require("secrets")
 
@@ -34,7 +35,7 @@ end
 --- Runs transform `id` on the pad.
 function M.apply(id)
   local item = transforms.find(id)
-  if not item or not transforms.present(item) then return false end
+  if not item then return false end
   transforms.run(item, M.text:get(), function(answer, why)
     if not answer then M.message:set(why or "That did not work") return end
     replace(answer)
@@ -67,7 +68,7 @@ function M.paste()
 end
 
 function M.uuid() replace(morf.encoding.uuid()) end
-function M.lorem() replace(transforms.lorem(1)) end
+function M.lorem() replace(codec.lorem(1)) end
 
 --- How the view shows a secret: `action(words)`.
 function M.on_secret(action) shown = action end
@@ -113,9 +114,7 @@ local function list()
   local lines = {}
   for _, group in ipairs(transforms.GROUPS) do
     local ids = {}
-    for _, item in ipairs(group.items) do
-      if transforms.present(item) then ids[#ids + 1] = item.id end
-    end
+    for _, item in ipairs(group.items) do ids[#ids + 1] = item.id end
     lines[#lines + 1] = ("%-6s %s"):format(group.key, table.concat(ids, " "))
   end
   lines[#lines + 1] = ("%-6s uuid lorem password passphrase"):format("make")
@@ -129,7 +128,7 @@ function M.job(args, input, done)
   local how = args[1]
   if how == "list" then done(list()) return end
   if how == "uuid" then done(morf.encoding.uuid()) return end
-  if how == "lorem" then done(transforms.lorem(tonumber(args[2]))) return end
+  if how == "lorem" then done(codec.lorem(tonumber(args[2]))) return end
   if how == "password" then
     local symbols = args[3] ~= "--no-symbols" and args[2] ~= "--no-symbols"
     local length = math.max(4, math.min(tonumber(args[2]) or M.LENGTHS[2], 1024))
@@ -146,10 +145,6 @@ function M.job(args, input, done)
   local item = transforms.find(wanted)
   if not item then
     done(nil, "unknown transform: " .. tostring(how) .. " (eva-text list)")
-    return
-  end
-  if not transforms.present(item) then
-    done(nil, item.program .. " is not here")
     return
   end
   local text = input or words_after(args, args[2] == "-d" and 3 or 2)
