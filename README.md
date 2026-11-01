@@ -362,15 +362,51 @@ pending repeats. Short greeter outputs reserve a footer for power controls.
 The lock's live monitor list drops disconnected displays, so its controls move
 to a remaining output and recover when a display reconnects.
 
-Connecting headphones shows a centered status badge for 3.2 seconds on the active
-output. Earbuds get a separate icon when the name or form-factor metadata identifies
-them; generic analog jacks use headphones because they cannot distinguish the
-physical accessory. One `pactl subscribe` watcher reads audio-route changes,
-including wired jack availability, without idle polling. Native audio metadata is
-the fallback when PulseAudio compatibility is unavailable. Devices present at
-startup, volume changes and brief Bluetooth profile handoffs stay quiet.
-Preview with `morf ipc call headphones-demo` or
-`morf ipc call headphones-demo earbuds`.
+## On-screen displays
+
+A change made anywhere (a key, another program) shows as a display on the focused
+output: volume and brightness as a meter, and short pills for the microphone's
+mute, caps and num lock, the keyboard layout, the power profile, Do not disturb,
+keep awake, night light, the ring mode, a Bluetooth device connecting, headphones,
+and the track now playing. Each fires only on a real change, stays quiet while
+services report in at startup, and never appears when its service is absent.
+
+**Settings > Eva > On-screen displays** gives each kind its own place, one of
+`top_left`, `top_center`, `top_right`, `center_left`, `center`, `center_right`,
+`bottom_left`, `bottom_center` and `bottom_right`, with a switch, a hold time, a
+percentage switch for the levels, and a **Try** button. They are kept under
+`osd.kinds` in the settings; a phone's default is the top centre.
+
+At an edge a display swells out of the frame with its seam, lying along the top
+and bottom edges and standing upright on the sides; in the centre it floats with
+a shadow. Moved while on show it travels there. Displays at different places show
+together, up to three, and one in another's way takes over its bud.
+
+A level can be dragged to set it and clicked to mute, with a mouse or a finger,
+and waits while the pointer rests on it. `morf ipc call osd` flashes the volume,
+and `morf ipc call osd KIND` any of `volume`, `brightness`, `mic`, `caps`, `num`,
+`layout`, `profile`, `dnd`, `awake`, `night`, `ring`, `bluetooth`, `headphones` and
+`media`; it answers false when that display cannot appear.
+
+A track waits a moment for its cover and shows once, whatever metadata its player
+repeats. Caps and num lock are read from the kernel's LEDs, on the focused output
+only, three times a second. Night light shows once a service provides it: a
+`night` control in `settings_model.CONTROLS`, or `services.night`, with `on()`.
+
+Notification popups stand at any of the six top and bottom anchors, set on the
+same page as `osd.notifications`. Along an edge they move as the setting changes;
+to the other edge the output's shell is built again in place, which drops the
+popups on show at that moment. A card goes when swiped sideways or away from its
+edge, and springs back from a short pull.
+
+Headphones connecting show for 3.2 seconds, in the centre by default. Earbuds get a
+separate icon when the name or form-factor metadata identifies them; generic analog
+jacks use headphones because they cannot distinguish the physical accessory. One
+`pactl subscribe` watcher reads audio-route changes, including wired jack
+availability, without idle polling. Native audio metadata is the fallback when
+PulseAudio compatibility is unavailable. Devices present at startup, volume changes
+and brief Bluetooth profile handoffs stay quiet. Preview with
+`morf ipc call headphones-demo` or `morf ipc call headphones-demo earbuds`.
 
 Under Cage the greeter uses one login window on Cage's main display. The view
 uses its configured fullscreen window size and never follows the pointer or

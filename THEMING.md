@@ -757,24 +757,36 @@ the visible, enabled entry method.
 
 ### Popup and OSD builders
 
-`views.notifications.build(state)` returns drawer properties plus `dismiss(i)`.
-The latter starts visual departure and returns its duration; the controller
-captures the notification ID before the animation and dismisses that ID after
-the returned delay. A theme never owns notification expiry or server calls.
-`notification_theme_spec.lua` verifies both themes' history, expiry, DND,
-focused-output routing, server dismissal and overlapping arrival/dismissal;
-the compact Tsugumori test scrolls to the final displayed card.
+`views.notifications.build(state)` returns drawer properties plus
+`dismiss(i, direction)`. The latter starts visual departure, the way `direction`
+sends it where a swipe gave one, and returns its duration; the controller captures
+the notification ID before the animation and dismisses that ID after the returned
+delay. A theme never owns notification expiry or server calls. `state.position()`
+is a top or bottom anchor: the view reads the edge once, for the drawer's `edge`,
+and follows where along it. `notification_theme_spec.lua` verifies both themes'
+history, expiry, DND, focused-output routing, server dismissal, overlapping
+arrival/dismissal, anchors and swipes; the compact Tsugumori test scrolls to the
+final displayed card.
 
-`views.levels.build(model)` receives reading/icon callbacks, `shown`/`active`
-signals, desktop/rail geometry and the sidebar drawer to follow. It returns
-`node`, its frame-field `shape`, `show(previous_kind)`, `hide(done)`, `geometry`
-and optional `hold` duration. The controller owns repeated-update timeout
-renewal; each theme owns interrupted animation handling. `levels_theme_spec.lua`
-checks both layouts' auto-show suppression, switching readings, timeout renewal,
-interrupted dismissal and the compact Tsugumori mute/brightness presentation.
-The existing `osd` IPC defaults to volume and now also accepts `brightness` or
-`volume` explicitly, allowing either view to be inspected without setting a
-device level.
+`views.levels.build(model)` receives reading/icon callbacks, `position(kind)`,
+`anchor(position)`, `family(kind)`, `percent(kind)`, `read(kind)`, `artwork()`,
+`adjust(kind, value)` and `toggle_mute()`, `shown`/`active` signals, desktop/rail
+geometry and the sidebar drawer to follow. It returns `node`; `shape`, an Item of
+its frame-field layers, one per bud; `buds`, each with `show(kind)`, `hide(done)`,
+`held()` and `showing(kind)`; and `geometry`, `spot(kind)` and `overlap(a, b)`. A
+bud's motion is three claims (`gone` at once, `out` on a spring, `leaving` on the
+way off), so a place that changes retargets it with its speed. A hidden bud's layer
+is not in the field: the budget of `MAX_FIELD_LAYERS` pays only for what is shown,
+three at most.
+
+The controller owns which bud shows which kind, repeated-update timeout renewal
+and the hold under the pointer; the view owns interrupted animation handling.
+`shell/osd_model.lua` is the catalogue and preferences, `shell/osd_sources.lua`
+the services and what counts as a change. `levels_theme_spec.lua` checks both
+layouts' auto-show suppression, switching readings, timeout renewal, interrupted
+dismissal and the compact Tsugumori mute/brightness presentation; `osd_spec.lua`
+the places, the kinds, their firing and the pointer; `osd_page_spec.lua` the
+Settings page and the `osd` IPC, which accepts every kind.
 
 ### History builder
 
