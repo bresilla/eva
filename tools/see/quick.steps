@@ -1,0 +1,16 @@
+# The surfaces a change most often touches.
+start shell
+shot rest
+ipc sidebar open settings; pause 1.2; shot quick-settings
+ipc close; pause 0.6
+ipc dashboard open; pause 1.4; shot dashboard
+ipc close; pause 0.6
+ipc session open; pause 1; shot session
+ipc close; pause 0.6
+ipc osd volume; pause 0.9; shot osd
+start lock
+shot lock-rest
+key Return; pause 0.9; shot lock-sheet
+start greet
+shot greet-rest
+key Return; pause 0.9; shot greet-sheet

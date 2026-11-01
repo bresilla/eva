@@ -48,7 +48,18 @@
             (builtins.unsafeDiscardStringContext machine.config.system.build.toplevel.drvPath);
         };
         devShells.default = pkgs.mkShell {
-          packages = [ engine pkgs.coreutils pkgs.git-cliff pkgs.lua5_4 ];
+          packages = [
+            engine
+            pkgs.coreutils
+            pkgs.git-cliff
+            pkgs.lua5_4
+            # A real Taskwarrior for its spec, and tools/see.sh's session.
+            pkgs.taskwarrior3
+            pkgs.sway
+            pkgs.grim
+            pkgs.wtype
+            pkgs.dbus
+          ];
           # The faces eva draws with, whatever the machine has installed:
           # the specs measure text in them.
           MORF_FONT_PATH = pkgs.lib.makeSearchPath "share/fonts" eva.fontPackages;

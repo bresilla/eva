@@ -17,5 +17,8 @@ make.alias("t", "test")
 make.recipe{ name = "check", desc = "the shell, lock screen and greeter load under morf check",
              run = function() sh.sh("tools/check.sh") end }
 
+make.recipe{ name = "see", desc = "a scenario of tools/see/ on a virtual screen, into .see/",
+             run = function(args) sh.bash("tools/see.sh", args[1] or "quick") end }
+
 make.recipe{ name = "build", desc = "the Nix package, into ./result",
              run = function() sh.nix("build", ".#eva") end }

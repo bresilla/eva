@@ -1,0 +1,9 @@
+{
+  "theme": "@MODE@",
+  "wallpaper": "@WALLPAPER@",
+  "special": { "background": "#10141c", "foreground": "#dfe6f0", "cursor": "#7fb4e8" },
+  "colors": [
+    "#10141c", "#7fb4e8", "#8fc7a8", "#e8c37f", "#a3b6e8", "#c8a3e8", "#7fd4d4", "#c7cedb",
+    "#39414f", "#9cc8f0", "#a8dcbf", "#f0d59c", "#bccbf0", "#d9bcf0", "#9ce4e4", "#dfe6f0"
+  ]
+}
