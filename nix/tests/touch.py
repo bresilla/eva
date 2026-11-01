@@ -149,6 +149,11 @@ def keyboard_up():
     return ipc("keyboard", "state") is True
 
 
+def keyboard_comes(up):
+    """Waits for it: on a software GPU a rebuild can hold lines back for seconds."""
+    return eventually(lambda: keyboard_up() == up, 20)
+
+
 def client(title):
     for row in hypr_json("clients"):
         if row["title"] == title:
@@ -251,14 +256,14 @@ def run(password):
         # Neither finger is in the old 20 pixel strip, and one is far above it.
         stroke(line([(640, 770), (720, 690)]), line([(640, 470), (720, 390)]))
         machine.sleep(2)
-        check("the keyboard comes up, one finger above the old strip", keyboard_up(), heard())
+        check("the keyboard comes up, one finger above the old strip", keyboard_comes(True), heard())
         machine.screenshot("keyboard-up")
         stroke(line([(500, 620), (700, 640)]), line([(500, 780), (700, 790)]))
         machine.sleep(2)
-        check("two fingers down on it hide it", not keyboard_up(), heard())
+        check("two fingers down on it hide it", keyboard_comes(False), heard())
         stroke(line([(640, 795), (720, 700)]), line([(640, 495), (720, 400)]))
         machine.sleep(2)
-        check("with one finger on the strip and one on the app too", keyboard_up(), heard())
+        check("with one finger on the strip and one on the app too", keyboard_comes(True), heard())
         ipc("keyboard", "close")
         machine.sleep(1)
 
@@ -474,7 +479,7 @@ def run(password):
             machine.sleep(3)
             stroke([start, (start[0] - second[0], start[1] + second[1])], [end, (end[0] - second[0], end[1] + second[1])])
             machine.sleep(2)
-            check(f"the keyboard comes up at transform {transform}", keyboard_up(), str(ipc("touch")))
+            check(f"the keyboard comes up at transform {transform}", keyboard_comes(True), str(ipc("touch")))
             check(f"and nothing else does at transform {transform}", ipc("overview", "state") is False, str(ipc("touch")))
             machine.screenshot(f"turned-{transform}")
             ipc("keyboard", "close")
@@ -521,7 +526,7 @@ def run(password):
         print("WS", before, hypr_json("activeworkspace")["id"])
         stroke(line([(640, 770), (720, 690)]), line([(640, 470), (720, 390)]))
         machine.sleep(2)
-        check("the panel's keyboard answers two fingers", keyboard_up(), str(ipc("touch")))
+        check("the panel's keyboard answers two fingers", keyboard_comes(True), str(ipc("touch")))
         machine.screenshot("second-screen")
 
     print("SHELL ALIVE", ipc("touch"))
