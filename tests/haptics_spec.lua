@@ -109,6 +109,22 @@ test.it("EVA_FAKE_HAPTICS stands in where there is no feedbackd",function()
   test.truthy(test.ipc("present"))
 end)
 
+test.it("the Sound page has the switch only where something can buzz",function()
+  local function page(env)
+    env.EVA_WALLPAPER="" env.EVA_DRY_RUN="1"
+    env.EVA_SETTINGS=morf.env("XDG_CACHE_HOME").."/haptics-sound.json"
+    test.load("../shell/init.lua",{size={868,1932},env=env})
+    test.advance(20)
+    test.ipc("settings","sound")
+    test.settle(1200)
+  end
+  page{}
+  local hidden=test.find("sound-touch")
+  test.truthy(hidden==nil or hidden.visible==false)
+  page{EVA_FAKE_HAPTICS="1"}
+  test.eq(test.get("sound-touch").visible,true)
+end)
+
 test.it("a tile toggles with a buzz",function()
   test.load("../shell/init.lua",{size={868,1932},env={EVA_WALLPAPER="",EVA_DRY_RUN="1",EVA_FAKE_HARDWARE="1",
     EVA_SETTINGS=morf.env("XDG_CACHE_HOME").."/haptics-tile.json"},source=[[

@@ -121,6 +121,8 @@ the shell is not running. On NixOS they are on `PATH`, each with a desktop entry
 | `eva-nightlight on\|off\|toggle\|auto\|daemon\|times` | warmer light over `hyprsunset`, by the sun at `services.weather_location` |
 | `eva-clipboard [--watch]` | a history of text and pictures with pins, skipping what a password manager marks; on NixOS `--watch` runs as a user service |
 | `eva-battery status`, `eva-battery limit on\|off` | the charge limit, through UPower's `EnableChargeThreshold` |
+| `eva-phone [tel:NUMBER]` | a dial pad that finds people by their letters, recent calls and contacts; the shell shows the call |
+| `eva-messages [sms:NUMBER]` | text threads with delivery marks; the shell receives them and notifies |
 
 `make app displays` runs one from a checkout.
 
@@ -377,6 +379,65 @@ a tray nobody can see.
 and `EVA_FAKE_CUTOUT=400,68,34` stand in for hardware; a `tools/see/` scenario
 exports them, as `tools/see/bar.steps` and `cutout.steps` do, and
 `morf ipc call fake-battery 12` moves the battery while it runs.
+
+## Calls, texts and the modem
+
+With `programs.eva.phone.enable` the module brings up ModemManager, callaudiod,
+feedbackd and iio-sensor-proxy, and adds the user to `networkmanager` and
+`feedbackd`. ModemManager's Voice and Messaging ask polkit for a password by
+default, which nothing on a locked screen could answer; that group's rule is what
+lets a call be taken there. `programs.eva.phone.calls = false` leaves all of it
+out.
+
+A call comes up on a surface of its own in the overlay layer: the whole screen on
+a phone or tablet, a card on a desk. Pull the orb to a side of its rail, or press
+that side. A locked session shows only the lock's surfaces, so the lock hosts the
+same screen (`themes/phone_lock.lua`), along with the SIM's PIN and PUK and
+emergency dialling, which takes only numbers that reach the emergency services:
+the SIM's, 112 and 911, and six more with no SIM. The shell stays the owner either
+way: it rings, routes the sound through callaudiod, holds suspend off through
+logind and keeps the history. On the earpiece the proximity sensor blanks the
+panel and takes every touch; the speaker stops that.
+
+Texts go to `$XDG_STATE_HOME/eva/phone/`, private files that the shell and the
+tools share, and come off the modem. A notification from one carries `reply` with
+the number; `require("phone").reply(number, text)` answers it, which is what a
+notification's inline reply calls. MMS is not done.
+
+Contacts are vCards in `phone.contacts` (`~/.local/share/contacts`), which is
+what vdirsyncer keeps. `phone.country` is the code bare numbers get. Favourites
+and blocked numbers are eva's own, beside the history, and the cards are never
+written to. A blocked call is ended before it rings.
+
+Public warnings come by cell broadcast with ModemManager 1.24 or later. National
+alerts always come through; the Mobile page turns the others off and lists what
+has come. That page also shows the radio's levels, data by interface this month,
+and takes `phone.data_limit` in megabytes, warning at 80% and at 100%.
+
+The side keys reach the shell through Hyprland binds. A volume key or power
+silences a call that rings. `phone.power_ends_call` ends one on power,
+`phone.double_power` is a command for power pressed twice, power and volume down
+takes a screenshot, and `phone.sos` counts down from five presses of power to an
+emergency call. Set it on purpose: on a locked screen the countdown cannot show,
+because only the lock draws there, and the call still goes.
+
+`programs.eva.phone.suspendTimeout` is zero by default, so a phone stays awake.
+Whether a call can wake a sleeping phone depends on its kernel and modem: name
+what rings it in `programs.eva.phone.wakeDevices`, then call it while it sleeps
+before setting a timeout. ModemManager and NetworkManager bring the modem back
+after resume by themselves.
+
+All of this comes down to one haptic seam, `require("haptics").fire(kind)`, with
+one setting, `haptics.on` (Sound, Touch). Kit presses and tile toggles reach it by
+themselves.
+
+`EVA_FAKE_MODEM=1` runs the real service against ModemManager on a bus of Lua
+tables (`lib/services/modem_standin.lua`). That bus knows only what ModemManager's
+XML declares (`tests/fixtures/phone-bus.txt`), so a wrong name fails a spec, but
+it says nothing about real timing, real errors or real audio. `phone fake ring
++316...`, `text`, `alert CHANNEL WORDS`, `lock sim-pin` and `near on` move it;
+`EVA_CONTACTS`, `EVA_FAKE_HAPTICS`, `EVA_FAKE_PROXIMITY` and `EVA_FAKE_NET` stand
+in for the rest.
 
 ## Visual themes (in progress)
 
