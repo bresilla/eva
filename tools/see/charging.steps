@@ -1,6 +1,6 @@
 # The Power page and the dashboard's battery tab against a stand-in battery,
 # through a fast charger, a wireless one, a weak one and a limit it is held at.
-BOOT=7
+BOOT=12
 export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging,fast,watts=22,limit=100}
 export EVA_FAKE_HARDWARE=1
 start shell
