@@ -320,7 +320,13 @@ ipc.lock_shortcut = function(id) return require("lock_bridge").open(id) end
 ipc.idle = function(how)
   local idle = require("idle_model")
   if how == "warn" then idle.warning_ms:set(8000) idle.phase:set("warning")
-  elseif how == "stop" then idle.phase:set("") end
+  elseif how == "stop" then idle.phase:set("")
+  elseif how == "status" then
+    local holding, stages = {}, {}
+    for _, row in ipairs(idle.inhibitors()) do holding[#holding + 1] = row.who end
+    for _, item in ipairs(idle.plan()) do stages[#stages + 1] = item.stage .. ":" .. item.seconds end
+    return { phase = idle.phase:get(), holding = holding, stages = stages }
+  end
   return idle.phase:get()
 end
 ipc.reveal = function()

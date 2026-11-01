@@ -241,6 +241,14 @@ in
         machine.fail("grep -q -i secret /run/user/1000/eva/lock-view.json")
         machine.succeed("test \"$(stat -c %a /run/user/1000/eva/lock-view.json)\" = 600")
 
+    with subtest("real logind: who blocks sleep is named, and a fixed stage stays off"):
+        machine.succeed("systemd-run --unit=hold systemd-inhibit --what=sleep --who=vmtest --why=holding sleep 300")
+        machine.wait_until_succeeds("systemd-inhibit --list --no-legend | grep -q vmtest", timeout=30)
+        status = machine.succeed(f"{alice} WAYLAND_DISPLAY=wayland-1 morf ipc call idle status")
+        print(status)
+        assert "vmtest" in status, f"the inhibitor is missing from {status}"
+        assert "lock:" not in status, f"lockTimeout = 0 still has a stage in {status}"
+
     with subtest("the greeter keeps who came last, and nothing else"):
         machine.succeed("jq -e '.user == \"alice\" and (.sessions.alice | type) == \"string\"' /var/lib/greetd/.local/state/eva/greeter.json")
         machine.fail("grep -q 'correct horse' /var/lib/greetd/.local/state/eva/greeter.json")

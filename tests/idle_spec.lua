@@ -208,6 +208,15 @@ test.it("a delay inhibitor does not",function()
   test.eq(test.ipc("at","lock"),true)
 end)
 
+test.it("the idle verb says what holds it and which stages stand",function()
+  load{settings={idle={lock=60,blank=0,suspend=0,dim=0}},
+    logind={can={},inhibitors={{what="sleep",who="backup",why="Writing",mode="block",uid=1000,pid=1}}}}
+  local status=test.ipc("idle","status")
+  test.eq(status.holding,{"backup"})
+  test.eq(status.stages,{"lock:60"})
+  test.eq(status.phase,"")
+end)
+
 test.it("a bus client that asked keeps it awake, by name",function()
   load{settings={idle={lock=60,blank=0,suspend=0,dim=0}}}
   test.ipc("holders",morf.json.encode{{cookie=1,app="firefox",reason="Video"}})
