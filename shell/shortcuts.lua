@@ -32,6 +32,12 @@ function M.table(ipc)
     if pages and settings.opened:get() and pages.can_go_back() then pages.back() return end
     close()
   end
+  -- So has the panels board, where the back button still goes back.
+  local function alt_left()
+    local settings = package.loaded["settings_model"]
+    if settings and settings.opened:get() and settings.detail:get() == "panels" then return false end
+    return back()
+  end
   return {
     scope = "surface",
     ["ctrl+space"] = call("launcher", "toggle"),
@@ -47,7 +53,7 @@ function M.table(ipc)
     -- A mouse's back button, or Alt+Left: one settings page back while a
     -- page is open on the Settings stack, else shut what is open.
     ["back"] = back,
-    ["alt+Left"] = back,
+    ["alt+Left"] = alt_left,
   }
 end
 

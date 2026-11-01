@@ -41,7 +41,8 @@ function V.build(model, w, h)
       for i, key in ipairs(keys) do items[i] = { id = key } end
       local cells, count = grid.flow(items, COLUMNS)
       local top = y + HEAD
-      local bottom = top + grid.height(math.max(count, 1), METRICS)
+      -- An empty panel keeps a row to drop a page on; nothing spare takes none.
+      local bottom = top + grid.height(edge and math.max(count, 1) or count, METRICS)
       groups[#groups + 1] = { edge = edge, name = name, items = items, top = top, bottom = bottom }
       for key, cell in pairs(cells) do
         local x, cy, width = grid.box(cell, METRICS)
@@ -88,7 +89,7 @@ function V.build(model, w, h)
       cursor = "pointer", enabled = spare, on_clicked = function() board.add(key) end,
       kit.icon(page.icon, 22, function() return C.onSurface end, { x = S.l, anchors = { vertical_center = true } }),
       kit.text { x = S.xxl + S.l, width = SLOT - S.xxl - S.l - S.xl, elide = "right", text = page.name,
-        anchors = { vertical_center = true }, font_size = theme.size.normal, font_weight = 500,
+        anchors = { vertical_center = true }, font_size = theme.size.small, font_weight = 500,
         color = function() return C.onSurface end },
     }
     ui.reparent(kit.tile_surface { id = "panels-page-" .. key .. "-shape", area = area,

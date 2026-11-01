@@ -97,6 +97,8 @@ function M.new(spec)
       width = page_w, height = page_h,
       x=page_wipe and function() return (i-1)*(page_w()+2*PAD) end or nil,
       visible=function() return not page_wipe or display:get()==i end,
+      -- A page beside the one on show is out of Tab's way.
+      enabled=function() return tab:get()==i end,
       ui.Loader {
         anchors = { fill = true }, keep = not fluid,
         preload = not fluid and function() return tab:get() == i end or nil,
