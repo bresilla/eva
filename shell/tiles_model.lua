@@ -10,12 +10,16 @@ local function index_of(list, id)
 end
 
 --- A board over `catalogue` (tiles with `id`, optional `present()`).
---- `form` names the form factor whose list it keeps.
+--- `form()` names the form factor whose list it keeps.
 function M.new(catalogue, form)
-  local board = { form = form, editing = morf.signal("eva.quick.editing", false) }
+  local board = { editing = morf.signal("eva.quick.editing", false) }
   local by_id = {}
   for _, tile in ipairs(catalogue) do by_id[tile.id] = tile end
-  local order_key, small_key = "quick.tiles." .. form, "quick.small." .. form
+  local order_key, small_key
+  local function keys()
+    if order_key then return end
+    order_key, small_key = "quick.tiles." .. form(), "quick.small." .. form()
+  end
 
   local function here(id)
     local tile = by_id[id]
@@ -23,15 +27,21 @@ function M.new(catalogue, form)
   end
 
   local function small_set()
+    keys()
     local set = {}
     for _, id in ipairs(config.get(small_key) or {}) do set[id] = true end
     return set
   end
 
+  local function saved_order()
+    keys()
+    return config.get(order_key) or {}
+  end
+
   --- The tiles shown, in order: `{ id, small }`.
   function board.shown()
     local out, small, seen = {}, small_set(), {}
-    for _, id in ipairs(config.get(order_key) or {}) do
+    for _, id in ipairs(saved_order()) do
       if here(id) and not seen[id] then
         seen[id] = true
         out[#out + 1] = { id = id, small = small[id] == true }
@@ -43,7 +53,7 @@ function M.new(catalogue, form)
   --- The tiles this machine has that are not shown: `{ id, small }`.
   function board.spare()
     local saved, small, out = {}, small_set(), {}
-    for _, id in ipairs(config.get(order_key) or {}) do saved[id] = true end
+    for _, id in ipairs(saved_order()) do saved[id] = true end
     for _, tile in ipairs(catalogue) do
       if not saved[tile.id] and here(tile.id) then
         out[#out + 1] = { id = tile.id, small = small[tile.id] == true }
@@ -56,7 +66,7 @@ function M.new(catalogue, form)
   --- holds that this machine lacks keeps its place behind those it stood
   --- behind.
   function board.move(id, index)
-    local saved = config.get(order_key) or {}
+    local saved = saved_order()
     local shown = board.shown()
     local target = shown[math.max(1, math.min(index, #shown))]
     if not target or target.id == id then return false end
@@ -73,14 +83,14 @@ function M.new(catalogue, form)
   --- `id` taken off the board, to the Available tiles.
   function board.hide(id)
     local out = {}
-    for _, v in ipairs(config.get(order_key) or {}) do if v ~= id then out[#out + 1] = v end end
+    for _, v in ipairs(saved_order()) do if v ~= id then out[#out + 1] = v end end
     config.set(order_key, out)
   end
 
   --- `id` back on the board, at its end.
   function board.add(id)
     if not by_id[id] then return false end
-    local saved = config.get(order_key) or {}
+    local saved = saved_order()
     if index_of(saved, id) then return false end
     local out = {}
     for i, v in ipairs(saved) do out[i] = v end
@@ -94,6 +104,7 @@ function M.new(catalogue, form)
 
   --- `id` between its full and its small size.
   function board.toggle_size(id)
+    keys()
     local out, had = {}, false
     for _, v in ipairs(config.get(small_key) or {}) do
       if v == id then had = true else out[#out + 1] = v end
@@ -104,6 +115,7 @@ function M.new(catalogue, form)
 
   --- The form factor's own tiles and sizes again.
   function board.reset()
+    keys()
     config.reset(order_key)
     config.reset(small_key)
   end

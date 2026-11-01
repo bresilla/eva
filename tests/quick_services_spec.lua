@@ -214,6 +214,52 @@ local HOST=[[
     return true
   end
 
+  local rotate
+  local function rotation_rig()
+    local hypr=require("lib.compositor.hyprland")
+    rotate={calls={},evals={},keywords={},lua=true}
+    hypr.available=function() return true end
+    hypr.eval=function(chunk,done)
+      rotate.evals[#rotate.evals+1]=chunk
+      if done then done(rotate.lua and "ok" or "unknown request") end
+    end
+    hypr.keyword=function(name,value) rotate.keywords[#rotate.keywords+1]=name.." "..tostring(value) end
+    hypr.monitor=function(name)
+      return {name=name,width=1080,height=2400,refresh_rate=60,x=0,y=0,scale=2,transform=0}
+    end
+    local locked=morf.signal("test.rotate.locked",false)
+    local state=morf.state{accelerometer=true,orientation="normal"}
+    rotate.locked,rotate.state=locked,state
+    rotate.device={sensors={state=state,
+        claim=function() rotate.calls[#rotate.calls+1]="claim" end,
+        release=function() rotate.calls[#rotate.calls+1]="release" end},
+      present=function() return state.accelerometer end,
+      on=function() return locked:get() end}
+    return require("auto_rotate")
+  end
+  morf.ipc.rotate_edge=function()
+    local auto=rotation_rig()
+    truthy(auto.built_in("eDP-1"),"eDP built in") truthy(auto.built_in("DSI-1"),"DSI built in")
+    falsy(auto.built_in("DP-3"),"DP built in") falsy(auto.built_in("HDMI-A-1"),"HDMI built in")
+    eq(auto.start{rotation=rotate.device,name="HDMI-A-1"},false)
+    eq(#rotate.calls,0)
+    eq(auto.apply("undefined","eDP-1"),false)
+    return true
+  end
+  morf.ipc.rotate_start=function()
+    rotation_rig().start{rotation=rotate.device,name="eDP-1"}
+    return true
+  end
+  morf.ipc.rotate_legacy=function()
+    rotation_rig()
+    rotate.lua=false
+    require("auto_rotate").apply("left-up","eDP-1")
+    return rotate.keywords
+  end
+  morf.ipc.rotate_turn=function(to) rotate.state.orientation=to end
+  morf.ipc.rotate_lock=function(on) rotate.locked:set(on=="yes") end
+  morf.ipc.rotate_read=function() return {calls=rotate.calls,evals=rotate.evals} end
+
   local night_runs={}
   morf.ipc.night_start=function()
     night_runs={}
@@ -232,12 +278,38 @@ local HOST=[[
 local function load() test.load("../shell/init.lua",{source=HOST,size={320,240}}) end
 for _,name in ipairs {"grid_flow","grid_small_pack","grid_nearest","hotspot_profile","hotspot_check",
   "hotspot_first_save","hotspot_update","hotspot_refuses","hotspot_start_stop","hotspot_no_ap",
-  "sensors","sensors_absent","torch","torch_flash","torch_none","torch_refused"} do
+  "sensors","sensors_absent","torch","torch_flash","torch_none","torch_refused","rotate_edge"} do
   test.it(name:gsub("_"," "),function()
     load()
     test.eq(test.ipc(name),true)
   end)
 end
+test.it("auto-rotate turns the output and the touchscreen, and the lock stops it",function()
+  load()
+  test.ipc("rotate_start") test.advance(50)
+  local read=test.ipc("rotate_read")
+  test.eq(read.calls,{"claim"})
+  test.eq(read.evals[1],'hl.monitor({output="eDP-1", transform=0})')
+  test.ipc("rotate_turn","left-up") test.advance(50)
+  read=test.ipc("rotate_read")
+  test.eq(read.evals[3],'hl.monitor({output="eDP-1", transform=1})')
+  test.eq(read.evals[4],"hl.config({input={touchdevice={transform=1},tablet={transform=1}}})")
+  test.ipc("rotate_lock","yes") test.advance(50)
+  read=test.ipc("rotate_read")
+  test.eq(read.calls,{"claim","release"})
+  local evals=#read.evals
+  test.ipc("rotate_turn","bottom-up") test.advance(50)
+  test.eq(#test.ipc("rotate_read").evals,evals,"a lock did not stop it")
+  test.ipc("rotate_lock","no") test.advance(50)
+  read=test.ipc("rotate_read")
+  test.eq(read.calls,{"claim","release","claim"})
+  test.eq(read.evals[evals+1],'hl.monitor({output="eDP-1", transform=2})')
+end)
+test.it("on a Hyprland without Lua it falls back to keywords",function()
+  load()
+  test.eq(test.ipc("rotate_legacy"),{"monitor eDP-1,1080x2400@60.000,0x0,2,transform,1",
+    "input:touchdevice:transform 1","input:tablet:transform 1"})
+end)
 test.it("night light debounces a drag to one command and speaks hyprsunset",function()
   load()
   test.ipc("night_start") test.advance(100)

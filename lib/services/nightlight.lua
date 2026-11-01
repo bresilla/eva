@@ -36,6 +36,7 @@ function M.new(options)
   --- runs one command, not one for each step.
   function night.apply(on, temperature)
     temperature = M.clamp(temperature)
+    if sent_on == nil and not on then return end
     if on == sent_on and (not on or temperature == sent_temperature) then return end
     wanted = { on, temperature }
     if timer then timer:cancel() end

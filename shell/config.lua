@@ -155,12 +155,32 @@ local config = settings.open {
       -- What each of the session menu's actions runs (`$USER` is the
       -- user's name).
       commands = {
+        lock = { "morf", "lock" },
         logout = { "loginctl", "terminate-user", "$USER" },
+        suspend = { "systemctl", "suspend" },
         shutdown = { "systemctl", "poweroff" },
         hibernate = { "systemctl", "hibernate" },
         reboot = { "systemctl", "reboot" },
       },
     },
+    -- The quick settings' tiles shown on each kind of machine, in order,
+    -- and which of them are drawn small. A tile the machine lacks is skipped.
+    quick = {
+      tiles = {
+        desk = { "wifi", "bluetooth", "wired", "mobile", "mesh", "tunnel", "airplane", "hotspot", "sound", "mic",
+          "nightlight", "powersaver", "battery", "focus", "theme", "eva" },
+        tablet = { "wifi", "bluetooth", "rotation", "keyboard", "airplane", "hotspot", "sound", "mic", "nightlight",
+          "powersaver", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
+        phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "airplane", "nightlight",
+          "powersaver", "sound", "mic", "battery", "mesh", "tunnel", "focus", "theme", "eva" },
+      },
+      small = { desk = {}, tablet = {}, phone = { "flashlight", "rotation", "nightlight", "powersaver" } },
+    },
+    -- The night light (hyprsunset): whether it is on, and how warm, in kelvin.
+    nightlight = { on = false, temperature = 4500 },
+    -- Whether the screen keeps its rotation: "on", "off", or "auto" (a desk
+    -- keeps it, a phone or a tablet follows the accelerometer).
+    rotation = { lock = "auto" },
   },
 }
 return require("themes.ui_scale").link(config)
