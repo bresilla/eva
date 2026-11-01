@@ -45,7 +45,7 @@ return function(theme, kit)
         halo }
       return box, halo
     end
-    local wipe = ui.Item { x = PAD, y = PAD, height = INNER_H,
+    local wipe = ui.Item { id = spec.id and (spec.id .. "-level") or nil, x = PAD, y = PAD, height = INNER_H,
       width = function()
         local level = status().level
         return level > 0 and math.max(CELL_W, INNER_W * level / 100) or 0
