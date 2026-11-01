@@ -1,0 +1,189 @@
+#!/bin/sh
+# eva-nightlight: warmer light at night, over hyprsunset.
+#
+#   eva-nightlight on [KELVIN]   warm now (default 4000)
+#   eva-nightlight off           back to normal
+#   eva-nightlight toggle
+#   eva-nightlight status        on or off
+#   eva-nightlight times         today's sunrise and sunset, in UTC
+#   eva-nightlight auto          on after sunset, off after sunrise
+#   eva-nightlight daemon        auto, every five minutes
+#
+# The place is the shell's services.weather_location, a name or "LAT,LON";
+# EVA_NIGHTLIGHT_PLACE names another. EVA_NOW is the time, for tests.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+run_dir=${XDG_RUNTIME_DIR:-/tmp}/eva
+pid_file=$run_dir/nightlight.pid
+now=${EVA_NOW:-$(date +%s)}
+
+running() {
+  [ -r "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null
+}
+
+turn_on() {
+  kelvin=${1:-4000}
+  if running; then return 0; fi
+  if eva_dry; then
+    eva_say "dry run: hyprsunset -t $kelvin"
+    return 0
+  fi
+  if ! eva_has hyprsunset; then
+    eva_say "hyprsunset is not installed"
+    return 1
+  fi
+  mkdir -p "$run_dir"
+  chmod 700 "$run_dir"
+  setsid hyprsunset -t "$kelvin" > /dev/null 2>&1 &
+  printf '%s' "$!" > "$pid_file"
+}
+
+turn_off() {
+  if running; then kill "$(cat "$pid_file")"; fi
+  rm -f "$pid_file"
+}
+
+# LAT LON of the place, from the setting, a geocoded name kept once found.
+place() {
+  where=${EVA_NIGHTLIGHT_PLACE:-$(eva_setting services.weather_location "")}
+  if [ -z "$where" ]; then
+    eva_say "no place: set services.weather_location"
+    return 1
+  fi
+  case "$where" in
+    *[0-9],*[0-9] | *[0-9],\ *[0-9])
+      printf '%s\n' "$where" | tr ',' ' '
+      return 0
+      ;;
+  esac
+  kept=$(eva_state)/nightlight/place
+  if [ -r "$kept" ] && [ "$(head -n 1 "$kept")" = "$where" ]; then
+    tail -n 1 "$kept"
+    return 0
+  fi
+  if eva_dry; then
+    eva_say "dry run: would look up $where"
+    return 1
+  fi
+  found=$(curl --fail --silent --max-time 10 --get --data-urlencode "name=$where" --data count=1 \
+    https://geocoding-api.open-meteo.com/v1/search \
+    | jq -er '.results[0] | "\(.latitude) \(.longitude)"') || {
+    eva_say "cannot find $where"
+    return 1
+  }
+  mkdir -p "$(dirname "$kept")"
+  printf '%s\n%s\n' "$where" "$found" > "$kept"
+  printf '%s\n' "$found"
+}
+
+# Prints RISE SET in UTC hours, or "day" or "night" where the sun stays.
+sun() {
+  day=$(date -u -d "@$now" +%j)
+  awk -v lat="$1" -v lon="$2" -v n="$day" '
+    function rad(d) { return d * 3.14159265358979 / 180 }
+    function deg(r) { return r * 180 / 3.14159265358979 }
+    function wrap(v, m) { while (v < 0) v += m; while (v >= m) v -= m; return v }
+    function hour(rising,    t, M, L, RA, ls, rq, sd, cd, cosH, H, T) {
+      t = n + ((rising ? 6 : 18) - lon / 15) / 24
+      M = 0.9856 * t - 3.289
+      L = wrap(M + 1.916 * sin(rad(M)) + 0.020 * sin(2 * rad(M)) + 282.634, 360)
+      RA = wrap(deg(atan2(0.91764 * sin(rad(L)), cos(rad(L)))), 360)
+      ls = int(L / 90) * 90
+      rq = int(RA / 90) * 90
+      RA = (RA + ls - rq) / 15
+      sd = 0.39782 * sin(rad(L))
+      cd = cos(atan2(sd, sqrt(1 - sd * sd)))
+      cosH = (cos(rad(90.833)) - sd * sin(rad(lat))) / (cd * cos(rad(lat)))
+      if (cosH > 1) return "night"
+      if (cosH < -1) return "day"
+      H = deg(atan2(sqrt(1 - cosH * cosH), cosH))
+      if (rising) H = 360 - H
+      T = H / 15 + RA - 0.06571 * t - 6.622
+      return wrap(T - lon / 15, 24)
+    }
+    BEGIN {
+      rise = hour(1)
+      set = hour(0)
+      if (rise == "day" || rise == "night") print rise
+      else printf "%.3f %.3f\n", rise, set
+    }'
+}
+
+clock() {
+  awk -v h="$1" 'BEGIN { printf "%02d:%02d\n", int(h), int((h - int(h)) * 60 + 0.5) }'
+}
+
+# night or day, now, at this place.
+period() {
+  times=$(sun "$1" "$2")
+  case "$times" in
+    day | night)
+      printf '%s\n' "$times"
+      return 0
+      ;;
+  esac
+  hours=$(date -u -d "@$now" +%H)
+  minutes=$(date -u -d "@$now" +%M)
+  awk -v t="$times" -v h="$hours" -v m="$minutes" 'BEGIN {
+    split(t, s, " ")
+    now = h + m / 60
+    if (s[1] < s[2]) day = now >= s[1] && now < s[2]
+    else day = now >= s[1] || now < s[2]
+    print day ? "day" : "night"
+  }'
+}
+
+auto() {
+  coordinates=$(place) || return 1
+  # shellcheck disable=SC2086
+  state=$(period $coordinates)
+  if [ "$state" = night ]; then turn_on "$@"; else turn_off; fi
+  printf '%s\n' "$state"
+}
+
+case "${1:-status}" in
+  on)
+    turn_on "${2:-4000}"
+    ;;
+  off)
+    turn_off
+    ;;
+  toggle)
+    if running; then turn_off; else turn_on "${2:-4000}"; fi
+    ;;
+  status)
+    if running; then echo on; else echo off; fi
+    ;;
+  times)
+    coordinates=$(place)
+    # shellcheck disable=SC2086
+    times=$(sun $coordinates)
+    case "$times" in
+      day) echo "the sun does not set today" ;;
+      night) echo "the sun does not rise today" ;;
+      *)
+        printf 'sunrise %s\n' "$(clock "${times% *}")"
+        printf 'sunset %s\n' "$(clock "${times#* }")"
+        ;;
+    esac
+    ;;
+  auto)
+    auto
+    ;;
+  daemon)
+    while :; do
+      auto || true
+      sleep 300
+      now=$(date +%s)
+    done
+    ;;
+  -h | --help | help)
+    sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
+    ;;
+  *)
+    eva_say "unknown command: $1"
+    exit 2
+    ;;
+esac

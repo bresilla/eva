@@ -1,0 +1,9 @@
+#!/bin/sh
+# Shows each monitor's name on that monitor: through the shell when it runs,
+# else with a plain configuration, one runtime to an output.
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+if eva_shell_up; then
+  exec env -u MORF_APP "${MORF:-morf}" ipc call displays-identify
+fi
+exec env -u MORF_APP "${MORF:-morf}" "$apps/displays/identify.lua"

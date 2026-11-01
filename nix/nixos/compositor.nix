@@ -39,6 +39,13 @@ let
     else
       dofile("${hyprland}/share/hypr/hyprland.lua")
     end
+    -- The arrangement eva-displays kept.
+    local state = os.getenv("XDG_STATE_HOME") or (assert(os.getenv("HOME")) .. "/.local/state")
+    local kept = io.open(state .. "/eva/displays/monitors.lua", "r")
+    if kept then
+      kept:close()
+      dofile(state .. "/eva/displays/monitors.lua")
+    end
     ${quietConfig}
     -- A lock screen that dies leaves the session locked; a new one may take over.
     hl.config({ misc = { allow_session_lock_restore = true } })

@@ -45,7 +45,7 @@ setsid env -i \
   LULE_A="$HOME_DIR/.cache/lule" EVA_APPEARANCE="$HOME_DIR/.config/appearance.json" \
   EVA_WALLPAPER_CONFIG=/nonexistent EVA_DRY_RUN=1 EVA_INPUT_DEVICES="$DEVICES" \
   EVA_THEME_MODE="$MODE" MORF_FONT_PATH="$EVA/shell/fonts:${MORF_FONT_PATH:-}" \
-  SEE_EVA="$EVA" SEE_OUT="$OUT" SEE_SCREEN="$SCREEN" SEE_STEPS="$STEPS" \
+  SEE_EVA="$EVA" SEE_OUT="$OUT" SEE_SCREEN="$SCREEN" SEE_STEPS="$STEPS" STYLE_NOW="$STYLE" \
   timeout "${TIMEOUT:-90}" dbus-run-session -- bash "$EVA/tools/see/inner.sh" \
   || echo "tools/see: the session ended with $?" >&2
 echo "$OUT"

@@ -201,12 +201,26 @@ function V.build(M)
       function() return tx(340) end,40,function() return tx(42) end,function() return M.more_open:get() end),
   }
   local more_items={}
-  for i,a in ipairs {{"reselect","Select again","crop_free",M.reselect},{"upload","Upload","cloud_upload",function() M.more_open:set(false) M.export("upload") end},
+  local function reader(kind)
+    return function() M.more_open:set(false) M.export(kind) end
+  end
+  for i,a in ipairs {{"reselect","Select again","crop_free",M.reselect},{"last","Last region","history",M.restore_last},
+    {"upload","Upload","cloud_upload",function() M.more_open:set(false) M.export("upload") end},
+    {"ocr","Copy text","document_scanner",reader("ocr")},{"qr","Copy QR code","qr_code_scanner",reader("qr")},
     {"delete","Delete mark","delete",M.remove},{"settings","Settings","settings",function() M.more_open:set(false) M.settings:set(true) end},
     {"cancel","Cancel","close",M.cancel}} do
     local area
+    local function installed() return (a[1]~="ocr" and a[1]~="qr") or M.readers:get()[a[1]]==true end
     local function enabled() return a[1]=="cancel" or not M.busy:get() and (a[1]~="delete" or doc() and doc().selected~=nil) end
-    area=kit.action {id="capture-editor-"..a[1],x=8,y=8+(i-1)*42,width=184,height=40,cursor="pointer",
+    -- The row's place among the ones shown: the readers sit third and fourth.
+    local function row()
+      local readers=M.readers:get()
+      if i<=3 then return i end
+      if a[1]=="ocr" then return 4 end
+      if a[1]=="qr" then return readers.ocr and 5 or 4 end
+      return i-2+(readers.ocr and 1 or 0)+(readers.qr and 1 or 0)
+    end
+    area=kit.action {id="capture-editor-"..a[1],x=8,y=function() return 8+(row()-1)*42 end,width=184,height=40,cursor="pointer",visible=installed,
       on_clicked=function() if enabled() then a[4]() end end,opacity=function() return enabled() and 1 or .35 end,
       kit.icon(a[3],18,kit.ink("lo"),{x=10,y=11}),
       kit.menu_label {x=38,y=12,width=140,elide="right",text=a[2],font_size=12},
@@ -214,8 +228,12 @@ function V.build(M)
     kit.hover(area,function(hovered) return C.primary:alpha(hovered and .10 or 0) end,10)
     more_items[#more_items+1]=area
   end
-  local more_popup=ui.Item {id="capture-more-menu",visible=function() return editing() and M.more_open:get() end,z=6,width=200,height=226,
-    x=function() return math.max(12,menu().x+menu().w-200) end,y=function() return above(226) end,
+  local function more_height()
+    local readers=M.readers:get()
+    return 16+42*(#more_items-2+(readers.ocr and 1 or 0)+(readers.qr and 1 or 0))
+  end
+  local more_popup=ui.Item {id="capture-more-menu",visible=function() return editing() and M.more_open:get() end,z=6,width=200,height=more_height,
+    x=function() return math.max(12,menu().x+menu().w-200) end,y=function() return above(more_height()) end,
 
     shell_surface(),ui.MouseArea {anchors={fill=true}},table.unpack(more_items),
   }

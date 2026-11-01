@@ -40,6 +40,14 @@ morf.surface.keyboard_focus = "none"
 morf.surface.exclusive_zone = -1
 -- Windows keep inside the frame.
 
+-- Where the tools of apps/ find these settings.
+if config.path then
+  local state = morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")
+  morf.fs.write(state .. "/eva/settings-path", config.path, { atomic = true, parents = true })
+end
+
+require("displays_hotplug").start()
+
 -- ------------------------------------------------------------------ colour --
 
 -- Two palettes: `theme.color`, the Material scheme, built from
@@ -415,6 +423,9 @@ ipc["capture-editor"] = function(action,...)
   if not here() then return end
   if action=="tool" then capture.editor.choose(...) return true end
   if action=="copy" or action=="save" or action=="upload" then capture.editor.export(action) return true end
+  if action=="ocr" or action=="qr" then capture.editor.export(action) return true end
+  if action=="last" then return capture.editor.restore_last() end
+  if action=="file" then return capture.editor.open_file((...)) end
   return {open=capture.editor.active:get(),pending=capture.editor.pending:get(),busy=capture.editor.busy:get(),phase=capture.editor.phase:get()}
 end
 ipc.screenshot = function(what,how)

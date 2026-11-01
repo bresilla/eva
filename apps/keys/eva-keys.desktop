@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Keys
+Comment=A searchable list of the keyboard bindings
+Exec=eva-keys
+Icon=preferences-desktop-keyboard-shortcuts
+Terminal=false
+Categories=Utility;
+StartupWMClass=eva.keys

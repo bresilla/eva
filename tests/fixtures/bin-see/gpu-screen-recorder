@@ -1,0 +1,6 @@
+#!/bin/sh
+# Stands in for gpu-screen-recorder on the sealed session: writes its arguments
+# down and runs until SIGINT.
+printf '%s\n' "$*" >> "${RECORD_ARGS:-/dev/null}"
+trap 'exit 0' INT
+while :; do sleep 0.1; done

@@ -1,0 +1,31 @@
+# eva-screenshot on this private sway: the CLI alone, the window, the editor
+# with no shell, then through the shell.
+unset EVA_DRY_RUN
+CLI="sh apps/screenshot/cli"
+FOLDER="$HOME/Pictures/Captures"
+editor() { appipc editor | tr -d ' \n' | cut -c1-120; }
+
+# Alone: the screen into the folder, no shell running.
+$CLI screen --save > "$SEE_OUT/saved.txt" 2>&1
+note echo "saved: $(ls "$FOLDER" | wc -l) file(s)"
+$CLI screen --copy >> "$SEE_OUT/saved.txt" 2>&1
+note echo "clipboard: $(wl-paste --list-types 2>&1 | head -n 1)"
+PICTURE=$(ls "$FOLDER"/*.png | head -n 1)
+
+start app screenshot
+shot window
+stop
+
+# The editor on a picture from grim, no shell behind it.
+start app screenshot file "$PICTURE"
+shot editor-file
+note echo "editor on a file: $(editor)"
+stop
+
+# Through the shell, on the same picture: the notification's Edit button.
+start shell
+$CLI --edit-file "$PICTURE"
+pause 1
+shot editor-shell
+note echo "editor in shell: $(ipc capture-editor | tr -d ' \n' | cut -c1-120)"
+ipc capture-editor cancel > /dev/null

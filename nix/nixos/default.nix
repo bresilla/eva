@@ -22,6 +22,8 @@ let
       lib.concatMapStringsSep ":" toString config.programs.eva.runtimePaths
     }''${MORF_RUNTIME_PATH:+:$MORF_RUNTIME_PATH}"
     export EVA_KEYRING_HELPER="''${EVA_KEYRING_HELPER:-${shell}/bin/eva-keyring}"
+    # morf as a client, outside any tool.
+    unset MORF_APP
     export EVA_SCALE_MODE=compositor
     export EVA_SCALE_FILE="''${EVA_SCALE_FILE:-${config.programs.eva.uiScaleFile}}"
     export EVA_SCALE_DEFAULT="''${EVA_SCALE_DEFAULT:-${toString config.programs.eva.uiScale}}"
@@ -93,6 +95,18 @@ let
     if [ "$role" = greet ] && [ -n "''${EVA_GREETER_CONFIG_HOME:-}" ]; then unset EVA_APPEARANCE; fi
     export XDG_CONFIG_DIRS=/etc/xdg
     exec ${morf}/bin/morf "$fallback"
+  '';
+  # The tools and the command line, reaching morf through the launcher above.
+  tools =pkgs.runCommand "eva-tools" { } ''
+    mkdir -p "$out/bin" "$out/share"
+    for tool in ${shell}/bin/eva ${shell}/bin/eva-*; do
+      name=$(basename "$tool")
+      [ "$name" = eva-keyring ] && continue
+      printf '#!%s\nexport MORF="''${MORF:-%s}"\nexec %s "$@"\n' \
+        ${pkgs.runtimeShell} ${morfDefault}/bin/morf "$tool" > "$out/bin/$name"
+      chmod +x "$out/bin/$name"
+    done
+    ln -s ${shell}/share/applications "$out/share/applications"
   '';
   greeterAccess = pkgs.writeShellScript "eva-greeter-access" ''
     # No write access, and no directory listing outside the eva tree.
@@ -249,6 +263,7 @@ in
         (lib.hiPrio morfDefault)
         bridge
         pkgs.hyprsunset
+        tools
       ];
       hardware.sensor.iio.enable = lib.mkIf config.programs.eva.rotation.enable true;
       services.power-profiles-daemon.enable = lib.mkIf (
@@ -320,6 +335,17 @@ in
           ExecStartPre = "-${bridge}/bin/eva-wallpaper adopt";
           ExecStart = "${morfDefault}/bin/morf shell";
           ExecStopPost = "-${bridge}/bin/eva-wallpaper publish";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
+      systemd.user.services.eva-clipboard = {
+        description = "eva clipboard history";
+        wantedBy = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        serviceConfig = {
+          ExecStart = "${tools}/bin/eva-clipboard --watch";
           Restart = "on-failure";
           RestartSec = 2;
         };

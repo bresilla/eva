@@ -1,0 +1,158 @@
+#!/bin/sh
+# eva-record: a recording of the screen, with or without the shell.
+#
+#   eva-record                                       the window
+#   eva-record region|window|monitor [--audio KIND] [--fps N]
+#   eva-record stop                                  ends it and saves the file
+#   eva-record status                                recording or idle
+#
+# KIND is none, desktop, mic or both. A window is recorded from its geometry,
+# through the desktop portal where the geometry cannot be read.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+run_dir=${XDG_RUNTIME_DIR:-/tmp}/eva
+pid_file=$run_dir/record.pid
+file_file=$run_dir/record.file
+
+running() {
+  [ -r "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null
+}
+
+# The frame shown in the notification, when ffmpeg can take one.
+poster() {
+  eva_has ffmpeg || return 1
+  frame=$(eva_private_file png)
+  if ffmpeg -y -loglevel quiet -i "$1" -frames:v 1 "$frame"; then
+    printf '%s' "$frame"
+    return 0
+  fi
+  rm -f "$frame"
+  return 1
+}
+
+stop() {
+  if ! running; then
+    rm -f "$pid_file"
+    eva_say "nothing is recording"
+    return 1
+  fi
+  pid=$(cat "$pid_file")
+  file=$(cat "$file_file" 2>/dev/null || true)
+  kill -INT "$pid"
+  tries=0
+  while kill -0 "$pid" 2>/dev/null && [ "$tries" -lt 100 ]; do
+    sleep 0.1
+    tries=$((tries + 1))
+  done
+  rm -f "$pid_file" "$file_file"
+  if [ -n "$file" ]; then printf '%s\n' "$file"; fi
+  if frame=$(poster "$file"); then
+    { eva_thumbnail "$frame" "$file" "Recording saved"; rm -f "$frame"; } &
+  else
+    eva_notify "Recording saved" "$file"
+  fi
+}
+
+target=""
+audio=none
+fps=60
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    region | window | monitor) target=$1 ;;
+    stop)
+      stop
+      exit
+      ;;
+    status)
+      if running; then echo recording; else echo idle; fi
+      exit 0
+      ;;
+    --audio)
+      shift
+      audio=${1:?--audio takes none, desktop, mic or both}
+      ;;
+    --fps)
+      shift
+      fps=${1:?--fps takes a number}
+      ;;
+    -h | --help)
+      sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
+      exit 0
+      ;;
+    *)
+      eva_say "unknown argument: $1"
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+if [ -z "$target" ]; then exec sh "$apps/launch" record; fi
+
+if running; then
+  eva_say "already recording"
+  exit 1
+fi
+
+case "$audio" in
+  none) set -- ;;
+  desktop) set -- -a default_output ;;
+  mic) set -- -a default_input ;;
+  both) set -- -a "default_output|default_input" ;;
+  *)
+    eva_say "--audio takes none, desktop, mic or both"
+    exit 2
+    ;;
+esac
+
+# X,Y WxH, as grim spells an area, the way the recorder spells a region.
+area() {
+  printf '%s' "$1" | sed -E 's/^(-?[0-9]+),(-?[0-9]+) ([0-9]+x[0-9]+)$/\3+\1+\2/'
+}
+
+case "$target" in
+  region)
+    chosen=$(slurp) || exit 1
+    set -- -w region -region "$(area "$chosen")" "$@"
+    ;;
+  window)
+    if chosen=$(eva_window_area 2>/dev/null); then
+      set -- -w region -region "$(area "$chosen")" "$@"
+    else
+      set -- -w portal "$@"
+    fi
+    ;;
+  monitor)
+    set -- -w "$(eva_focused_output)" "$@"
+    ;;
+esac
+
+folder=$(eva_captures)
+file="$folder/capture_$(date +%Y%m%d_%H-%M-%S).mp4"
+set -- "$@" -f "$fps" -o "$file"
+
+if eva_dry; then
+  eva_say "dry run: gpu-screen-recorder $*"
+  exit 0
+fi
+if ! eva_has gpu-screen-recorder; then
+  eva_say "gpu-screen-recorder is not installed"
+  exit 1
+fi
+
+mkdir -p "$folder" "$run_dir"
+chmod 700 "$run_dir"
+# The recorder, with SIGINT at its default.
+env --default-signal=INT setsid gpu-screen-recorder "$@" > /dev/null 2>&1 &
+printf '%s' "$!" > "$pid_file"
+printf '%s' "$file" > "$file_file"
+sleep 0.2
+if ! running; then
+  rm -f "$pid_file" "$file_file"
+  eva_say "the recorder stopped at once"
+  exit 1
+fi
+setsid sh "$apps/launch" record indicator > /dev/null 2>&1 &
+printf '%s\n' "$file"

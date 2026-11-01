@@ -13,7 +13,7 @@ check("all annotation tools commit and export; text is escaped",[[
       d.finish(tool[1]=="text" and '<test & "escaped">' or nil)
     end
   end
-  assert(#d.items==11)
+  assert(#d.items==12)
   local ops=A.ops(d,true)
   local encoded=require("morf").json.encode(ops)
   if require("morf").image.annotation_path then
