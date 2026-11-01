@@ -44,6 +44,7 @@ function M.refresh()
         description = comment,
         icon = entry.icon or "",
         keywords = table.concat(entry.keywords or {}, " "),
+        folder = entry.source,
       }
     end
   end
@@ -53,6 +54,9 @@ function M.refresh()
 end
 
 M.refresh()
+
+--- The installed applications the launcher lists, by name.
+function M.installed() return rows end
 
 local used = frecency.open { path = morf.paths.state("eva-launches.json") }
 

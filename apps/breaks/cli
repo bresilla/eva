@@ -1,0 +1,20 @@
+#!/bin/sh
+# eva-breaks: reminders to look away and to get up. Time idle counts as rest, and
+# do not disturb holds a break off.
+#
+#   eva-breaks                  the window: settings and the day
+#   eva-breaks --watch          the count, with no window, for a session to start
+#   eva-breaks status           how things stand
+#   eva-breaks pause MINUTES    no reminders for a while
+#   eva-breaks resume           reminders again
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+. "$apps/job.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" breaks ;;
+  --watch) exec sh "$apps/launch" breaks --watch ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_tool_job breaks "$@" ;;
+esac

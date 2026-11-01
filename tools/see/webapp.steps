@@ -1,0 +1,27 @@
+# eva-webapp on the sealed session: real files and real pictures under the
+# scratch XDG folders, a stand-in for the web, and a stub for the browser.
+unset EVA_DRY_RUN
+export EVA_FAKE_WEBAPP=1 EVA_FAKE_WEBAPP_PICTURE=$SEE_EVA/tests/fixtures/site-icon.png
+mkdir -p "$HOME/bin"
+: > "$HOME/bin/chromium"
+chmod +x "$HOME/bin/chromium"
+export PATH=$HOME/bin:$PATH
+
+note sh apps/webapp/cli add Notes icon.test
+note sh apps/webapp/cli add "Mail & co" https://ico.test/inbox
+note sh apps/webapp/cli add Plain https://plain.test
+note sh apps/webapp/cli list
+note cat "$XDG_DATA_HOME/applications/eva-webapp-mail-co.desktop"
+note ls "$XDG_DATA_HOME/icons"
+
+BOOT=4 start app webapp
+shot list
+appipc add Calendar https://plain.test/cal > /dev/null
+pause 1.2
+shot added
+appipc remove Plain > /dev/null
+pause 0.6
+shot removed
+note appipc state
+note sh apps/webapp/cli remove Notes
+note sh apps/webapp/cli list

@@ -1,0 +1,19 @@
+#!/bin/sh
+# eva-webapp: a site as an app with its own desktop entry and icon, opened in a
+# Chromium-family browser's app window. Firefox has no such window.
+#
+#   eva-webapp                              the window
+#   eva-webapp add NAME URL [--icon FILE]   makes the app; its icon comes from
+#                                           the site, or is a letter tile
+#   eva-webapp list                         the apps made
+#   eva-webapp remove NAME                  takes one away
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+. "$apps/job.sh"
+
+case "${1:-}" in
+  '') exec sh "$apps/launch" webapp ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_tool_job webapp "$@" ;;
+esac

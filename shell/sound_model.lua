@@ -35,10 +35,13 @@ function M.new(kind,active)
         if row.name=="morf.equalizer.input" then equalizer_id=row.id return false end
         return kind=="output" or not tostring(row.name or ""):match("%.monitor$")
       end)
-      local streams=kind=="output" and read_list(audio.streams,function(row)
+      local streams=read_list(audio.streams,function(row)
+        if kind=="input" then
+          return row.direction=="record" and not tostring(row.app_id or ""):match("^morf%.")
+        end
         return row.direction=="playback" and row.app_id~="morf.equalizer"
           and not (row.binary=="pipewire" and row.media_name=="Morf Equalizer")
-      end) or {}
+      end)
       -- Smart filters attach apps to an internal sink. Show the physical
       -- default behind that filter as their destination in routing chips.
       for _,stream in ipairs(streams) do
@@ -115,7 +118,8 @@ function M.new(kind,active)
   end
   function model.route(target,destination)
     local stream,device=live(target,true),live(destination,false)
-    return stream~=nil and device~=nil and stream.direction=="playback" and device.kind=="sink"
+    local direction,sort=kind=="output" and "playback" or "record",kind=="output" and "sink" or "source"
+    return stream~=nil and device~=nil and stream.direction==direction and device.kind==sort
       and send(audio.move_stream,stream.id,device.id)
   end
   function model.channel(index)
