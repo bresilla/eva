@@ -39,9 +39,11 @@ M.STILL_FRAMES = 3
 -- Linux's code for Page Down.
 M.PAGE_DOWN = 109
 M.TOO_FAST = "Lost the page: scroll more slowly. Saved up to there"
+M.TOO_SOON = "Lost the page: scroll more slowly. Nothing was saved"
 M.NOTHING = "The window did not scroll, so there is nothing to join"
 
 local capture, session, run, box, pill, timer, waiting, broken, finishing, holding
+local using = {}
 local serial, sequence, strips, first_path, last_path, latest, still, stopping, cutting = 0, 0, {}, nil, nil, nil, 0, false, 0
 local no_screencopy = false
 
@@ -105,12 +107,23 @@ function M.signature(path, done)
   if not queued then pcall(preview.close) done(nil, "The picture queue is full") end
 end
 
+-- A frame goes once nothing is cut from it and the run no longer stands on it.
+local function retire(path)
+  if (using[path] or 0) == 0 and path ~= last_path and path ~= first_path then
+    using[path] = nil
+    session.remove(path)
+  end
+end
+
 -- The rows `strip` of the frame at `path`, kept as a picture of their own. A join
 -- waits for every one of them, and one that fails ends it: no gap is left.
 local function cut(path, strip)
   cutting = cutting + 1
+  using[path] = (using[path] or 0) + 1
   session.render(path, { { "crop", 0, strip.from, box.pixels, strip.height } }, function(ok, out)
     cutting = cutting - 1
+    using[path] = using[path] - 1
+    retire(path)
     if ok then
       strips[#strips + 1] = { path = out, y = strip.y }
       M.strips:set(#strips)
@@ -140,9 +153,7 @@ local function show_pill()
   local edge = "top"
   if top < height + gap and (screen.height or 0) - top - box.h >= height + gap then edge = "bottom" end
   if edge == "top" and top < height + gap then
-    local factor = (box.pixels_h or box.h) / box.h
-    box.covered_rows = math.ceil((height + gap - top) * factor)
-    run.guard = box.covered_rows
+    run.guard = math.ceil((height + gap - top) * (box.pixels_h or box.h) / box.h)
   end
   pill = morf.window.layer {
     blend = "srgb", namespace = "eva-capture-scroll", layer = "overlay", exclusive_zone = -1, keyboard_focus = "none",
@@ -198,14 +209,21 @@ local function wrap_up(message)
   stop_timer()
   serial = serial + 1
   if not run then finished(M.NOTHING) return end
-  if latest then
+  if latest and run.fits(latest.found) then
     local kept = run.accept(latest.rows, latest.found)
-    if kept.first then cut(first_path, { from = 0, height = kept.first, y = 0 }) end
+    if kept.first then
+      cut(first_path, { from = 0, height = kept.first, y = 0 })
+      first_path = nil
+    end
     if kept.strip then cut(latest.path, kept.strip) end
-    last_path, latest = latest.path, nil
+    last_path = latest.path
   end
+  latest = nil
   local tail, height = run.finish()
-  if not tail then finished(message or M.NOTHING) return end
+  if not tail then
+    finished(message == M.TOO_FAST and M.TOO_SOON or message or M.NOTHING)
+    return
+  end
   M.state:set("joining")
   if tail.height > 0 then cut(last_path, tail) end
   local function go() join(height, message) end
@@ -268,19 +286,19 @@ local function take_in(path, rows)
     first_path, last_path = path, path
     show_pill()
   elseif kind == "moved" then
+    if latest then session.remove(latest.path) end
     still, latest = 0, nil
-    if verdict.strip and verdict.strip.from < box.covered_rows then
-      -- New rows from under the pill end the run.
-      session.remove(path)
-      wrap_up(M.TOO_FAST)
-      return
+    local previous = last_path
+    if verdict.first then
+      cut(first_path, { from = 0, height = verdict.first, y = 0 })
+      first_path = nil
     end
-    if verdict.first then cut(first_path, { from = 0, height = verdict.first, y = 0 }) end
     if verdict.strip then
       cut(path, verdict.strip)
       M.rows:set(verdict.strip.y + verdict.strip.height)
     end
     last_path = path
+    retire(previous)
     if #strips >= M.MOST_STRIPS or (run.covered + box.pixels_h) * box.pixels * 4 >= morf.image.limits.max_decoded_bytes
       or run.covered + box.pixels_h >= morf.image.limits.max_dimension then
       wrap_up("The picture is as long as it can be")
@@ -345,8 +363,7 @@ function M.start(module, area)
   if not M.available() then return false, "Neither the compositor nor grim can read the screen here" end
   serial, sequence = serial + 1, 0
   box, strips, first_path, last_path, latest, still, stopping = area, {}, nil, nil, nil, 0, false
-  run, waiting, broken, finishing, cutting = nil, nil, nil, false, 0
-  box.covered_rows = 0
+  run, waiting, broken, finishing, cutting, using = nil, nil, nil, false, 0, {}
   session = backend.session {}
   M.rows:set(0) M.strips:set(0) M.frames:set(0) M.verdict:set("") M.auto:set(false)
   M.state:set("following")

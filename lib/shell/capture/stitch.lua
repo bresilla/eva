@@ -84,6 +84,12 @@ end
 function M.new(least)
   local t = { least = least or 1, offset = 0, base = nil, covered = nil, height = 0, guard = 0 }
 
+  --- Whether the new rows of the movement `found` lie clear of the guard.
+  function t.fits(found)
+    local line = t.height - found.bottom
+    return (t.covered or line) - (t.offset + found.shift) >= t.guard
+  end
+
   --- Takes the movement `found` of `rows` as the new place the run stands, and
   --- answers `{ strip = { from, height, y }, first }`: the rows of that frame to
   --- paste at `y`, and the rows of the first frame to keep, the first time.
@@ -106,7 +112,8 @@ function M.new(least)
 
   --- What `rows` is to the run: a verdict of `align`, or `{ kind = "first" }`,
   --- or `{ kind = "small", found }` for movement too short to keep yet, compared
-  --- again from the same frame. "moved" also has `strip` and `first`.
+  --- again from the same frame. "moved" also has `strip` and `first`. New rows
+  --- from under the guard are "lost", and the run stands where it stood.
   function t.add(rows)
     if not t.base then
       t.base, t.height = rows, #rows
@@ -115,6 +122,7 @@ function M.new(least)
     local found = M.align(t.base, rows, t.guard)
     if found.kind ~= "moved" then return found end
     if found.shift < t.least then return { kind = "small", found = found, rows = rows } end
+    if not t.fits(found) then return { kind = "lost" } end
     local kept = t.accept(rows, found)
     found.strip, found.first = kept.strip, kept.first
     return found

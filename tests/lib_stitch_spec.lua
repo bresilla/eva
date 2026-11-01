@@ -160,6 +160,21 @@ check("a short last move can still be taken at the end", [[
   assert(total == 190 + 300, tostring(total))
 ]])
 
+check("refuses new rows from under the guard, and the run stays sound", [[
+  local rows = page(2000)
+  local run = S.new(10)
+  run.add(frame(rows, 0, 300))
+  run.guard = 40
+  local found = run.add(frame(rows, 100, 300))
+  assert(found.kind == "moved")
+  local _, before = run.finish()
+  local shot = frame(rows, 370, 300)
+  assert(run.add(shot).kind == "lost", "new rows from under the guard were kept")
+  local tail, total = run.finish()
+  assert(total == before, "a refused frame moved the run")
+  assert(tail.y + tail.height == total)
+]])
+
 check("nothing moved means nothing to finish", [[
   local rows = page(500)
   local run = S.new(10)

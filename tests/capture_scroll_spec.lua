@@ -44,6 +44,15 @@ local SOURCE = [[
   end
   morf.ipc.to = function(y) at = tonumber(y) return at end
   morf.ipc.step = function(rows) step = tonumber(rows) return step end
+  morf.ipc.frames_kept = function()
+    local count = 0
+    for _, folder in ipairs(morf.fs.list(morf.env("XDG_RUNTIME_DIR") .. "/morf") or {}) do
+      for _, file in ipairs(folder.is_dir and morf.fs.list(folder.path) or {}) do
+        if file.name:match("^frame%-") then count = count + 1 end
+      end
+    end
+    return count
+  end
   morf.ipc.flow = function()
     local scroll = package.loaded.scroll
     local long = {}
@@ -214,6 +223,30 @@ test.it("stops at a jump it cannot follow, says so, and keeps what is sound", fu
   test.contains(state.message, "scroll more slowly")
   test.eq(test.ipc("size", state.files[1]), { 300, 240 + 400 })
   test.truthy(test.ipc("same_as_page", state.files[1], 639, 639), "the last sound row is wrong")
+end)
+
+test.it("says nothing was saved when it is lost on the first move", function()
+  tool()
+  following()
+  test.ipc("to", 1100)
+  local state = ended()
+  test.contains(state.message, "Nothing was saved")
+  test.eq(#state.files, 0)
+end)
+
+test.it("keeps no more whole frames than it stands on", function()
+  tool()
+  following()
+  for _, at in ipairs { 120, 240, 360, 480, 600, 720, 840 } do
+    test.ipc("to", at)
+    reached(at)
+    test.advance(300)
+  end
+  until_true(function() return test.ipc("frames_kept") <= 2 end, "the frames to go")
+  test.ipc("capture-scroll", "done")
+  local state = ended()
+  test.eq(test.ipc("size", state.files[1]), { 300, 840 + 400 })
+  test.truthy(test.ipc("same_as_page", state.files[1], 1239, 1239))
 end)
 
 test.it("says so when nothing scrolled, and writes nothing", function()
