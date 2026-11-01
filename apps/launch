@@ -23,12 +23,10 @@ if [ -z "${EVA_SETTINGS:-}" ]; then
   if [ -n "$named" ]; then export EVA_SETTINGS="$named"; fi
 fi
 
-# The capture tool is on every screen as the shell is, so it is a plain morf
-# with a socket of its own: `morf app` holds one output, the first.
+# The capture tool: a plain morf on every screen, named by a socket of its own.
 if [ "$tool" = screenshot ]; then
   [ "$#" -gt 0 ] || set -- capture open
   display=${WAYLAND_DISPLAY:-wayland-0}
-  # The tool's verbs reach it by this name; a morf of the shell's has no app.
   unset MORF_APP
   exec "${MORF:-morf}" -i "${display##*/}-screenshot" "$here/$tool/app.lua" -- "$@"
 fi

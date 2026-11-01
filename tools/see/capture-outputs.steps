@@ -14,6 +14,7 @@ export BOOT=4
 start shell
 pause 4.5
 runtimes() { toolipc state | tr -d '\\ \n' | grep -o 'output":"[^"]*","panel":[a-z]*,"phase":"[a-z]*","posture":"[a-z]*' | tr '\n' ' '; }
+note echo "the tool's first frames: $(morf -i "$SOCK" log | grep -c 'first frame\|starting the GPU')"
 note echo "the tool on: $(runtimes)"
 ipc capture open > /dev/null
 pause 1.5

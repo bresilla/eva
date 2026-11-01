@@ -1,6 +1,5 @@
-# The panel, the selection and the editor at the same moments as a tree from
-# before the split shows them, through the shell's own verbs. tools/see/compare
-# puts these beside that tree's.
+# The panel, the selection and the editor at fixed moments, through the shell's
+# own verbs, to hold against a tree from before the tool was split from the shell.
 unset EVA_DRY_RUN
 export EVA_FAKE_SCREEN="$SEE_OUT/frozen.png"
 export BOOT=7

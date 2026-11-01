@@ -24,16 +24,14 @@ local frame = require("common.frame")
 local focused = require("focused")
 local capture = require("capture")
 local config = require("config")
-local themes = require("themes")
 local responsive = require("responsive")
 local ui = require("morf.ui")
 
 local editor = capture.editor
-local screen_name = focused.output
-local me = screen_name()
+local me = focused.output()
 
 -- Out of sight on standby; a first order has it whole.
-host.posture(stays and #first == 0 and "hidden" or "full")
+host.posture(stays and (#first == 0 or kept:get()) and "hidden" or "full")
 ui_scale.apply()
 frame.follow_scheme()
 frame.follow_appearance(function() return not capture.recording:get() end)

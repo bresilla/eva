@@ -301,8 +301,12 @@ ipc.launcher = function(how)
   return verb(launcher.drawer)(how)
 end
 ipc.dashboard = verb(dashboard.drawer)
--- Builds the shell again from its files, in place.
-ipc.reload = function() morf.reload() return true end
+-- Builds the shell and the capture tool again from their files, in place.
+ipc.reload = function()
+  if here() then capture.ask("reload") end
+  morf.reload()
+  return true
+end
 -- The frame, the rail and the bar come in again: a lock lifting.
 ipc.reveal = function() return require("themes.reveal").replay() end
 -- The scale, as the slider sets it: `scale -0.25` (smaller), `scale 0`
@@ -492,6 +496,7 @@ ipc.notify = function(summary, body, urgency, app)
 end
 ipc.close = function()
   capture.cancel()
+  capture.drawer.set(false)
   drawer.close_all()
   return true
 end
@@ -499,6 +504,7 @@ end
 -- acts on one by name, as the reference's IPC does.
 ipc.drawers = function(how, name)
   if how ~= nil and how ~= "list" then
+    if name == "capture" then return ipc.capture(how) end
     local d = drawer[name or ""]
     if not d then error("`" .. tostring(name) .. "`: no such drawer") end
     return verb(d)(how)
@@ -507,6 +513,7 @@ ipc.drawers = function(how, name)
   for _, d in ipairs(drawer.all) do
     if d.is_open() then open[#open + 1] = d.name end
   end
+  if capture.drawer.is_open() then open[#open + 1] = "capture" end
   return table.concat(open, " ")
 end
 

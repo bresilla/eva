@@ -65,15 +65,11 @@ while [ "$#" -gt 0 ]; do
       ;;
     --ask)
       shift
+      if eva_capture_call "$@" > /dev/null 2>&1; then exit 0; fi
+      # Nothing to shut in a tool that is not running.
       case "${1:-} ${2:-}" in
-        "capture close" | "capture state" | "capture-editor cancel" | "capture-claim "*)
-          eva_capture_up || exit 0
-          ;;
+        "capture close" | "capture state" | "capture-editor cancel" | "capture-claim "* | "reload "*) exit 0 ;;
       esac
-      if eva_capture_up; then
-        eva_capture_call "$@" > /dev/null
-        exit 0
-      fi
       # The shell keeps it ready; with no shell it does this and ends.
       if ! eva_shell_up; then exec sh "$apps/launch" screenshot "$@"; fi
       [ "${1:-}" != standby ] || shift

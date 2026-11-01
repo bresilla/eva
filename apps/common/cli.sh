@@ -30,7 +30,8 @@ eva_has() {
 # The capture tool's socket, beside the shell's: it runs on every screen as the
 # shell does, so it is not an application of this display but an instance.
 eva_capture_socket() {
-  printf '%s-screenshot' "${WAYLAND_DISPLAY##*/}"
+  display=${WAYLAND_DISPLAY:-wayland-0}
+  printf '%s-screenshot' "${display##*/}"
 }
 
 eva_capture_up() {
