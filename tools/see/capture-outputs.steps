@@ -14,8 +14,8 @@ grim -o HEADLESS-1 "$EVA_FAKE_SCREEN"
 start shell
 drawn
 toolup
-runtimes() { toolipc state | tr -d '\\ \n' | grep -o 'output":"[^"]*","panel":[a-z]*,"phase":"[a-z]*","posture":"[a-z]*' | tr '\n' ' '; }
-note echo "the tool's outputs: $(morf -i "$SOCK" log | grep -c 'first frame')"
+runtime() { toolipc state "$1" | tr -d '\\ \n' | grep -o 'output":"[^"]*","panel":[a-z]*,"phase":"[a-z]*","posture":"[a-z]*'; }
+runtimes() { echo "$(runtime HEADLESS-1) | $(runtime HEADLESS-2)"; }
 note echo "the tool on: $(runtimes)"
 ipc capture open > /dev/null
 pause 2
