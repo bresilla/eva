@@ -447,12 +447,18 @@ do
   end
   -- The theme: the tile switches dark and light; its page has that, and
   -- Lule (wallpaper, colours, the shell's theme and font) one page in.
-  local function dark() return config.get("theme.mode") ~= "light" end
+  local color_mode = require("themes.color_mode")
+  local function dark()
+    local tool = require("terminal_colors").current:get()
+    return color_mode.resolve(tool and tool.mode) ~= "light"
+  end
   kept[#kept + 1] = { id = "theme", name = "Theme", detail = "theme",
     icon = function() return dark() and "dark_mode" or "light_mode" end,
     on = dark,
-    set = function() config.set("theme.mode", dark() and "light" or "dark") end,
-    status = function() return dark() and "Dark" or "Light" end }
+    set = function() color_mode.set(dark() and "light" or "dark") end,
+    status = function()
+      return (dark() and "Dark" or "Light") .. (color_mode.chosen() == "auto" and " · Auto" or "")
+    end }
   -- The shell itself: the bar, and how its panels open.
   kept[#kept + 1] = { id = "eva", name = "Eva", detail = "eva", icon = "dashboard_customize",
     on = function() return M.edge_hover() end,

@@ -24,7 +24,7 @@ return function(name)
   local function scheme()
     local tool = current:get()
     return material.scheme(tool and tool.accent or accent,
-      { variant = "tonal_spot", mode = tool and tool.theme or "dark" })
+      { variant = "tonal_spot", mode = require("themes.color_mode").resolve(tool and tool.theme) })
   end
   local roles = {}
   for key, value in pairs(scheme()) do

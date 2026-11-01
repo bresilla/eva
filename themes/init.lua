@@ -4,7 +4,7 @@ local settings = require("lib.shell.settings")
 local root = morf.env("XDG_CONFIG_HOME") or (morf.fs.home() .. "/.config")
 -- make apply supplies a readable default beside each installed config. The
 -- greeter has no personal settings; a user's explicit preference still wins.
-local defaults = { theme = "material", font = "" }
+local defaults = { theme = "material", font = "", mode = "auto" }
 do
   local ok, value = pcall(function()
     return morf.json.decode(morf.fs.read(morf.paths.shell("appearance-default.json")))

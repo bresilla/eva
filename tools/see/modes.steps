@@ -1,0 +1,16 @@
+# Every kind of surface, for comparing dark and light.
+start shell
+ipc sidebar open settings; pause 1.2; shot quick-settings
+ipc settings theme; pause 1.2; shot theme-page
+ipc close; pause 0.6
+ipc dashboard open; pause 1.4; shot dashboard
+ipc close; pause 0.6
+ipc launcher open; pause 1; shot launcher
+ipc close; pause 0.6
+ipc polkit demo; pause 1.2; shot polkit
+ipc polkit cancel; pause 0.5
+ipc notify "A message" "Something happened and it is worth a look" normal Eva; pause 1; shot notification
+start lock
+key Return; pause 0.9; shot lock-sheet
+start greet
+key Return; pause 0.9; shot greet-sheet

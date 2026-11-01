@@ -76,9 +76,9 @@ M.ACTIONS = {
       return "close"
     end },
   { id = "light", name = "Light", description = "Change the scheme to light mode", icon = "light_mode",
-    run = function() config.set("theme.mode", "light") return "close" end },
+    run = function() require("themes.color_mode").set("light") return "close" end },
   { id = "dark", name = "Dark", description = "Change the scheme to dark mode", icon = "dark_mode",
-    run = function() config.set("theme.mode", "dark") return "close" end },
+    run = function() require("themes.color_mode").set("dark") return "close" end },
 }
 for _, a in ipairs(M.ACTIONS) do a.kind = "action" end
 

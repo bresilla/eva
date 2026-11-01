@@ -12,6 +12,7 @@
 local morf = require("morf")
 local material = require("lib.theme.material")
 local config = require("config")
+local color_mode = require("themes.color_mode")
 
 local M = {}
 
@@ -26,7 +27,7 @@ local function initial()
   if source == "" or source == "wallpaper" or source == "auto" or source == "lule" then
     source = M.FALLBACK_SOURCE
   end
-  return material.scheme(source, { variant = config.get("theme.variant"), mode = config.get("theme.mode") })
+  return material.scheme(source, { variant = config.get("theme.variant"), mode = color_mode.resolve() })
 end
 
 local roles = {}
@@ -73,7 +74,7 @@ end
 --- The scheme for `source` (a colour, or "wallpaper" with `wallpaper` the
 --- picture's path), applied when it is made.
 function M.follow(source, wallpaper, mode)
-  local opts = { variant = config.get("theme.variant"), mode = mode or config.get("theme.mode") }
+  local opts = { variant = config.get("theme.variant"), mode = mode or color_mode.resolve() }
   if source ~= "wallpaper" and source ~= "" then
     M.apply(material.scheme(source, opts))
     return

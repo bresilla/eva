@@ -52,15 +52,14 @@ morf.effect("eva.lule", function() theme.apply_lule(terminal_colors.current:get(
 morf.effect("eva.scheme", function()
   local source = config.get("theme.source")
   local tool = terminal_colors.current:get()
+  local mode = require("themes.color_mode").resolve(tool and tool.mode)
   if (source == "auto" or source == "lule") and tool then
-    theme.follow(tool.accent, nil, tool.mode)
+    theme.follow(tool.accent, nil, mode)
   else
-    theme.follow(source == "auto" and "wallpaper" or source, wallpaper.current:get())
+    theme.follow(source == "auto" and "wallpaper" or source, wallpaper.current:get(), mode)
   end
-  -- The variant and mode are read inside `follow`; name them here so a
-  -- change of either re-runs this.
+  -- The variant is read inside `follow`; name it here so a change re-runs this.
   config.get("theme.variant")
-  config.get("theme.mode")
 end)
 
 -- ------------------------------------------------------------------ scale --

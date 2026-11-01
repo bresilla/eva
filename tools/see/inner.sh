@@ -48,8 +48,8 @@ stop() {
 }
 shot() { grim "$SEE_OUT/$1.png"; }
 ipc() { timeout 10 morf ipc call "$@"; }
-key() { wtype -k "$1"; }
-text() { wtype "$1"; }
+key() { wtype -s 200 -k "$1"; }
+text() { wtype -s 200 "$1"; }
 pause() { sleep "$1"; }
 point() { swaymsg seat seat0 cursor set "$1" "$2" > /dev/null; }
 click() {

@@ -24,7 +24,6 @@ local config = settings.open {
       -- own colours are theme.lule either way.
       source = "auto",
       variant = "tonal_spot",
-      mode = "dark",
     },
     appearance = {
       -- A font file every label is set in ("" for the installed faces).

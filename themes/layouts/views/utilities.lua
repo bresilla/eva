@@ -7,18 +7,19 @@ local rows=require("themes.layouts.rows")
 local P=require("themes.layouts.page")
 local C=theme.color
 local V={WIDTH=430,RADIUS=15}
---- The Theme page: dark or light, and Lule one page in.
+--- The Theme page: auto, dark or light, and Lule one page in.
 function V.theme_page(model,w,h)
-  local config=require("config")
-  local function dark() return config.get("theme.mode")~="light" end
+  local mode=require("themes.color_mode")
   local inner=P.inner(w)
+  local choices={id="settings-theme-mode",width=inner}
+  for _,choice in ipairs {{"auto","Auto","brightness_auto"},{"dark","Dark","dark_mode"},{"light","Light","light_mode"}} do
+    choices[#choices+1]={id="settings-theme-mode-"..choice[1],label=choice[2],icon=choice[3],
+      group="settings-theme-mode",selected=function() return mode.chosen()==choice[1] end,
+      on_clicked=function() mode.set(choice[1]) end}
+  end
   return P.page {id="settings-theme-scroll",width=w,height=h,
     P.section {id="settings-theme",width=w,title="Appearance",
-      P.row {id="settings-theme-mode",width=inner,icon=function() return dark() and "dark_mode" or "light_mode" end,
-        title="Dark mode",
-        subtitle=function() return dark() and "The shell in dark colours" or "The shell in light colours" end,
-        trailing=P.switch {id="utilities-toggle-theme-mode",name="Dark mode",on=dark,
-          on_toggled=function(on) config.set("theme.mode",on and "dark" or "light") end}},
+      P.buttons(choices),
       P.row {id="settings-theme-lule",width=inner,icon="palette",title="Lule",
         subtitle="Wallpaper, colours, the shell's theme and font",trailing=P.chevron(),
         on_clicked=function() model.request("theme/lule") end},

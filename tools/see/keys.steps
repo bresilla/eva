@@ -1,0 +1,7 @@
+# Real keys reaching each role: the launcher's field and the lock's sheet.
+start shell
+ipc launcher open; pause 1.2; text 'fire'; pause 1; shot launcher-typed
+ipc close; pause 0.6
+start lock
+key Return; pause 0.9; shot lock-sheet
+text 'abc'; pause 0.5; shot lock-typed
