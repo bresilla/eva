@@ -25,14 +25,16 @@ M.selected = morf.signal("eva.overview.selected", "")
 M.viewing = morf.signal("eva.overview.viewing", 1)
 M.cards = morf.list_model({})
 M.desks = morf.list_model({})
+M.pads = morf.list_model({})
 -- Where each card and each desk goes, by address and by workspace id as text.
 M.slots = morf.signal("eva.overview.slots", {})
 M.strip = morf.signal("eva.overview.strip", {})
-M.drag = morf.state { address = "", x = 0, y = 0, width = 0, height = 0, over = 0, grab_x = 0, grab_y = 0 }
+M.drag = morf.state { address = "", x = 0, y = 0, width = 0, height = 0, over = 0, pad = "", grab_x = 0, grab_y = 0 }
 
 local LIVE_MS = 700
 local MIN_THROW = 120
 M.STRIP_H, M.SEARCH_H, M.BOTTOM = 148, 48, S.xxl
+M.PAD_W = 132
 
 --- "cards" under a phone's finger, "spread" elsewhere.
 function M.layout()
@@ -119,6 +121,11 @@ local function rebuild()
     rows_d[i] = { id = d.id, name = d.name, named = d.named, monitor = d.monitor, active = d.active }
     strip[tostring(d.id)] = boxes[i]
   end
+  local pads = {}
+  for i, s in ipairs(M.scratchpads()) do
+    pads[i] = { name = s.name, icon = s.icon, count = s.count, shown = s.shown, index = i }
+  end
+  M.pads:replace(pads, "name")
   M.strip:set(strip)
   M.desk_rows = desks
   M.desks:replace(rows_d, "id")
@@ -246,15 +253,30 @@ function M.drag_move(x, y)
   if d.address == "" then return end
   d.x, d.y = x - d.grab_x, y - d.grab_y
   d.over = tonumber(model.hit(M.strip:get(), x, y) or 0)
+  local pads, boxes = M.scratchpads(), {}
+  for i, s in ipairs(pads) do
+    local box = M.pad_box(i)
+    boxes[s.name] = { x = box.x, y = box.y, width = M.PAD_W, height = S.TARGET }
+  end
+  d.pad = model.hit(boxes, x, y) or ""
+end
+
+--- A scratchpad's box, to the right of the search.
+function M.pad_box(i)
+  local w = (size())
+  return { x = w / 2 + 210 + S.l + (i - 1) * (M.PAD_W + S.xs),
+    y = S.xl + M.STRIP_H + S.l + (M.SEARCH_H - S.TARGET) / 2 }
 end
 
 --- Where the card lands: onto a desk moves its window there, and onto a desk
 --- on another monitor, to that monitor.
 function M.drag_end()
   local d = M.drag
-  local address, over = d.address, d.over
+  local address, over, pad = d.address, d.over, d.pad
   d.address = ""
   d.over = 0
+  d.pad = ""
+  if address ~= "" and pad ~= "" then return M.drop_scratch(address, pad) end
   if address == "" or over == 0 then return false end
   local c = windows.get(address)
   if not c or c.workspace == over then return false end
@@ -359,6 +381,35 @@ function M.card_actions(address)
 end
 
 M.scrolled = morf.signal("eva.overview.scrolled", 0)
+
+-- -------------------------------------------------------------- workspaces --
+
+local spaces = require("workspaces_model")
+M.LAYOUTS = spaces.LAYOUTS
+M.scratchpads = spaces.scratchpads
+M.layout_of = spaces.layout
+M.toggle_scratch = spaces.toggle_scratch
+-- The workspace being named, 0 for none.
+M.renaming = morf.signal("eva.overview.renaming", 0)
+
+--- How the workspace looked at tiles, by the choice `layout`.
+function M.choose_layout(layout) return spaces.set_layout(M.viewing:get(), layout) end
+
+--- Asks for a name for workspace `id`.
+function M.rename(id) M.renaming:set(id) end
+
+--- The name given: "" takes it away.
+function M.named(name)
+  local id = M.renaming:get()
+  M.renaming:set(0)
+  if id ~= 0 then spaces.rename(id, name) end
+end
+
+--- A card dropped on a scratchpad.
+function M.drop_scratch(address, name)
+  shots.forget(address)
+  return spaces.to_scratch(address, name)
+end
 
 local view = require("themes").view("overview").build(M)
 M.node = view.node

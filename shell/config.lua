@@ -15,7 +15,7 @@ end
 -- its hold in ms (0 for the default) and whether it reads a percentage.
 local osd_kinds={}
 for _,kind in ipairs {"volume","brightness","mic","caps","num","layout","profile","dnd","awake","night",
-  "ring","bluetooth","headphones","media"} do
+  "ring","bluetooth","headphones","media","workspace"} do
   osd_kinds[kind]={position="",enabled=true,hold=0,percent=true}
 end
 
@@ -222,6 +222,21 @@ local config = settings.open {
     windows = {
       -- What a phone's bottom edge walks: "apps" or "workspaces".
       scrub = "apps",
+      -- Each corner's action (shell/hot_corners.lua) and the key it wants held.
+      corners = {
+        top_left = { action = "none", guard = "" },
+        top_right = { action = "none", guard = "" },
+        bottom_left = { action = "none", guard = "" },
+        bottom_right = { action = "none", guard = "" },
+        -- How long the pointer rests there first, in ms.
+        hold = 150,
+      },
+      -- The other windows are offered for the room a snapped one leaves.
+      snap_assist = true,
+      -- Each workspace's name and how it tiles, by id.
+      workspaces = { names = {}, layouts = {} },
+      -- The scratchpads: `name`, `command` to start, `icon`.
+      scratchpads = {},
       switcher = {
         -- What Alt+Tab walks: "all", "workspace" or "output".
         scope = "all",

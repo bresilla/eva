@@ -106,6 +106,61 @@ function M.register(ipc)
     return out
   end
   ipc.dock_reorder = function(from, to) return require("dock").reorder(tonumber(from), tonumber(to)) end
+  local spaces = require("workspaces_model")
+  local function shown_workspace() return windows.int(require("services").workspace.active()) end
+  -- `workspace_name [NAME [ID]]`: names a workspace, this one by default;
+  -- with no name it says what it is called.
+  ipc.workspace_name = function(name, id)
+    id = tonumber(id) or shown_workspace()
+    if name == nil then return spaces.label(id) end
+    return spaces.rename(id, name)
+  end
+  -- `workspace_layout [LAYOUT [ID]]`: dwindle, master, scrolling or monocle;
+  -- `next` steps through them; with nothing it says which.
+  ipc.workspace_layout = function(layout, id)
+    id = tonumber(id) or shown_workspace()
+    if layout == nil then return spaces.layout(id) end
+    if layout == "next" then return spaces.cycle_layout(id) end
+    return spaces.set_layout(id, layout)
+  end
+  -- `scratchpad NAME`: shows or hides it. `scratchpad list`. `scratchpad send
+  -- NAME`: the focused window goes there.
+  ipc.scratchpad = function(how, name)
+    if how == "list" then return spaces.scratchpads() end
+    if how == "send" then
+      local c = windows.active()
+      return c and spaces.to_scratch(c.address, name) or false
+    end
+    if how == nil then error("`scratchpad NAME`, `list` or `send NAME`") end
+    return spaces.toggle_scratch(how)
+  end
+  -- `pip [toggle|close]`, `float`, `split`: the focused window.
+  local modes = require("window_modes")
+  ipc.pip = function(how)
+    if how == "close" then return modes.close_pip() end
+    if how == "state" then return modes.pip:get() end
+    local c = windows.active()
+    return modes.toggle_pip(c and c.address or nil)
+  end
+  ipc.float = function()
+    local c = windows.active()
+    return c and modes.toggle_float(c.address) or false
+  end
+  ipc.split = function()
+    local c = windows.active()
+    return c and modes.split_with(c.address) or false
+  end
+  -- `keep_above`, `opacity [VALUE]`: the focused window.
+  ipc.keep_above = function()
+    local c = windows.active()
+    return c and windows.keep_above(c.address) or false
+  end
+  ipc.opacity = function(value)
+    local c = windows.active()
+    if not c then return false end
+    if value then return windows.set_opacity(c.address, tonumber(value) or 1) end
+    return windows.next_opacity(c.address)
+  end
   -- `kill_mode`: press a window to force quit it.
   ipc.kill_mode = function(how)
     local kill = require("kill_mode")

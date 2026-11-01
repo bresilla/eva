@@ -257,7 +257,7 @@ function steps.place(x, y)
   return { S({ "window.move", { x = x, y = y } }, { "movewindowpixel", ("exact %d %d,$W"):format(x, y) }) }
 end
 function steps.to_workspace(id, follow)
-  id = M.int(id)
+  id = type(id) == "string" and id or M.int(id)
   return { S({ "window.move", { workspace = tostring(id), follow = follow == true } },
     { follow and "movetoworkspace" or "movetoworkspacesilent", id .. ",$W" }) }
 end

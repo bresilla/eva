@@ -75,7 +75,7 @@ end
 
 --- Offers the other windows on the workspace for the cells left beside `cell`.
 function M.offer(cell, c, m)
-  if M.assist_off and M.assist_off() then return false end
+  if require("config").get("windows.snap_assist") == false then return false end
   local free = model.FREE[cell]
   if not free then return false end
   local rest = {}

@@ -191,6 +191,21 @@ M.sources = {
   night = flag("Night light", "nightlight", "light_mode", night),
 }
 
+-- The workspace on show: its number and name, and how many windows it holds.
+M.sources.workspace = {
+  present = function() local h = services.hyprland return h ~= nil and h.available() end,
+  key = function()
+    local h = services.hyprland
+    if h.stand_in or h.state.connected then return tostring(services.workspace.active()) end
+  end,
+  read = function()
+    local windows = require("windows_model")
+    local id = windows.int(services.workspace.active())
+    local count = #windows.on(id)
+    return { icon = "workspaces", title = require("workspaces_model").label(id),
+      detail = count == 0 and "Empty" or ("%d window%s"):format(count, count == 1 and "" or "s"), on = true }
+  end }
+
 -- The headphones: what shell/headphones.lua last heard.
 M.sources.headphones = {
   present = function() return package.loaded.headphones ~= nil end,

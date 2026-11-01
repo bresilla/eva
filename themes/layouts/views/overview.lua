@@ -245,6 +245,67 @@ function V.build(model)
       kit.icon("search", S.xl - S.xs, kit.ink("lo"), { anchors = { center_in = true } }) },
     input }
 
+  -- ------------------------------------- how it tiles, and the scratchpads --
+  local row_y = S.xl + model.STRIP_H + S.l
+  local function row_shown() return not cards() end
+  local layouts = { id = "overview-layouts", gap = S.xs, y = row_y + (model.SEARCH_H - S.TARGET) / 2,
+    x = function() return (select(1, model.size()) - field_w) / 2 - 4 * 84 - 3 * S.xs - S.l end,
+    opacity = function() return pull:get() end, behavior = { opacity = fade }, visible = row_shown }
+  for _, layout in ipairs(model.LAYOUTS) do
+    local function chosen() return model.layout_of(model.viewing:get()) == layout end
+    layouts[#layouts + 1] = kit.action { id = "overview-layout-" .. layout, width = 84, height = S.TARGET, cursor = "pointer",
+      accessible_name = "Tile as " .. layout,
+      on_clicked = function() model.choose_layout(layout) end,
+      kit.surface { anchors = { fill = true }, radius = L.control_round(S.TARGET),
+        color = function() return chosen() and C.secondaryContainer or C.surfaceContainerHigh end },
+      L.label { anchors = { center_in = true }, text = layout:gsub("^%l", string.upper),
+        color = function() return chosen() and C.onSecondaryContainer or C.onSurfaceVariant end } }
+  end
+  local function pad_delegate(row)
+    local name = row.name
+    local count = morf.signal("eva.overview.pad.count." .. name, math.floor(row.count))
+    local shown = morf.signal("eva.overview.pad.shown." .. name, row.shown == true)
+    local function over() return model.drag.pad == name end
+    return kit.action { id = "overview-pad-" .. math.floor(row.index), width = model.PAD_W, height = S.TARGET, cursor = "pointer",
+      accessible_name = "Scratchpad " .. name,
+      x = function() return model.pad_box(math.floor(row.index)).x end, y = function() return model.pad_box(math.floor(row.index)).y end,
+      on_clicked = function() model.close() model.toggle_scratch(name) end,
+      kit.surface { anchors = { fill = true }, radius = L.control_round(S.TARGET),
+        color = function() return (shown:get() or over()) and C.secondaryContainer or C.surfaceContainerHigh end,
+        border_width = function() return over() and 2 or 0 end, border_color = kit.stroke("hot") },
+      kit.icon(row.icon, 18, kit.ink("lo"), { x = S.s, y = (S.TARGET - 18) / 2 }),
+      kit.text { x = S.xl + S.xs, y = 0, height = S.TARGET, vertical_alignment = "center", elide = "right",
+        width = model.PAD_W - S.xl - S.xs - S.xl, text = name, font_size = L.SIZE.body, color = kit.ink("hi") },
+      L.label { anchors = { right = true, vertical_center = true, right_margin = S.s },
+        text = function() return count:get() > 0 and tostring(count:get()) or "" end, color = kit.ink("lo") } },
+      function(next_row)
+        count:set(math.floor(next_row.count))
+        shown:set(next_row.shown == true)
+      end
+  end
+  local pads = ui.Item { id = "overview-pads", anchors = { fill = true }, visible = row_shown,
+    opacity = function() return pull:get() end, behavior = { opacity = fade },
+    ui.Repeater { model = model.pads, delegate = pad_delegate } }
+
+  -- --------------------------------------------------------- naming a desk --
+  local name_input = ui.TextInput { id = "overview-name", anchors = { fill = true, left_margin = S.m, right_margin = S.m },
+    vertical_alignment = "center", tab_navigation = false, font_family = theme.font, font_size = theme.size.normal,
+    color = function() return C.onSurface end, placeholder = "Name this workspace",
+    placeholder_color = function() return C.onSurfaceVariant end, caret_color = function() return C.primary end,
+    on_accepted = function(text) model.named(text or "") end,
+    on_escape = function() model.renaming:set(0) end }
+  local naming = kit.card { id = "overview-naming", width = field_w, height = model.SEARCH_H, z = 6,
+    x = function() return (select(1, model.size()) - field_w) / 2 end, y = row_y,
+    visible = function() return model.renaming:get() ~= 0 end,
+    name_input }
+  morf.effect("eva.overview.naming", function()
+    local id = model.renaming:get()
+    if id ~= 0 then
+      name_input.text = require("workspaces_model").name(id)
+      name_input.focus = true
+    elseif model.opened:get() then input.focus = true end
+  end)
+
   local empty = L.label { id = "overview-empty", anchors = { center_in = true }, font_size = L.SIZE.value,
     color = kit.ink("lo"), visible = function() return model.opened:get() and model.cards:len() == 0 end,
     text = function() return model.query:get() ~= "" and "No window matches" or "Nothing on this workspace" end }
@@ -318,7 +379,7 @@ function V.build(model)
   local root = ui.Item { id = "overview", anchors = { fill = true },
     accessible_role = "dialog", accessible_name = "Overview",
     visible = function() return model.opened:get() or lingering:get() end,
-    dim, catcher, track, strip_shown, search, empty, ghost, clear, menu }
+    dim, catcher, track, strip_shown, search, ui.Row(layouts), pads, naming, empty, ghost, clear, menu }
 
   -- Along the row of cards, under a finger; it rests on a card.
   local origin
