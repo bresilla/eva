@@ -57,13 +57,14 @@ function V.build(model)
       radius = PILL_W / 2,
       color = function()
         if lit:get() == id() then return C.primary end
+        if model.hovered and model.hovered(i) then return C.onSurface end
         return (model.occupied(id()) and C.onSurfaceVariant or C.outlineVariant):alpha(0.6)
       end,
       -- No easing: the accent does not fade from pill to pill, it moves
       -- (the blob and the bud below), and hands over in a frame where the
       -- two are the same shape.
     }
-    -- Only to look at: the pointer near them opens the left panel.
+    -- To look at: the presses are the rail's targets (themes/layouts/rail_hits.lua).
     local function at() local g = V.geometry(model) return g.top + (i - 1) * (g.item + g.gap) end
     local function item() return V.geometry(model).item end
     if B then
