@@ -69,4 +69,67 @@ function accounts.me()
   return entry(me, nil, morf.fs.home())
 end
 
+--- The names in a group file's `wheel`, `sudo` and `admin` lines, as a set.
+function accounts.administrators(path)
+  local out = {}
+  local ok, text = pcall(morf.fs.read, path or "/etc/group")
+  if not ok or type(text) ~= "string" then return out end
+  for line in text:gmatch("[^\n]+") do
+    local group, members = line:match("^([^:]+):[^:]*:%d+:(.*)$")
+    if group == "wheel" or group == "sudo" or group == "admin" then
+      for name in members:gmatch("[^,]+") do out[name] = true end
+    end
+  end
+  return out
+end
+
+local ACCOUNTS, ACCOUNTS_PATH = "org.freedesktop.Accounts", "/org/freedesktop/Accounts"
+local USER = ACCOUNTS .. ".User"
+
+--- The picture `source` as `<home>/.face`, square, which the lock screen and
+--- the greeter read; AccountsService told too where it runs. `done(path, why)`.
+function accounts.set_face(me, source, done)
+  local host = require("lib.services.host")
+  local target = me.home .. "/.face"
+  if host.held("set face from " .. source) then return done(target) end
+  local client = host.bus("system")
+  local function tell_service()
+    if not client.has_owner(ACCOUNTS) then return done(target) end
+    client.call1_async(ACCOUNTS, ACCOUNTS_PATH, ACCOUNTS, "FindUserByName", { me.name }, 5000, function(path)
+      if type(path) ~= "string" then return done(target) end
+      client.call_async(ACCOUNTS, path, USER, "SetIconFile", { target }, 25000, function() done(target) end)
+    end)
+  end
+  local ok, info = pcall(morf.image.info, source)
+  local width, height = ok and type(info) == "table" and info.width, ok and type(info) == "table" and info.height
+  if not (width and height) then
+    local copied, why = pcall(morf.fs.copy, source, target)
+    if not copied then return done(nil, tostring(why)) end
+    return tell_service()
+  end
+  local side = math.min(width, height)
+  local queued, failed = pcall(morf.image.process, { source = source, output = target .. ".png",
+    ops = { { "crop", (width - side) // 2, (height - side) // 2, side, side }, { "resize", 256, 256 } },
+    on_done = function(done_ok, result)
+      if not done_ok then return done(nil, tostring(type(result) == "table" and result.error or result)) end
+      local moved, why = pcall(morf.fs.rename, target .. ".png", target)
+      if not moved then return done(nil, tostring(why)) end
+      tell_service()
+    end })
+  if not queued then done(nil, tostring(failed)) end
+end
+
+--- Changes the name shown for this account, where AccountsService runs.
+--- `done(ok, why)`.
+function accounts.set_label(me, label, done)
+  local host = require("lib.services.host")
+  if host.held("set real name") then return done(true) end
+  local client = host.bus("system")
+  if not client.has_owner(ACCOUNTS) then return done(nil, "AccountsService is not running here") end
+  client.call1_async(ACCOUNTS, ACCOUNTS_PATH, ACCOUNTS, "FindUserByName", { me.name }, 5000, function(path, why)
+    if type(path) ~= "string" then return done(nil, why) end
+    client.call_async(ACCOUNTS, path, USER, "SetRealName", { label }, 25000, done)
+  end)
+end
+
 return accounts
