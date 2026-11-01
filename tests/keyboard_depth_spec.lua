@@ -77,6 +77,25 @@ local HOST = [[
     return out
   end
   morf.ipc.layout_rows = function(id) return require("keyboard_layouts").get(id).rows end
+  morf.ipc.unreachable = function(id)
+    local layouts = require("keyboard_layouts")
+    local layout = layouts.get(id)
+    local plan = layouts.plan(layout, { width = 400, gap = 4, unit = 34, key_height = 48 }, true)
+    local have, missing = {}, {}
+    if not plan or plan.borrowed then return {} end
+    for _, row in ipairs(plan.rows) do
+      for _, char in ipairs(require("lib.util.unicase").chars(row)) do
+        have[char] = true
+        for _, alt in ipairs(layouts.alternates(layout, char, {})) do have[alt] = true end
+      end
+    end
+    for _, row in ipairs(layout.rows) do
+      for _, char in ipairs(require("lib.util.unicase").chars(row)) do
+        if not have[char] then missing[#missing + 1] = char end
+      end
+    end
+    return missing
+  end
   morf.ipc.learned = function()
     local path = morf.paths.state("eva-keyboard-words.json")
     return morf.fs.exists(path) and morf.fs.read(path) or ""
@@ -267,6 +286,92 @@ test.it("a finger along the space bar moves the cursor and types no space", func
     if event.code == 106 and event.on then arrows = arrows + 1 end
   end
   test.truthy(arrows >= 3, "the cursor moved " .. arrows .. " steps")
+end)
+
+test.it("by touch, as a phone sends it, the space bar moves the cursor", function()
+  up() test.ipc("field", "one two") test.advance(50)
+  local x, y = centre(key("space"))
+  test.ipc("clear")
+  test.touch("down", 1, x, y) test.advance(20)
+  test.touch("move", 1, x + 26, y) test.advance(20)
+  test.touch("move", 1, x + 60, y) test.advance(20)
+  test.touch("up", 1, x + 60, y) test.advance(20)
+  local arrows = 0
+  for _, event in ipairs(state().events) do
+    test.falsy(event.text, "the space bar typed")
+    if event.code == 106 and event.on then arrows = arrows + 1 end
+  end
+  test.truthy(arrows >= 3, "by touch the cursor moved " .. arrows .. " steps")
+end)
+
+test.it("by touch, a long press offers and a slide picks", function()
+  up() test.ipc("field", "Hello") test.advance(50)
+  local x, y = centre(key("e"))
+  test.touch("down", 1, x, y) test.advance(450)
+  local strip = test.get("eva.osk.alternates")
+  test.truthy(strip.visible, "no alternates by touch")
+  local at = strip.x + 4 + (strip.width - 8) / 7 * 2.5
+  test.touch("move", 1, at, strip.y + strip.height / 2) test.advance(20)
+  test.ipc("clear")
+  test.touch("up", 1, at, strip.y + strip.height / 2) test.advance(20)
+  test.eq(commits(state().events), { "é" })
+end)
+
+test.it("by touch, holding shift locks capitals and holding backspace takes words", function()
+  up() test.ipc("field", "one two three") test.advance(50)
+  local x, y = centre(key("shift"))
+  test.touch("down", 1, x, y) test.advance(450)
+  test.touch("up", 1, x, y) test.advance(20)
+  test.eq(state().shift, "lock", "a touch hold did not lock")
+  x, y = centre(key("backspace"))
+  test.ipc("clear")
+  test.touch("down", 1, x, y) test.advance(420 + 55 * 14)
+  test.touch("up", 1, x, y) test.advance(20)
+  local deletes = 0
+  for _, event in ipairs(state().events) do if event.delete then deletes = deletes + 1 end end
+  test.truthy(deletes >= 1, "a touch hold took no word")
+end)
+
+test.it("by touch, the handle pulls the keyboard shut and carries it floating", function()
+  up()
+  test.ipc("control", "floating", "on") test.advance(800)
+  local panel = test.get("drawer-keyboard")
+  local handle = test.get("eva.keyboard.handle")
+  local x, y = handle.x + handle.width / 2, handle.y + handle.height / 2
+  test.touch("down", 1, x, y) test.advance(20)
+  test.touch("move", 1, x, y - 200) test.advance(20)
+  test.touch("up", 1, x, y - 200) test.advance(100)
+  test.truthy(test.get("drawer-keyboard").y < panel.y - 100, "a finger did not carry it")
+  test.ipc("control", "floating", "off") test.advance(800)
+  handle = test.get("eva.keyboard.handle")
+  x, y = handle.x + handle.width / 2, handle.y + handle.height / 2
+  test.touch("down", 1, x, y) test.advance(20)
+  test.touch("move", 1, x, y + 150) test.advance(20)
+  test.touch("move", 1, x, y + 300) test.advance(20)
+  test.touch("up", 1, x, y + 300) test.advance(900)
+  test.falsy(state().open, "a finger down did not shut it")
+end)
+
+test.it("by touch, a chip and an emoji answer a tap", function()
+  up() test.ipc("field", "th") test.advance(50)
+  local chip = test.get("eva.keyboard.offer-1")
+  test.ipc("clear")
+  test.touch("down", 1, chip.x + 10, chip.y + 10) test.touch("up", 1, chip.x + 10, chip.y + 10) test.advance(50)
+  test.eq(commits(state().events), { "the " })
+  test.ipc("control", "pane", "emoji") test.advance(300)
+  local grid = test.get("eva.keyboard.emoji-cells")
+  test.ipc("clear")
+  test.touch("down", 1, grid.x + 10, grid.y + 10) test.touch("up", 1, grid.x + 10, grid.y + 10) test.advance(50)
+  test.eq(#commits(state().events), 1, "a tap on the grid typed nothing")
+end)
+
+test.it("with the number row on, each language keeps every letter within reach", function()
+  up()
+  test.ipc("set", "number_row", "true") test.advance(100)
+  for _, id in ipairs(test.ipc("layouts")) do
+    local missing = test.ipc("unreachable", id)
+    test.eq(missing, {}, id .. " loses letters with the number row on")
+  end
 end)
 
 test.it("a tap on the space bar is still a space", function()
@@ -672,6 +777,39 @@ test.it("the tools button and the strip reach every tray", function()
   test.eq(state().events, { { code = 105, on = true }, { code = 105, on = false } })
   test.click("eva.keyboard.tool-edit-back") test.advance(50)
   test.falsy(test.get("eva.keyboard.edit").visible)
+end)
+
+test.it("a pad spreads across a narrow board and types from where it is drawn", function()
+  load("material", 412, 915)
+  test.ipc("field", "<empty>", "phone") test.advance(1600)
+  test.eq(state().mode, "phone")
+  local one, three = test.get(key("1", "phone")), test.get(key("3", "phone"))
+  local panel = test.get("drawer-keyboard")
+  test.truthy(one.width > 100, "dial keys are " .. one.width .. " wide")
+  test.truthy(one.x + one.width < three.x, "dial keys overlap")
+  test.truthy(three.x + three.width <= panel.x + panel.width, "the pad leaves the board")
+  test.truthy(three.x + three.width > panel.x + panel.width - 40, "the pad stops short of the edge")
+  test.ipc("clear") test.click(key("3", "phone"))
+  test.eq(state().events, { { text = "3" } })
+  test.ipc("field", "<empty>", "number") test.advance(300)
+  test.eq(state().mode, "numbers")
+  test.truthy(test.get(key("1", "numbers")).width > 70)
+end)
+
+test.it("a pad stays a column on a wide screen", function()
+  up("material", 1280, 800)
+  test.ipc("field", "<empty>", "phone") test.advance(300)
+  test.truthy(test.get(key("1", "phone")).width < 120)
+end)
+
+test.it("the emoji pane has the tools over it, not words", function()
+  up()
+  test.ipc("field", "th") test.advance(50)
+  test.truthy(#state().offers > 0)
+  test.ipc("control", "pane", "emoji") test.advance(300)
+  test.eq(test.get("eva.keyboard.tools").visible, true, "word offers stayed over the emoji")
+  test.ipc("control", "pane", "keys") test.advance(100)
+  test.eq(test.get("eva.keyboard.words").visible, true)
 end)
 
 test.it("a board is picked by hand from the strip", function()

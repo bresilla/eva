@@ -1,6 +1,6 @@
 -- The strip over the keys: a handle to drag, then what the cursor's word offers,
--- the tools, the clipboard, the cursor keys or the emoji found. Shell only: the
--- shared panel of keys never holds it, so a lock screen cannot show it.
+-- the tools, the clipboard, the cursor keys or the emoji found. The shell's
+-- alone: the panel of keys the lock and the greeter share never holds it.
 local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
@@ -10,15 +10,18 @@ local C = theme.color
 local V = {}
 
 local PREFIX = "eva.keyboard."
+-- What the strip offers in the accent colour: it stands for something else.
+local SPECIAL = { fix = true, shortcut = true, keyword = true }
 
 --- A pressable word: `id`, `x`, `width`, `label()`, `run`, and a `visible()`.
 local function chip(spec)
   return kit.action {
     id = spec.id, x = spec.x, width = spec.width, height = S.TARGET, cursor = "pointer", visible = spec.visible,
     accessible_name = spec.name, on_clicked = spec.run,
-    kit.text {
+    ui.Text {
       anchors = { center_in = true }, width = spec.width - 2 * S.xs, elide = "right", horizontal_alignment = "center",
-      font_size = theme.size.normal, color = spec.color or kit.ink("hi"), text = spec.label,
+      font_family = spec.font or theme.font, font_size = theme.size.normal, color = spec.color or kit.ink("hi"),
+      text = spec.label,
     },
   }
 end
@@ -51,14 +54,15 @@ function V.build(parts)
   local tray = state.tray
   local toolbox = model.tools()
 
+  local function on_keys() return state.pane:get() == "keys" end
   -- A copy made a moment ago goes before anything but the word being typed.
   local function fresh()
-    if tray:get() ~= "words" then return nil end
+    if tray:get() ~= "words" or not on_keys() then return nil end
     local item = clips.fresh()
     if item and state.word() == "" then return item end
   end
   local function offers()
-    if fresh() then return {} end
+    if fresh() or not on_keys() then return {} end
     return state.candidates:get()
   end
   local function busy() return #offers() > 0 or fresh() ~= nil end
@@ -79,9 +83,13 @@ function V.build(parts)
       id = PREFIX .. "offer-" .. i, x = toggle + (i - 1) * cell, width = cell,
       visible = function() return offer() ~= nil end,
       label = function() local o = offer() return o and o.label or "" end,
+      font = function()
+        local o = offer()
+        return o and o.kind == "emoji" and theme.emoji_font or theme.font
+      end,
       color = function()
         local o = offer()
-        return o and o.kind ~= "word" and kit.signal("accent")() or kit.ink("hi")()
+        return o and SPECIAL[o.kind] and kit.signal("accent")() or kit.ink("hi")()
       end,
       run = function()
         local o = offer()
@@ -159,7 +167,7 @@ function V.build(parts)
     searching[#searching + 1] = chip {
       id = PREFIX .. "found-" .. i, x = toggle + 2 * found_w + (i - 1) * found_w, width = found_w,
       visible = function() return hit() ~= nil end,
-      label = function() local h = hit() return h and h.char or "" end,
+      label = function() local h = hit() return h and h.char or "" end, font = theme.emoji_font,
       run = function()
         local h = hit()
         if h then model.type_emoji(h.char) end

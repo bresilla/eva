@@ -1,6 +1,5 @@
 -- Words the person typed, kept on disk to predict them later. Asleep unless
--- `keyboard.learn` is on, and never written while the keyboard is private: the
--- README says why it is off by default.
+-- `keyboard.learn` is on, and never written while the keyboard is private.
 local morf = require("morf")
 local config = require("config")
 local model = require("keyboard_model")

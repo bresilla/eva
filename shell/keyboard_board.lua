@@ -14,6 +14,8 @@ local M = {}
 local HOLD = 380
 -- How far a finger moves on the space bar for one step of the cursor.
 M.STEP = 12
+-- The columns of each pad, and the widest board it spreads across.
+local PADS, PAD_WIDEST = { phone = 3, numbers = 4 }, 600
 
 --- Runs `build`, handing back what it made and the signals it made, by name.
 function M.capture(build)
@@ -61,6 +63,15 @@ function M.new(spec)
     return x + spec.split, w
   end
 
+  -- A pad's keys, from osk's column out across a narrow board.
+  local function widen(mode, x, w)
+    local columns = PADS[mode]
+    if not columns or W > PAD_WIDEST then return x, w end
+    local column = columns * unit + (columns - 1) * GAP
+    local scale = (W - GAP) / (column + GAP)
+    return math.floor(GAP + (x - math.floor((W - column) / 2)) * scale), math.floor(w * scale + GAP * (scale - 1))
+  end
+
   -- Where a key stands, and what it carries: osk's place unless planned.
   local function place(mode, page, name, x, y, w)
     local p = plan_of(mode, page)
@@ -68,6 +79,7 @@ function M.new(spec)
     if spot and spot.hidden then return x, y, w, spot end
     if spot then x, y, w = spot.x or x, spot.row and spot.row * (KH + GAP) or y, spot.w or w
     elseif p and p.lift > 0 then y = y - p.lift * (KH + GAP) end
+    x, w = widen(mode, x, w)
     x, w = spread(name, x, w)
     return x, y, w, spot
   end

@@ -1,19 +1,21 @@
 # The on-screen keyboard's panes, on a stand-in text field: EVA_FAKE_IME feeds
-# what an input method would say.
+# what an input method would say. tools/see/keyboard-ime.steps has a real field.
 export EVA_FAKE_IME=1
 export EVA_SETTINGS=$XDG_STATE_HOME/keyboard-settings.json
 mkdir -p "$XDG_STATE_HOME/eva/clipboard"
-printf '[{"id":"1","kind":"text","text":"https://example.test/shared/link","pinned":true,"time":1},{"id":"2","kind":"text","text":"Meet at the north gate, 18:30","time":2},{"id":"3","kind":"text","text":"PIN is not kept here","time":3}]' > "$XDG_STATE_HOME/eva/clipboard/history.json"
+printf '[{"id":"1","kind":"text","text":"https://example.test/shared/link","pinned":true,"time":1},{"id":"2","kind":"text","text":"Meet at the north gate, 18:30","time":2},{"id":"3","kind":"text","text":"Milk, eggs, the good bread","time":3}]' > "$XDG_STATE_HOME/eva/clipboard/history.json"
 start shell
-ipc keyboard open; pause 1.6; shot keyboard-tools
-ipc keyboard field 'Hello there'; pause 0.4
+pause 2
+ipc keyboard open; pause 1.6
 ipc keyboard field 'Good morning. Th'; pause 1.2; shot keyboard-predict
-ipc keyboard field 'I will brin'; pause 0.4
+ipc keyboard field 'thank '; pause 0.6; shot keyboard-next
 ipc keyboard field 'Wierd'; pause 0.6; shot keyboard-fix
 ipc keyboard field 'I love pizza'; pause 0.6; shot keyboard-emoji-name
-ipc keyboard field 'Note '; pause 0.2
+ipc keyboard field 'Note. '; pause 0.2
+ipc keyboard tray tools; pause 0.6; shot keyboard-tools
 ipc keyboard tray clips; pause 0.6; shot keyboard-clips
 ipc keyboard tray edit; pause 0.6; shot keyboard-edit
+ipc keyboard tray boards; pause 0.6; shot keyboard-boards
 ipc keyboard tray words; pause 0.2
 ipc keyboard pane emoji; pause 1.2; shot keyboard-emoji
 ipc keyboard pane keys; pause 0.4
@@ -22,9 +24,12 @@ ipc keyboard hand left; pause 1.0; shot keyboard-left
 ipc keyboard hand both; pause 0.8
 ipc keyboard floating on; pause 1.2; shot keyboard-floating
 ipc keyboard floating off; pause 0.8
+ipc keyboard split on; pause 1.0; shot keyboard-split
+ipc keyboard split off; pause 0.8
 ipc keyboard language sq; pause 1.0; shot keyboard-sq
-ipc keyboard language ru; pause 1.0; shot keyboard-ru
+ipc keyboard language de; pause 1.0; shot keyboard-de
 ipc keyboard language fr; pause 1.0; shot keyboard-fr
+ipc keyboard language ru; pause 1.0; shot keyboard-ru
 ipc keyboard language tr; pause 1.0; shot keyboard-tr
 ipc keyboard language el; pause 1.0; shot keyboard-el
 ipc keyboard language en; pause 0.8
