@@ -1,0 +1,16 @@
+# eva-update on the sealed session: this repository's real flake.lock read and
+# aged, what managers this machine has really asked, then the canned log of a dry
+# rebuild. EVA_DRY_RUN stays set: nothing here rebuilds anything.
+export EVA_UPDATE_FLAKE=$SEE_EVA/flake.lock
+
+BOOT=8 start app update
+pause 3
+shot overview
+note echo "state: $(appipc state | cut -c1-260)"
+note sh apps/update/cli --check
+appipc rebuild > /dev/null
+pause 3
+shot rebuilding
+pause 6
+shot rebuilt
+note echo "after: $(appipc state | cut -c1-200)"
