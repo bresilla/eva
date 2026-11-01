@@ -504,6 +504,7 @@ function M.new(scene)
 
   --- Where the pointer is, as `j/cursorpos` answers it.
   function H.set_cursor(x, y) cursor.x, cursor.y = x, y end
+  H.emit = emit
 
   -- The scene.
   for _, row in ipairs(scene.workspaces or {}) do

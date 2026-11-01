@@ -73,6 +73,26 @@ test.it("what it accepts changes its list, as the compositor's would", function(
   test.truthy(#test.ipc("wire") >= 4, "the wire was not recorded")
 end)
 
+test.it("the focus order follows the event, before the list is asked for again", function()
+  test.load("../shell/init.lua", { source = [[
+    require("windows_stand_in").install()
+    local hypr = require("lib.compositor.hyprland")
+    local windows = require("windows_model")
+    morf.ipc.order = function(address)
+      if address then hypr.emit("activewindowv2", address) end
+      local out = {}
+      for i, c in ipairs(windows.recent()) do out[i] = c.address end
+      return out
+    end
+    return require("morf.ui").Item { width = 10, height = 10 }
+  ]], size = { 1920, 1080 }, env = { EVA_FAKE_WINDOWS = "1" } })
+  test.advance(50)
+  local before = test.ipc("order")
+  local last = before[#before]
+  test.eq(test.ipc("order", last)[1], last, "the window just focused is not first")
+  test.eq(test.ipc("order", before[2])[2], last, "the one before it is not second")
+end)
+
 test.it("pictures stay on the GPU, unless the renderer is a software one", function()
   load()
   local r = test.ipc("shots")

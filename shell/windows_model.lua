@@ -65,11 +65,25 @@ function M.active()
   return M.get(a and a.address or "")
 end
 
+-- The order windows took the focus in: the compositor's list says so only
+-- when it is next asked for.
+local focused_at, focus_turn = {}, 0
+if hyprland.on then
+  hyprland.on("activewindowv2", function(address)
+    if address and address ~= "" then
+      focus_turn = focus_turn + 1
+      focused_at[address] = focus_turn
+    end
+  end)
+end
+
 --- `list`, most recently used first.
 function M.recent(list)
   local out = {}
   for i, c in ipairs(list or M.list()) do out[i] = { c = c, i = i } end
   table.sort(out, function(a, b)
+    local turn_a, turn_b = focused_at[a.c.address] or 0, focused_at[b.c.address] or 0
+    if turn_a ~= turn_b then return turn_a > turn_b end
     local x, y = a.c.focus_history or -1, b.c.focus_history or -1
     if x < 0 then x = math.huge end
     if y < 0 then y = math.huge end
