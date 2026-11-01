@@ -80,7 +80,7 @@ return function(ctx)
     }
     -- Reuse the shell's phase drawing in two bounded side strips. It assembles
     -- once on entry; there is no time uniform or idle animation afterward.
-    -- A held lock draws no custom shaders, so it has no strips.
+    -- Not on a held lock.
     if W>=s(1400) and not ctx.HELD then
       local phase=require("themes.tsugumori.phase")
       -- Entry progress from the clock, eased out-cubic over 650 ms: the

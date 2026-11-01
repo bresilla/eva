@@ -23,6 +23,7 @@
 local morf = require("morf")
 local accounts = require("lib.services.accounts")
 local auth = require("lib.shell.auth")
+local reveal = require("themes.reveal")
 require("themes.ui_scale").apply()
 
 local HELD = morf.operands[1] ~= "window"
@@ -99,11 +100,16 @@ local function say(words, wrong)
 end
 local clear = password.clear
 
+-- The screen leaves the wallpaper, and the shell under it comes in as it did at
+-- login.
 local door
 local function lift()
   stage:set("opening")
   say("")
-  morf.time.timer(560, function()
+  if HELD and morf.env("EVA_DRY_RUN") ~= "1" then
+    morf.process.run({ "morf", "ipc", "call", "reveal" }, { timeout_ms = 2000, max_output = 256 }, function() end)
+  end
+  morf.time.timer(reveal.LEAVE, function()
     if HELD then morf.surface.session_lock = false else morf.quit() end
   end, false)
 end
@@ -342,6 +348,7 @@ end)
 if not HELD then
   morf.ipc.stage = function(to)
     if to == "sheet" then stage:set("rest") open_sheet() elseif to == "rest" then stage:set("rest") end
+    if to == "opening" and PREVIEW then stage:set("opening") end
     return stage:get()
   end
 end

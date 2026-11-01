@@ -107,6 +107,8 @@ return function(W, H, NAME)
   local SETTLE = skin.settle or { duration = 340, easing = "out_cubic" }
   -- Follows a finger at once, and eases the rest of the way.
   local function swell_motion() return pull:get() > 0 and stage:get() == "rest" and { duration = 60 } or GROW end
+  local function leaving() return stage:get() == "opening" end
+  local function opened() return stage:get() == "closed" or leaving() end
 
   -- ------------------------------------------------------------- the frame --
 
@@ -118,13 +120,15 @@ return function(W, H, NAME)
       shape = "box", x = 0, y = 0, width = W, height = content_height,
       fill_color = function() return C.surface end,
     },
-    -- The opening in the frame: shut while the lock comes in and goes.
+    -- The opening in the frame: the whole screen while the lock comes in and
+    -- goes.
     ui.SdfShape {
+      id = "lock-opening",
       shape = "box", operation = "subtract", radius = ROUND,
-      x = function() return stage:get() == "closed" and 0 or BORDER end,
-      y = function() return stage:get() == "closed" and 0 or BORDER end,
-      width = function() return stage:get() == "closed" and W or W - 2 * BORDER end,
-      height = function() return stage:get() == "closed" and content_height() or content_height() - 2 * BORDER end,
+      x = function() return opened() and 0 or BORDER end,
+      y = function() return opened() and 0 or BORDER end,
+      width = function() return opened() and W or W - 2 * BORDER end,
+      height = function() return opened() and content_height() or content_height() - 2 * BORDER end,
       behavior = { x = SETTLE, y = SETTLE, width = SETTLE, height = SETTLE },
     },
   }
@@ -162,7 +166,7 @@ return function(W, H, NAME)
     },
   }
 
-  local backdrop=require("themes.auth_backdrop")(ctx,s,"lock")
+  local backdrop=require("themes.auth_backdrop")(setmetatable({scene_leaving=leaving},{__index=ctx}),s,"lock")
 
   -- ------------------------------------------------------------ at rest --
 
@@ -258,9 +262,14 @@ return function(W, H, NAME)
   -- The time at rest sits a third of the way down; with the sheet up it
   -- steps aside above it, smaller.
   local CLOCK_Y = geometry.clock_y
+  -- Hidden under the sheet, and through the fade that follows it.
+  local covered=false
   local glance = ui.Column {
     id = "lock-glance",
-    visible=function() return not main() or stage:get()~="sheet" end,
+    visible=function()
+      if stage:get()=="sheet" then covered=true elseif not leaving() then covered=false end
+      return not main() or not covered
+    end,
     width = math.max(1,W-s(64)),
     anchors = { horizontal_center = true }, gap = s(6), align = "center",
     y = function()
@@ -408,8 +417,13 @@ return function(W, H, NAME)
     color = C.surface:alpha(1),
     kb.content {
       backdrop,
-      skin.chrome and skin.chrome(W, H, s, "lock") or ui.Item {},
-      frame,band,glance,hint,sheet,
+      ui.Item {
+        id = "lock-scene", anchors = { fill = true },
+        opacity = function() return leaving() and 0 or 1 end,
+        behavior = { opacity = require("themes.reveal").MOTION },
+        skin.chrome and skin.chrome(W, H, s, "lock") or ui.Item {},
+        frame,band,glance,hint,sheet,
+      },
     },
     not kb.embedded and kb.node or ui.Item {}, kb.edge,
     reveal,

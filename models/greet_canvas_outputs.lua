@@ -1,5 +1,5 @@
 -- A single greeter owns its keyboard and authentication conversation.
--- Cage selects the only enabled login output; pointer movement is irrelevant.
+-- The compositor selects the login output; pointer movement is irrelevant.
 local morf=require("morf")
 return function(options)
   local active=morf.signal("greet.output","main")
