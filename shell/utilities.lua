@@ -47,6 +47,7 @@ local function active(key) return require("presentation").active("settings."..ke
 local function with_request(model) model.request=M.request return model end
 local function themed(name) return require("themes").view(name) end
 
+builders.software=function(w,h) return themed("software_page").build(require("software_model"),w,h) end
 builders.screen_time=function(w,h) return themed("screen_time_page").build(require("screen_time_model"),w,h) end
 builders["screen_time/app"]=function(w,h) return themed("screen_time_page").app(require("screen_time_model"),w,h) end
 builders["bar/fold"]=function(w,h)

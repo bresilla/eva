@@ -62,6 +62,13 @@ function M.install(item)
   return run("install", item.name or item.id, function(done) service.install(item, done) end, "installed")
 end
 
+--- Brings a hidden app back to the grid.
+function M.show(row)
+  require("lib.shell.launcher.pins").set_hidden(row.id, false)
+  settled()
+  M.revision:set(M.revision:get() + 1)
+end
+
 --- The apps of the launcher by where they came from: `{ kind, label, rows }` each,
 --- those that can go first.
 function M.by_source()

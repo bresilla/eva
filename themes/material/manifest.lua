@@ -74,6 +74,7 @@ return {
     bar_page = "themes.layouts.views.bar_page",
     bar_board = "themes.layouts.views.bar_board",
     bar_fold = "themes.layouts.views.bar_fold",
+    software_page = "themes.layouts.views.software_page",
     screen_time_page = "themes.layouts.views.screen_time_page",
     screen_time_notice = "themes.layouts.views.screen_time_notice",
     quick_tiles = "themes.layouts.views.quick_tiles",

@@ -381,6 +381,52 @@ registry.mode { id = "nix", name = "Nix packages", material = "deployed_code", s
     return out
   end }
 
+-- --------------------------------------------------------------- get apps --
+
+-- Something to install as a row: Return arms it, a second Return installs it.
+local function installable(item, tag, detail)
+  local providers = require("providers")
+  local id = "get:" .. item.backend .. ":" .. item.id
+  local confirm = providers.confirmed(id, function()
+    require("software_model").install(item)
+    return "close"
+  end)
+  return row { id = id, name = item.name, tag = tag, material = "download",
+    description = providers.armed(id) and "Press again to install" or detail, run = confirm }
+end
+
+registry.mode { id = "get", name = "Get apps", material = "add_circle", shape = "cookie9", words = { "get", "install" }, bare = false,
+  hint = "get a chess game  ·  from what this machine installs with", search = function(term)
+    local software = require("lib.services.software")
+    local machine = software.machine()
+    if not machine.flatpak and not machine.nix then
+      return { note("get", "Nothing here installs apps", "This machine has neither Flatpak nor Nix", "block") }
+    end
+    if term == "" then return { note("get", "Type what you are after", "Finds apps to install", "add_circle") } end
+    local out, settled = {}, true
+    if machine.flatpak then
+      local list, done = rows.ask_run("get-flatpak", term, software.flatpak_search(term), software.parse_flatpak,
+        { debounce_ms = 400, timeout_ms = 30000, any_exit = true })
+      settled = settled and done
+      for _, item in ipairs(list or {}) do
+        if #out < 20 then out[#out + 1] = installable(item, "Flatpak", item.version .. "  ·  " .. item.description) end
+      end
+    end
+    if machine.nix then
+      local argv = software.nix("search", "nixpkgs", term, "--json")
+      local list, done = rows.ask_run("get-nix", term, argv, M.parse_nix, { debounce_ms = 500, timeout_ms = 120000, any_exit = true })
+      settled = settled and done
+      for _, package in ipairs(list or {}) do
+        if #out < 40 then
+          local item = { backend = "nix", id = package.attr, name = package.attr }
+          out[#out + 1] = installable(item, "Nix", package.version .. "  ·  " .. package.description)
+        end
+      end
+    end
+    if #out == 0 then out[1] = note("get", settled and "Nothing by that name" or "Searching…", term, "add_circle") end
+    return out
+  end }
+
 -- ---------------------------------------------------------- password stores --
 
 -- A password stays with its tool: `pass -c` copies it, and rbw's goes straight
