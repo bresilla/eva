@@ -134,8 +134,9 @@ local function rotate(x, c)
   return ((x << c) | (x >> (32 - c))) & 0xFFFFFFFF
 end
 
---- The MD5 digest of `text`, in hexadecimal.
-function M.md5(text)
+--- The MD5 digest of `text`, in hexadecimal. `spend` is a `lib.util.poll` job's,
+--- for text longer than a handler's fuel; 14 kB fit without.
+function M.md5(text, spend)
   local length = #text
   local message = text .. "\128" .. string.rep("\0", (55 - length) % 64) .. string.pack("<I8", length * 8)
   local a0, b0, c0, d0 = 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476
@@ -153,6 +154,7 @@ function M.md5(text)
       b = (b + rotate(f, S[(i // 16) * 4 + i % 4 + 1])) & 0xFFFFFFFF
     end
     a0, b0, c0, d0 = (a0 + a) & 0xFFFFFFFF, (b0 + b) & 0xFFFFFFFF, (c0 + c) & 0xFFFFFFFF, (d0 + d) & 0xFFFFFFFF
+    if spend then spend(200) end
   end
   return (string.pack("<I4I4I4I4", a0, b0, c0, d0):gsub(".", function(c) return ("%02x"):format(c:byte()) end))
 end
@@ -179,29 +181,77 @@ end
 
 -- ----------------------------------------------------------------- json --
 
+-- Where the string opening at `from` closes.
+local function string_end(text, from)
+  local at = from + 1
+  while true do
+    local mark = text:find('["\\]', at)
+    if not mark then return #text end
+    if text:sub(mark, mark) == '"' then return mark end
+    at = mark + 2
+  end
+end
+
 --- `text` with white space outside strings taken out, keys in their order and
 --- numbers as written.
 function M.json_minify(text)
   local ok = pcall(morf.json.decode, text)
   if not ok then return nil, "That is not JSON" end
-  local out, inside, at = {}, false, 1
+  local out, at = {}, 1
   while at <= #text do
-    local char = text:sub(at, at)
-    if inside then
-      out[#out + 1] = char
-      if char == "\\" then
-        at = at + 1
-        out[#out + 1] = text:sub(at, at)
-      elseif char == '"' then
-        inside = false
-      end
-    elseif char == '"' then
-      inside = true
-      out[#out + 1] = char
-    elseif not char:find("%s") then
-      out[#out + 1] = char
+    local quote = text:find('"', at, true) or #text + 1
+    out[#out + 1] = (text:sub(at, quote - 1):gsub("%s+", ""))
+    if quote > #text then break end
+    local close = string_end(text, quote)
+    out[#out + 1] = text:sub(quote, close)
+    at = close + 1
+  end
+  return table.concat(out)
+end
+
+-- `flat`, JSON with no white space, laid out with `width` spaces to a level.
+local function laid_out(flat, width)
+  local lines = setmetatable({}, { __index = function(known, depth)
+    known[depth] = "\n" .. (" "):rep(width * depth)
+    return known[depth]
+  end })
+  local out, n, depth, at = {}, 0, 0, 1
+  while at <= #flat do
+    local mark, _, char = flat:find('([%[%]{},:"])', at)
+    if not mark then
+      out[n + 1] = flat:sub(at)
+      break
     end
-    at = at + 1
+    if mark > at then
+      n = n + 1
+      out[n] = flat:sub(at, mark - 1)
+    end
+    at = mark + 1
+    if char == '"' then
+      at = string_end(flat, mark) + 1
+      n = n + 1
+      out[n] = flat:sub(mark, at - 1)
+    elseif char == "," then
+      out[n + 1], out[n + 2] = char, lines[depth]
+      n = n + 2
+    elseif char == ":" then
+      n = n + 1
+      out[n] = ": "
+    elseif char == "}" or char == "]" then
+      depth = depth - 1
+      out[n + 1], out[n + 2] = lines[depth], char
+      n = n + 2
+    else
+      local next_char = flat:sub(at, at)
+      if next_char == "}" or next_char == "]" then
+        out[n + 1], out[n + 2] = char, next_char
+        at = at + 1
+      else
+        depth = depth + 1
+        out[n + 1], out[n + 2] = char, lines[depth]
+      end
+      n = n + 2
+    end
   end
   return table.concat(out)
 end
@@ -210,54 +260,14 @@ end
 function M.json_pretty(text, width)
   local flat, why = M.json_minify(text)
   if not flat then return nil, why end
-  local step = (" "):rep(width or 2)
-  local out, depth, inside, at = {}, 0, false, 1
-  local function newline() out[#out + 1] = "\n" .. step:rep(depth) end
-  while at <= #flat do
-    local char = flat:sub(at, at)
-    if inside then
-      out[#out + 1] = char
-      if char == "\\" then
-        at = at + 1
-        out[#out + 1] = flat:sub(at, at)
-      elseif char == '"' then
-        inside = false
-      end
-    elseif char == '"' then
-      inside = true
-      out[#out + 1] = char
-    elseif char == "{" or char == "[" then
-      local next_char = flat:sub(at + 1, at + 1)
-      out[#out + 1] = char
-      if next_char == "}" or next_char == "]" then
-        out[#out + 1] = next_char
-        at = at + 1
-      else
-        depth = depth + 1
-        newline()
-      end
-    elseif char == "}" or char == "]" then
-      depth = depth - 1
-      newline()
-      out[#out + 1] = char
-    elseif char == "," then
-      out[#out + 1] = char
-      newline()
-    elseif char == ":" then
-      out[#out + 1] = ": "
-    else
-      out[#out + 1] = char
-    end
-    at = at + 1
-  end
-  return table.concat(out)
+  return laid_out(flat, width or 2)
 end
 
 --- `text` as indented JSON and as one line, or nil when it is not JSON.
 function M.json(text)
   local line = M.json_minify(text)
   if not line then return nil end
-  return M.json_pretty(line), line
+  return laid_out(line, 2), line
 end
 
 -- ---------------------------------------------------------------- lorem --

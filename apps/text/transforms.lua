@@ -1,8 +1,10 @@
 -- What a scratchpad does to text, with no state. A transform is `{ id, name, run }`:
--- `run(text)` answers the new text, or nil and why; `bytes` keeps its answer to the
--- byte on a command line. Encodings, case and JSON are the launcher's codec, sums
--- its calculator's (shell/calc.lua), and colours eva-colorpick's own writing.
+-- `run(text)` answers the new text, or nil and why; `async` hands it `done` as well;
+-- `bytes` keeps its answer to the byte on a command line. Encodings, case and JSON
+-- are the launcher's codec, sums its calculator's (shell/calc.lua), and colours
+-- eva-colorpick's own writing.
 local morf = require("morf")
+local poll = require("lib.util.poll")
 local codec = require("lib.shell.launcher.codec")
 local formats = require("colorpick.formats")
 
@@ -142,6 +144,11 @@ function M.count_words(text)
     plural(c.bytes, "byte") }, " · ")
 end
 
+-- MD5 a slice to a timer tick, for what is piped in at any length.
+local function md5(text, done)
+  poll.job(function(spend) return codec.md5(text, spend) end, done, { slice = 20000 })
+end
+
 -- ------------------------------------------------------------------- tables --
 
 M.GROUPS = {
@@ -177,7 +184,7 @@ M.GROUPS = {
     { id = "minify", name = "JSON minify", run = codec.json_minify },
     { id = "sha1", name = "SHA-1", run = function(text) return morf.encoding.sha1(text) end },
     { id = "sha256", name = "SHA-256", run = function(text) return morf.encoding.sha256(text) end },
-    { id = "md5", name = "MD5", run = codec.md5 },
+    { id = "md5", name = "MD5", async = true, run = md5 },
     { id = "epoch", name = "Epoch", run = epoch }, { id = "colour", name = "Colour", run = colours },
     { id = "base", name = "Bases", run = base },
   } },
@@ -194,6 +201,10 @@ end
 
 --- Runs `item` on `text`: `done(answer, why)`.
 function M.run(item, text, done)
+  if item.async then
+    item.run(text, done)
+    return
+  end
   local ok, answer, why = pcall(item.run, text)
   if not ok then done(nil, "That did not work") return end
   done(answer, why)

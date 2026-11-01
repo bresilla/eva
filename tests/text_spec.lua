@@ -33,7 +33,6 @@ local PIECES = [[
     for _, id in ipairs { "upper", "lower", "title", "sentence", "camel", "pascal", "snake", "kebab", "constant" } do
       same[id] = transforms.find(id).run == codec[id]
     end
-    same.md5 = transforms.find("md5").run == codec.md5
     same.hex = transforms.find("hex").run == codec.hex_encode
     same.html = transforms.find("html").run == codec.html_encode
     same.minify = transforms.find("minify").run == codec.json_minify
@@ -189,10 +188,27 @@ test.it("hashes to the published values", function()
   test.eq(run("sha256", "abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
 end)
 
-test.it("hashes md5 in the tool, with no program", function()
+test.it("hashes md5 in the tool, with no program, past what one handler holds", function()
   pieces()
-  test.eq(run("md5", "abc"), "900150983cd24fb0d6963f7d28e17f72")
+  local function digest(text)
+    test.ipc("run", "md5", text)
+    return test.wait(function()
+      test.advance(5)
+      return test.ipc("latest").answer
+    end, 8000, "the digest did not come")
+  end
+  test.eq(digest("abc"), "900150983cd24fb0d6963f7d28e17f72")
+  test.eq(digest(string.rep("a", 100000)), "1af6d6f2f682f76f80e606aeaaee1680")
   test.eq(#test.runs(), 0)
+  test.eq(#test.logs("error"), 0)
+end)
+
+test.it("lays out more JSON than a character at a time could", function()
+  pieces()
+  local list = string.rep('{"name":"value","list":[1,2,3],"flag":true},', 300)
+  local answer = run("json", "[" .. list .. "0]")
+  test.contains(answer, '\n    "name": "value",\n    "list": [\n      1,')
+  test.eq(run("minify", answer), "[" .. list .. "0]")
 end)
 
 test.it("turns epochs into dates and dates into epochs", function()
