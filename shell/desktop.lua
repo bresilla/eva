@@ -10,7 +10,11 @@ local M = { model = model }
 
 local own
 
-local function build() return require("themes").view("desktop").build(model) end
+-- The view, built on a loader's budget.
+local function built()
+  return ui.Loader { anchors = { fill = true }, active = true, keep = true,
+    source = function() return require("themes").view("desktop").build(model) end }
+end
 
 local function open_own()
   if own then return end
@@ -18,7 +22,7 @@ local function open_own()
     blend = "srgb", namespace = "eva-desktop", layer = "bottom",
     anchors = { top = true, bottom = true, left = true, right = true },
     width = 0, height = 0, exclusive_zone = -1, keyboard_focus = "none", visible = true,
-    root = ui.Item { anchors = { fill = true }, build() },
+    root = ui.Item { anchors = { fill = true }, built() },
   }
 end
 
@@ -32,7 +36,7 @@ end
 
 --- Puts the desktop on the layer that fits who paints.
 function M.start()
-  wallpaper.on_layer(function(root) ui.reparent(build(), root) end)
+  wallpaper.on_layer(function(root) ui.reparent(built(), root) end)
   morf.effect("eva.desktop.host", function()
     if wallpaper.painter() == "eva" then close_own()
     elseif model.wanted() then open_own()
