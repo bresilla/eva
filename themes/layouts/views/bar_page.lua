@@ -47,7 +47,7 @@ function M.build_tray(model, w, h)
   local function row(index, width)
     local function item() return model.tray_items()[index] or {} end
     local function arrow(key, icon, name, by)
-      return kit.action { id = "tray-row-" .. index .. "-" .. key, width = S.TARGET, height = S.TARGET, cursor = "pointer",
+      return kit.action { id = "tray-row-" .. index .. "-" .. key, width = S.xxl, height = S.TARGET, cursor = "pointer",
         accessible_name = name, on_clicked = function() model.tray_move(item().id, by) end,
         kit.icon(icon, 20, kit.ink("lo"), { anchors = { center_in = true } }) }
     end
@@ -55,7 +55,7 @@ function M.build_tray(model, w, h)
       subtitle = function() return item().here and "Running now" or "Not running" end,
       on = function() return item().here == true end,
       trailing = ui.Row { gap = S.xs, align = "center",
-        P.button { id = "tray-row-" .. index .. "-place", width = 132, label = function() return model.tray_place_name(item().place) end,
+        P.button { id = "tray-row-" .. index .. "-place", width = 120, label = function() return model.tray_place_name(item().place) end,
           on_clicked = function() model.tray_next_place(item().id) end },
         arrow("up", "arrow_upward", "Earlier", -1), arrow("down", "arrow_downward", "Later", 1) } }
   end

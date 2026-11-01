@@ -213,7 +213,7 @@ function V.context(spec)
         kit.text { anchors = { center_in = true }, font_size = theme.size.small, font_weight = 600,
           text = function()
             local row = rows()[i]
-            return row and tostring((row.id - 1) % 10 + 1) or ""
+            return row and ("%d"):format((row.id - 1) % 10 + 1) or ""
           end,
           color = function()
             local row = rows()[i]

@@ -133,4 +133,22 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.eq(test.ipc("on", 2), before)
     test.eq(#test.logs("error"), 0)
   end)
+
+  test.it(style .. ": a real pointer drags a desk, and its right press opens the menu", function()
+    local settings = morf.env("XDG_CACHE_HOME") .. "/workspaces-pointer-" .. style .. ".json"
+    morf.fs.remove(settings)
+    test.load("../shell/init.lua", { source = HOST, size = { 1920, 1080 }, env = { EVA_STYLE = style, EVA_SETTINGS = settings, EVA_DRY_RUN = "1",
+      EVA_FAKE_WINDOWS = "1", EVA_WALLPAPER = "", EVA_FONT_FILE = "", HOME = morf.env("XDG_CACHE_HOME") } })
+    test.settle(800)
+    test.ipc("overview", "open") test.settle(900)
+    local first, third = test.get("overview-desk-1"), test.get("overview-desk-3")
+    local windows = test.ipc("on", 1)
+    test.drag({ first.x + first.width / 2, first.y + first.height / 2 }, { third.x + third.width / 2, third.y + third.height / 2 }, { steps = 8 })
+    test.settle(300)
+    test.eq(test.ipc("on", 3), windows, "the windows took the place dropped on")
+    local second = test.get("overview-desk-2")
+    test.drag({ second.x + 10, second.y + 10 }, { second.x + 10, second.y + 10 }, { button = "right", steps = 1 })
+    test.settle(300)
+    test.truthy(test.find { id = "overview-desk-menu", visible = true })
+  end)
 end
