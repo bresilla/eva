@@ -56,6 +56,12 @@
               wallpaper = ./tests/fixtures/wallpaper.png;
             }
           );
+          clock-test = pkgs.testers.runNixOSTest (
+            import ./nix/tests/clock.nix {
+              inherit eva;
+              morf = engine;
+            }
+          );
         };
         checks = {
           inherit eva;

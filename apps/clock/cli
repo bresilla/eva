@@ -58,8 +58,8 @@ fire() {
   fi
   if [ -n "$ringer" ]; then kill "$ringer" 2>/dev/null || true; fi
   case "$answer" in
-    snooze) eva_job clock snooze "$id" ;;
-    *) eva_job clock done "$id" ;;
+    snooze) eva_job clock snooze "$id" || true ;;
+    *) eva_job clock done "$id" || true ;;
   esac
 }
 

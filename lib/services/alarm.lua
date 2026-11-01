@@ -18,7 +18,8 @@
 -- tests; EVA_ALARM_ENGINE ("systemd" or "local") says which of the two to use.
 local morf = require("morf")
 
-local M = { SNOOZE = 9, UNIT = "eva-alarm-", MISSED = 3600 }
+local M = { SNOOZE = 9, UNIT = "eva-alarm-", MISSED = 3600,
+  CARRIED = { "PATH", "WAYLAND_DISPLAY", "XDG_DATA_DIRS", "EVA_ALARM_SOUND", "MORF" } }
 
 local UNITS = {
   s = 1, sec = 1, secs = 1, second = 1, seconds = 1,
@@ -283,7 +284,7 @@ function M.new(options)
     rang = morf.signal("eva.alarm.rang", {}),
     message = morf.signal("eva.alarm.message", ""),
   }
-  local timer, watch
+  local timer, watch, planned
 
   local function read()
     local ok, list = pcall(function() return morf.json.decode(morf.fs.read(store())) end)
@@ -341,7 +342,13 @@ function M.new(options)
     local unit = M.UNIT .. item.id
     run({ "systemctl", "--user", "stop", unit .. ".timer" }, function()
       local argv = { "systemd-run", "--user", "--quiet", "--collect", "--unit=" .. unit,
-        "--on-calendar=" .. calendar(item), "--timer-property=AccuracySec=1s", "--" }
+        "--on-calendar=" .. calendar(item), "--timer-property=AccuracySec=1s" }
+      -- A user unit starts with almost nothing of the session it rings in.
+      for _, name in ipairs(M.CARRIED) do
+        local value = morf.env(name)
+        if value and value ~= "" then argv[#argv + 1] = "--setenv=" .. name .. "=" .. value end
+      end
+      argv[#argv + 1] = "--"
       for _, word in ipairs(cli()) do argv[#argv + 1] = word end
       argv[#argv + 1] = "fire"
       argv[#argv + 1] = item.id
@@ -375,13 +382,16 @@ function M.new(options)
 
   -- The local engine: one timer, for what rings next.
   schedule = function()
-    if timer then timer:cancel() timer = nil end
-    if not options.ring or uses_systemd() then return end
     local soonest
-    for _, item in ipairs(a.items:get()) do
-      if item.on and item.rang ~= item.at and (not soonest or item.at < soonest.at) then soonest = item end
+    if options.ring and not uses_systemd() then
+      for _, item in ipairs(a.items:get()) do
+        if item.on and item.rang ~= item.at and (not soonest or item.at < soonest.at) then soonest = item end
+      end
     end
+    if timer and soonest and planned == soonest.id .. "@" .. soonest.at then return end
+    if timer then timer:cancel() timer = nil end
     if not soonest then return end
+    planned = soonest.id .. "@" .. soonest.at
     local wait = math.max(0, (soonest.at - M.now()) * 1000) + (options.delay or 0)
     timer = morf.time.timer(math.floor(wait), function()
       timer = nil

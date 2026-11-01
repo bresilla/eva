@@ -363,6 +363,8 @@ in
         wantedBy = [ "graphical-session.target" ];
         after = [ "graphical-session.target" ];
         partOf = [ "graphical-session.target" ];
+        # Each unit it makes carries this PATH, for notify-send and pw-play.
+        path = [ "/run/current-system/sw" ];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${tools}/bin/eva-clock sync";
