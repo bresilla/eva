@@ -92,6 +92,7 @@ local sent = {}
 local dimmed = false
 
 local function push_rules()
+  if #M.list() == 0 and next(sent) == nil then return end
   hyprconf.apply(function(how)
     if how ~= "lua" then return {} end
     local plan, wanted = lib.plan(M.list(), sent)

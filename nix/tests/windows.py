@@ -162,6 +162,7 @@ def keys_section():
         verb = "verb:window_menu toggle"
 
         check("a row can listen", tool(keys, "record", verb) in (True, "true"))
+        machine.sleep(2)
         check("recording holds the compositor's keys back", hyprctl("submap").strip() == "eva-keys-record", hyprctl("submap"))
         machine.send_key("meta_l-y")
         machine.sleep(2)
@@ -175,7 +176,7 @@ def keys_section():
         tool(keys, "reload")
         machine.sleep(2)
         tool(keys, "record", "verb:snap picker")
-        print("SUBMAP", hyprctl("submap"))
+        machine.sleep(2)
         machine.send_key("meta_l-j")
         machine.sleep(2)
         check("a second row hears its chord too", (tool(keys, "state") or {}).get("recording") == "", str(tool(keys, "state")))
@@ -184,11 +185,10 @@ def keys_section():
         tool(keys, "reload")
         machine.sleep(2)
         tool(keys, "record", "verb:snap picker")
+        machine.sleep(2)
         machine.send_key("meta_l-j")
         machine.sleep(2)
         check("a row still hears after a reload", (tool(keys, "state") or {}).get("recording") == "", str(tool(keys, "state")))
-        tool(keys, "stop")
-        print("REPLY", hyprctl("activewindow")[:120], machine.execute("journalctl -b --user-unit eva.service --machine=alice@.host -n 4 --no-pager")[1][-300:])
         tool(keys, "reset", "verb:snap picker")
         machine.sleep(3)
         tool(keys, "reload")
@@ -215,13 +215,11 @@ def keys_section():
         row = tool(keys, "row", "SUPER + Q") or {}
         check("its row is editable", row.get("editable") is True, str(row))
         tool_focus()
-        print("ACTIVE", hyprctl("activewindow")[:160])
         tool(keys, "record", row.get("id", ""))
-        print("SUBMAP", hyprctl("submap"))
+        machine.sleep(2)
         machine.send_key("meta_l-u")
         machine.sleep(2)
         print("AFTER", tool(keys, "state"), hyprctl("submap"))
-        machine.screenshot("keys-recording")
         check("a key of the configuration moves too", eventually(lambda: (64, "U") in bound() and (64, "Q") not in bound()), str(sorted(bound()))[:300])
         machine.execute("rm -f /tmp/fired")
         check("the moved key still has its action", bound().get((64, "U"), {}).get("dispatcher") == "__lua")
@@ -233,6 +231,7 @@ def keys_section():
         machine.sleep(2)
         tool_focus()
         tool(keys, "record", "verb:kill_mode")
+        machine.sleep(2)
         machine.send_key("meta_l-tab")
         machine.sleep(2)
         state = tool(keys, "state") or {}
@@ -479,8 +478,10 @@ def remap_section():
         def fired(name):
             return machine.execute(f"ls /tmp/{name}")[0] == 0
 
-        def press(*keys):
-            machine.succeed(f"YDOTOOL_SOCKET=/tmp/ydotool ydotool key {' '.join(keys)}")
+        def press(keys, held=100):
+            # The VM's own keyboard: kanata takes it, and not ydotool's device.
+            machine.send_monitor_command(f"sendkey {keys} {held}")
+            machine.sleep(1)
 
         check("nothing reads the keyboards until something is chosen", active() != "active", active())
         print("UNIT", machine.succeed("systemctl cat kanata-eva.service | grep -E 'DynamicUser|CapabilityBoundingSet|SupplementaryGroups|PrivateNetwork|ExecCondition'"))
@@ -498,14 +499,10 @@ def remap_section():
         print("JOURNAL", machine.execute("journalctl -u kanata-eva.service -n 8 --no-pager")[1][-500:])
         check("the shell hears it run", eventually(lambda: (ask("remap", "state") or {}).get("running") is True, 15), str(ask("remap", "state")))
 
-        press("58:1", "58:0")
-        machine.sleep(1)
+        press("caps_lock")
         check("a tap on Caps Lock is Escape", fired("esc-fired"))
-        machine.succeed("rm -f /tmp/esc-fired")
-        press("58:1")
-        machine.sleep(1)
-        press("21:1", "21:0", "58:0")
-        machine.sleep(1)
+        machine.execute("rm -f /tmp/esc-fired")
+        press("caps_lock-y", 800)
         check("held, Caps Lock is Control", fired("ctrl-fired"))
         check("and no Escape", not fired("esc-fired"))
 
@@ -513,8 +510,7 @@ def remap_section():
         machine.sleep(5)
         print("RENDERED", machine.succeed("cat /run/eva-remap/kanata.kbd"))
         check("a change takes", eventually(lambda: active() == "active", 30), active())
-        press("58:1", "21:1", "21:0", "58:0")
-        machine.sleep(1)
+        press("caps_lock-y", 400)
         check("Caps Lock as Hyper holds all four", fired("hyper-fired"))
 
         # What is not on the list never reaches kanata's file.

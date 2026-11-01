@@ -69,7 +69,7 @@ function M.register(model)
     index.register { id = "setting:" .. page.key, name = page.name, tag = "Setting",
       keywords = (M.KEYWORDS[page.key] or "") .. " " .. (entry.keywords or ""),
       description = "Settings", material = entry.icon or "settings", kind = "menu", run = opener(page.key),
-      present = function() return model.page_present(page.key) end }
+      present = function() return model.page_fits(page.key) end }
   end
   for _, control in ipairs(M.CONTROLS) do
     if page_names[control[2]] then

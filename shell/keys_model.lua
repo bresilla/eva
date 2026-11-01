@@ -210,6 +210,7 @@ end
 --- Sends what changed; a chord taken back reloads, which is the default.
 local function push()
   local want = M.overrides()
+  if next(want) == nil and next(applied) == nil then return end
   for id in pairs(applied) do
     if want[id] == nil then
       applied = {}

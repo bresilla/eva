@@ -95,6 +95,7 @@ function M.build(w, h)
   local field = kit.text_field("entry", {
     id = "keys-search", width = w, height = S.TARGET, placeholder = "Search the bindings",
     color = kit.ink("hi"), placeholder_color = kit.ink("lo"), focus = function() return not listening() end,
+    on_key_pressed = model.take,
     text = function() return model.query:get() end,
     on_text_changed = function(value) model.query:set(value) end,
   })
