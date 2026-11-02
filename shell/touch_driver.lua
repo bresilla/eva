@@ -85,6 +85,14 @@ function M.owns() return M.state:get() == "running" end
 --- Whether two fingers or more landed together and are down now.
 function M.together() return recogniser ~= nil and recogniser.gathered() >= 2 end
 
+local touched_at
+
+--- Whether a finger is down, or was within the last `ms`.
+function M.recent(ms)
+  if recogniser ~= nil and recogniser.count() > 0 then return true end
+  return touched_at ~= nil and morf.time.now_ms() - touched_at < ms
+end
+
 local function publish()
   if M.watching:get() then M.fingers:set(recogniser.contacts()) end
 end
@@ -230,6 +238,7 @@ local function build()
   local sink = {
     down = function(id, x, y, ms)
       stamp(ms)
+      touched_at = morf.time.now_ms()
       if recogniser.count() == 0 then look_at_session() end
       recogniser.down(id, x, y, ms or event_at)
       if recogniser.gathered() == 2 and not M.trying:get() then require("phone_gestures").yield() end
@@ -238,6 +247,7 @@ local function build()
     move = function(id, x, y) recogniser.move(id, x, y) end,
     up = function(id, ms)
       stamp(ms)
+      touched_at = morf.time.now_ms()
       recogniser.up(id, ms or event_at)
     end,
     frame = function(ms)

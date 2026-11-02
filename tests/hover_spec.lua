@@ -28,6 +28,9 @@ local HOST = [[
   end
   morf.ipc.enabled = function(on) enabled:set(on) end
   morf.ipc.setting = function(on) config.set("bottom.hover", on) end
+  morf.ipc.finger = function(on)
+    package.loaded.touch_driver = { recent = function() return on == "yes" end }
+  end
 ]]
 local function load(scale)
   test.load("../shell/hover.lua", { source = HOST, size = { 800, 600 }, scale = scale or 1 })
@@ -37,6 +40,31 @@ local positions = {
   left = { 5, 300, 0.5, 300 }, right = { 795, 300, 799.5, 300 },
 }
 test.describe("eva edge intent", function()
+  test.it("a panel shut with the pointer on its edge stays shut until the pointer comes back", function()
+    load()
+    local p = positions.right
+    test.move(p[1], p[2]) test.advance(700)
+    test.truthy(test.ipc("open", "right"), "the dwell did not open it")
+    test.ipc("open", "right", false) test.advance(1500)
+    test.falsy(test.ipc("open", "right"), "it came straight back")
+    test.leave() test.advance(300)
+    test.move(p[1], p[2]) test.advance(700)
+    test.truthy(test.ipc("open", "right"), "the edge stayed dead after the pointer left")
+  end)
+
+  test.it("a pointer a finger put on the edge does not open its panel", function()
+    load()
+    local p = positions.right
+    test.ipc("finger", "yes")
+    test.move(p[1], p[2]) test.advance(700)
+    test.falsy(test.ipc("open", "right"), "a finger's press opened it")
+    test.ipc("finger", "no") test.advance(1500)
+    test.falsy(test.ipc("open", "right"), "it opened once the finger had gone")
+    test.leave() test.advance(300)
+    test.move(p[1], p[2]) test.advance(700)
+    test.truthy(test.ipc("open", "right"), "the edge stayed dead after the pointer left")
+  end)
+
   for _, edge in ipairs { "top", "bottom", "left", "right" } do
     test.it("requires a dwell even at the final pixel on the " .. edge .. " edge", function()
       load()

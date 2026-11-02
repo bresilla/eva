@@ -21,6 +21,8 @@ local M = {}
 -- drawer opened by hover shuts: enough to cross the frame's seam.
 local GRACE_MS = 120
 local OPEN_MS = 600
+-- How long after a finger the pointer on a strip counts as the finger's.
+local FINGER_MS = 1200
 -- How far into the opening a side strip reaches: near the edge is enough.
 local NEAR = 8
 
@@ -64,7 +66,12 @@ function M.edge(opts)
   local by_hover = false
   local opening, closing
   -- A window was dragged here: the strip stays off until the pointer leaves it.
-  local dragged_here = false
+  local held_off = false
+  local was_open = false
+  local function fingered()
+    local touch = package.loaded.touch_driver
+    return touch ~= nil and touch.recent(FINGER_MS)
+  end
   local function dragging()
     local snap = package.loaded.snap
     return snap ~= nil and snap.busy:get()
@@ -72,7 +79,7 @@ function M.edge(opts)
   local function enabled()
     return (not opts.enabled or opts.enabled())
       and (not opts.setting or config.get(opts.setting))
-      and not dragging() and not dragged_here
+      and not dragging() and not held_off
   end
   -- The pointer over the strip, whatever is drawn above it.
   local function on_strip() return strip.hovered or strip.contains_pointer end
@@ -100,8 +107,11 @@ function M.edge(opts)
   morf.effect("eva.hover." .. opts.name, function()
     local is_open = d.open:get()
     if not is_open then by_hover = false end
-    if dragging() then dragged_here = true
-    elseif dragged_here and not on_strip() then dragged_here = false end
+    -- Shut with the pointer on the strip, it stays shut until the pointer leaves.
+    if was_open and not is_open and on_strip() then held_off = true end
+    was_open = is_open
+    if dragging() then held_off = true
+    elseif held_off and not on_strip() then held_off = false end
     if not enabled() then cancel_open() cancel_close() return end
     -- Only the strip opens it; the panels keep it open. (Shut some other
     -- way with the pointer still on a panel, it stays shut.)
@@ -111,7 +121,8 @@ function M.edge(opts)
         if not opening then
           opening = morf.time.timer(OPEN_MS, function()
             opening = nil
-            if enabled() and on_strip() and not d.open:get() then open() end
+            if not (enabled() and on_strip() and not d.open:get()) then return end
+            if fingered() then held_off = true else open() end
           end, false)
         end
       else
