@@ -87,15 +87,12 @@ end
 
 -- ------------------------------------------------------------------- grid --
 
---- Whether the launcher is showing its icon grid: on a phone, before anything
---- is typed, unless the setting says otherwise.
+--- Whether the launcher is showing its icon grid: when the setting asks for it,
+--- before anything is typed.
 function M.grid_on()
-  if not (M.opened and M.opened:get()) then return false end
-  local layout = config.get("launcher.layout")
-  if layout == "list" or M.query:get() ~= "" or M.acting:get() ~= "" then return false end
-  if require("menus").source:get() ~= "" then return false end
-  if layout == "grid" then return true end
-  return require("responsive").sheets()
+  if not (M.opened and M.opened:get()) or config.get("launcher.layout") ~= "grid" then return false end
+  if M.query:get() ~= "" or M.acting:get() ~= "" then return false end
+  return require("menus").source:get() == ""
 end
 
 local function tile_row(key, cells)

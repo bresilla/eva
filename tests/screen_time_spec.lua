@@ -162,7 +162,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     end)
 
     test.it("asks before opening an app that has run out, and opens it if told", function()
-      load(style, { wellbeing = { limits = { { app = "fixture-editor", minutes = 1 } } } }, nil,
+      load(style, { launcher = { layout = "grid" }, wellbeing = { limits = { { app = "fixture-editor", minutes = 1 } } } }, nil,
         { days = { [morf.time.format("%Y-%m-%d", NOW)] = { ["fixture-editor"] = 120 } } })
       test.truthy(test.ipc("st_spent", "fixture-editor"), "the file was not read")
       test.ipc("launcher", "open") test.settle(600)

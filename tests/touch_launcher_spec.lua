@@ -38,7 +38,7 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 
   test.it(style .. " a hold opens an app's actions, and a drag from a hold pins it", function()
-    open(style, TOUCH, PHONE)
+    open(style, TOUCH, PHONE, { launcher = { layout = "grid" } })
     local tile = test.get { text = "Fixture Browser", visible = true }
     local x, y = tile.x + tile.width / 2, tile.y
     test.touch("down", 0, x, y) test.advance(700)

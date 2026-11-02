@@ -224,10 +224,13 @@ local function stand_in()
   end }
 end
 
--- Where the shell keeps its own fingers: an open panel, and the overview.
+-- Where the shell keeps its own fingers: an open panel, and the overview. The
+-- launcher leaves the edges to the gestures.
 local function owned(x, y)
   local overview = package.loaded.overview
   if overview and overview.opened:get() then return true end
+  local launcher = package.loaded.launcher
+  if launcher and launcher.drawer.open:get() then return false end
   return require("phone_gestures").on_panel(x, y)
 end
 

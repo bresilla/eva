@@ -54,7 +54,7 @@ M.PAGES = {
       { key = "launcher.max_results", kind = "number", title = "Results listed", icon = "format_list_numbered",
         from = 10, to = 100, step = 5 },
       { key = "launcher.layout", kind = "choice", title = "Layout", items = {
-        { "auto", "devices", "Auto" }, { "grid", "apps", "Grid" }, { "list", "view_list", "List" } } },
+        { "list", "view_list", "List" }, { "grid", "apps", "Grid" } } },
       { key = "launcher.preview_pane", kind = "bool", title = "Preview beside the results", icon = "preview",
         note = "Files and pictures, where there is room" },
       { key = "launcher.keep_query", kind = "bool", title = "Keep the last search", icon = "history" },

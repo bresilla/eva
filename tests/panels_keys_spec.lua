@@ -38,7 +38,7 @@ for _, style in ipairs { "material", "tsugumori" } do
       for _, verb in ipairs(VERBS) do
         test.ipc(table.unpack(verb)) test.settle(900)
         test.truthy(shown() ~= "", verb[1] .. " did not open")
-        test.click(80, h - 120) test.settle(800)
+        test.click(shown():find("leftbar") and w - 80 or 80, h - 120) test.settle(800)
         -- A panel may stand over that corner: then the far one.
         if shown() ~= "" then test.click(w - 80, h - 80) test.settle(800) end
         if shown() ~= "" then test.click(w / 2, h / 2) test.settle(800) end

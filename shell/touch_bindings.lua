@@ -50,7 +50,7 @@ for _, gesture in ipairs(M.GESTURES) do M.BY_KEY[gesture.key] = gesture end
 
 -- What each gesture does until a person says otherwise; the rest does nothing.
 local COMMON = {
-  two_up_bottom = "keyboard", two_down_keyboard = "keyboard", two_down_top = "quick_settings",
+  two_up_bottom = "keyboard", two_down_keyboard = "keyboard", two_down_top = "launcher",
   three_up = "overview", three_down = "show_desktop",
   three_left = "workspace_next", three_right = "workspace_previous",
   four_up = "app_grid", four_left = "switch_app", four_right = "switch_app", four_tap = "launcher",

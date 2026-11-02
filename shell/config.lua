@@ -304,8 +304,8 @@ local config = settings.open {
       max_shown = 7,
       max_results = 40,
       action_prefix = ">",
-      -- The icon grid: "auto" on a phone, "grid" everywhere, "list" nowhere.
-      layout = "auto",
+      -- What the launcher opens on: "list" or the icon "grid", on every machine.
+      layout = "list",
       -- What a plain search reaches, by name (universal.lua).
       sources = { "apps", "settings", "windows", "system", "actions", "app_actions", "places", "modes", "snippets",
         "recent", "bookmarks", "files" },

@@ -100,6 +100,20 @@ end
 local TWO={{640,770},{720,700}}
 local THREE={{900,300},{980,320},{1060,300}}
 
+for _,form in ipairs{{"a desk",{1280,800}},{"a phone",{412,915}}} do
+  test.it("on "..form[1].." two fingers from the top open the launcher, and the keyboard joins it",function()
+    load(nil,form[2])
+    local w,h=form[2][1],form[2][2]
+    stroke({{w/2-40,10},{w/2+40,10}},0,300)
+    test.truthy(test.ipc("launcher","state"),"the launcher did not open")
+    test.falsy(test.ipc("keyboard","state"),"this machine brought the keyboard by itself")
+    stroke({{w/2-40,h-10},{w/2+40,h-10}},0,-300)
+    test.truthy(test.ipc("keyboard","state"),"the keyboard did not come up")
+    test.truthy(test.ipc("launcher","state"),"the launcher went when the keyboard came")
+    test.eq(#test.logs("error"),0)
+  end)
+end
+
 test.it("reads on a desk with a keyboard attached: gestures do not ask for it to go",function()
   load()
   local state=touch()

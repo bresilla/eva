@@ -12,6 +12,9 @@ local TOUCH = morf.env("PWD") .. "/tests/fixtures/input-devices-touch"
 local function phone(style, options)
   options = options or {}
   options.style, options.size = style, PHONE
+  options.settings = options.settings or {}
+  options.settings.launcher = options.settings.launcher or {}
+  options.settings.launcher.layout = "grid"
   options.env = options.env or {}
   options.env.EVA_INPUT_DEVICES = TOUCH
   return host.load(options)
@@ -288,7 +291,7 @@ test.it("a real removal goes through the program itself, stubbed here", function
   test.stub_run("flatpak", { code = 0 })
   local env = { EVA_DRY_RUN = "0", EVA_FAKE_SOFTWARE = "fixture-editor=flatpak", EVA_INPUT_DEVICES = TOUCH,
     PATH = host.path { "flatpak", "gio" } }
-  host.load { size = PHONE, env = env, settings = { appearance = { sync = false } } }
+  host.load { size = PHONE, env = env, settings = { appearance = { sync = false }, launcher = { layout = "grid" } } }
   hold("Fixture Editor")
   test.ipc("do_action_row", "Uninstall it")
   test.settle(200)

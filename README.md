@@ -90,7 +90,8 @@ completed-swipe fallback; the default is `"native"`.
 ### Touch gestures
 
 On any machine with a touchscreen, whatever form it takes, gestures work
-anywhere on the screen: two fingers up from the bottom edge bring the keyboard,
+anywhere on the screen: two fingers down from the top edge open the launcher, two
+up from the bottom edge bring the keyboard and leave the launcher open,
 three fingers change workspace, open the overview or show the desktop, four open
 the app grid or switch apps, and a five-finger pinch opens the launcher. Settings,
 Touch gestures, lists them, chooses what each does per form, and has a small

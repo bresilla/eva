@@ -13,6 +13,9 @@ local NIX = morf.json.encode { ["legacyPackages.x86_64-linux.ripgrep"] = { versi
 
 local function phone(style, env, settings)
   env = env or {}
+  settings = settings or {}
+  settings.launcher = settings.launcher or {}
+  settings.launcher.layout = "grid"
   env.EVA_INPUT_DEVICES = TOUCH
   test.stub_run("flatpak", { code = 0, stdout = FLATPAK })
   test.stub_run("nix", { code = 0, stdout = NIX })
@@ -156,7 +159,7 @@ end
 test.it("one change at a time, and a failure says why", function()
   test.stub_run("flatpak", { code = 1, stderr = "no such ref" })
   host.load { size = PHONE, env = { EVA_DRY_RUN = "0", EVA_INPUT_DEVICES = TOUCH, EVA_FAKE_SOFTWARE = "fixture-editor=flatpak",
-    PATH = host.path { "flatpak", "gio" } }, settings = { appearance = { sync = false } }, source_extra = [==[
+    PATH = host.path { "flatpak", "gio" } }, settings = { appearance = { sync = false }, launcher = { layout = "grid" } }, source_extra = [==[
     morf.ipc.remove_two = function()
       local apps, software = require("apps"), require("software_model")
       local first = software.uninstall(apps.row("fixture-editor"))

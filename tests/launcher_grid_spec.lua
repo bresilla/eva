@@ -12,6 +12,9 @@ local TOUCH = morf.env("PWD") .. "/tests/fixtures/input-devices-touch"
 local function phone(options)
   options = options or {}
   options.size = PHONE
+  options.settings = options.settings or {}
+  options.settings.launcher = options.settings.launcher or {}
+  options.settings.launcher.layout = "grid"
   options.env = { EVA_INPUT_DEVICES = TOUCH }
   return host.load(options)
 end
@@ -24,7 +27,7 @@ end
 
 for _, style in ipairs { "material", "tsugumori" } do
   test.describe(style .. " grid", function()
-    test.it("opens as a grid on a phone, and a list once something is typed", function()
+    test.it("opens as a grid when asked, and a list once something is typed", function()
       phone { style = style }
       test.eq(test.ipc("state").mode, "grid")
       test.truthy(tiles() >= 3, "no tiles")
