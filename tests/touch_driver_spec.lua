@@ -42,6 +42,7 @@ local SOURCE=[[
   morf.ipc.command=function(key,words) require("touch_bindings").set_command(key,{words}) end
   morf.ipc.osd_level=function(kind) return (require("osd")[kind]()) end
   morf.ipc.dashboard_tab=function() return require("dashboard").tab:get() end
+  morf.ipc.board=function() return require("keyboard").keys.mode:get() end
   morf.ipc.compositor=function(locked,off)
     local hyprland=require("lib.compositor.hyprland")
     hyprland.available=function() return true end
@@ -93,6 +94,7 @@ end
 local function lift(from)
   for id in ipairs(from) do feed(lines("TOUCH_UP",id)) end
   frame()
+  test.advance(100)
 end
 local function stroke(from,dx,dy,steps)
   land(from) move(from,dx,dy,steps or 20) lift(from) test.settle(1200)
@@ -113,6 +115,52 @@ for _,form in ipairs{{"a desk",{1280,800}},{"a phone",{412,915}}} do
     test.eq(#test.logs("error"),0)
   end)
 end
+
+test.it("two fingers on the keyboard work as the phone's do: up changes its board, down hides it",function()
+  load()
+  local bottom={{600,790},{700,790}}
+  stroke(bottom,0,-300)
+  test.truthy(test.ipc("keyboard","state"),"the keyboard did not come up")
+  test.eq(test.ipc("board"),"full")
+  local on={{600,740},{700,740}}
+  stroke(on,0,-300)
+  test.eq(test.ipc("board"),"dev","the second swipe did not change the board")
+  stroke(on,0,-300)
+  test.eq(test.ipc("board"),"full","a third did not change it back")
+  stroke({{600,640},{700,640}},0,140)
+  test.falsy(test.ipc("keyboard","state"),"two fingers down did not hide it")
+  test.eq(#test.logs("error"),0)
+end)
+
+test.it("a fast finger that comes as many short touches is one finger",function()
+  load()
+  local at={{600,790},{700,790}}
+  land(at)
+  for step=1,14 do
+    for id,finger in ipairs(at) do feed(lines("TOUCH_UP",id)) end
+    frame(8)
+    for id,finger in ipairs(at) do
+      finger[2]=finger[2]-24
+      feed(lines("TOUCH_DOWN",id,finger[1],finger[2]))
+    end
+    frame(8)
+  end
+  lift(at) test.settle(1200)
+  test.truthy(test.ipc("keyboard","state"),"the swipe broke into taps")
+  test.eq(#test.logs("error"),0)
+end)
+
+test.it("a tap away from a panel shuts it, and a tap on it does not",function()
+  load()
+  test.ipc("sidebar","open","settings") test.settle(900)
+  local panel=test.get("drawer-sidebar")
+  local x,y=panel.x+panel.width/2,panel.y+200
+  land({{x,y}}) lift({{x,y}}) test.settle(800)
+  test.truthy(test.ipc("sidebar","state"),"a tap on the panel shut it")
+  land({{300,400}}) lift({{300,400}}) test.settle(800)
+  test.falsy(test.ipc("sidebar","state"),"a tap away left it open")
+  test.eq(#test.logs("error"),0)
+end)
 
 test.it("reads on a desk with a keyboard attached: gestures do not ask for it to go",function()
   load()

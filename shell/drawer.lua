@@ -55,6 +55,7 @@ function M.new(spec)
   local d = { name = spec.name, edge = spec.edge }
   -- The way a pull drags it shut, where it hangs from an edge.
   d.pulled = ({ top = "up", bottom = "down", left = "left", right = "right" })[spec.edge]
+  d.outside = spec.close_policy ~= nil and spec.close_policy:find("outside", 1, true) ~= nil
   local authentication =spec.transient or spec.name == "polkit" or spec.name == "keyring" or spec.name == "authsteps"
   local keep = authentication and morf.signal or require("themes.session").keep
   d.open = keep("eva.drawer." .. spec.name, false)

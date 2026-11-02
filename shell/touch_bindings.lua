@@ -13,6 +13,7 @@ M.GESTURES = {
   { key = "two_right_left", name = "Two fingers in from the left", short = "In from the left edge", group = "edge", icon = "arrow_forward" },
   { key = "two_left_right", name = "Two fingers in from the right", short = "In from the right edge", group = "edge", icon = "arrow_back" },
   { key = "two_down_keyboard", name = "Two fingers down the keyboard", short = "Down on the keyboard", group = "edge", icon = "keyboard_hide" },
+  { key = "two_up_keyboard", name = "Two fingers up the keyboard", short = "Up on the keyboard", group = "edge", icon = "keyboard" },
   { key = "three_up", name = "Three fingers up", short = "Up", group = "three", icon = "arrow_upward" },
   { key = "three_down", name = "Three fingers down", short = "Down", group = "three", icon = "arrow_downward" },
   { key = "three_left", name = "Three fingers left", short = "Left", group = "three", icon = "arrow_back" },
@@ -50,7 +51,8 @@ for _, gesture in ipairs(M.GESTURES) do M.BY_KEY[gesture.key] = gesture end
 
 -- What each gesture does until a person says otherwise; the rest does nothing.
 local COMMON = {
-  two_up_bottom = "keyboard", two_down_keyboard = "keyboard", two_down_top = "launcher",
+  two_up_bottom = "keyboard", two_down_keyboard = "keyboard", two_up_keyboard = "keyboard",
+  two_down_top = "launcher",
   three_up = "overview", three_down = "show_desktop",
   three_left = "workspace_next", three_right = "workspace_previous",
   four_up = "app_grid", four_left = "switch_app", four_right = "switch_app", four_tap = "launcher",

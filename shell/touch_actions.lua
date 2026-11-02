@@ -122,14 +122,15 @@ end
 
 M.ACTIONS = {
   { key = "none", name = "Nothing", icon = "block" },
-  -- Up raises it and down lowers it, the same however many hear the gesture: the
-  -- keyboard's own two fingers hide it too. Anything else turns it over.
+  -- As the phone's keyboard gestures have it (themes/keyboard.lua): up raises it,
+  -- up again on it changes its board, and down hides it.
   { key = "keyboard", name = "On-screen keyboard", icon = "keyboard",
     run = function(event)
       local keyboard = require("keyboard")
-      if event.direction == "up" then keyboard.show("full")
-      elseif event.direction == "down" then keyboard.set(false)
-      else keyboard.toggle() end
+      if event.direction == "down" then keyboard.set(false)
+      elseif event.direction ~= "up" then keyboard.toggle()
+      elseif not keyboard.active() then keyboard.show("full")
+      else keyboard.show(keyboard.keys.mode:get() == "dev" and "full" or "dev") end
     end },
   { key = "overview", name = "Overview", icon = "overview", follow = overview_follow,
     run = function() require("overview").toggle() end },

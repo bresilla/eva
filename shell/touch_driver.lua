@@ -12,6 +12,7 @@ local morf = require("morf")
 local config = require("config")
 local service = require("lib.services.touch_reader")
 local gestures = require("touch_gestures")
+local stitch = require("touch_stitch")
 local bindings = require("touch_bindings")
 local actions = require("touch_actions")
 local M = {}
@@ -85,7 +86,7 @@ function M.owns() return M.state:get() == "running" end
 --- Whether two fingers or more landed together and are down now.
 function M.together() return recogniser ~= nil and recogniser.gathered() >= 2 end
 
-local touched_at
+local touched_at, stitched
 
 --- Whether a finger is down, or was within the last `ms`.
 function M.recent(ms)
@@ -171,7 +172,28 @@ local function begin(event, key)
   end
 end
 
+-- The panels open as the first finger landed: a tap away from them shuts those,
+-- and never one that same tap has just opened.
+local open_at_landing, regions = {}, nil
+
+local function note_open()
+  open_at_landing = {}
+  for _, drawer in ipairs(require("drawer").all) do
+    if drawer.outside and drawer.open:get() then open_at_landing[#open_at_landing + 1] = drawer end
+  end
+end
+
+local function tapped_away(event)
+  if event.kind ~= "tap" or event.phase ~= "end" or event.fingers ~= 1 or M.trying:get() then return end
+  if require("phone_gestures").on_panel(event.x, event.y) then return end
+  for _, region in ipairs(regions()) do
+    if event.y >= region.y then return end
+  end
+  for _, drawer in ipairs(open_at_landing) do drawer.set(false) end
+end
+
 local function hear(event)
+  tapped_away(event)
   local key = gestures.key(event)
   if not key then return end
   if event.phase == "begin" then return begin(event, key) end
@@ -194,7 +216,7 @@ local function hear(event)
   end
 end
 
-local function regions()
+regions = function()
   local keyboard = package.loaded.keyboard
   if not (keyboard and keyboard.active()) then return {} end
   local width, height = require("responsive").size()
@@ -238,28 +260,42 @@ local function build()
   if reader then return end
   recogniser = gestures.new { size = function() return require("responsive").size() end, regions = regions,
     owned = owned, on = hear }
+  stitched = stitch.new(recogniser)
   local sink = {
     down = function(id, x, y, ms)
       stamp(ms)
       touched_at = morf.time.now_ms()
-      if recogniser.count() == 0 then look_at_session() end
-      recogniser.down(id, x, y, ms or event_at)
+      if recogniser.count() == 0 then
+        look_at_session()
+        note_open()
+      end
+      stitched.down(id, x, y, ms or event_at)
       if recogniser.gathered() == 2 and not M.trying:get() then require("phone_gestures").yield() end
       start_ticking()
     end,
-    move = function(id, x, y) recogniser.move(id, x, y) end,
+    move = function(id, x, y) stitched.move(id, x, y) end,
     up = function(id, ms)
       stamp(ms)
       touched_at = morf.time.now_ms()
-      recogniser.up(id, ms or event_at)
+      local lifted = ms or event_at
+      stitched.up(id, lifted)
+      -- A lift no landing took up stands, and ends its frame.
+      local gap = stitch.GAP + 1
+      morf.time.timer(gap, function()
+        if stitched.flush(lifted + gap) then
+          recogniser.frame(lifted + gap)
+          publish()
+        end
+      end, false)
     end,
     frame = function(ms)
       stamp(ms)
+      stitched.flush(ms or event_at)
       recogniser.frame(ms or event_at)
       publish()
     end,
     cancel = function()
-      recogniser.cancel()
+      stitched.cancel()
       publish()
     end,
   }
