@@ -1,5 +1,4 @@
--- The session menu's rows hold their notes whole, in the wider of the themes'
--- faces.
+-- The session menu's rows hold their notes whole, in both themes.
 --
 --     morf test tests/session_fit_spec.lua
 
