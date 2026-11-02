@@ -2,6 +2,7 @@
 -- 1 to 40. Encodes for the launcher, eva-qr, eva-large and the Wi-Fi share
 -- page. What it encodes stays in this process, on no command line and in no pipe.
 -- The work runs a slice to a timer tick, so a code of any size fits a handler's fuel.
+-- Follows Project Nayuki's MIT-licensed QR Code generator; see LICENSE-qr.
 --
 --   local qr = require("lib.util.qr")
 --   qr.encode("https://example.org", "Q", function(code, why) end)
