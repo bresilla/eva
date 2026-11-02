@@ -152,7 +152,7 @@ function V.eva_page(model,w,h)
           on_toggled=model.set_reduce_motion}},
     },
     P.section {id="settings-eva-more",width=w,title="More",
-      V.eva_link("launcher",inner,model),V.eva_link("rail",inner,model),V.eva_link("panels",inner,model),
+      V.eva_link("launcher",inner,model),V.eva_link("rail",inner,model),
       V.eva_link("capture",inner,model),V.eva_link("weather",inner,model),
       V.eva_link("commands",inner,model),
       P.row {id="settings-eva-welcome",width=inner,icon="waving_hand",title="Welcome",
