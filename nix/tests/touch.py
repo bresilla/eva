@@ -275,6 +275,18 @@ def run(password):
         ipc("keyboard", "close")
         machine.sleep(1)
 
+    with subtest("the launcher from the top, and the keyboard beside it"):
+        stroke(line([(600, 8), (700, 8)]), line([(600, 308), (700, 308)]))
+        check("two fingers down from the top open the launcher", eventually(lambda: ipc("launcher", "state") is True, 6), heard())
+        machine.sleep(1)
+        stroke(line([(600, 795), (700, 795)]), line([(600, 495), (700, 495)]))
+        check("two fingers up raise the keyboard over it", keyboard_comes(True), heard())
+        check("and the launcher stays", ipc("launcher", "state") is True, heard())
+        machine.screenshot("launcher-keyboard")
+        ipc("keyboard", "close")
+        ipc("close")
+        machine.sleep(1)
+
     with subtest("the strips are still the strips"):
         stroke(line([(640, 795)]), line([(640, 395)]), steps=30, pause=0.02)
         machine.sleep(2)
