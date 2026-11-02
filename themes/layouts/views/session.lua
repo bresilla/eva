@@ -24,7 +24,7 @@ function V.build(M)
   -- Under a finger it takes most of the width, and taller rows.
   local responsive = require("responsive")
   local TOUCH = responsive.sheets()
-  local NARROW, PAD, GAP = TOUCH and responsive.fit(560, 24) or 320, 12, 8
+  local NARROW, PAD, GAP = TOUCH and responsive.fit(560, 24) or 300, 12, 8
   local RW = NARROW - 2 * PAD
   local LABEL_H = L.lh(L.role_size("label"))
   local NAME = math.floor(L.role_size("title") * 1.15)

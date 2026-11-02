@@ -37,10 +37,11 @@ end
 for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. ": no note of a session row is cut off", function()
     local room = box(style, "session-lockdown-detail")
-    local list = notes()
+    local list, cut = notes(), {}
     test.truthy(#list > 5, "the notes were read")
     for _, note in ipairs(list) do
-      test.truthy(natural(style, note) <= room, note .. " fits")
+      if natural(style, note) > room then cut[#cut + 1] = note end
     end
+    test.eq(cut, {})
   end)
 end
