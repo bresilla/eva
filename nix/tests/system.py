@@ -271,9 +271,10 @@ def rotation():
     sh("systemd-run --user --unit=displays --setenv=PATH=/run/current-system/sw/bin --setenv=WAYLAND_DISPLAY=wayland-1 eva-displays")
     machine.wait_until_succeeds("test -s /run/user/1000/eva/displays.window", timeout=60)
     check("eva-displays answers", eventually(tool_up, 120))
-    machine.sleep(3)
-    state = displays("state") or {}
-    check("eva-displays reads the outputs as it opens", any(o.get("name") == "Virtual-1" for o in state.get("outputs", [])), str(state)[:300])
+    def has_output():
+        state = displays("state") or {}
+        return any(o.get("name") == "Virtual-1" for o in state.get("outputs", []))
+    check("eva-displays reads the outputs as it opens", eventually(has_output, 30), str(displays("state"))[:300])
     wide = monitor("Virtual-1")
     displays("set", "Virtual-1", "transform", "1")
     check("it applies", displays("apply") is True, str(displays("state"))[:300])
