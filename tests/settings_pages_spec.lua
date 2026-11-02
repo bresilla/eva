@@ -73,6 +73,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     end
     test.eq(#problems, 0, table.concat(problems, "\n"))
     open("home")
+    open("home/device")
     local row = test.accessible { id = "settings-open-storage-press" }[1] or test.accessible { name = "Storage" }[1]
     test.truthy(row, "no accessible row for Storage")
     test.accessible_action(row, "click")

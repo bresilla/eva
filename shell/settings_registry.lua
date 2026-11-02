@@ -13,12 +13,12 @@ local M = {}
 M.HOME = "home"
 
 M.CATEGORIES = {
-  { id = "connections", name = "Connections" },
-  { id = "device", name = "Device" },
-  { id = "look", name = "Look and feel" },
-  { id = "shell", name = "Eva" },
-  { id = "apps", name = "Apps" },
-  { id = "system", name = "System" },
+  { id = "connections", name = "Connections", icon = "wifi" },
+  { id = "device", name = "Device", icon = "devices" },
+  { id = "look", name = "Look and feel", icon = "palette" },
+  { id = "shell", name = "Eva", icon = "tune" },
+  { id = "apps", name = "Apps", icon = "apps" },
+  { id = "system", name = "System", icon = "settings" },
 }
 
 -- `summary` is the home row's second line. `items` are the settings a page
@@ -232,6 +232,12 @@ M.PAGES = {
   { key = "about", name = "About", icon = "info", category = "system", summary = "This machine and its versions",
     keywords = "hardware version hostname computer name cpu memory gpu kernel system information" },
 }
+
+-- A page for each category, under All settings.
+for _, category in ipairs(M.CATEGORIES) do
+  category.key = M.HOME .. "/" .. category.id
+  M.PAGES[#M.PAGES + 1] = { key = category.key, name = category.name, icon = category.icon, parent = M.HOME }
+end
 
 M.BY_KEY = {}
 for _, page in ipairs(M.PAGES) do M.BY_KEY[page.key] = page end

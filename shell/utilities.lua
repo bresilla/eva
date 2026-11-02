@@ -63,6 +63,11 @@ builders["bar/fold"]=function(w,h) return themed("bar_fold").build(require("stat
 builders.home=function(w,h)
   return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
 end
+for _,category in ipairs(require("settings_registry").CATEGORIES) do
+  builders[category.key]=function(w,h)
+    return themed("settings_home").category({active=active(category.key),request=M.request,page_present=M.page_present},category,w,h)
+  end
+end
 for _,name in ipairs {"launcher","rail","capture","weather","commands","bar/more","keyboard","lock/more","windows/more","phone","backups/more","input/remap"} do
   builders[name]=function(w,h) return themed("settings_form").build(name,w,h) end
 end

@@ -10,6 +10,32 @@ local F = require("themes.layouts.form")
 local M = {}
 
 local RESULTS = 12
+local NAMED = 3
+
+--- The first pages of `category` this machine has, for its row.
+function M.names(model, category)
+  local names = {}
+  for _, entry in ipairs(registry.category(category.id)) do
+    if model.page_present(entry.key) then names[#names + 1] = entry.name end
+    if #names >= NAMED then break end
+  end
+  return table.concat(names, ", ")
+end
+
+--- One category's pages.
+function M.category(model, category, w, h)
+  local inner = P.inner(w)
+  local section = { id = "settings-pages-" .. category.id, width = w }
+  for _, entry in ipairs(registry.category(category.id)) do
+    section[#section + 1] = P.row { id = "settings-open-" .. entry.key:gsub("/", "-"), width = inner, icon = entry.icon,
+      title = entry.name, subtitle = entry.summary, trailing = P.chevron(),
+      visible = function() return model.page_present(entry.key) end,
+      on_clicked = function() model.request(entry.key, category.key) end }
+  end
+  return ui.Item { id = "settings-category-page-" .. category.id, width = w, height = h,
+    P.page { id = "settings-" .. category.id .. "-scroll", width = w, height = h, active = model.active,
+      P.section(section) } }
+end
 
 function M.build(model, w, h)
   local inner = P.inner(w)
@@ -49,21 +75,18 @@ function M.build(model, w, h)
       trailing = P.chevron(), on_clicked = function() open(entry()) end }
   end, "Nothing matches", RESULTS)
 
+  local categories = { id = "settings-categories", width = w, visible = function() return not searching() end }
+  for _, category in ipairs(registry.CATEGORIES) do
+    categories[#categories + 1] = P.row { id = "settings-category-" .. category.id, width = inner, icon = category.icon,
+      title = category.name, subtitle = function() return M.names(model, category) end, trailing = P.chevron(),
+      on_clicked = function() open(category) end }
+  end
+
   local page = { id = "settings-home-scroll", width = w, height = h, active = model.active,
     box,
     P.section { id = "settings-results", width = w, title = "Results", visible = searching, hits },
+    P.section(categories),
   }
-  for _, category in ipairs(registry.CATEGORIES) do
-    local section = { id = "settings-category-" .. category.id, caption_id = "settings-category-title-" .. category.id,
-      width = w, title = category.name, visible = function() return not searching() end }
-    for _, entry in ipairs(registry.category(category.id)) do
-      section[#section + 1] = P.row { id = "settings-open-" .. entry.key:gsub("/", "-"), width = inner, icon = entry.icon,
-        title = entry.name, subtitle = entry.summary, trailing = P.chevron(),
-        visible = function() return model.page_present(entry.key) end,
-        on_clicked = function() open(entry) end }
-    end
-    page[#page + 1] = P.section(section)
-  end
 
   morf.effect("eva.settings.home.focus", function()
     local on = model.active() == true

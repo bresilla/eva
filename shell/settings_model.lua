@@ -573,6 +573,7 @@ for index,page in ipairs(M.registry.PAGES) do
   M.DETAILS[index]={key=page.key,name=page.name,parent=page.parent}
 end
 M.navigation=require("lib.shell.settings.pages").new(M.DETAILS,M.detail,{tor="tunnel",osk="keyboard"})
+M.navigation.on_back=function() require("themes.layouts.page").hold_place() end
 -- How far a page has been pulled back under a finger, in pixels.
 M.peek=morf.signal("eva.settings.peek",0)
 M.back=M.navigation.back

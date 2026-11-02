@@ -422,9 +422,19 @@ function P.refreshing(run)
 end
 
 --- A page: `id`, `width`, `height` (a number or fn), `title`, `subtitle`,
+local holding, hold = false, nil
+
+--- The next page to come on show stays where it was.
+function P.hold_place()
+  holding = true
+  if hold then hold:cancel() end
+  hold = morf.time.timer(800, function() holding, hold = false, nil end, false)
+end
+
 --- `actions` (nodes at the header's right), `scroll` (false: it does not
 --- scroll, its blocks share the height), `active` (fn: on show -- it is
---- back at its top each time it comes on show), `on_refresh` (fn: a pull
+--- back at its top each time it comes on show, unless a person came back to
+--- it), `on_refresh` (fn: a pull
 --- past the top runs it); the blocks in the array part.
 function P.page(spec)
   local w = spec.width
@@ -444,12 +454,14 @@ function P.page(spec)
   end
   local node, flick = kit.scroll({ id = spec.id, width = w, height = spec.height, clip = true,
     on_refresh = P.refreshing(spec.on_refresh), column })
-  -- Back at its top each time it comes on show.
+  -- Back at its top each time it comes on show, and where it was on the way back.
   if spec.active and flick then
     local was = false
     morf.effect("page.top." .. (spec.id or tostring(node)), function()
       local now = spec.active() == true
-      if now and not was then flick.content_y = 0 end
+      if now and not was then
+        if holding then holding = false else flick.content_y = 0 end
+      end
       was = now
     end, { owner = node })
   end

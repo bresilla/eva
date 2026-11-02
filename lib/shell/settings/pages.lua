@@ -64,6 +64,7 @@ function M.new(pages, selected, aliases)
   function tree.back()
     tree.follow()
     if at=="" then return tree.request("") end
+    if tree.on_back then tree.on_back() end
     nav.send("pop")
     return true
   end
