@@ -41,7 +41,20 @@ end
 local PAGES = { "backups/more", "focus", "focus/mode", "network/proxy", "notifications", "input", "input/remap",
   "theme/look", "windows/rule", "assistant", "lock" }
 
+local DATES = { None = true, NONE = true, Day = true, DAY = true, Short = true, SHORT = true, Long = true, LONG = true,
+  ISO = true }
+
 for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. ": the bar's date choices are not cut off", function()
+    load(style)
+    test.ipc("settings", "bar")
+    test.settle(1200)
+    local dates = {}
+    for _, label in ipairs(cut()) do
+      if DATES[label] then dates[#dates + 1] = label end
+    end
+    test.eq(dates, {})
+  end)
   test.it(style .. ": no label of a choice is cut off", function()
     load(style)
     for _, page in ipairs(PAGES) do
