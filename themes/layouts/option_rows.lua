@@ -19,7 +19,7 @@ end
 --- `subtitle`, `icon`, `choices` (`{ value, label }`), `read` (fn), `set` (fn),
 --- `enabled` (fn), `per_row` (all of them, without it).
 function F.choices(spec)
-  local per_row = spec.per_row or #spec.choices
+  local per_row = spec.per_row or math.max(1, #spec.choices)
   local lines = { width = spec.width, gap = P.ROW_GAP }
   for start = 1, #spec.choices, per_row do
     local buttons = { id = spec.id .. "-choices" .. (start > 1 and "-" .. start or ""), width = spec.width }
