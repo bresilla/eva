@@ -5,15 +5,10 @@ local morf = require("morf")
 local config = require("config")
 local look = require("lib.services.desktop_look")
 local color_mode = require("themes.color_mode")
-local schemes = require("themes.schemes")
 local M = {}
 
 local function primary() return not morf.window.primary or morf.window.primary() end
 local function hex(color) return color:hex():sub(1, 7) end
-local function dry()
-  local value = morf.env("EVA_DRY_RUN")
-  return value and value ~= "" and value ~= "0"
-end
 
 --- The colour tool's mode right now.
 function M.tool_mode()
@@ -23,21 +18,6 @@ end
 
 --- "dark" or "light", now; tracked in a binding.
 function M.mode() return color_mode.resolve(M.tool_mode()) end
-
---- Writes the palette on show as a scheme file, and returns its path.
-function M.export(name)
-  local C, lule = require("theme").color, require("theme").lule
-  local flavour = { ground = hex(C.surface), low = hex(C.surfaceContainerLowest), mid = hex(C.surfaceContainer),
-    high = hex(C.surfaceContainerHigh), top = hex(C.surfaceContainerHighest), ink = hex(C.onSurface),
-    soft = hex(C.onSurfaceVariant), accent = hex(C.primary), second = hex(C.secondary), third = hex(C.tertiary),
-    alert = hex(C.error), colors = {} }
-  for i = 0, 15 do flavour.colors[i + 1] = hex(lule["color" .. i]) end
-  local mode = M.mode()
-  local path = schemes.folder() .. "/" .. name .. ".json"
-  local ok, why = morf.fs.write(path, morf.json.encode({ name = name, [mode] = flavour }, true), { atomic = true, parents = true })
-  if not ok then return nil, why end
-  return path
-end
 
 -- ------------------------------------------------------------------- sun --
 
@@ -95,30 +75,14 @@ function M.wanted()
     icon_theme = config.get("appearance.icon_theme"), gtk_theme = config.get("appearance.gtk_theme") }
 end
 
---- The terminals' colours: Lule's way where it made them, written here for a
---- scheme by name.
+--- The terminals' colours, Lule's way: Lule makes them again in the mode.
 local function push_terminals(mode)
-  local source = config.get("theme.source")
-  if schemes.is(source) then
-    look.terminals(schemes.tool(source, mode).palette)
-    return "scheme"
-  end
   local model = require("wallpaper_model")
   local studio = require("lule_studio")
   if color_mode.chosen() ~= "auto" and studio.scheme:get() and model.can_color() and (studio.scheme:get().theme ~= mode) then
     studio.mode:set(mode)
     studio.apply()
-    return "lule"
   end
-  return nil
-end
-M.push_terminals = push_terminals
-
-local function run_hook(mode)
-  if dry() then return end
-  local argv = {}
-  for i, word in ipairs(config.get("theme.hook")) do argv[i] = tostring(word):gsub("%$MODE", mode) end
-  if #argv > 0 then pcall(morf.process.run, argv, { timeout_ms = 30000, max_output = 4096 }, function() end) end
 end
 
 --- Starts following: the sun and the desktop.
@@ -143,10 +107,7 @@ function M.start()
       if qt_colors then want.colors = M.qt_colors() end
       look.apply(look.plan(want))
       if want.mode ~= last_mode then
-        if last_mode then
-          push_terminals(want.mode)
-          run_hook(want.mode)
-        end
+        if last_mode then push_terminals(want.mode) end
         last_mode = want.mode
       end
     end, false)

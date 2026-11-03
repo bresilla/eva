@@ -37,13 +37,18 @@ local function sharpened(s)
   return out
 end
 
-local function initial()
+-- `theme.source`, or "auto" where it names no colour.
+local function source_setting()
   local source = config.get("theme.source")
-  if source == "" or source == "wallpaper" or source == "auto" or source == "lule" or source == "system" then
+  if source == "" or source == "auto" or source == "lule" or source == "wallpaper" then return source end
+  return pcall(morf.color, source) and source or "auto"
+end
+
+local function initial()
+  local source = source_setting()
+  if source == "" or source == "wallpaper" or source == "auto" or source == "lule" then
     source = M.FALLBACK_SOURCE
   end
-  local named = require("themes.schemes").flavour(source, color_mode.resolve())
-  if named then source = named.accent end
   return material.scheme(source, { variant = config.get("theme.variant"), mode = color_mode.resolve() })
 end
 
@@ -105,20 +110,12 @@ function M.follow(source, wallpaper, mode)
 end
 
 --- The palette the settings ask for, from what the colour tool made (`tool`)
---- and the picture: a scheme by name, the desktop's accent, Lule's, the
---- picture's, or a colour.
+--- and the picture: Lule's, the picture's, or a colour.
 function M.track(tool, wallpaper)
-  local schemes = require("themes.schemes")
-  local source = config.get("theme.source")
+  local source = source_setting()
   local mode = color_mode.resolve(tool and tool.mode)
   config.get("theme.variant")
-  if schemes.is(source) then
-    M.apply(schemes.roles(source, mode))
-    M.apply_lule(schemes.tool(source, mode))
-  elseif source == "system" then
-    local accent = morf.prefers and morf.prefers.accent_color
-    M.follow(accent and morf.color(accent):hex() or M.FALLBACK_SOURCE, nil, mode)
-  elseif (source == "auto" or source == "lule") and tool then
+  if (source == "auto" or source == "lule") and tool then
     M.follow(tool.accent, nil, mode)
   else
     M.follow(source == "auto" and "wallpaper" or source, wallpaper, mode)

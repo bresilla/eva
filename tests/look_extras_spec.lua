@@ -1,5 +1,5 @@
 -- What sits around the main features: parallax, the second picture and the glow,
--- the island, schemes of your own, and how quick and how fluid things are.
+-- the island, what the desktop says, and how quick and how fluid things are.
 --
 --     morf test --no-dbus tests/look_extras_spec.lua
 local test = morf.test
@@ -26,13 +26,8 @@ local SOURCE = [[
   local config = require("config")
   local theme = require("theme")
   local appearance = require("appearance_model")
-  local schemes = require("themes.schemes")
   morf.ipc.x_set = function(key, value) return config.set(key, value) end
   morf.ipc.x_get = function(key) return config.get(key) end
-  morf.ipc.x_color = function(role) return theme.color[role]:hex():sub(1, 7) end
-  morf.ipc.x_contrast = function(id, mode) return schemes.contrast(id, mode) end
-  morf.ipc.x_scheme = function(id) return schemes.is(id) end
-  morf.ipc.x_export = function(name) return appearance.export(name) end
   morf.ipc.x_stretch = function() return theme.stretch and theme.stretch.drawer and theme.stretch.drawer.scale end
   morf.ipc.x_stiffness = function(name) return theme.bounce[name].duration end
   morf.ipc.x_pointer = function(x, y) require("wallpaper").pointer(x, y) end
@@ -148,44 +143,6 @@ test.describe("the island", function()
   end)
 end)
 
-test.describe("colours", function()
-  test.it("grades a scheme's contrast", function()
-    load {}
-    local ratio, grade = test.ipc("x_contrast", "catppuccin", "dark")
-    test.truthy(ratio > 7, "catppuccin reads at " .. tostring(ratio))
-    test.eq(grade, "AAA")
-  end)
-
-  test.it("takes a scheme file of your own, and passes over one that is not whole", function()
-    local home = morf.env("XDG_CACHE_HOME") .. "/extras-mine"
-    morf.fs.mkdir(home .. "/eva/schemes", { parents = true })
-    local colors = {}
-    for i = 1, 16 do colors[i] = "#112233" end
-    morf.fs.write(home .. "/eva/schemes/mine.json", morf.json.encode { name = "Mine", dark = {
-      ground = "#101112", low = "#0a0a0a", mid = "#202122", high = "#303132", top = "#404142", ink = "#eeeeee",
-      soft = "#bbbbbb", accent = "#ff8800", second = "#00aaff", third = "#00cc88", alert = "#ff3355", colors = colors } })
-    morf.fs.write(home .. "/eva/schemes/broken.json", morf.json.encode { name = "Broken", dark = { ground = "#000000" } })
-    load { config_home = home, settings = { theme = { source = "file:mine" } } }
-    test.truthy(test.ipc("x_scheme", "file:mine"))
-    test.falsy(test.ipc("x_scheme", "file:broken"))
-    test.settle(600)
-    test.eq(test.ipc("x_color", "surface"), "#101112")
-  end)
-
-  test.it("writes the colours on show as a scheme that loads again", function()
-    local home = morf.env("XDG_CACHE_HOME") .. "/extras-export"
-    morf.fs.mkdir(home, { parents = true })
-    load { config_home = home, settings = { theme = { source = "nord" } } }
-    test.settle(600)
-    local path = test.ipc("x_export", "kept")
-    test.truthy(path, "nothing was written")
-    load { config_home = home, settings = { theme = { source = "file:kept" } } }
-    test.truthy(test.ipc("x_scheme", "file:kept"), "the export would not load")
-    test.settle(600)
-    test.eq(test.ipc("x_color", "surface"), "#2e3440")
-  end)
-end)
-
 test.describe("what the desktop says", function()
   test.it("sets the mode while following it, and stands by the tool when it has no opinion", function()
     load { source = desktop_says("light"), appearance = { mode = "system" } }
@@ -194,13 +151,6 @@ test.describe("what the desktop says", function()
     test.eq(test.ipc("x_mode"), "dark")
     load { source = desktop_says("none"), appearance = { mode = "system" } }
     test.eq(test.ipc("x_mode"), "dark", "no opinion should leave the tool's mode")
-  end)
-
-  test.it("gives the accent when asked for it", function()
-    load { source = desktop_says("dark", "#00aa55"), settings = { theme = { source = "system" } } }
-    local from_desktop = test.ipc("x_color", "primary")
-    load { source = desktop_says("dark", "#cc2244"), settings = { theme = { source = "system" } } }
-    test.truthy(test.ipc("x_color", "primary") ~= from_desktop, "the accent changed nothing")
   end)
 
   test.it("lands everything when the desktop asks for less motion", function()

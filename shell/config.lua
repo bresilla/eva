@@ -32,8 +32,6 @@ local config = settings.open {
       -- own colours are theme.lule either way.
       source = "auto",
       variant = "tonal_spot",
-      -- What runs when the mode turns; `$MODE` is filled in.
-      hook = {},
     },
     appearance = {
       -- A font file every label is set in ("" for the installed faces).

@@ -1,5 +1,5 @@
--- The look of everything: the colour mode and what turns it, schemes by name,
--- what the rest of the desktop is told, density, corners and the font file.
+-- The look of everything: the colour mode and what turns it, the source, what
+-- the rest of the desktop is told, density, corners and the font file.
 --
 --     morf test --no-dbus tests/look_spec.lua
 local test = morf.test
@@ -12,7 +12,6 @@ local SOURCE = [[
   local model = require("appearance_model")
   local mode = require("themes.color_mode")
   local look = require("lib.services.desktop_look")
-  local schemes = require("themes.schemes")
   morf.ipc.l_set = function(key, value) return config.set(key, value) end
   morf.ipc.l_get = function(key) return config.get(key) end
   morf.ipc.l_mode = function() return model.mode() end
@@ -26,7 +25,6 @@ local SOURCE = [[
     return kept.get(key)
   end
   morf.ipc.l_color = function(role) return theme.color[role]:hex():sub(1, 7) end
-  morf.ipc.l_lule = function(role) return theme.lule[role]:hex():sub(1, 7) end
   morf.ipc.l_space = function(key) return theme.space[key] end
   morf.ipc.l_tokens = function() return { rounding = theme.ROUNDING, seam = theme.SEAM, pad = theme.PAD, gap = theme.GAP, corners = theme.corners } end
   morf.ipc.l_round = function(r) return require("kit").round(r) end
@@ -51,8 +49,6 @@ local SOURCE = [[
     fonts.set({ file = path }, function(ok) taken = ok end)
     return taken
   end
-  morf.ipc.l_scheme = function(id, value) local f = schemes.flavour(id, value) return f and f.ground end
-  morf.ipc.l_schemes = function() local out = {} for i, s in ipairs(schemes.LIST) do out[i] = s.id end return out end
 ]]
 
 local serial = 0
@@ -139,27 +135,16 @@ test.describe("the colour mode", function()
   end)
 end)
 
-test.describe("schemes by name", function()
-  test.it("offers the ones people expect", function()
+test.describe("the source", function()
+  test.it("takes a name that is no colour as Lule's", function()
     load {}
-    test.eq(test.ipc("l_schemes"), { "catppuccin", "gruvbox", "nord", "tokyonight", "dracula", "rosepine" })
-  end)
-
-  for _, id in ipairs { "catppuccin", "gruvbox", "nord", "tokyonight", "dracula", "rosepine" } do
-    test.it(id .. " lays its own colours over the shell and the terminals", function()
-      load { settings = { theme = { source = id } } }
+    local usual = test.ipc("l_color", "primary")
+    for _, name in ipairs { "nord", "system", "file:mine" } do
+      load { settings = { theme = { source = name } } }
       test.settle(600)
-      local ground = test.ipc("l_scheme", id, "dark")
-      test.eq(test.ipc("l_color", "surface"), ground)
-      test.eq(test.ipc("l_lule", "background"), ground)
-    end)
-  end
-
-  test.it("turns with the mode, and a scheme with one flavour keeps it", function()
-    load { forced = "light", settings = { theme = { source = "catppuccin" } } }
-    test.settle(600)
-    test.eq(test.ipc("l_color", "surface"), "#eff1f5")
-    test.eq(test.ipc("l_scheme", "dracula", "light"), "#282a36")
+      test.eq(test.ipc("l_color", "primary"), usual, name .. " was not taken as Lule's")
+      test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
+    end
   end)
 end)
 
