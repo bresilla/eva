@@ -298,11 +298,7 @@ return function(theme)
   function M.card(props)
     props.radius = 0
     props.radius = M.round(theme.ROUNDING)
-    if props.color == nil then
-      local glass = require("themes.glass")
-      props.color = function() return glass.fill(C.surfaceContainer, 0.9) end
-      if not collector then props.glass_rim = glass.rim end
-    end
+    if props.color == nil then props.color = function() return C.surfaceContainer end end
     props[#props + 1] = ui.Rect {
       anchors = { fill = true }, color = "transparent", border_width = 1,
       border_color = function() return hud().line("faint")() end,

@@ -1,6 +1,5 @@
 -- What sits around the main features: parallax, the second picture and the glow,
--- the cut clock, the island, accents, saved looks, schemes of your own, and how
--- quick and how fluid things are.
+-- the island, schemes of your own, and how quick and how fluid things are.
 --
 --     morf test --no-dbus tests/look_extras_spec.lua
 local test = morf.test
@@ -26,21 +25,11 @@ local SOURCE = [[
   require("init")
   local config = require("config")
   local theme = require("theme")
-  local profiles = require("profiles_model")
   local appearance = require("appearance_model")
   local schemes = require("themes.schemes")
   morf.ipc.x_set = function(key, value) return config.set(key, value) end
   morf.ipc.x_get = function(key) return config.get(key) end
   morf.ipc.x_color = function(role) return theme.color[role]:hex():sub(1, 7) end
-  morf.ipc.x_save = function(name) return profiles.save(name) end
-  morf.ipc.x_load = function(name) return profiles.load(name) end
-  morf.ipc.x_remove = function(name) return profiles.remove(name) end
-  morf.ipc.x_names = function()
-    local out = {}
-    for i, profile in ipairs(profiles.list()) do out[i] = profile.name end
-    return out
-  end
-  morf.ipc.x_accents = function() return appearance.accents() end
   morf.ipc.x_contrast = function(id, mode) return schemes.contrast(id, mode) end
   morf.ipc.x_scheme = function(id) return schemes.is(id) end
   morf.ipc.x_export = function(name) return appearance.export(name) end
@@ -160,16 +149,6 @@ test.describe("the island", function()
 end)
 
 test.describe("colours", function()
-  test.it("offers one tone round the wheel, each a usable source", function()
-    load {}
-    local list = test.ipc("x_accents")
-    test.eq(#list, 8)
-    test.ipc("settings", "theme/look") test.settle(2500)
-    test.click("look-accent-180") test.settle(600)
-    test.eq(test.ipc("x_get", "theme.source"), list[5].color)
-    test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
-  end)
-
   test.it("grades a scheme's contrast", function()
     load {}
     local ratio, grade = test.ipc("x_contrast", "catppuccin", "dark")
@@ -229,28 +208,6 @@ test.describe("what the desktop says", function()
       morf.ipc.x_reduced = function() return require("themes.motion_style").reduced() end
     ]] }
     test.truthy(test.ipc("x_reduced"))
-  end)
-end)
-
-test.describe("saved looks", function()
-  test.it("keeps a look by name and brings it back whole", function()
-    load { settings = { theme = { source = "nord" }, appearance = { glass = true } } }
-    test.truthy(test.ipc("x_save", "evening"))
-    test.ipc("x_set", "theme.source", "gruvbox")
-    test.ipc("x_set", "appearance.glass", false)
-    test.truthy(test.ipc("x_load", "evening"))
-    test.eq(test.ipc("x_get", "theme.source"), "nord")
-    test.eq(test.ipc("x_get", "appearance.glass"), true)
-  end)
-
-  test.it("replaces one of the same name, removes one, and refuses a blank name", function()
-    load {}
-    test.falsy(test.ipc("x_save", "   "))
-    test.ipc("x_save", "a") test.ipc("x_save", "b") test.ipc("x_save", "a")
-    test.eq(#test.ipc("x_names"), 2)
-    test.truthy(test.ipc("x_remove", "a"))
-    test.eq(test.ipc("x_names"), { "b" })
-    test.falsy(test.ipc("x_load", "a"))
   end)
 end)
 

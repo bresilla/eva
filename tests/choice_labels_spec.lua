@@ -39,7 +39,7 @@ local function cut()
 end
 
 local PAGES = { "backups/more", "focus", "focus/mode", "network/proxy", "notifications", "input", "input/remap",
-  "theme/look", "windows/rule", "assistant", "lock" }
+  "windows/rule", "assistant", "lock" }
 
 local DATES = { None = true, NONE = true, Day = true, DAY = true, Short = true, SHORT = true, Long = true, LONG = true,
   ISO = true }

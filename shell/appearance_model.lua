@@ -1,18 +1,12 @@
 -- The look of the desktop beyond the shell: the sun's times for the colour mode,
--- the mode and themes pushed to GTK, Qt and the terminals, and the choices the
--- Look page offers. State and actions only.
+-- and the mode and themes pushed to GTK, Qt and the terminals. State and actions
+-- only.
 local morf = require("morf")
 local config = require("config")
 local look = require("lib.services.desktop_look")
 local color_mode = require("themes.color_mode")
 local schemes = require("themes.schemes")
 local M = {}
-
-M.DENSITIES = { { "compact", "Compact" }, { "normal", "Normal" }, { "spacious", "Spacious" } }
-M.CORNERS = { { 0, "Square" }, { 0.5, "Small" }, { 1, "Normal" }, { 1.5, "Round" }, { 2, "Rounder" } }
-M.CURSOR_SIZES = { { 16, "16" }, { 24, "24" }, { 32, "32" }, { 48, "48" } }
-M.VARIANTS = { { "tonal_spot", "Tonal" }, { "vibrant", "Vibrant" }, { "expressive", "Expressive" }, { "neutral", "Neutral" },
-  { "monochrome", "Mono" }, { "fidelity", "Fidelity" }, { "content", "Content" }, { "rainbow", "Rainbow" } }
 
 local function primary() return not morf.window.primary or morf.window.primary() end
 local function hex(color) return color:hex():sub(1, 7) end
@@ -29,31 +23,6 @@ end
 
 --- "dark" or "light", now; tracked in a binding.
 function M.mode() return color_mode.resolve(M.tool_mode()) end
-
---- Named sources beside Lule: `{ id, name }`, Lule's and the desktop's first.
-function M.sources()
-  local out = { { id = "auto", name = "Lule" }, { id = "wallpaper", name = "Picture" }, { id = "system", name = "Desktop" } }
-  for _, scheme in ipairs(schemes.LIST) do out[#out + 1] = { id = scheme.id, name = scheme.name } end
-  return out
-end
-
---- Hues to pick an accent from, each a colour of one tonal palette.
-function M.accents()
-  local out = {}
-  for hue = 0, 315, 45 do
-    local palette = morf.color.tonal_palette(hue, 48)
-    out[#out + 1] = { hue = hue, color = palette(70):hex():sub(1, 7) }
-  end
-  return out
-end
-
---- The contrast of the scheme on show, as the page says it ("" for none).
-function M.contrast_note()
-  local source = config.get("theme.source")
-  if not schemes.is(source) then return "" end
-  local ratio, grade = schemes.contrast(source, M.mode())
-  return ("Text on its ground reads at %.1f to 1%s"):format(ratio, grade ~= "" and (", WCAG " .. grade) or "")
-end
 
 --- Writes the palette on show as a scheme file, and returns its path.
 function M.export(name)
@@ -152,9 +121,8 @@ local function run_hook(mode)
   if #argv > 0 then pcall(morf.process.run, argv, { timeout_ms = 30000, max_output = 4096 }, function() end) end
 end
 
---- Starts following: the sun, the desktop, and the song.
+--- Starts following: the sun and the desktop.
 function M.start()
-  require("song_theme").start()
   if not primary() then return end
   morf.effect("eva.appearance.sun", function()
     if color_mode.chosen() ~= "sun" then return end
@@ -184,12 +152,5 @@ function M.start()
     end, false)
   end)
 end
-
--- ----------------------------------------------------------------- lists --
-
-M.installed = morf.signal("eva.appearance.installed", { cursors = {}, icons = {} })
-
---- Reads what is installed, when the page opens.
-function M.refresh() M.installed:set(look.themes()) end
 
 return M

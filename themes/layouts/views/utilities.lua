@@ -61,9 +61,6 @@ function V.theme_page(model,w,h)
           if mode.snoozed() then mode.set(mode.chosen())
           else mode.snooze(mode.resolve(require("appearance_model").tool_mode()),3600) end
         end},
-      P.row {id="settings-theme-look",width=inner,icon="style",title="Look",
-        subtitle="Colours, shape, glass, font, cursor and icons",trailing=P.chevron(),
-        on_clicked=function() model.request("theme/look") end},
       P.row {id="settings-theme-lule",width=inner,icon="palette",title="Lule",
         subtitle="Wallpaper, colours, the shell's theme and font",trailing=P.chevron(),
         on_clicked=function() model.request("theme/lule") end},

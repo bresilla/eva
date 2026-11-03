@@ -132,13 +132,8 @@ function M.collect(list) collector = list end
 
 function M.card(props)
   props.radius = props.radius or theme.ROUNDING
-  if props.color == nil then
-    local glass = require("themes.glass")
-    props.color = function() return glass.fill(theme.color.surfaceContainer, 0.9) end
-    props.glass_rim = glass.rim
-  end
+  if props.color == nil then props.color = function() return theme.color.surfaceContainer end end
   if not collector then return ui.Rect(props) end
-  props.glass_rim = nil
   local radius, color = props.radius, props.color
   props.radius, props.color = nil, nil
   -- Cards grow in place, evenly about their centres (the default

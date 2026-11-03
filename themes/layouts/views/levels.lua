@@ -405,7 +405,7 @@ function V.build(model)
     ground(float, function() return floats() and 1 or 0 end)
     local field = ui.Sdf { id = "levels-float" .. tag, anchors = { fill = true },
       visible = function() return not gone() end,
-      fill_color = function() return require("themes.glass").fill(C.surface, 1.1) end,
+      fill_color = function() return C.surface end,
       shadow_color = function() return C.shadow:alpha(.42) end, shadow_blur = S.xl, shadow_offset_y = S.s,
       float }
     panels[#panels + 1] = panel

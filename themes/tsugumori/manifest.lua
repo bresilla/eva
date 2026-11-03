@@ -6,7 +6,6 @@ return {
     lule_page = "themes.layouts.views.lule_page",
     wallpaper_page = "themes.layouts.views.wallpaper_page",
     desktop_faces = "themes.layouts.views.desktop_faces",
-    look_page = "themes.layouts.views.look_page",
     standby = "themes.layouts.views.standby",
     island = "themes.layouts.views.island",
     bar = "themes.layouts.views.bar",

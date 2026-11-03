@@ -9,11 +9,7 @@ function V.insets(bar)
 end
 --- The frame's paint on `props`, for any field that joins it.
 function V.paint(props)
-  local glass=require("themes.glass")
-  props.fill_color=function() return glass.fill(theme.color.surface,1.1) end
-  props.backdrop_blur=function() return glass.compositor() end
-  props.stroke_color=function() return glass.on() and theme.color.onSurface:alpha(.14) or "transparent" end
-  props.stroke_width=function() return glass.on() and 1 or 0 end
+  props.fill_color=function() return theme.color.surface end
   props.blend,props.blend_profile=theme.SEAM,"circular"
   props.shadow_color,props.shadow_blur="#000000a0",6
   return props

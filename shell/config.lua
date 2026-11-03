@@ -32,10 +32,6 @@ local config = settings.open {
       -- own colours are theme.lule either way.
       source = "auto",
       variant = "tonal_spot",
-      -- Colours follow the album art while something plays.
-      follow_song = false,
-      -- Turns the source colour round the wheel, in degrees.
-      hue = 0,
       -- What runs when the mode turns; `$MODE` is filled in.
       hook = {},
     },
@@ -53,11 +49,6 @@ local config = settings.open {
       density = "normal",
       -- How round the corners are: 0 square, 1 the theme's own, 2 twice it.
       corners = 1,
-      -- Panels of glass over the picture, and how much of the picture shows.
-      glass = false,
-      glass_clarity = 0.45,
-      -- The dark palette's surfaces all the way to black.
-      pure_black = false,
       -- Push the mode, cursor and icons to GTK, Qt and the terminals.
       sync = true,
       -- Replace Qt's palette with the shell's colours too.
@@ -69,8 +60,6 @@ local config = settings.open {
       gtk_theme = "",
       speed = 1,
       deform = 1,
-      -- Looks saved by name (shell/profiles_model.lua).
-      profiles = {},
       -- How much larger every label is set, 1 for as designed.
       text_scale = 1,
       -- Text at full strength, surfaces plainer.

@@ -1,19 +1,11 @@
 -- The look of everything: the colour mode and what turns it, schemes by name,
--- what the rest of the desktop is told, glass, density, corners, the font file,
--- and the song's colours.
+-- what the rest of the desktop is told, density, corners and the font file.
 --
 --     morf test --no-dbus tests/look_spec.lua
 local test = morf.test
-local ROOT = morf.fs.join(morf.env("PWD") or ".", "tests/fixtures/wallpapers")
 
 local SOURCE = [[
   local fonts = require("themes.fonts")
-  local set_font, font_calls = fonts.set, {}
-  fonts.set = function(choice, done)
-    font_calls[#font_calls + 1] = choice.file
-    return set_font(choice, done)
-  end
-  morf.ipc.l_font_calls = function() return font_calls end
   require("init")
   local config = require("config")
   local theme = require("theme")
@@ -35,7 +27,6 @@ local SOURCE = [[
   end
   morf.ipc.l_color = function(role) return theme.color[role]:hex():sub(1, 7) end
   morf.ipc.l_lule = function(role) return theme.lule[role]:hex():sub(1, 7) end
-  morf.ipc.l_alpha = function(role) return require("themes.glass").fill(theme.color[role]).a end
   morf.ipc.l_space = function(key) return theme.space[key] end
   morf.ipc.l_tokens = function() return { rounding = theme.ROUNDING, seam = theme.SEAM, pad = theme.PAD, gap = theme.GAP, corners = theme.corners } end
   morf.ipc.l_round = function(r) return require("kit").round(r) end
@@ -62,13 +53,6 @@ local SOURCE = [[
   end
   morf.ipc.l_scheme = function(id, value) local f = schemes.flavour(id, value) return f and f.ground end
   morf.ipc.l_schemes = function() local out = {} for i, s in ipairs(schemes.LIST) do out[i] = s.id end return out end
-  morf.ipc.l_accent = function(text) return require("song_theme").accent_of(text) end
-  morf.ipc.l_song = function() return theme.song:get() end
-  morf.ipc.l_play = function(art, playing)
-    require("services").player = function() return { art_url = art, playing = playing } end
-    config.set("theme.follow_song", false)
-    config.set("theme.follow_song", true)
-  end
 ]]
 
 local serial = 0
@@ -176,15 +160,6 @@ test.describe("schemes by name", function()
     test.settle(600)
     test.eq(test.ipc("l_color", "surface"), "#eff1f5")
     test.eq(test.ipc("l_scheme", "dracula", "light"), "#282a36")
-  end)
-
-  test.it("is on the Look page, and takes hold at once", function()
-    load {}
-    test.ipc("settings", "theme/look") test.settle(2500)
-    test.click("look-source-nord") test.settle(600)
-    test.eq(test.ipc("l_get", "theme.source"), "nord")
-    test.eq(test.ipc("l_color", "surface"), "#2e3440")
-    test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
   end)
 end)
 
@@ -329,26 +304,10 @@ for _, style in ipairs { "material", "tsugumori" } do
 
     test.it("rebuilds in place when the density or corners change", function()
       load { style = style }
-      test.ipc("settings", "theme/look") test.settle(2500)
-      test.click("look-density-compact")
+      test.ipc("l_set", "appearance.density", "compact")
       test.advance(16)
       test.eq(test.ipc("l_get", "appearance.density"), "compact")
       test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
-    end)
-
-    test.it("makes the frame, panels and displays glass, and takes it back", function()
-      load { style = style, settings = { wallpaper = { path = ROOT .. "/dusk.png" } } }
-      test.eq(test.ipc("l_alpha", "surface"), 1)
-      test.falsy(test.find { id = "glass-plate", visible = true })
-      test.ipc("l_set", "appearance.glass", true)
-      test.wait(function() test.advance(16) return test.find { id = "glass-plate", visible = true } ~= nil end, 3000, "no plate")
-      test.truthy(test.ipc("l_alpha", "surface") < 1, "a surface stayed solid")
-      test.ipc("osd", "volume") test.settle(300)
-      test.ipc("sidebar", "open", "settings") test.settle(900)
-      test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
-      test.ipc("l_set", "appearance.glass", false) test.advance(32)
-      test.falsy(test.find { id = "glass-plate", visible = true })
-      test.eq(test.ipc("l_alpha", "surface"), 1)
     end)
   end)
 end
@@ -363,48 +322,5 @@ test.describe("the font file", function()
     test.eq(test.ipc("l_get", "appearance.font_file"), "")
     test.truthy(test.ipc("l_font", face))
     test.eq(test.ipc("l_get", "appearance.font_file"), face)
-  end)
-
-  test.it("reaches the one setter from the Look page's field", function()
-    load {}
-    test.ipc("settings", "theme/look") test.settle(2500)
-    local field = test.get("look-font-file")
-    test.wheel(0, field.y - 400, { x = field.x + 8, y = 400 }) test.advance(300)
-    test.click("look-font-file") test.type("/nonexistent/face.ttf") test.key("Return") test.settle(200)
-    test.eq(test.ipc("l_font_calls"), { "/nonexistent/face.ttf" })
-    test.truthy(test.find { text = "No font file at /nonexistent/face.ttf", visible = true })
-  end)
-end)
-
-test.describe("the song", function()
-  test.it("reads Lule's palette, whatever noise comes before it", function()
-    load {}
-    test.eq(test.ipc("l_accent", 'warning: no init.lua\n{ "colors": { "color1": "#112233" }, "special": { "cursor": "#445566" } }'), "#112233")
-    test.eq(test.ipc("l_accent", '{ "special": { "cursor": "#445566" } }'), "#445566")
-    test.eq(test.ipc("l_accent", "nothing here"), nil)
-  end)
-
-  test.it("takes the art's colours through Lule, and lets them go with the music", function()
-    test.stub_run("lule", { code = 0, stdout = '{ "colors": { "color1": "#8a2be2" } }' })
-    load { settings = { theme = { source = "#336699" } } }
-    local before = test.ipc("l_color", "primary")
-    test.ipc("l_play", ROOT .. "/dusk.png", true)
-    test.advance(600)
-    test.wait(function() test.advance(16) return test.ipc("l_song") ~= "" end, 3000, "the song's colours never came")
-    test.eq(test.ipc("l_song"), "#8a2be2")
-    test.settle(600)
-    test.truthy(test.ipc("l_color", "primary") ~= before, "the shell did not change")
-    test.ipc("l_play", ROOT .. "/dusk.png", false)
-    test.advance(32)
-    test.eq(test.ipc("l_song"), "", "paused music kept its colours")
-  end)
-
-  test.it("falls to the engine's reading without Lule, and stays off until asked", function()
-    test.stub_run("lule", { code = 127, stderr = "no lule" })
-    load {}
-    test.eq(test.ipc("l_song"), "")
-    test.ipc("l_play", ROOT .. "/dusk.png", true)
-    test.advance(600)
-    test.wait(function() test.advance(16) return test.ipc("l_song") ~= "" end, 3000, "no colours from the engine")
   end)
 end)
