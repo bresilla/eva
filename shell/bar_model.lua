@@ -167,10 +167,6 @@ function M.new(ctx)
     local capture=package.loaded.capture
     return capture~=nil and capture.recording~=nil and capture.recording:get()==true
   end
-  function model.toggle_mode()
-    local mode=require("themes.color_mode")
-    mode.set(mode.resolve()=="light" and "dark" or "light")
-  end
   function model.next_profile()
     local power=services.upower
     local profiles=power and power.state.profiles

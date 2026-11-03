@@ -38,7 +38,6 @@ local SOURCE=[[
     for _,t in ipairs(utilities.TOGGLES) do if t.id==id then return t.status and t.status() end end
   end
   morf.ipc.q_form=function() return require("responsive").form_factor() end
-  morf.ipc.q_mode=function() return require("themes.color_mode").chosen() end
   morf.ipc.q_tile_set=function(id,on) utilities.CONTROLS[id].set(on) end
   morf.ipc.q_panel=function()
     local d=require("sidebar").drawer
@@ -130,21 +129,10 @@ end)
 
 -- ---------------------------------------------------------------- honesty --
 
-test.it("lit means active: Eva never lights and Theme flips dark and light without lighting",function()
+test.it("lit means active: Eva never lights",function()
   load()
   open()
   test.falsy(test.ipc("q_light","eva"))
-  test.falsy(test.ipc("q_light","theme"))
-  test.truthy(test.ipc("q_status","theme"):match("^Dark"))
-  test.click("utilities-toggle-theme") test.settle(600)
-  test.falsy(test.ipc("q_light","theme"),"Theme lit")
-  test.eq(test.ipc("q_status","theme"),"Light")
-  test.eq(test.ipc("q_mode"),"light")
-  test.click("utilities-toggle-theme") test.settle(600)
-  test.falsy(test.ipc("q_light","theme"),"Theme lit")
-  test.eq(test.ipc("q_status","theme"),"Dark")
-  test.click("utilities-more-theme") test.settle(1500)
-  test.eq(test.ipc("q_detail"),"theme")
   test.eq(#test.logs("error"),0)
 end)
 
@@ -391,7 +379,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(card.y+card.height<=sheet.y+sheet.height,"the sheet cuts its tiles")
     test.truthy(sheet.y+sheet.height-(card.y+card.height)<=40,"dead area under the tiles: "
       ..(sheet.y+sheet.height-card.y-card.height))
-    test.click("utilities-more-theme") test.settle(2500)
+    test.ipc("settings","theme") test.settle(2500)
     local detail=test.get("drawer-sidebar")
     test.truthy(detail.height<full,"the detail kept the dead area")
     local last=test.get("settings-theme-lule")

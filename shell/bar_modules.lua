@@ -595,10 +595,6 @@ function M.list(bar)
     tooltip = function() return "Night light " .. hardware("nightlight").status() end,
     press = function() local n = hardware("nightlight") n.set(not n.on()) end,
     menu = function() return { item("Night light settings", "tune", settings_page("nightlight")) } end }
-  add { id = "dark_mode", name = "Dark mode", tier = 1,
-    icon = function() return require("themes.color_mode").resolve() == "light" and "light_mode" or "dark_mode" end,
-    tooltip = function() return "Dark or light" end,
-    press = function() bar.toggle_mode() end }
   add { id = "rotation", name = "Rotation lock", tier = 1,
     present = function() return hardware("rotation").present() end,
     icon = function() return hardware("rotation").on() and "screen_lock_rotation" or "screen_rotation" end,

@@ -536,10 +536,10 @@ local config = settings.open {
     quick = {
       tiles = {
         desk = { "wifi", "bluetooth", "wired", "mobile", "mesh", "tunnel", "airplane", "hotspot", "sound", "mic",
-          "nightlight", "powersaver", "battery", "focus", "theme", "eva", "notes", "linked_phone" },
+          "nightlight", "powersaver", "battery", "focus", "eva", "notes", "linked_phone" },
         phone = { "wifi", "mobile", "bluetooth", "hotspot", "flashlight", "rotation", "autobrightness", "nfc", "airplane",
           "nightlight", "powersaver", "location", "datasaver", "sound", "mic", "battery", "mesh", "tunnel", "focus",
-          "theme", "eva", "camera", "calculator", "voicenote", "alarm", "notes", "linked_phone" },
+          "eva", "camera", "calculator", "voicenote", "alarm", "notes", "linked_phone" },
       },
       small = { desk = {}, phone = { "flashlight", "rotation", "autobrightness", "nfc", "nightlight",
         "powersaver", "location", "datasaver", "camera", "calculator", "voicenote", "alarm" } },

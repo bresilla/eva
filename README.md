@@ -1059,8 +1059,8 @@ on-screen keyboard, volume, microphone, brightness, network, network speed, data
 used, local and public address, VPN, Bluetooth, device batteries, battery, power
 draw, power profile, CPU, CPU cores, CPU speed,
 memory, swap, temperature, GPU, fans, disk, disk activity, load, uptime, machine
-name, user, media, audio visualiser, lyrics, keep awake, focus, night light, dark
-mode, rotation lock, flashlight, recording, screen sharing, weather, updates,
+name, user, media, audio visualiser, lyrics, keep awake, focus, night light,
+rotation lock, flashlight, recording, screen sharing, weather, updates,
 keyboard layout, lock keys, key mode, failed services, containers, SSH sessions,
 tmux sessions, trash, print jobs, GameMode, text, spacers and dividers.
 

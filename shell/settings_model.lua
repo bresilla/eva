@@ -521,20 +521,6 @@ do
       local mode=focus.mode(config.get("focus.last"))
       return mode and mode.name or "Off"
     end}
-  -- The theme: the tile flips dark and light and never lights; its page has
-  -- that, and Lule (wallpaper, colours, the shell's theme and font) one page in.
-  local color_mode = require("themes.color_mode")
-  local function dark()
-    local tool = require("terminal_colors").current:get()
-    return color_mode.resolve(tool and tool.mode) ~= "light"
-  end
-  M.TOGGLES[#M.TOGGLES + 1] = { id = "theme", name = "Theme", detail = "theme",
-    icon = function() return dark() and "dark_mode" or "light_mode" end,
-    on = function() return false end,
-    set = function() color_mode.set(dark() and "light" or "dark") end,
-    status = function()
-      return (dark() and "Dark" or "Light") .. (color_mode.chosen() == "auto" and " · Auto" or "")
-    end }
   -- The shell itself: the bar, and how its panels open.
   M.TOGGLES[#M.TOGGLES + 1] = { id = "eva", name = "Eva", detail = "eva", icon = "dashboard_customize",
     on = function() return false end,
