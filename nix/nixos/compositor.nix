@@ -53,7 +53,7 @@ let
     ${lib.optionalString (config.programs.eva.hyprland.binds != "never") ''
       -- The keys of the window features, unless this person has their own.
       if ${if config.programs.eva.hyprland.binds == "always" then "true" else "not own_config"} then
-        dofile("${../../shell/keybinds.lua}").apply(hl, "${config.system.build.evaLauncher}/bin/morf")
+        dofile("${config.programs.eva.shellPackage}/share/eva/shell/keybinds.lua").apply(hl, "${config.system.build.evaLauncher}/bin/morf")
       end
     ''}
     ${config.programs.eva.hyprland.extraConfig}
