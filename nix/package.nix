@@ -88,6 +88,8 @@ runCommandCC "eva-${version}"
     $CC -std=gnu11 -O2 -Wall -Wextra -Werror ${src}/helpers/keyring/eva-keyring.c \
       $(pkg-config --cflags --libs gcr-4 gio-unix-2.0 json-glib-1.0) \
       -o "$out/bin/eva-keyring"
+    $CC -std=gnu11 -O2 -Wall -Wextra -Werror ${src}/helpers/pointer/eva-virtual-pointer.c \
+      -o "$out/bin/eva-virtual-pointer"
     # What a tool's script runs on, wherever it is started from: a user unit's
     # PATH holds none of it.
     launcher() {

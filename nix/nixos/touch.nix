@@ -18,20 +18,55 @@ let
   '';
 in
 {
-  options.programs.eva.touch.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = true;
-    description = ''
-      Gestures anywhere on a touchscreen: the session reads the touchscreen
-      through libinput and recognises them itself, while apps keep every touch.
-      Adds a udev rule giving the logged-in user the touchscreens alone, and
-      libinput. Harmless on a machine with no touchscreen, where nothing runs.
-    '';
+  options.programs.eva.touch = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Gestures anywhere on a touchscreen: the session reads the touchscreen
+        through libinput and recognises them itself, while apps keep every touch.
+        Adds a udev rule giving the logged-in user the touchscreens alone, and
+        libinput. Harmless on a machine with no touchscreen, where nothing runs.
+      '';
+    };
+    virtualPointer = lib.mkOption {
+      type = lib.types.bool;
+      default = !config.programs.eva.phone.enable;
+      defaultText = lib.literalExpression "!config.programs.eva.phone.enable";
+      description = ''
+        Keep a mouse that never moves attached. Hyprland sends a pen to the
+        surface with the pointer focus, and sets that focus only with a mouse
+        present, so without one a pen moves the cursor and reaches no app.
+      '';
+    };
   };
 
-  config = lib.mkIf (config.programs.eva.enable && cfg.enable) {
-    services.udev.packages = [ rule ];
-    environment.systemPackages = [ libinput ];
-    systemd.user.services.eva.path = [ libinput ];
-  };
+  config = lib.mkIf (config.programs.eva.enable && cfg.enable) (
+    lib.mkMerge [
+      {
+        services.udev.packages = [ rule ];
+        environment.systemPackages = [ libinput ];
+        systemd.user.services.eva.path = [ libinput ];
+      }
+      (lib.mkIf cfg.virtualPointer {
+        boot.kernelModules = [ "uinput" ];
+        systemd.services.eva-virtual-pointer = {
+          description = "A mouse that never moves, for pens on machines with none";
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            ExecStart = "${config.programs.eva.shellPackage}/bin/eva-virtual-pointer";
+            Restart = "on-failure";
+            DevicePolicy = "closed";
+            DeviceAllow = "/dev/uinput rw";
+            CapabilityBoundingSet = "";
+            NoNewPrivileges = true;
+            PrivateNetwork = true;
+            ProtectHome = true;
+            ProtectSystem = "strict";
+            RestrictAddressFamilies = "none";
+          };
+        };
+      })
+    ]
+  );
 }
