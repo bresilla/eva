@@ -190,7 +190,7 @@ test.it("says why the shell refused", function()
   test.contains(answer.words, "Finish the capture")
 end)
 
-test.it("goes through the one setter the Look page and the Lule picker use", function()
+test.it("goes through the one setter the Lule picker uses", function()
   local state = fresh("setter")
   stubs { code = 1 }
   test.load("../apps/fonts/app.lua", { env = environment(state), source = [[

@@ -572,41 +572,13 @@ to inspect that monitor. The counters should increase with the drawer closed.
 
 ## Wallpaper
 
-**Settings, Theme, Wallpaper** shows Lule's folder as a grid of thumbnails. The
-folder, the selection and the colours are Lule's: the grid is another view of
-the same studio, and **Grid** on the Lule page opens it. Picking a thumbnail only
-previews it, through the transition you have chosen; **Apply** sets it. Choose
-**Everywhere** (through Lule, with its colours and hooks), a screen, or the
-workspace you are on, and that place keeps its own picture.
+The wallpaper is a picture or Lule's: first found, `EVA_WALLPAPER`, the picture
+Lule last made its colours from, `wallpaper.path`, or the path the eva tools keep
+in `~/.local/state/eva/wallpaper/path.txt`. Lule's page under **Settings, Theme**
+chooses it.
 
-`wallpaper.draw` says who paints. Off, your wallpaper tool does, and a change
-arrives however that tool shows it. On, Eva paints a background layer of its own,
-and only then are transitions, parallax and per-screen and per-workspace pictures
-on screen. The page says which it is, and the switch takes effect at once.
-
-Transitions are distance fields the engine animates, so one runs no Lua per
-frame: **wipe**, **circle** (from where the pointer last was on the desktop),
-**grow**, **dissolve**, **stripes**, **diamond**, **star**, **melt**, **fade**, or
-**random**. Their length and softness are on the Options tab.
-
-Options also holds parallax across the workspaces, fit (crop, fit or stretch,
-per picture with `wallpaper.fits`), a slideshow (interval, shuffle without a
-repeat or by name, folders inside, favourites only, holding behind a fullscreen
-window or a lock, and whether Lule colours each picture), and a picture each for
-light and dark.
-
-`wallpaper.hook` runs after a change, with `$WALLPAPER` and `$OUTPUT` filled in.
-From a key or a script:
-
-    morf ipc call wallpaper                  # what this screen shows
-    morf ipc call wallpaper set PATH [OUTPUT]
-    morf ipc call wallpaper next             # or previous, random
-    morf ipc call wallpaper transition melt
-    morf ipc call wallpaper draw on
-
-Dropping an image on the desktop sets it. Options also has **Glow with the
-music**, where the picture brightens on every beat, and **a second picture under
-the pointer**, seen through a soft hole that follows it across the desktop.
+`wallpaper.draw` says who paints. Off, your wallpaper tool does. On, Eva paints a
+background layer of its own from the start.
 
 ## StandBy
 
@@ -618,42 +590,19 @@ and it drifts so nothing burns in. **Settings, Eva** has its switch.
 
 ## Look
 
-**Settings, Theme** chooses dark or light: **Auto** (what Lule made), **Dark**,
-**Light**, **Clock** (two times of day), **Sun** (`eva-nightlight times` at the
-weather's place) or **System** (the desktop's `color-scheme` portal setting). A
-timed mode can be held for an hour. The choice lives with the theme in
-`appearance.json`, so the lock and the greeter follow it too.
+**Settings, Theme** has a **Dark mode** switch and **Lule**. The colours come from
+Lule, and until the switch is touched the mode is the one Lule made. The choice
+lives with the theme in `appearance.json`, so the lock and the greeter follow it
+too.
 
-**Settings, Theme, Look** holds the rest:
-
-- **Colours** from Lule, the picture, the desktop's accent, or a scheme by name:
-  Catppuccin, Gruvbox, Nord, Tokyo Night, Dracula, Rosé Pine. A scheme lays its
-  own published colours over every role and over `theme.lule`, and turns with the
-  mode where it has a light flavour.
-- **Follow the song**: the album art colours the shell while music plays. Lule
-  reads the art (`colors -g`, which writes nothing and runs no hook), and the
-  engine's reading stands in where Lule is missing. The wallpaper stays.
-- **Pure black** and the Material scheme variant.
-- **Density** moves every space one step along the 4 px grid, and **Corners**
-  scales the rounding from square to twice the theme's own, in both themes.
-- **Glass** makes the frame, panels and displays translucent over a blurred copy
-  of the picture, drawn on the shell's own surface so it looks the same on any
-  compositor; where the compositor can blur behind the shell, it does too.
-- **Font file**: `appearance.font_file`, one file for every label.
-- **Keep GTK and Qt in step** pushes the mode to `gsettings`, to GTK 3 and 4's
-  `settings.ini` and to qt5ct and qt6ct (with a palette of the shell's colours),
-  and the terminals through Lule, or directly for a scheme by name. **Cursor** and
-  **Icons** go the same way. Turn it off and nothing outside the shell is touched.
-- **Saved looks** keep the colours, shape and wallpaper under a name.
-- **Schemes of your own**: a file in `~/.config/eva/schemes` joins the sources,
-  with the same fields as `themes/schemes.lua`, and **Save these colours as a
-  scheme** writes one from the colours on show. A scheme says its text contrast,
-  with its WCAG grade.
-
-`theme.hook` runs when the mode turns, with `$MODE` filled in. How things move
-(the Eva page) and the density and corners also live in `appearance.json`, so the
-lock, the greeter and the tools take them, and Reduce motion lands everything in
-all of them. The desktop's own `reduced_motion` setting counts too. The Eva page
+`appearance.sync` pushes the mode to `gsettings`, to GTK 3 and 4's `settings.ini`
+and to qt5ct and qt6ct, and to the terminals through Lule; `appearance.cursor_theme`,
+`cursor_size`, `icon_theme` and `gtk_theme` go the same way. Off, nothing outside
+the shell is touched. `appearance.density` moves every space one step along the
+4 px grid, `appearance.corners` scales the rounding, and `appearance.font_file`
+sets one file for every label. How things move (the Eva page) and the density and
+corners also live in `appearance.json`, so the lock, the greeter and the tools take
+them, and Reduce motion lands everything in all of them. The desktop's own `reduced_motion` setting counts too. The Eva page
 also sets how quick everything is, how far surfaces deform as they move, from
 rigid to liquid, and the **Island**: a pill grown out of the top of the frame that
 shows the music or the time, opens on a press and walks its faces on a right

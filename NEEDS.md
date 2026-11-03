@@ -77,17 +77,8 @@ menu, the bar's popouts, notifications and the OSD) found the entries
 below, all now in the engine too; the popouts shut on `contains_pointer`
 like the dashboard.
 
-## Open: found building the wallpaper, widgets and glass
+## Open: found building widgets
 
-- **An image as a field's fill.** `ui.Sdf` takes a colour or a gradient, and
-  `backdrop_blur` and `glass` work on a `Rect` or `ClipRect` only. A frame that is
-  one field cannot be glass by itself, so the shell draws a blurred copy of the
-  picture under it, cut by a second field that tracks the same nodes
-  (`themes/glass_plate.lua`). `fill_image = source` on `ui.Sdf`, or `glass` on a
-  field, would need neither the copy nor the second field.
-- **Centre and tile fills.** `ui.Image`'s `fill_mode` is `stretch`,
-  `preserve_aspect_fit` or `preserve_aspect_crop`; `pad` and `tile` would close
-  two wallpaper fill modes other shells have.
 - **`behavior` on `transform_matrix`.** UI.md says it animates like any list of
   numbers, but a `ui.spring` behavior on it is refused with "expected numeric or
   colour property", and the error takes the whole subtree with it. A carried
@@ -100,7 +91,7 @@ like the dashboard.
   its scratch folder too.
 - **`morf.lock` in another process.** A shell cannot ask whether the session is
   locked by a separate lock role: `morf.lock.on_state` is for the process holding
-  it. The slideshow reads logind's `LockedHint` instead.
+  it. Screen time reads logind's `LockedHint` instead.
 - **Undocumented.** `morf.image.palette`, `morf.image.pixel`,
   `morf.animation.impulse` and the sixteen-layer limit of a field are in the
   source and the namespace table but not in UI.md or IO.md.

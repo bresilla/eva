@@ -39,12 +39,6 @@ or real-shell restart was performed.
 
 ## Material, proportions and what is shared
 
-`themes/glass.lua` is the panel material: `glass.fill(color, weight)` for a surface
-and `glass.rim()` for a card's edge. Both kits' cards, both frames and the OSDs read
-it, and a third theme gets glass by doing the same. The picture behind glass is
-`themes/glass_plate.lua`, cut by a field of the same tracked nodes, because a field
-cannot itself be glass (NEEDS.md).
-
 `theme.space` moves a step along the 4 px grid with the density, and `theme.corners`
 scales `ROUNDING`, `SEAM` and `kit.round`. Tsugumori stays square up to 1 and opens
 past it, since square is its own measure. Place with `theme.space` and round with
@@ -54,9 +48,6 @@ The mode, how things move and the density live in `appearance.json`, through
 `themes/motion_style.lua`, so the lock and the tools read them. A greeter cannot
 read a home, so they are also written beside the scale in the public
 `EVA_SCALE_FILE`, which `themes/init.lua` takes as its defaults.
-
-Named schemes are `themes/schemes.lua`; a scheme's `roles` lay it over the Material
-role names, so no view knows which source is on show.
 
 ## Boundaries
 
