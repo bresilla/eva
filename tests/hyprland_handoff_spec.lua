@@ -116,17 +116,4 @@ test.describe("hyprland handoff",function()
     fresh.adopt("missing")
     test.eq(none.rules,{})
   end)
-
-  test.it("the greeter's layer says so once, and no other layer does",function()
-    local files={}
-    local handoff,run=scenario(files)
-    handoff.announce("eva-greet","ready")
-    run.events["layer.opened"] {namespace="other"}
-    test.eq(files.ready,nil)
-    run.events["layer.opened"] {namespace="eva-greet"}
-    test.eq(files.ready,"")
-    files.ready=nil
-    run.events["layer.opened"] {namespace="eva-greet"}
-    test.eq(files.ready,nil)
-  end)
 end)

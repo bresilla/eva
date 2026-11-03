@@ -88,7 +88,6 @@
         checks = {
           inherit eva;
           module = machine { };
-          module-plymouth = machine { programs.eva.seamless.plymouth = true; };
           module-plain = machine { programs.eva.seamless.enable = false; };
           module-no-touch = machine { programs.eva.touch.enable = false; };
           module-phone = machine {

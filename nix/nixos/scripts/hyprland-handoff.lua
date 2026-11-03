@@ -77,15 +77,4 @@ function M.record(path)
     end
 end
 
---- Creates the file `path` when the layer `namespace` first maps.
-function M.announce(namespace, path)
-    local told = false
-    hl.on("layer.opened", function(layer)
-        if told or layer.namespace ~= namespace then return end
-        told = true
-        local file = io.open(path, "w")
-        if file then file:close() end
-    end)
-end
-
 return M

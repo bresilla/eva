@@ -102,8 +102,6 @@ let
     })
     ${cfg.extraConfig}
     apply_scale()
-    ${lib.optionalString (seamless.enable && seamless.plymouth)
-      ''handoff.announce("eva-greet", ${builtins.toJSON seamless.readyFile})''}
     hl.on("hyprland.start", function()
       hl.exec_cmd("${session}")
     end)
