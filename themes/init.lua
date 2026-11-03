@@ -5,9 +5,6 @@ local root = morf.env("XDG_CONFIG_HOME") or (morf.fs.home() .. "/.config")
 -- make apply supplies a readable default beside each installed config. The
 -- greeter has no personal settings; a user's explicit preference still wins.
 local defaults = { theme = "material", font = "", mode = "auto",
-  -- When a schedule turns, local "HH:MM"; the sunrise and sunset the shell
-  -- found last; and a mode held for a while.
-  light_from = "07:00", dark_from = "19:00", sunrise = "", sunset = "", snooze_mode = "", snooze_until = 0,
   -- How things move, for the lock, the greeter and the tools as for the shell.
   motion = "balanced", reduce_motion = false,
   -- How tight the spacing is and how round the corners, in every theme.
@@ -27,7 +24,7 @@ do
   local shared = morf.env("EVA_SCALE_FILE")
   local ok, value = pcall(function() return morf.json.decode(morf.fs.read(shared)) end)
   if shared and ok and type(value) == "table" then
-    for _, key in ipairs { "mode", "light_from", "dark_from", "sunrise", "sunset", "motion", "reduce_motion", "density" } do
+    for _, key in ipairs { "mode", "motion", "reduce_motion", "density" } do
       if type(value[key]) == type(defaults[key]) then defaults[key] = value[key] end
     end
   end

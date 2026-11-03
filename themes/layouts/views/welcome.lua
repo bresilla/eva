@@ -11,7 +11,7 @@ local widgets = require("themes.kit.widgets")
 local M = {}
 
 local RAIL = theme.space.xl
-local MODES = { { "auto", "brightness_auto", "Auto" }, { "dark", "dark_mode", "Dark" }, { "light", "light_mode", "Light" } }
+local MODES = { { "dark", "dark_mode", "Dark" }, { "light", "light_mode", "Light" } }
 
 local function get(v) if type(v) == "function" then return v() end return v end
 
@@ -33,11 +33,11 @@ function M.page(model, settings, w, h)
     look = function(body_w, body_h)
       return P.page { id = "welcome-look", width = body_w, height = body_h,
         P.section { id = "welcome-look-card", width = body_w, title = "Make it yours",
-          F.note(inner, "Dark, light, or following the day. You can change it whenever you like."),
-          F.choices { id = "welcome-mode", width = inner, items = MODES, per_row = 3,
-            now = mode.chosen, pick = mode.set },
+          F.note(inner, "Dark or light. You can change it whenever you like."),
+          F.choices { id = "welcome-mode", width = inner, items = MODES, per_row = 2,
+            now = function() return require("appearance_model").mode() end, pick = mode.set },
           F.link { id = "welcome-theme", width = inner, icon = "palette", title = "Theme and colours",
-            subtitle = "Wallpaper, schemes, the look of the shell", go = open("theme") },
+            subtitle = "Dark or light, and Lule", go = open("theme") },
         } }
     end,
     network = function(body_w, body_h)

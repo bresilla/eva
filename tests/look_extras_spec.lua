@@ -12,12 +12,10 @@ local SOURCE = [[
   require("init")
   local config = require("config")
   local theme = require("theme")
-  local appearance = require("appearance_model")
   morf.ipc.x_set = function(key, value) return config.set(key, value) end
   morf.ipc.x_get = function(key) return config.get(key) end
   morf.ipc.x_stretch = function() return theme.stretch and theme.stretch.drawer and theme.stretch.drawer.scale end
   morf.ipc.x_stiffness = function(name) return theme.bounce[name].duration end
-  morf.ipc.x_mode = function() return appearance.mode() end
 ]]
 
 -- Stands in for the desktop's settings portal, which no spec has.
@@ -87,15 +85,6 @@ test.describe("the island", function()
 end)
 
 test.describe("what the desktop says", function()
-  test.it("sets the mode while following it, and stands by the tool when it has no opinion", function()
-    load { source = desktop_says("light"), appearance = { mode = "system" } }
-    test.eq(test.ipc("x_mode"), "light")
-    load { source = desktop_says("dark"), appearance = { mode = "system" } }
-    test.eq(test.ipc("x_mode"), "dark")
-    load { source = desktop_says("none"), appearance = { mode = "system" } }
-    test.eq(test.ipc("x_mode"), "dark", "no opinion should leave the tool's mode")
-  end)
-
   test.it("lands everything when the desktop asks for less motion", function()
     load { source = desktop_says("dark", nil, true) .. [[
       morf.ipc.x_reduced = function() return require("themes.motion_style").reduced() end

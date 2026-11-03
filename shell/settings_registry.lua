@@ -112,7 +112,7 @@ M.PAGES = {
     keywords = "print cups queue job scanner scan add" },
 
   { key = "theme", name = "Theme", icon = "palette", category = "look", summary = "Dark, light and colours",
-    keywords = "appearance dark light mode auto colour color" },
+    keywords = "appearance dark light mode colour color" },
   { key = "theme/lule", name = "Lule", icon = "colors", parent = "theme",
     keywords = "wallpaper colours font palette" },
   { key = "nightlight", name = "Night light", icon = "nightlight", category = "look", summary = "Warmer colours",

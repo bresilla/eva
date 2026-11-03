@@ -17,13 +17,6 @@ local SOURCE = [[
   morf.ipc.l_mode = function() return model.mode() end
   morf.ipc.l_chosen = function() return mode.chosen() end
   morf.ipc.l_choose = function(value) mode.set(value) end
-  morf.ipc.l_schedule = function(a, b) return mode.set_schedule(a, b) end
-  morf.ipc.l_snooze = function(value, seconds) mode.snooze(value, seconds) end
-  morf.ipc.l_pref = function(key, value)
-    local kept = require("themes").preferences
-    if value ~= nil then kept.set(key, value) end
-    return kept.get(key)
-  end
   morf.ipc.l_color = function(role) return theme.color[role]:hex():sub(1, 7) end
   morf.ipc.l_space = function(key) return theme.space[key] end
   morf.ipc.l_tokens = function() return { rounding = theme.ROUNDING, seam = theme.SEAM, pad = theme.PAD, gap = theme.GAP, corners = theme.corners } end
@@ -42,8 +35,6 @@ local SOURCE = [[
   morf.ipc.l_sequences = function(palette) return look.sequences(palette) end
   morf.ipc.l_terminals = function(palette) return look.terminals(palette) end
   morf.ipc.l_qt = function() return look.qt_palette(model.qt_colors()) end
-  morf.ipc.l_local = function(utc, zone) return model.local_time(utc, zone) end
-  morf.ipc.l_sun = function() model.find_sun() end
   morf.ipc.l_font = function(path)
     local taken
     fonts.set({ file = path }, function(ok) taken = ok end)
@@ -61,7 +52,7 @@ local function load(spec)
   local env = { EVA_DRY_RUN = spec.live and "0" or "1", EVA_STYLE = spec.style or "material", EVA_WALLPAPER = "",
     EVA_SETTINGS = cache .. "/look-settings-" .. serial .. ".json",
     EVA_APPEARANCE = cache .. "/look-appearance-" .. serial .. ".json",
-    LULE_A = "/nonexistent/lule", HOME = home, XDG_CONFIG_HOME = home .. "/config", EVA_FAKE_CLOCK = spec.clock or "",
+    LULE_A = spec.lule or "/nonexistent/lule", HOME = home, XDG_CONFIG_HOME = home .. "/config",
     EVA_THEME_MODE = spec.forced or "", EVA_ICON_DIRS = spec.icons or "", EVA_FAKE_PTS = spec.pts }
   morf.fs.write(env.EVA_SETTINGS, morf.json.encode(spec.settings or {}))
   if spec.appearance then morf.fs.write(env.EVA_APPEARANCE, morf.json.encode(spec.appearance)) end
@@ -71,65 +62,48 @@ local function load(spec)
   return home, env
 end
 
+-- A Lule folder whose colours were made `theme`.
+local function lule_made(theme)
+  local dir = morf.env("XDG_CACHE_HOME") .. "/look-lule-" .. serial .. "-" .. theme
+  morf.fs.mkdir(dir, { parents = true })
+  morf.fs.write(dir .. "/colors.json", morf.json.encode { wallpaper = "", theme = theme, colors = { "#111111", "#ffaa66" } })
+  return dir
+end
+
 test.describe("the colour mode", function()
-  test.it("turns by the clock, across midnight too", function()
-    load { clock = "12:00", appearance = { mode = "schedule" } }
-    test.eq(test.ipc("l_chosen"), "schedule")
+  test.it("is what Lule made until one is chosen, then the choice", function()
+    load { lule = lule_made("light") }
+    test.eq(test.ipc("l_chosen"), "auto")
     test.eq(test.ipc("l_mode"), "light")
-    load { clock = "23:30", appearance = { mode = "schedule" } }
-    test.eq(test.ipc("l_mode"), "dark")
-    load { clock = "02:00", appearance = { mode = "schedule", light_from = "22:00", dark_from = "06:00" } }
-    test.eq(test.ipc("l_mode"), "light", "a schedule across midnight broke")
+    test.ipc("l_choose", "dark") test.advance(16)
+    test.eq(test.ipc("l_chosen"), "dark")
+    test.eq(test.ipc("l_mode"), "dark", "a choice gave way to Lule")
   end)
 
-  test.it("turns by the sun's times once they are known, and stands by the tool until then", function()
-    load { clock = "12:00", appearance = { mode = "sun" } }
-    test.eq(test.ipc("l_mode"), "dark", "no sunrise yet: the tool's mode stands")
-    test.ipc("l_pref", "sunrise", "07:40")
-    test.ipc("l_pref", "sunset", "17:10")
-    test.advance(16)
-    test.eq(test.ipc("l_mode"), "light")
-    load { clock = "18:00", appearance = { mode = "sun", sunrise = "07:40", sunset = "17:10" } }
-    test.eq(test.ipc("l_mode"), "dark")
+  test.it("takes a mode it no longer knows as no choice", function()
+    for _, saved in ipairs { "schedule", "sun", "system" } do
+      load { lule = lule_made("light"), appearance = { mode = saved } }
+      test.eq(test.ipc("l_chosen"), "auto")
+      test.eq(test.ipc("l_mode"), "light", saved .. " did not stand by Lule")
+    end
   end)
 
-  test.it("finds the sun through eva-nightlight and keeps it in local time", function()
-    test.stub_run("eva-nightlight", { code = 0, stdout = "sunrise 06:30\nsunset 16:45\n" })
-    load { appearance = { mode = "dark" } }
-    test.ipc("l_sun")
-    test.wait(function() test.advance(16) return test.ipc("l_pref", "sunrise") ~= "" end, 3000, "the sun was never found")
-    test.eq(test.ipc("l_local", "06:30", "+0100"), "07:30")
-    test.eq(test.ipc("l_local", "23:30", "+0100"), "00:30")
-    test.eq(test.ipc("l_local", "00:30", "-0200"), "22:30")
-  end)
-
-  test.it("holds a snooze, then resumes", function()
-    load { clock = "12:00", appearance = { mode = "schedule" } }
-    test.eq(test.ipc("l_mode"), "light")
-    test.ipc("l_snooze", "dark", 3600)
-    test.advance(16)
-    test.eq(test.ipc("l_mode"), "dark")
-    test.ipc("l_snooze", "dark", -1)
-    test.advance(16)
-    test.eq(test.ipc("l_mode"), "light", "the choice did not resume")
-  end)
-
-  test.it("refuses a schedule it cannot read, and lets a preview override", function()
+  test.it("lets a preview override", function()
     load { forced = "light", appearance = { mode = "dark" } }
     test.eq(test.ipc("l_mode"), "light")
-    test.falsy(test.ipc("l_schedule", "late", "19:00"))
-    test.truthy(test.ipc("l_schedule", "06:30", "21:00"))
   end)
 
-  test.it("offers every mode on the Theme page and says what it is doing", function()
+  test.it("is a switch on the Theme page, beside Lule", function()
     for _, style in ipairs { "material", "tsugumori" } do
-      load { style = style, clock = "12:00", appearance = { mode = "schedule" } }
+      load { style = style, appearance = { mode = "dark" } }
       test.ipc("settings", "theme") test.settle(2500)
-      test.truthy(test.find { id = "settings-theme-light-from", visible = true }, "no schedule fields")
-      test.truthy(test.find { id = "settings-theme-snooze", visible = true }, "no snooze")
-      test.click("settings-theme-mode-system") test.settle(300)
-      test.eq(test.ipc("l_chosen"), "system")
-      test.falsy(test.find { id = "settings-theme-light-from", visible = true }, "the schedule stayed")
+      test.truthy(test.find { id = "settings-theme-mode", visible = true }, "no Dark mode row")
+      test.truthy(test.find { id = "settings-theme-lule", visible = true }, "no Lule row")
+      test.click("utilities-toggle-theme-mode") test.settle(300)
+      test.eq(test.ipc("l_chosen"), "light")
+      test.eq(test.ipc("l_mode"), "light")
+      test.click("utilities-toggle-theme-mode") test.settle(300)
+      test.eq(test.ipc("l_chosen"), "dark")
       test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
     end
   end)
@@ -160,14 +134,6 @@ test.describe("the rest of the desktop", function()
     test.truthy(text:find("gsettings set org.gnome.desktop.interface cursor-size 32", 1, true))
     test.truthy(text:find("gsettings set org.gnome.desktop.interface icon-theme Papirus", 1, true))
     test.truthy(text:find("hyprctl setcursor Bibata 32", 1, true))
-  end)
-
-  test.it("leaves the desktop's own scheme alone while following it", function()
-    load {}
-    local plan = test.ipc("l_plan", { mode = "dark", system = true })
-    for _, argv in ipairs(plan.commands) do
-      test.falsy(table.concat(argv, " "):find("color-scheme", 1, true), "it would fight the desktop")
-    end
   end)
 
   test.it("keeps every other line of a settings file", function()

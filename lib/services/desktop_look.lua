@@ -57,9 +57,8 @@ function M.qt_palette(colors)
 end
 
 --- What syncing `want` takes: `{ commands, edits, writes }`. `want` may hold
---- `mode`, `system` (true: the desktop already chose, so leave its setting),
---- `icon_theme`, `cursor_theme`, `cursor_size`, `gtk_theme`, `colors` (Qt's
---- roles, hex).
+--- `mode`, `icon_theme`, `cursor_theme`, `cursor_size`, `gtk_theme`, `colors`
+--- (Qt's roles, hex).
 function M.plan(want)
   local plan = { commands = {}, edits = {}, writes = {} }
   local function set(key, value)
@@ -71,7 +70,7 @@ function M.plan(want)
     edit(plan, gtk4, "Settings", key, value)
   end
   if want.mode then
-    if not want.system then set("color-scheme", want.mode == "dark" and "prefer-dark" or "prefer-light") end
+    set("color-scheme", want.mode == "dark" and "prefer-dark" or "prefer-light")
     gtk("gtk-application-prefer-dark-theme", want.mode == "dark" and 1 or 0)
   end
   if want.gtk_theme and want.gtk_theme ~= "" then

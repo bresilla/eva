@@ -6,61 +6,18 @@ local kit=require("kit")
 local P=require("themes.layouts.page")
 local C=theme.color
 local V={WIDTH=430,RADIUS=15}
---- The Theme page: auto, dark or light, and Lule one page in.
+--- The Theme page: dark or light, and Lule one page in.
 function V.theme_page(model,w,h)
   local mode=require("themes.color_mode")
+  local function dark() return require("appearance_model").mode()~="light" end
   local inner=P.inner(w)
-  local function buttons(id,list)
-    local row={id=id,width=inner}
-    for _,choice in ipairs(list) do
-      row[#row+1]={id="settings-theme-mode-"..choice[1],label=choice[2],icon=choice[3],
-        group="settings-theme-mode",selected=function() return mode.chosen()==choice[1] end,
-        on_clicked=function() mode.set(choice[1]) end}
-    end
-    return P.buttons(row)
-  end
-  local prefs=require("themes").preferences
-  local function clock(id,key,other,light)
-    local node,handle=kit.text_field("entry",{id=id,x=theme.space.s,y=theme.space.xs,
-      width=math.floor(inner/2)-theme.space.xxl,height=P.BUTTON_H-2*theme.space.xs,
-      font_family=theme.font,font_size=theme.size.small,placeholder="07:00",
-      color=function() return C.onSurface end,placeholder_color=function() return C.onSurfaceVariant end,
-      caret_color=function() return C.primary end,selection_color=function() return C.primary:alpha(0.25) end,
-      on_accepted=function(value)
-        if light then mode.set_schedule(value,prefs.get(other)) else mode.set_schedule(prefs.get(other),value) end
-      end})
-    local box=kit.surface {width=math.floor(inner/2)-theme.space.xs,height=P.BUTTON_H,radius=kit.round(theme.space.m),
-      color=function() return C.surfaceContainerHighest end,node}
-    morf.effect("eva.theme.clock."..id,function() handle.text=prefs.get(key) end,{owner=box})
-    return box
-  end
-  local function until_next() return mode.chosen()=="schedule" or mode.chosen()=="sun" end
-  local function note()
-    local chosen=mode.chosen()
-    local held=mode.snoozed()
-    if held then return "Holding "..held.." for now" end
-    if chosen=="sun" then
-      local rise,set=prefs.get("sunrise"),prefs.get("sunset")
-      return rise~="" and ("Light at "..rise..", dark at "..set) or "Looking for the sun at the weather's place"
-    end
-    if chosen=="system" then return "Following the desktop: "..tostring(morf.prefers and morf.prefers.color_scheme or "none") end
-    if chosen=="schedule" then return "Light at "..prefs.get("light_from")..", dark at "..prefs.get("dark_from") end
-    return chosen=="auto" and "As the colour tool made it" or "Always "..chosen
-  end
   return P.page {id="settings-theme-scroll",width=w,height=h,
     P.section {id="settings-theme",width=w,title="Appearance",
-      buttons("settings-theme-modes",{{"auto","Auto","brightness_auto"},{"dark","Dark","dark_mode"},{"light","Light","light_mode"}}),
-      buttons("settings-theme-timed",{{"schedule","Clock","schedule"},{"sun","Sun","wb_twilight"},{"system","System","computer"}}),
-      kit.subtitle {id="settings-theme-note",width=inner,font_size=theme.size.small,color=kit.ink("lo"),text=note},
-      ui.Row {id="settings-theme-times",gap=theme.space.s,visible=function() return mode.chosen()=="schedule" end,
-        clock("settings-theme-light-from","light_from","dark_from",true),
-        clock("settings-theme-dark-from","dark_from","light_from",false)},
-      P.button {id="settings-theme-snooze",icon="snooze",width=inner,visible=until_next,
-        label=function() return mode.snoozed() and "Back to the schedule" or "Hold this mode for an hour" end,
-        on_clicked=function()
-          if mode.snoozed() then mode.set(mode.chosen())
-          else mode.snooze(mode.resolve(require("appearance_model").tool_mode()),3600) end
-        end},
+      P.row {id="settings-theme-mode",width=inner,icon=function() return dark() and "dark_mode" or "light_mode" end,
+        title="Dark mode",
+        subtitle=function() return dark() and "The shell in dark colours" or "The shell in light colours" end,
+        trailing=P.switch {id="utilities-toggle-theme-mode",name="Dark mode",on=dark,
+          on_toggled=function(on) mode.set(on and "dark" or "light") end}},
       P.row {id="settings-theme-lule",width=inner,icon="palette",title="Lule",
         subtitle="Wallpaper, colours, the shell's theme and font",trailing=P.chevron(),
         on_clicked=function() model.request("theme/lule") end},

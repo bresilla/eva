@@ -52,19 +52,19 @@ function M.step(delta)
   M.view:set(M.VIEWS[(at - 1 + delta) % #M.VIEWS + 1][1])
 end
 
+-- The light part of the day, in minutes.
+local DAWN, DUSK = 7 * 60, 19 * 60
+
 --- Whether it is the dark part of the day, for a dim red face.
 function M.night()
   if M.night_asked:get() then return true end
-  local mode = require("themes.color_mode")
-  local kept = require("themes").preferences
-  local now = mode.minutes(morf.env("EVA_FAKE_CLOCK"))
-  if not now then
+  local hour, minute = tostring(morf.env("EVA_FAKE_CLOCK") or ""):match("^(%d%d?):(%d%d)$")
+  if not hour then
     morf.time.minute_clock:get()
-    now = (tonumber(morf.time.format("%H")) or 0) * 60 + (tonumber(morf.time.format("%M")) or 0)
+    hour, minute = morf.time.format("%H"), morf.time.format("%M")
   end
-  local from, to = mode.minutes(kept.get("light_from")), mode.minutes(kept.get("dark_from"))
-  if not from or not to then return false end
-  return mode.by_clock(now, from, to) == "dark"
+  local now = (tonumber(hour) or 0) * 60 + (tonumber(minute) or 0)
+  return now < DAWN or now >= DUSK
 end
 
 --- The minutes and hours as a clock draws them.
