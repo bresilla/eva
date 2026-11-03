@@ -24,7 +24,7 @@ cat > "$EVA_SCREEN_TIME" <<JSON
 JSON
 cat > "$EVA_SETTINGS" <<JSON
 { "lule": { "folder": "$WALLS" },
-  "wallpaper": { "draw": true },
+  "wallpaper": { "draw": true, "path": "$WALLS/dusk.png" },
   "launcher": { "hidden": ["see-Maps"],
     "folders": [ { "name": "Work", "apps": ["see-Editor", "see-Notes", "see-Mail"] } ] },
   "wellbeing": { "limits": [ { "app": "see-Browser", "minutes": 60 } ],
@@ -51,7 +51,6 @@ SCRIPT
 chmod +x "$STANDINS/flatpak" "$STANDINS/nix"
 export PATH="$STANDINS:$PATH"
 start shell
-ipc wallpaper set "$WALLS/dusk.png"
 pause 2.5
 ipc launcher open; pause 2; shot grid
 ipc launcher query "> get chess"; pause 1.5; shot get

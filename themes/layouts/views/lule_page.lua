@@ -213,8 +213,6 @@ function M.build(state, width)
       selected = function() return not generating() end, on_clicked = function() state.set_source("files") end },
     { id = "lule-source-generate", label = "Generate", group = "lule-source",
       selected = generating, on_clicked = function() state.set_source("generate") end },
-    { id = "lule-open-picker", label = "Grid", icon = "grid_view",
-      on_clicked = function() require("utilities").request("theme/wallpaper") end },
   })
   local source_h = 3 * BH + 2 * ROW
   local wallpaper_items = BH + PV + 22 + source_h + 3 * ROW

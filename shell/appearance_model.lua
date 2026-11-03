@@ -75,11 +75,17 @@ function M.wanted()
     icon_theme = config.get("appearance.icon_theme"), gtk_theme = config.get("appearance.gtk_theme") }
 end
 
+-- Whether Lule can make the colours here.
+local function can_color()
+  local dry = morf.env("EVA_DRY_RUN")
+  if dry and dry ~= "" and dry ~= "0" then return false end
+  return require("services").installed("lule") == true
+end
+
 --- The terminals' colours, Lule's way: Lule makes them again in the mode.
 local function push_terminals(mode)
-  local model = require("wallpaper_model")
   local studio = require("lule_studio")
-  if color_mode.chosen() ~= "auto" and studio.scheme:get() and model.can_color() and (studio.scheme:get().theme ~= mode) then
+  if color_mode.chosen() ~= "auto" and studio.scheme:get() and can_color() and (studio.scheme:get().theme ~= mode) then
     studio.mode:set(mode)
     studio.apply()
   end

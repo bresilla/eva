@@ -394,7 +394,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("utilities-more-theme") test.settle(2500)
     local detail=test.get("drawer-sidebar")
     test.truthy(detail.height<full,"the detail kept the dead area")
-    local last=test.get("settings-theme-wallpaper")
+    local last=test.get("settings-theme-lule")
     test.truthy(last.y+last.height<=detail.y+detail.height,"the sheet cuts the detail")
     test.click("settings-back") test.settle(2500)
     test.near(test.get("drawer-sidebar").height,sheet.height,1)

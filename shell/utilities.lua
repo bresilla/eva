@@ -44,7 +44,6 @@ local builders={
   filters=function(w,h) return require("themes").view("quick_pages").filters_page(M,w,h) end,
   sounds=function(w,h) return require("themes").view("quick_pages").sounds_page(M,w,h) end,
   ["theme/lule"]=function(w,h) return require("lule_page").build(w,h) end,
-  ["theme/wallpaper"]=function(w,h) return require("wallpaper_page").build(w,h) end,
 }
 local function active(key) return require("presentation").active("settings."..key) end
 local function with_request(model) model.request=M.request return model end

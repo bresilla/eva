@@ -257,8 +257,17 @@ function M.app_of(class)
   return entry and entry.id or class
 end
 
+-- The session's lock hint, which the lock sets, from logind. EVA_FAKE_LOCKED
+-- stands in for it.
+local login
 local function locked()
-  local ok, is = pcall(function() return require("wallpaper_model").locked() end)
+  local fake = morf.env("EVA_FAKE_LOCKED")
+  if fake and fake ~= "" then return fake == "1" end
+  if login == nil then
+    local made, session = pcall(function() return require("lib.services.logind").connect() end)
+    login = made and session or false
+  end
+  local ok, is = pcall(function() return login and login.state.session.locked end)
   return ok and is == true
 end
 

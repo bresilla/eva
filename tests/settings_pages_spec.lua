@@ -25,7 +25,7 @@ local PAGES = {
   { "bluetooth", "Pixel Buds Pro" }, { "displays", "eDP-1 · 2560×1600 at 60 Hz · 150%" }, { "sound", "Built-in speakers" },
   { "sound/more", "LDAC" }, { "microphone", "Built-in microphone" }, { "input", "English (US)" }, { "input/pointer", "Pointer speed" },
   { "input/devices", "logitech-mx-master-3" }, { "power", "Lid and power button" }, { "storage", "PHOTOS" }, { "printers", "office · Default" },
-  { "theme/wallpaper", "Options" }, { "accessibility", "Sticky keys" }, { "bar/more", "Corner reach" },
+  { "accessibility", "Sticky keys" }, { "bar/more", "Corner reach" },
   { "launcher", "Action prefix" }, { "rail", "Show the rail" }, { "panels", "Drag a page to its panel" }, { "capture", "Upload address" },
   { "keyboard", "Up by itself" }, { "weather", "Imperial units" }, { "commands", "Log out" }, { "apps", "Firefox" },
   { "startup", "Syncthing" }, { "datetime", "Europe/Amsterdam" }, { "region", "en_US.UTF-8" }, { "users", "Kate Nowak" },

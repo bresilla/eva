@@ -1,14 +1,11 @@
-# The island out of the frame at rest and open, and a colour scheme.
+# The island out of the frame at rest and open.
 export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
 WALLS=$SEE_EVA/tests/fixtures/wallpapers
 cat > "$EVA_SETTINGS" <<JSON
-{ "theme": { "source": "catppuccin" },
-  "island": { "enabled": true },
-  "wallpaper": { "draw": true } }
+{ "island": { "enabled": true },
+  "wallpaper": { "draw": true, "path": "$WALLS/lagoon.png" } }
 JSON
 start shell
 pause 3
-ipc wallpaper set "$WALLS/lagoon.png"
-pause 2.5
 shot rest
 ipc island toggle; pause 1; shot open

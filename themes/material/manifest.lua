@@ -52,7 +52,6 @@ return {
     notes = "themes.layouts.views.notes",
     linked_phone = "themes.layouts.views.linked_phone",
     lule_page = "themes.layouts.views.lule_page",
-    wallpaper_page = "themes.layouts.views.wallpaper_page",
     desktop_faces = "themes.layouts.views.desktop_faces",
     standby = "themes.layouts.views.standby",
     island = "themes.layouts.views.island",

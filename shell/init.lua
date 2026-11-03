@@ -327,12 +327,7 @@ morf.effect("eva.bar.reserve", function()
   morf.surface.reserve = frame_view.insets(bar.insets())
 end)
 
-wallpaper.open_layer()
-do
-  local pictures = require("wallpaper_model")
-  pictures.start()
-  pictures.watch_hook()
-end
+if config.get("wallpaper.draw") then wallpaper.open_layer() end
 require("standby").start()
 require("screen_time_model").start()
 
@@ -752,8 +747,6 @@ ipc.lule = function(how)
   local tty = require("terminal_colors").tty
   return tty and tty.path or "", theme.lule.accent:hex(), theme.color.primary:hex()
 end
--- `wallpaper [get|state|set PATH [OUTPUT]|next|previous|random|transition KIND|draw on|off]`.
-ipc.wallpaper = function(how, ...) return require("wallpaper_model").verb(how, ...) end
 -- `screen-time [status|today|bedtime on|off]`.
 ipc["screen-time"] = function(how, value) return require("screen_time_model").verb(how, value) end
 -- `island [on|off|toggle|next|state]`.

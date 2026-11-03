@@ -115,8 +115,6 @@ M.PAGES = {
     keywords = "appearance dark light mode auto colour color" },
   { key = "theme/lule", name = "Lule", icon = "colors", parent = "theme",
     keywords = "wallpaper colours font palette" },
-  { key = "theme/wallpaper", name = "Wallpaper", icon = "wallpaper", parent = "theme", category = "look",
-    summary = "Picture, transitions, slideshow", keywords = "background picture image draw slideshow transition per workspace" },
   { key = "nightlight", name = "Night light", icon = "nightlight", category = "look", summary = "Warmer colours",
     keywords = "blue light temperature warm evening hyprsunset" },
   { key = "filters", name = "Colour filters", icon = "filter_b_and_w", category = "look", summary = "Grey, inverted, dim, reading",

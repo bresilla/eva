@@ -1,27 +1,14 @@
--- What sits around the main features: parallax, the second picture and the glow,
--- the island, what the desktop says, and how quick and how fluid things are.
+-- What sits around the main features: the island, what the desktop says, and
+-- how quick and how fluid things are.
 --
 --     morf test --no-dbus tests/look_extras_spec.lua
 local test = morf.test
-local ROOT = morf.fs.join(morf.env("PWD") or ".", "tests/fixtures/wallpapers")
-local function picture(name) return ROOT .. "/" .. name .. ".png" end
 
 local SOURCE = [[
   local reloads = 0
   local reload = morf.reload
   morf.reload = function() reloads = reloads + 1 end
   morf.ipc.x_reloads = function() return reloads end
-  local ui = require("morf.ui")
-  local nodes = {}
-  for _, name in ipairs { "Item", "Rect" } do
-    local make = ui[name]
-    ui[name] = function(props)
-      local node = make(props)
-      if props.id then nodes[props.id] = node end
-      return node
-    end
-  end
-  morf.ipc.x_prop = function(id, property) return nodes[id] and nodes[id][property] end
   require("init")
   local config = require("config")
   local theme = require("theme")
@@ -30,7 +17,6 @@ local SOURCE = [[
   morf.ipc.x_get = function(key) return config.get(key) end
   morf.ipc.x_stretch = function() return theme.stretch and theme.stretch.drawer and theme.stretch.drawer.scale end
   morf.ipc.x_stiffness = function(name) return theme.bounce[name].duration end
-  morf.ipc.x_pointer = function(x, y) require("wallpaper").pointer(x, y) end
   morf.ipc.x_mode = function() return appearance.mode() end
 ]]
 
@@ -58,49 +44,6 @@ local function load(spec)
   test.settle(1200)
   return env
 end
-
-test.describe("the picture", function()
-  test.it("slides across the workspaces by the parallax, on a spring", function()
-    load { settings = { wallpaper = { draw = true, path = picture("dune"), parallax = 0.2 } } }
-    test.near(test.get({ id = "wallpaper-plate" }).width, 1920, 1)
-    test.near(test.ipc("x_prop", "wallpaper-plate", "translate_x"), 0, 0.5)
-    test.ipc("workspace", 3) test.advance(48)
-    local moving = test.ipc("x_prop", "wallpaper-plate", "translate_x")
-    test.truthy(moving < 0 and moving > -160, "it jumped, or stayed: " .. tostring(moving))
-    test.settle(1500)
-    test.near(test.ipc("x_prop", "wallpaper-plate", "translate_x"), -160, 1)
-  end)
-
-  test.it("stands still without a parallax", function()
-    load { settings = { wallpaper = { draw = true, path = picture("dune") } } }
-    test.ipc("workspace", 3) test.settle(800)
-    test.near(test.get({ id = "wallpaper-plate" }).width, 1600, 1)
-    test.near(test.ipc("x_prop", "wallpaper-plate", "translate_x"), 0, 0.1)
-  end)
-
-  test.it("shows a second picture round the pointer", function()
-    load { settings = { wallpaper = { draw = true, path = picture("dune"), xray = picture("snow") } } }
-    test.truthy(test.find { id = "wallpaper-xray", visible = true }, "no second picture")
-    test.ipc("x_pointer", 500, 300) test.advance(16)
-    local hole = test.get { id = "wallpaper-xray-hole" }
-    test.near(hole.x, 360, 0.5)
-    test.near(hole.y, 160, 0.5)
-    test.move(700, 400, { surface = "eva-wallpaper" }) test.advance(16)
-    hole = test.get { id = "wallpaper-xray-hole" }
-    test.near(hole.x, 560, 0.5, "the hole does not follow the real pointer")
-    test.near(hole.y, 260, 0.5)
-    test.ipc("x_set", "wallpaper.xray", "") test.advance(16)
-    test.falsy(test.find { id = "wallpaper-xray", visible = true })
-  end)
-
-  test.it("carries a glow that is there only when asked", function()
-    load { settings = { wallpaper = { draw = true, path = picture("dune"), glow = true } } }
-    test.truthy(test.ipc("x_prop", "wallpaper-glow", "visible"))
-    test.ipc("x_set", "wallpaper.glow", false) test.advance(16)
-    test.falsy(test.ipc("x_prop", "wallpaper-glow", "visible"))
-    test.eq(#test.logs("error"), 0, table.concat(test.logs("error"), "\n"))
-  end)
-end)
 
 test.describe("the island", function()
   for _, style in ipairs { "material", "tsugumori" } do

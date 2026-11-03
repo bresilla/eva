@@ -1,6 +1,5 @@
--- StandBy's face: a great clock, the folder's pictures changing through the
--- shell's transitions, two stacks of widgets, eva-clock's cities, or the next
--- thing to ring. A swipe turns the view; a touch shows the way out. At night the
+-- StandBy's face: a great clock, the folder's pictures in turn, two stacks of
+-- widgets, eva-clock's cities, or the next thing to ring. A swipe turns the view; a touch shows the way out. At night the
 -- ink is a dim red, and everything drifts a little so nothing burns in.
 local morf = require("morf")
 local ui = require("morf.ui")
@@ -46,19 +45,18 @@ function V.build(model)
   end
 
   -- --------------------------------------------------------------- photos --
-  local photos = require("themes.wallpaper_swap").new { id = "standby-photo" }
+  local photo = morf.signal("eva.standby.photo", "")
   local index = 0
   local function next_photo()
-    local list = require("wallpaper_model").pictures()
+    local list = require("apps").wallpapers()
     if #list == 0 then return end
     index = index % #list + 1
-    local sw, sh = size()
-    photos.show(list[index], { kind = "random", width = sw, height = sh, time = 1600, soft = 40,
-      ease = theme.ease.emphasized, instant = config.get("appearance.reduce_motion") == true })
+    photo:set(list[index].path)
   end
   local photo_view = ui.Item { id = "standby-photos", anchors = { fill = true },
     visible = function() return model.view:get() == "photos" end,
-    photos.node,
+    ui.Image { id = "standby-photo", anchors = { fill = true }, fill_mode = "preserve_aspect_crop",
+      source = function() return photo:get() end },
     ui.Rect { anchors = { fill = true }, color = function() return model.night() and morf.color("#2a0000"):alpha(0.7) or "transparent" end },
   }
 

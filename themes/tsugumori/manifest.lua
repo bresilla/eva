@@ -4,7 +4,6 @@ return {
     keyboard = "themes.layouts.views.keyboard",
     call = "themes.layouts.views.call",
     lule_page = "themes.layouts.views.lule_page",
-    wallpaper_page = "themes.layouts.views.wallpaper_page",
     desktop_faces = "themes.layouts.views.desktop_faces",
     standby = "themes.layouts.views.standby",
     island = "themes.layouts.views.island",

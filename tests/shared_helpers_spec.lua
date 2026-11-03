@@ -109,7 +109,6 @@ test.it("no copy is left beside them", function()
     { "themes/layouts/auth/notifications.lua", "local function ago(" },
     { "shell/lule_studio.lua", "local function expand(" },
     { "shell/wallpaper.lua", "local function expand(" },
-    { "shell/wallpaper_model.lua", "local function expand(" },
     { "apps/screenshot/capture.lua", "local function expand(" },
     { "shell/workspaces_model.lua", "local function quoted(" },
     { "shell/bar_modules.lua", 'return text .. " " .. unit\n' },
