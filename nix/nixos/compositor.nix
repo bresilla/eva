@@ -61,6 +61,8 @@ let
     ${lib.optionalString seamless.enable "handoff.record(${builtins.toJSON seamless.outputsFile})"}
   '';
   desktop =pkgs.writeShellScriptBin "hyprland-session" ''
+    # The greeter's picture is the session's before anything reads the old one.
+    ${config.system.build.evaWallpaper}/bin/eva-wallpaper adopt >/dev/null 2>&1 || :
     exec ${pkgs.systemd}/bin/systemd-cat --identifier=hyprland -- \
       ${hyprland}/bin/start-hyprland -- --config /etc/xdg/hypr/session.lua "$@"
   '';
