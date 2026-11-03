@@ -90,6 +90,7 @@
           module = machine { };
           module-plain = machine { programs.eva.seamless.enable = false; };
           module-no-touch = machine { programs.eva.touch.enable = false; };
+          module-pointer = machine { programs.eva.touch.virtualPointer = true; };
           module-phone = machine {
             programs.eva.phone = {
               enable = true;

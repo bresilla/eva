@@ -106,6 +106,9 @@ editor is on screen. With no touchscreen, or no libinput, nothing runs.
 
 On NixOS `programs.eva.touch.enable` is on by default and adds libinput and a
 udev rule that gives the logged-in user the touchscreens and nothing else.
+`touch.virtualPointer`, on by default except on a phone, keeps a mouse that never
+moves attached: Hyprland sends a pen to the pointer's surface and has none
+without a mouse, so a pen would move the cursor and reach no app.
 Elsewhere, install libinput (`libinput-tools` on Debian and Ubuntu) and add the
 rule as `/etc/udev/rules.d/70-eva-touch.rules`:
 
