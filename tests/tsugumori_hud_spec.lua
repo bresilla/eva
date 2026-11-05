@@ -110,6 +110,45 @@ test.describe("tsugumori feedback", function()
   end)
 end)
 
+local function shell()
+  for _, program in ipairs { "systemctl", "loginctl" } do test.stub_run(program, { code = 0 }) end
+  test.load("../shell/init.lua", { size = { 1280, 800 }, env = env { EVA_WALLPAPER = "", EVA_FAKE_OSD = "1" } })
+  test.settle(1500)
+end
+local function ever(id, frames)
+  for _ = 1, frames or 40 do
+    test.advance(FRAME)
+    if shown(id) then return true end
+  end
+  return false
+end
+
+test.describe("tsugumori chrome in the shell", function()
+  test.it("traces a workspace change along the rail and leaves nothing up", function()
+    shell()
+    test.truthy(test.find { id = "tsugumori-frame-corners" }, "the frame has no corner reticles")
+    test.ipc("workspace", 4)
+    test.truthy(ever("rail-trace"), "the switch drew no trace")
+    test.truthy(at_rest())
+    test.truthy(hidden("rail-trace"))
+    test.truthy(hidden("rail-card-boot-scan"))
+    clean()
+  end)
+
+  test.it("locks onto the volume readout and the session's focus, and lets go on hiding", function()
+    shell()
+    test.ipc("osd", "volume")
+    test.truthy(ever("levels-bud-lock-boot-scan"), "the readout came up unmarked")
+    test.truthy(at_rest())
+    test.ipc("session", "open")
+    test.truthy(ever("session-lock-lock-boot-bracket-1", 60), "the focused row was not locked onto")
+    test.ipc("close") test.advance(1)
+    test.truthy(hidden("session-lock-lock-boot-bracket-1"), "the lock outlived the menu")
+    test.truthy(at_rest())
+    clean()
+  end)
+end)
+
 local BOOT = { "drawer-sample-boot-trace", "drawer-sample-boot-scan", "drawer-sample-boot-register" }
 
 test.describe("tsugumori drawer boot", function()

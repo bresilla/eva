@@ -102,6 +102,41 @@ function V.build(model)
     behavior = { x = hard, y = hard } },
     function() return center(model.active()) end), root)
 
+  -- A switch traces along the opening's lip from the old slot to the new:
+  -- the lead runs out, the tail follows it in, and it is gone.
+  local trace = ui.Rect { id = "rail-trace", color = function() return C.primary end, opacity = 0, visible = false }
+  if B then
+    trace.y, trace.height = function() return model.edge() - theme.BORDER + 1 end, 1
+  else
+    trace.x, trace.width = theme.LEFT - 2, 1
+  end
+  ui.reparent(trace, root)
+  local tracing
+  local along, span = B and "x" or "y", B and "width" or "height"
+  local function untrace()
+    if tracing then tracing:stop() tracing = nil end
+    trace.visible, trace.opacity = false, 0
+  end
+  local function trace_to(from, to)
+    untrace()
+    if from == to then return end
+    local a, b = center(from), center(to)
+    local low, length = math.min(a, b), math.abs(b - a)
+    trace[along], trace[span], trace.visible = a, 0, true
+    local grow = b > a and { { node = trace, property = span, to = length, duration = 170, easing = "out_expo" } }
+      or { { node = trace, property = along, to = low, duration = 170, easing = "out_expo" },
+        { node = trace, property = span, to = length, duration = 170, easing = "out_expo" } }
+    grow[#grow + 1] = { node = trace, property = "opacity", from = 0, to = 1, duration = 60 }
+    local settle = { { node = trace, property = span, to = 0, duration = 210, easing = "in_out_cubic" },
+      { node = trace, property = "opacity", duration = 210, keyframes = {
+        { at = 0, value = 1 }, { at = .6, value = .8 }, { at = 1, value = 0 } } } }
+    if b > a then settle[#settle + 1] = { node = trace, property = along, to = b, duration = 210,
+      easing = "in_out_cubic" } end
+    tracing = morf.animation.play { { parallel = grow }, { parallel = settle }, on_finished = function(reason)
+      if reason == "completed" then tracing = nil trace.visible = false end
+    end }
+  end
+
   -- -------------------------------------------------------------- card --
   local digits = kit.text { id = "rail-value", x = 12, y = 26, height = 36, font_size = 32,
     font_family = theme.font, font_weight = 300, morph = true,
@@ -170,12 +205,15 @@ function V.build(model)
   end
 
   local motion, hide
+  -- The card boots as it stands out: its outline traces in, a scan crosses it.
+  local boot = require("themes.tsugumori.boot")(theme).new(card, "rail-card",
+    { brackets = false, register = false, z = 10 })
   local function cancel()
     if hide then hide:cancel() hide = nil end
     if motion then motion:stop() motion = nil end
   end
   local function close(immediate)
-    cancel() shown:set(false)
+    cancel() shown:set(false) boot.stop()
     if immediate then
       card.visible, card.opacity, shape.opacity = false, 0, 0
       card[slide] = hidden()
@@ -188,7 +226,9 @@ function V.build(model)
     } }, on_finished = function(reason) if reason == "completed" then card.visible = false end end }
   end
   local function pop()
+    local fresh = not card.visible
     cancel() shown:set(true) card.visible = true
+    if fresh then boot.play(80) end
     motion = morf.animation.play { { parallel = {
       { node = card, property = slide, to = out(), duration = 340, easing = "out_expo" },
       { node = card, property = "opacity", to = 1, duration = 180 },
@@ -202,9 +242,13 @@ function V.build(model)
   local last = model.active()
   morf.effect("tsugumori.rail.follow", function()
     local id, on = model.active(), model.enabled()
-    local changed = id ~= last
+    local changed, before = id ~= last, last
     last = id
-    if not on then close(true) elseif changed then pop() end
+    if not on then close(true) untrace()
+    elseif changed then
+      pop()
+      if not require("themes.session").restoring then trace_to(before, id) end
+    end
   end, { owner = root })
   return { node = root, shape = shape }
 end
