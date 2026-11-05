@@ -705,7 +705,7 @@ morf.effect("eva.launcher.open", function()
     local waits = M.grid_on() and not keyboard_attached()
     view.focus(not waits)
     if not waits then M.bring_keyboard() end
-    -- It rests small while shut: it lands at its size, unstretched, as it opens.
+    -- It rests at its last size while shut: it lands at the new one, unstretched, as it opens.
     morf.time.timer(1, function()
       morf.animation.finish(M.drawer.panel, "height")
       morf.animation.finish(M.drawer.panel, "width")

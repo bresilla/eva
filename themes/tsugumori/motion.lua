@@ -130,6 +130,13 @@ return function(theme)
       pass.play(delay)
     end
   end
+  --- Rows already in a list coming in again as a new row would (`kit.enter`):
+  --- each steps in from the side and decodes in two flickers, a beat after
+  --- the one above. `nodes` top first; `opts.delay`. Returns the handles.
+  function M.rows(nodes, opts)
+    if require("themes.session").restoring then return {} end
+    return require("themes.kit_common").replay(nodes, require("kit").enter, (opts or {}).delay)
+  end
   function M.entries(entries, coming, opts)
     if require("themes.session").restoring then
       for _, entry in ipairs(entries) do
@@ -299,8 +306,10 @@ return function(theme)
         if axis.arrived() then next_phase() return end
         arrive=function() if generation==own then next_phase() end end
       end
+      if not opening then ctx.reveal(false) end
       if opening then travel(true,function()
         sweep(true,finish)
+        ctx.reveal(true)
         -- The boot pass overlaps the uncover's settle.
         if boot and not require("themes.session").restoring then
           boot.play(math.floor(REVEAL*cover*.35))
@@ -322,6 +331,7 @@ return function(theme)
       grab = function(from)
         panel.visible, content.opacity, d.shape.opacity = true, 1, 1
         out:set(true)
+        ctx.reveal(true)
         return axis.grab(from)
       end,
       drag = axis.drag,
@@ -329,6 +339,7 @@ return function(theme)
         out:set(d.open:get())
         axis.release(velocity, function()
           panel.visible = d.open:get()
+          ctx.reveal(d.open:get())
           done()
         end)
       end,

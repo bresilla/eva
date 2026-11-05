@@ -812,6 +812,14 @@ as a surface comes up (`lock(nil)` stops it). The OSD bud plays it as it
 shows and the session menu on the row the focus lands on; Material's draws
 nothing, so the layout is the same in both.
 
+A drawer's motion calls `ctx.reveal(true)` when its contents come into sight
+(Material as it starts to open, Tsugumori as its cover lifts, either under a
+finger); shutting clears it. `presentation.active("<name>.revealed")` reads
+it. `theme.motion.rows(nodes, opts)` brings rows already built in again the
+way `kit.enter` brings a new one, top first, and returns the handles; the
+launcher plays it on the rows in sight each time it is revealed and finishes
+the handles as it shuts.
+
 The controller owns which bud shows which kind, repeated-update timeout renewal
 and the hold under the pointer; the view owns interrupted animation handling.
 `shell/osd_model.lua` is the catalogue and preferences, `shell/osd_sources.lua`

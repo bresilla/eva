@@ -8,7 +8,8 @@
 -- with a concave fillet where the drawer's sides meet the frame.
 --
 -- The theme's motion owns the panel's travel (`theme.motion.drawer`): `move`
--- when it opens or shuts, and `grab`, `drag`, `release` and `stop` for a finger.
+-- when it opens or shuts, and `grab`, `drag`, `release` and `stop` for a finger;
+-- it calls `ctx.reveal(true)` once the contents show.
 
 local morf = require("morf")
 local ui = require("morf.ui")
@@ -161,15 +162,21 @@ function M.new(spec)
     end
   end
 
+  -- `<name>.revealed`: its contents in sight, from the moment the theme's
+  -- motion uncovers them (`ctx.reveal`) until it starts to shut.
+  local presentation = require("presentation")
+  local function reveal(on) presentation.set(spec.name .. ".revealed", on) end
+  reveal(d.open:get())
   local motion = theme.motion.drawer {
     panel = panel, spec = spec, drawer = d,
-    axis = axis, floating = floating, tucked = tucked,
+    axis = axis, floating = floating, tucked = tucked, reveal = reveal,
   }
 
   local was = d.open:get()
   morf.effect("eva.drawer." .. spec.name, function()
     local now = d.open:get()
-    require("presentation").set(spec.name, now)
+    presentation.set(spec.name, now)
+    if not now then reveal(false) end
     if now == was then return end
     was = now
     if not d.manual then motion.move(now) end

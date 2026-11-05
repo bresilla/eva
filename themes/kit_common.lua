@@ -141,4 +141,25 @@ function M.trim_number(v)
   return s
 end
 
+-- Where an entering node comes to rest, for each property a pose may name.
+local REST = { opacity = 1, scale = 1, scale_x = 1, scale_y = 1, translate_x = 0, translate_y = 0 }
+
+--- Plays each of `nodes` in from the `enter` pose `pose_of(k)` gives its
+--- place `k` (its properties, `duration`, `easing`, `delay`), `lead` ms
+--- after now. Returns the handles.
+function M.replay(nodes, pose_of, lead)
+  local handles = {}
+  for k, node in ipairs(nodes) do
+    local pose, steps = pose_of(k), {}
+    for property, from in pairs(pose) do
+      if REST[property] then
+        steps[#steps + 1] = { node = node, property = property, from = from, to = REST[property],
+          duration = pose.duration, easing = pose.easing, delay = (lead or 0) + (pose.delay or 0) }
+      end
+    end
+    if #steps > 0 then handles[#handles + 1] = morf.animation.play { { parallel = steps } } end
+  end
+  return handles
+end
+
 return M

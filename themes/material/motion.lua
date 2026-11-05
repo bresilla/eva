@@ -26,10 +26,14 @@ return function(theme)
     d.shape.blend = function() return theme.SEAM * shown() end
     panel.stretch = theme.stretch.drawer
     return {
-      move = function(opening) if opening then panel.visible = true end end,
+      move = function(opening)
+        if opening then panel.visible = true end
+        ctx.reveal(opening)
+      end,
       stop = axis.stop,
       grab = function(from)
         panel.visible = true
+        ctx.reveal(true)
         return axis.grab(from)
       end,
       drag = axis.drag, release = axis.release,
@@ -52,7 +56,11 @@ return function(theme)
       if claims.gone.presence:get() >= 1 and not open() then panel.visible = false end
     end, { owner = panel })
     local function idle() end
-    return { move = function(opening) if opening then panel.visible = true end end,
+    return {
+      move = function(opening)
+        if opening then panel.visible = true end
+        ctx.reveal(opening)
+      end,
       stop = idle, grab = idle, drag = idle, release = idle }
   end
 
@@ -69,6 +77,14 @@ return function(theme)
   --- A surface coming up, as a theme marks it: nothing here. `lock(delay)`
   --- would mark it, `lock(nil)` stop.
   function M.lock_on() return function() end end
+
+  --- Rows already in a list coming in again as a new row would (`kit.enter`):
+  --- each grows into place on the spatial curve a little after the one above.
+  --- `nodes` top first; `opts.delay`. Returns the handles.
+  function M.rows(nodes, opts)
+    if require("themes.session").restoring then return {} end
+    return require("themes.kit_common").replay(nodes, require("kit").enter, (opts or {}).delay)
+  end
 
   function M.entries(entries, coming, opts)
     if require("themes.session").restoring then
