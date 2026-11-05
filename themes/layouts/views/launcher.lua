@@ -514,7 +514,9 @@ function V.build(M)
       local y = scroll:get()
       list.height = view_height()
       list.width = gridded() and TILES or INNER
-      morf.sync_view(list, y)
+      -- Pulled past the top, the rows themselves run on down.
+      morf.sync_view(list, math.max(0, y))
+      list.translate_y = math.max(0, -y)
     end, { owner = list })
 
     -- Each opening brings the rows in sight in again, top first, once the
