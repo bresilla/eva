@@ -451,10 +451,15 @@ function V.build(M)
 
     -- ---------------------------------------------------------------- results --
 
+    -- It rises into place as the last result goes, and fades as one comes.
+    local function none() return M.count:get() == 0 end
     local empty = ui.Column {
       id = "launcher-empty",
       anchors = { center_in = true }, gap = 4, align = "center",
-      visible = function() return M.count:get() == 0 end,
+      opacity = function() return none() and 1 or 0 end,
+      translate_y = function() return none() and 0 or 6 end,
+      behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard },
+        translate_y = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel } },
       kit.icon("search_off", 30, function() return C.onSurfaceVariant end),
       kit.text { text = "Nothing matches", font_size = theme.size.normal, font_weight = 500,
         color = function() return C.onSurface end },
@@ -801,11 +806,17 @@ function V.build(M)
       on_key_released = M.release,
     }
     require("themes.kit.text_touch").attach(field)
+    -- It grows in with the first letter typed and out with the last.
+    local function has_query() return M.query:get() ~= "" end
     local clear = kit.action {
       id = "launcher-clear",
       width = 32, height = 32, cursor = "pointer",
       anchors = { right = true, right_margin = 8, vertical_center = true },
-      visible = function() return M.query:get() ~= "" end,
+      enabled = has_query,
+      opacity = function() return has_query() and 1 or 0 end,
+      scale = function() return has_query() and 1 or 0.6 end,
+      behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard },
+        scale = theme.spring.fast },
       on_clicked = function() field.text = "" M.query:set("") field.focus = true end,
       kit.icon("close", 18, function() return C.onSurfaceVariant end, { anchors = { center_in = true } }),
     }
