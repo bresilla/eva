@@ -38,11 +38,16 @@ function R.choice(spec)
   local ground = kit.state_surface { area = area, on = on, z = -1,
     height = type(spec.height) == "number" and spec.height or nil,
     tone = spec.tone == "primary" and "primary" or "secondary" }
-  ui.reparent(ground, area)
-  -- A row in a list is bare until hovered or chosen.
-  if not spec.tile then
-    ground.opacity = function() return (on() or area.hovered or area.pressed) and 1 or 0 end
+  if spec.tile then
+    ui.reparent(ground, area)
+    return area
   end
+  -- A row in a list is bare until hovered or chosen, its ground easing in.
+  local wash = ui.Item { anchors = { fill = true }, z = -1,
+    opacity = function() return (on() or area.hovered or area.pressed) and 1 or 0 end,
+    behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard } } }
+  ui.reparent(ground, wash)
+  ui.reparent(wash, area)
   return area
 end
 
