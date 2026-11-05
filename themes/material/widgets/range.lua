@@ -78,11 +78,16 @@ return function(S, theme, M)
       behavior={scale_x=theme.spring.press},
       color=function() return C().primary end},{x=function() return hx()-HW/2 end})
   end
-  --- M3's value bubble over the handle while it is held.
+  --- M3's value bubble over the handle while it is held: it grows up out of
+  --- the handle on the press spring and shrinks back into it.
   local function bubble(t, hx, cy, text)
+    local function held() return t.down or t.dragging end
     return ui.Rect { width = 48, height = 36, radius = 18, y = cy - HH / 2 - 42,
       x = function() return hx() - 24 end, color = function() return C().inverseSurface end,
-      visible = function() return t.down or t.dragging end,
+      transform_origin_y = 1, opacity = function() return held() and 1 or 0 end,
+      scale = function() return held() and 1 or 0.4 end,
+      behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard },
+        scale = theme.spring.press },
       readout { anchors = { fill = true }, height = 36, horizontal_alignment = "center",
         font_size = theme.size.normal, color = function() return C().inverseOnSurface end, text = text } }
   end

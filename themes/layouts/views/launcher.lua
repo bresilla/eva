@@ -672,12 +672,13 @@ function V.build(M)
     chips.y = TOP
     chips.visible = gridded
 
-    -- Quick look: beside the list where there is room, over it where not.
+    -- Quick look: beside the list where there is room, over it where not,
+    -- coming and going as the theme brings a dialog in place.
     local function pane_width() return pane_room() and PANE - PAD or INNER end
     local pane = preview_view.build(M, pane_width, view_height)
     pane.x = function() return pane_room() and WIDTH or PAD end
     pane.y = TOP
-    pane.visible = previewing
+    theme.motion.appear(pane, previewing, { id = "launcher-preview" })
 
 
     -- ----------------------------------------------------------------- legend --

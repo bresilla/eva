@@ -818,7 +818,10 @@ finger); shutting clears it. `presentation.active("<name>.revealed")` reads
 it. `theme.motion.rows(nodes, opts)` brings rows already built in again the
 way `kit.enter` brings a new one, top first, and returns the handles; the
 launcher plays it on the rows in sight each time it is revealed and finishes
-the handles as it shuts.
+the handles as it shuts, a kit menu on its items as it opens, and the Wi-Fi
+and Bluetooth lists on the rows a scan adds. `kit.leave()` is a row's `exit`,
+the way back of `kit.enter`; a list that can empty hides its repeater while
+empty, so its leaving rows do not stand in a column laid out to nothing.
 
 `theme.motion.appear(node, shown, opts)` brings a dialog in place (the window
 switcher, the snap picker) in and out by `shown`, a binding: it claims the

@@ -114,3 +114,21 @@ as visual references. It is drawn as a sibling above the clipped cover because
 the renderer can hide children of an animated cover beneath its fill. A narrow
 on-surface stroke leads a low-opacity wallpaper-secondary trail. Both are
 finite native tracks and disappear when the reveal finishes or reverses.
+
+## Motion across the shell
+
+Independent morf work, like the HUD chrome above; it reuses the pieces of
+that section and adds no running timer.
+
+- The drawer calls `ctx.reveal(true)` as its cover starts to lift, and the
+  curtain covers the panel's whole box, the height it grows to included,
+  from the first frame. `motion.rows` plays the row decode (`kit.enter`)
+  again on rows already built: the launcher's rows in sight on every
+  opening, a menu's items as it opens, scan results as they join a list.
+- `kit.leave` runs the decode out as a row leaves its list.
+- `motion.appear`: a dialog in place (window switcher, snap picker, the
+  launcher's quick look) unfolds from a band on an expo curve under a target
+  lock (`motion.lock_on`), and folds a step as it goes dark, drawn until it
+  has gone. Claims hold the pose, so a reversal goes on from where it stands.
+- Checkbox and menu checks register their block from the left in three hard
+  beats; switch, checkbox and radio frames ease their colour.
