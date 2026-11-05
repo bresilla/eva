@@ -12,6 +12,7 @@ return function(theme)
   local PAGE_COVER, REVEAL = 140, 220
   local COVER = 230
   local ENTRY_DELAY, ENTRY_MOVE, ENTRY_LEAVE, STAGGER = 180, 240, 120, 50
+  -- Each card's corner brackets, by card node (components.lua fills it).
   local card_marks = require("themes.tsugumori.marks")
   local OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
   -- The working panels whose ground carries the dot grid.

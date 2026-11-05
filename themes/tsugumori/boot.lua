@@ -120,7 +120,7 @@ return function(theme)
       local w, h = size()
       if w < 4 or h < 4 then
         hide()
-        -- A host made this turn is laid out by the next frame.
+        -- Tried again once, a frame on, when a host made this turn has its size.
         if not retried then
           waiting = morf.time.timer(16, function() waiting = nil P.play(math.max(0, delay - 16), true) end, false)
         end
