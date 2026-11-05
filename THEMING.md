@@ -820,6 +820,14 @@ way `kit.enter` brings a new one, top first, and returns the handles; the
 launcher plays it on the rows in sight each time it is revealed and finishes
 the handles as it shuts.
 
+`theme.motion.appear(node, shown, opts)` brings a dialog in place (the window
+switcher, the snap picker) in and out by `shown`, a binding: it claims the
+node's pose, so a reversal goes on from where it stands, and owns its
+`visible`, so it is drawn until it has gone. It returns `drawn()`. Material
+grows it about its centre as it fades; Tsugumori unfolds it from a band on an
+expo curve under a target lock (`opts.id` names it). Its controls should take
+input only while `shown`.
+
 The controller owns which bud shows which kind, repeated-update timeout renewal
 and the hold under the pointer; the view owns interrupted animation handling.
 `shell/osd_model.lua` is the catalogue and preferences, `shell/osd_sources.lua`

@@ -130,6 +130,32 @@ return function(theme)
       pass.play(delay)
     end
   end
+  --- A surface that comes and goes in place (a dialog in the middle of the
+  --- screen): it unfolds from a slim band on an expo curve as it lights, the
+  --- target-lock brackets close onto it, and it folds a step and goes dark
+  --- on the way out, drawn until it has gone. It owns `node`'s `opacity`,
+  --- `scale_y` and `visible`; `shown` is a binding; `opts.id` names the lock.
+  --- Returns `drawn()`, whether it is on screen at all.
+  function M.appear(node, shown, opts)
+    local claims = ui.claims(node, {
+      unfolded = { when = shown, motion = { duration = 300, easing = "out_expo" }, set = { scale_y = 1 } },
+      folded = { motion = { duration = 140, easing = "in_cubic" }, set = { scale_y = 0.9 } },
+      lit = { when = shown, motion = { duration = 120, easing = "out_cubic" }, set = { opacity = 1 } },
+      gone = { motion = { duration = 140, easing = "in_cubic" }, set = { opacity = 0 } },
+    })
+    local lock = M.lock_on(node, (opts and opts.id) or "appear")
+    local was = shown()
+    morf.effect("eva.appear." .. ((opts and opts.id) or tostring(node)), function()
+      local now = shown()
+      if now == was then return end
+      was = now
+      lock(now and 40 or nil)
+    end, { owner = node })
+    local function drawn() return shown() or claims.gone.presence:get() < 1 end
+    node.visible = drawn
+    return drawn
+  end
+
   --- Rows already in a list coming in again as a new row would (`kit.enter`):
   --- each steps in from the side and decodes in two flickers, a beat after
   --- the one above. `nodes` top first; `opts.delay`. Returns the handles.

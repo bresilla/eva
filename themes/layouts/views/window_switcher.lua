@@ -89,18 +89,16 @@ function V.build(model)
     x = function() return plate:get().x end, y = function() return plate:get().y end,
     width = function() return plate:get().width end, height = function() return plate:get().height end,
     accessible_role = "dialog", accessible_name = "Window switcher",
-    visible = function() return model.shown:get() end,
-    opacity = function() return model.shown:get() and 1 or 0 end,
-    scale = function() return model.shown:get() and 1 or .94 end,
-    behavior = { opacity = fade, scale = spatial },
     field,
     ui.Repeater { id = "switcher-cards", model = model.rows, delegate = delegate },
     marker,
-    ui.MouseArea { anchors = { fill = true }, z = -1,
+    ui.MouseArea { anchors = { fill = true }, z = -1, visible = function() return model.shown:get() end,
       on_wheel = function(_, _, _, _, _, step) model.wheel(step) end } }
+  -- It comes and goes as the theme brings a dialog in place, drawn until gone.
+  local drawn = theme.motion.appear(box, function() return model.shown:get() end, { id = "window-switcher" })
 
   local root = ui.Item { id = "window-switcher-root", anchors = { fill = true },
-    visible = function() return model.opened:get() end, box, keys,
+    visible = function() return model.opened:get() or drawn() end, box, keys,
     ui.MouseArea { anchors = { fill = true }, z = -1, visible = function() return model.shown:get() end,
       on_clicked = function() model.cancel() end } }
 

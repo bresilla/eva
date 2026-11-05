@@ -78,6 +78,23 @@ return function(theme)
   --- would mark it, `lock(nil)` stop.
   function M.lock_on() return function() end end
 
+  --- A surface that comes and goes in place (a dialog in the middle of the
+  --- screen): it grows about its centre on the spatial spring as it fades in,
+  --- and shrinks a touch as it fades out, drawn until it has gone. It owns
+  --- `node`'s `opacity`, `scale` and `visible`; `shown` is a binding. Returns
+  --- `drawn()`, whether it is on screen at all.
+  function M.appear(node, shown)
+    local claims = ui.claims(node, {
+      grown = { when = shown, motion = theme.spring.spatial, set = { scale = 1 } },
+      small = { motion = theme.spring.fast, set = { scale = 0.94 } },
+      lit = { when = shown, motion = theme.spring.effects, set = { opacity = 1 } },
+      gone = { motion = theme.spring.effects, set = { opacity = 0 } },
+    })
+    local function drawn() return shown() or claims.gone.presence:get() < 1 end
+    node.visible = drawn
+    return drawn
+  end
+
   --- Rows already in a list coming in again as a new row would (`kit.enter`):
   --- each grows into place on the spatial curve a little after the one above.
   --- `nodes` top first; `opts.delay`. Returns the handles.

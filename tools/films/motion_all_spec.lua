@@ -141,6 +141,17 @@ test.it("the readouts come and go", function()
   film("osd-leave", 10)
 end)
 
+test.it("the window switcher comes and goes", function()
+  load { EVA_FAKE_WINDOWS = [[{"focus":1,"clients":[
+    {"class":"kitty","title":"one","workspace":1}, {"class":"firefox","title":"web","workspace":1},
+    {"class":"code","title":"edit","workspace":2}]}]] }
+  test.ipc("switcher", "next")
+  film("switcher-open", 20, 25)
+  test.settle(800)
+  test.ipc("switcher", "cancel")
+  film("switcher-close", 12, 25)
+end)
+
 test.it("an interrupted drawer turns where it stands", function()
   load()
   test.ipc("sidebar", "open", "settings")
