@@ -52,5 +52,5 @@ return function(theme, host, id)
     ui.reparent(corner, cover)
   end
   ui.reparent(cover, host)
-  return cover
+  return cover, unit
 end

@@ -12,6 +12,13 @@ return function(theme)
   local PAGE_COVER, REVEAL = 140, 220
   local COVER = 230
   local ENTRY_DELAY, ENTRY_MOVE, ENTRY_LEAVE, STAGGER = 180, 240, 120, 50
+  -- The working panels whose ground carries the dot grid.
+  local GRID = { dashboard = true, sidebar = true, leftbar = true, bottom = true }
+  -- A corner mark's way in: held out, a hard step, an expo settle.
+  local function snap(from)
+    return { { at = 0, value = from }, { at = .24, value = from }, { at = .25, value = from * .4 },
+      { at = 1, value = 0, easing = "out_expo" } }
+  end
   function M.page_wipe(host, width, id)
     local cover = ui.Rect { id = id .. "-page-curtain", z = 90,
       anchors = { top = true, bottom = true }, x = 0, width = 0, visible = false,clip=true,
@@ -114,7 +121,11 @@ return function(theme)
   function M.drawer(ctx)
     local panel, content, d = ctx.panel, ctx.spec.content, ctx.drawer
     local id="drawer-" .. (d.name or "auth")
-    local curtain = require("themes.tsugumori.curtain")(theme, panel, id)
+    local curtain, unit = require("themes.tsugumori.curtain")(theme, panel, id)
+    -- The on-screen keyboard keeps its own look and motion: no boot, no grid.
+    local boot = d.name ~= "keyboard" and require("themes.tsugumori.boot")(theme).new(panel, id, {
+      brackets = false, words = ("%s %s // SYS LINK"):format(unit[3], unit[2]) }) or nil
+    if GRID[d.name] then require("themes.tsugumori.dots")(theme)(panel, id) end
     local glow=ui.Rect {id=id.."-reveal-glow",z=101,x=-12,width=16,
       anchors={top=true,bottom=true},color=function() return theme.color.secondary end,
       opacity=0,visible=false}
@@ -162,6 +173,7 @@ return function(theme)
       arrive = nil
       if running then running:stop() end
       if lock_motion then lock_motion:stop() lock_motion=nil end
+      if boot then boot.stop() end
       corner_a.visible,corner_b.visible,pip.visible=false,false,false
       corner_a.opacity,corner_b.opacity,pip.opacity=0,0,0
       if hidden then
@@ -181,10 +193,10 @@ return function(theme)
         if not opening then return end
         corner_a.visible,corner_b.visible,pip.visible=true,true,true
         lock_motion=morf.animation.play {{parallel={
-          {node=corner_a,property="translate_x",from=-7,to=0,duration=280,easing="out_cubic"},
-          {node=corner_a,property="translate_y",from=-7,to=0,duration=280,easing="out_cubic"},
-          {node=corner_b,property="translate_x",from=7,to=0,duration=280,easing="out_cubic"},
-          {node=corner_b,property="translate_y",from=7,to=0,duration=280,easing="out_cubic"},
+          {node=corner_a,property="translate_x",duration=280,keyframes=snap(-9)},
+          {node=corner_a,property="translate_y",duration=280,keyframes=snap(-9)},
+          {node=corner_b,property="translate_x",duration=280,keyframes=snap(9)},
+          {node=corner_b,property="translate_y",duration=280,keyframes=snap(9)},
           {node=corner_a,property="opacity",duration=360,keyframes={
             {at=0,value=0},{at=.18,value=.86},{at=.55,value=.56},{at=1,value=0}}},
           {node=corner_b,property="opacity",duration=360,keyframes={
@@ -224,7 +236,13 @@ return function(theme)
         if axis.arrived() then next_phase() return end
         arrive=function() if generation==own then next_phase() end end
       end
-      if opening then travel(true,function() sweep(true,finish) end)
+      if opening then travel(true,function()
+        sweep(true,finish)
+        -- The boot pass overlaps the uncover's settle.
+        if boot and not require("themes.session").restoring then
+          boot.play(math.floor(REVEAL*cover*.35))
+        end
+      end)
       else sweep(false,function() travel(false,finish) end) end
     end
     return {
@@ -235,6 +253,7 @@ return function(theme)
         axis.stop()
         if running then running:stop() running=nil end
         if lock_motion then lock_motion:stop() lock_motion=nil end
+        if boot then boot.stop() end
         for _, node in ipairs {curtain,glow,flash,corner_a,corner_b,pip} do node.visible=false end
       end,
       grab = function(from)
