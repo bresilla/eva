@@ -94,9 +94,10 @@ return function(theme)
       for _, node in ipairs(pieces()) do node.visible, node.opacity = false, 0 end
     end
 
-    local P = {}
+    local P, waiting = {}, nil
     --- Ends a pass: at once, or `soft`ly, its pieces fading out first.
     function P.stop(soft)
+      if waiting then waiting:cancel() waiting = nil end
       if running then running:stop() running = nil end
       if not (soft and nodes) then hide() return end
       local fades = {}
@@ -111,12 +112,20 @@ return function(theme)
       end }
     end
     --- One pass, `delay` ms from now.
-    function P.play(delay)
+    function P.play(delay, retried)
       if not nodes then build() end
+      if waiting then waiting:cancel() waiting = nil end
       if running then running:stop() running = nil end
       delay = delay or 0
       local w, h = size()
-      if w < 4 or h < 4 then hide() return end
+      if w < 4 or h < 4 then
+        hide()
+        -- A host made this turn is laid out by the next frame.
+        if not retried then
+          waiting = morf.time.timer(16, function() waiting = nil P.play(math.max(0, delay - 16), true) end, false)
+        end
+        return
+      end
       local tracks = {}
       local function add(t) t.delay = (t.delay or 0) + delay tracks[#tracks + 1] = t end
       if nodes.trace then

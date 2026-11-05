@@ -37,6 +37,13 @@ local function at_rest()
   end
   return false
 end
+local function ever(id, frames)
+  for _ = 1, frames or 40 do
+    test.advance(FRAME)
+    if shown(id) then return true end
+  end
+  return false
+end
 
 local CARDS = [[
   local ui = require("morf.ui")
@@ -144,17 +151,45 @@ test.describe("tsugumori meters", function()
   end)
 end)
 
+local POPUP = [[
+  local ui = require("morf.ui")
+  local kit = require("kit")
+  local root = ui.Item { width = 520, height = 400 }
+  local opener = kit.widgets.push { id = "opener", x = 20, y = 20, width = 100, height = 30, label = "Menu" }
+  ui.reparent(opener, root)
+  local menu = kit.widgets.menu { id = "menu", width = 200, items = { { label = "One" }, { label = "Two" } } }
+  morf.ipc.open = function() menu.open(opener) end
+  morf.ipc.close = function() menu.close("closed") end
+  morf.ipc.lock = function() return require("theme").motion.lock_on ~= nil end
+]]
+
+test.describe("tsugumori popups", function()
+  test.it("boot as a menu opens and let go as it closes", function()
+    test.load("../shell/init.lua", { source = POPUP, size = { 520, 400 }, env = env() })
+    test.advance(200)
+    test.ipc("open")
+    test.truthy(ever("popup-menu-boot-trace"), "the menu opened without booting")
+    test.ipc("close") test.advance(120)
+    test.truthy(hidden("popup-menu-boot-trace"))
+    test.truthy(at_rest())
+    clean()
+  end)
+
+  test.it("material keeps the lock-on hook and draws nothing with it", function()
+    test.load("../shell/init.lua", { source = POPUP, size = { 520, 400 }, env = env { EVA_STYLE = "material" } })
+    test.advance(200)
+    test.truthy(test.ipc("lock"), "material has no lock_on")
+    test.ipc("open")
+    test.advance(600)
+    test.eq(test.find { id = "popup-menu-boot-trace" }, nil)
+    clean()
+  end)
+end)
+
 local function shell()
   for _, program in ipairs { "systemctl", "loginctl" } do test.stub_run(program, { code = 0 }) end
   test.load("../shell/init.lua", { size = { 1280, 800 }, env = env { EVA_WALLPAPER = "", EVA_FAKE_OSD = "1" } })
   test.settle(1500)
-end
-local function ever(id, frames)
-  for _ = 1, frames or 40 do
-    test.advance(FRAME)
-    if shown(id) then return true end
-  end
-  return false
 end
 
 test.describe("tsugumori chrome in the shell", function()
