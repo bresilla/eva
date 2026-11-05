@@ -60,10 +60,15 @@ end
 
 --- What the last action said ("a password is needed"), under the list.
 local function status(id, model, w)
+  local function said() return (model.message:get() or "") ~= "" end
+  -- It fades in where it opens its line, and its colour turns with the news.
   local node = kit.subtitle { id = id, width = P.inner(w), wrap = true, font_size = P.SUB,
     text = function() return model.message:get() or "" end,
-    color = function() return model.failed:get() and theme.color.error or theme.color.onSurfaceVariant end }
-  node.visible = function() return (model.message:get() or "") ~= "" end
+    color = function() return model.failed:get() and theme.color.error or theme.color.onSurfaceVariant end,
+    opacity = function() return said() and 1 or 0 end,
+    behavior = { opacity = { duration = theme.duration.normal, easing = theme.ease.standard },
+      color = { duration = theme.duration.small } } }
+  node.visible = said
   return node
 end
 
