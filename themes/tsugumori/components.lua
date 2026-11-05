@@ -1461,6 +1461,11 @@ return function(theme)
     return { opacity = 0, translate_x = -8, duration = theme.duration.small, easing = DECODE,
       delay = math.min((index or 1) - 1, 8) * theme.stagger.step }
   end
+  --- How a list's row goes, as a node's `exit`: the decode run out, two
+  --- flickers and a step back to the side it came from.
+  function M.leave()
+    return { opacity = 0, translate_x = -8, duration = theme.duration.small, easing = DECODE }
+  end
   --- Makes `node` ride out with drawer `d`: tied to the panel's far edge on
   --- every frame (ui.follow), pushed `distance()` px at the end.
   function M.ride(name, node, d, distance)

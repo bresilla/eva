@@ -67,7 +67,7 @@ local function device_row(id_prefix, row, icon)
   local function chosen() local d = live() return d ~= nil and d.default == true end
   return rows.choice {
     id = id_prefix .. "-" .. math.floor(row.id), group = id_prefix,
-    width = INNER, height = P.ROW_H, on = chosen, enter = kit.enter(),
+    width = INNER, height = P.ROW_H, on = chosen, enter = kit.enter(), exit = kit.leave(),
     on_clicked = function() model.select_device(row) end,
     P.row { width = INNER, on = chosen, icon = icon,
       title = function() return name_of(live()) end,
@@ -150,7 +150,7 @@ end
 local function devices_section()
   return P.section { id = "sound-devices", caption_id = "sound-title-output-device", width = w, title = "Output device",
     ui.Repeater { as = "column", gap = P.ROW_GAP, width = INNER, model = model.devices,
-      visible = available,
+      visible = function() return available() and model.devices:len() > 0 end,
       delegate = function(row) return device_row("sound-sink", row, "speaker") end },
     nothing("speaker", function() return available() and "No outputs available" or "No sound server" end,
       function() return not available() or model.devices:len() == 0 end),
@@ -344,7 +344,8 @@ end
 
 local function inputs_section()
   return P.section { id = "sound-sources", width = w, title = "Input device",
-    ui.Repeater { as = "column", gap = P.ROW_GAP, width = INNER, model = model.devices, visible = available,
+    ui.Repeater { as = "column", gap = P.ROW_GAP, width = INNER, model = model.devices,
+      visible = function() return available() and model.devices:len() > 0 end,
       delegate = function(row)
         -- A monitor is an output's echo, not a microphone.
         if tostring(row.name or ""):match("%.monitor$") then

@@ -165,7 +165,7 @@ end
 --- A row: `id`, `width`, `icon` (a name or fn), `title`, `subtitle` (a
 --- string or fn), `trailing` (a node at the right), `on_clicked` (the
 --- whole row presses), `on` (fn: the icon lights while true), `height`,
---- `visible`.
+--- `visible`, `enter` and `exit` (`kit.enter()`, `kit.leave()`).
 function P.row(spec)
   local w, h = spec.width, spec.height or P.ROW_H
   local trailing = spec.trailing
@@ -183,7 +183,7 @@ function P.row(spec)
   local fixed = h
   h = function() return math.max(get(fixed), text.layout_height or 0) end
   local body = {
-    id = spec.id, width = w, height = h, enter = spec.enter,
+    id = spec.id, width = w, height = h, enter = spec.enter, exit = spec.exit,
     spec.icon and kit.icon(spec.icon, 22, function() return lit() and kit.ink("accent")() or kit.ink("lo")() end,
       { x = 14, anchors = { vertical_center = true } }) or nil,
     text,

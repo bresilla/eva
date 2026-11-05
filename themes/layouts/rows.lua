@@ -21,12 +21,12 @@ end
 --- colour, else the secondary container), `tile` (a raised tile when not
 --- chosen, else bare until hovered), `group` (choices with one name are a
 --- segmented choice: one chosen, the arrows walk them -- a kit Press
---- `segment` in an exclusive group), and children.
+--- `segment` in an exclusive group), `enter` and `exit`, and children.
 function R.choice(spec)
   local on = spec.on or function() return false end
   local props = { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = spec.height,
     anchors = spec.anchors, visible = spec.visible, cursor = "pointer", on_clicked = spec.on_clicked,
-    enter = spec.enter }
+    enter = spec.enter, exit = spec.exit }
   for _, child in ipairs(spec) do props[#props + 1] = child end
   local area
   if spec.group then

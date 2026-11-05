@@ -21,7 +21,7 @@ local function link_row(w, spec)
     }
   end
   local row = P.row { id = spec.id, width = P.inner(w), icon = spec.icon, on = spec.on, title = spec.name,
-    subtitle = spec.detail, trailing = trailing, enter = kit.enter() }
+    subtitle = spec.detail, trailing = trailing, enter = kit.enter(), exit = kit.leave() }
   if spec.visible then row.visible = spec.visible end
   return row
 end
@@ -47,6 +47,7 @@ end
 local function list(model, w, rows_model, none)
   return ui.Column { width = P.inner(w), gap = P.ROW_GAP,
     ui.Repeater { as = "column", gap = P.ROW_GAP, width = P.inner(w), model = rows_model,
+      visible = function() return rows_model:len() > 0 end,
       delegate = function(row) return entry(model, w, row) end },
     P.row { width = P.inner(w), icon = "info", on = function() return false end, title = none or "Nothing here",
       visible = function() return rows_model:len() == 0 end } }
