@@ -272,7 +272,8 @@ return function(theme)
   function M.code() return "" end
 
   --- A caption row across `width`: a registration pip, the caps text, a
-  --- hairline under the row and the note at its right.
+  --- hairline under the row with an accent lead at its start and a stop at
+  --- its end, and the note at its right.
   function M.caption(spec)
     local w = spec.width
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = 16,
@@ -282,6 +283,8 @@ return function(theme)
       spec.note and M.label { text = spec.note, anchors = { right = true }, y = 0, height = 14,
         horizontal_alignment = "right" } or nil,
       ui.Rect { y = 15, width = w, height = 1, color = M.stroke("quiet") },
+      ui.Rect { y = 14, width = 14, height = 2, color = spec.color or M.stroke("mark") },
+      ui.Rect { anchors = { right = true }, y = 12, width = 1, height = 4, color = M.stroke("mark") },
     }
   end
 
