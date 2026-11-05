@@ -688,7 +688,9 @@ a plain search reaches. Pages and tiles register themselves: anything added to
 `lib/shell/launcher/search_index.lua` takes an entry from anywhere else.
 
 `launcher apps` lists Flatpaks; Tab moves to the AppImages in
-`launcher.menus.appimages` (`/env/app` unless set) and back.
+`launcher.menus.appimages` (`/env/app` unless set) and back. Each AppImage shows
+the icon it carries, read once with `unsquashfs` (squashfs-tools) without running
+it and kept in the cache; without `unsquashfs` it keeps a plain glyph.
 `launcher web` lists browser history, bookmarks and search, and shows the pages of
 the `bookmark` tool's files when they are in `launcher.menus.bookmarks`. A person
 with their AppImages elsewhere and their own player sets, in the settings file:

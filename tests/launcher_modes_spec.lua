@@ -122,6 +122,29 @@ test.describe("the holes that were open", function()
     test.falsy(host.names()[1] == "Viewer", "Ctrl K did not list the actions")
   end)
 
+  test.it("gives an AppImage the icon it carries once read, the glyph until then", function()
+    local folder = morf.env("XDG_CACHE_HOME") .. "/icon-apps"
+    host.write(folder .. "/Painter-3.AppImage", "")
+    local icon = morf.env("XDG_CACHE_HOME") .. "/read/painter.png"
+    host.write(icon, morf.fs.read(morf.env("PWD") .. "/tests/fixtures/wallpaper.png"))
+    test.stub_run("flatpak", { code = 1 })
+    test.stub_run("sh", icon .. "\n")
+    host.load { settings = { launcher = { menus = { appimages = { folder } } } } }
+    test.ipc("launcher", "apps")
+    test.wait(function()
+      test.advance(16)
+      local row = test.ipc("rows")[1]
+      return row and row.icon == icon
+    end, 3000, "the AppImage kept the plain glyph")
+    test.eq(test.ipc("rows")[1].material, nil)
+  end)
+
+  test.it("reads an AppImage's icon without running it", function()
+    local source = morf.fs.read(morf.env("PWD") .. "/lib/shell/launcher/appimage_icons.lua")
+    test.truthy(source:find("unsquashfs", 1, true))
+    test.falsy(source:find('"$file" --appimage', 1, true))
+  end)
+
   test.it("reads AppImages from /env/app unless told otherwise", function()
     local source = morf.fs.read(morf.env("PWD") .. "/shell/config.lua")
     test.truthy(source:find('appimages = { "/env/app" }', 1, true))

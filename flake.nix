@@ -133,6 +133,7 @@
             pkgs.dbus
             # What the tools of apps/ call, for tools/see.sh's scenarios.
             pkgs.jq
+            pkgs.squashfsTools
             pkgs.wl-clipboard
             pkgs.tesseract
             pkgs.zbar

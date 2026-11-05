@@ -139,7 +139,8 @@ M.SHELL = [==[
     local out = {}
     for i = 1, launcher.results:len() do
       local entry = launcher.results:get(i)
-      out[i] = { kind = entry.kind, id = entry.id, name = entry.name, description = entry.description, tag = entry.tag,
+      out[i] = { kind = entry.kind, id = entry.id, name = entry.name, description = entry.description,
+        icon = entry.icon, material = entry.material, tag = entry.tag,
         key = entry.key, spans = entry.spans ~= nil, cells = entry.cells and #entry.cells or nil }
     end
     return out

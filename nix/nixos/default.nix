@@ -345,7 +345,8 @@ in
         wantedBy = [ "graphical-session.target" ];
         after = [ "graphical-session.target" ];
         partOf = [ "graphical-session.target" ];
-        path = [ "/run/current-system/sw" ];
+        # unsquashfs reads the icons AppImages carry, for the launcher.
+        path = [ "/run/current-system/sw" pkgs.squashfsTools ];
         environment.MORF_RUNTIME_PATH =
           lib.concatMapStringsSep ":" toString
             config.programs.eva.runtimePaths;

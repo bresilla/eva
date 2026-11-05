@@ -18,6 +18,7 @@ local config = require("config")
 local run = require("lib.shell.launcher.run")
 local rows = require("lib.shell.launcher.rows")
 local bookmarks = require("lib.shell.launcher.bookmarks")
+local appimage_icons = require("lib.shell.launcher.appimage_icons")
 
 local M = {}
 
@@ -97,11 +98,33 @@ function M.refresh_apps()
       for _, e in ipairs(entries) do
         local name = e.name or ""
         if e.is_file and name:lower():match("%.appimage$") then
-          list[#list + 1] = {
+          local row = {
             id = "appimage:" .. name, group = "appimage", name = (name:gsub("%.[Aa]pp[Ii]mage$", "")),
             description = dir .. "/" .. name, material = "deployed_code",
             argv = { dir .. "/" .. name },
           }
+          list[#list + 1] = row
+          -- Its own icon once read; the plain glyph until then.
+          local icon = appimage_icons.cached(row.argv[1])
+          if icon then
+            row.icon, row.material = icon, nil
+          elseif icon == nil then
+            appimage_icons.fetch(row.argv[1], function(found)
+              if not found then return end
+              row.icon, row.material = found, nil
+              local shown = {}
+              for i, r in ipairs(app_rows:get()) do
+                if r.id == row.id then
+                  local copy = {}
+                  for k, v in pairs(r) do copy[k] = v end
+                  copy.icon, copy.material = found, nil
+                  r = copy
+                end
+                shown[i] = r
+              end
+              app_rows:set(shown)
+            end)
+          end
         end
       end
     end
