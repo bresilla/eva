@@ -342,17 +342,17 @@ return function(theme)
     SERIALS[k] = table.concat(out)
     return SERIALS[k]
   end
-  local function card_chrome()
+  local function card_chrome(props)
     serial_count = serial_count + 1
     local quiet, idle = hud().line("quiet"), hud().line("idle")
-    return ui.Item { anchors = { fill = true },
+    for _, node in ipairs {
       ui.Path { anchors = { right = true, bottom = true, right_margin = 18, bottom_margin = 1 }, width = 41, height = 4,
         view_box = { 0, 0, 41, 4 }, d = RULER, fill_color = "transparent", stroke_color = quiet, stroke_width = 1 },
       ui.Path { anchors = { right = true, top = true, right_margin = 18, top_margin = 4 }, width = 24, height = 3,
         view_box = { 0, 0, 24, 3 }, d = serial_d(serial_count % 8), fill_color = quiet },
       ui.Rect { anchors = { left = true, vertical_center = true }, width = 4, height = 1, color = idle },
       ui.Rect { anchors = { right = true, vertical_center = true }, width = 4, height = 1, color = idle },
-    }
+    } do props[#props + 1] = node end
   end
   function M.card(props)
     props.radius = 0
@@ -364,7 +364,7 @@ return function(theme)
     }
     local corners, marks = hud().marked { length = 12, color = hud().line("hot") }
     props[#props + 1] = corners
-    props[#props + 1] = card_chrome()
+    card_chrome(props)
     if not collector then
       local node = ui.Rect(props)
       card_marks[node] = marks
