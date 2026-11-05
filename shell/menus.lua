@@ -1,7 +1,7 @@
 -- The launcher's other menus, opened over IPC so a key can bring either straight
 -- up: `launcher apps`, `launcher web`, and `eva dmenu`.
 --
---   apps     the Flatpak apps and the AppImages in the folders of
+--   apps     the Flatpak apps, and with Tab the AppImages in the folders of
 --            `launcher.menus.appimages`; Return starts one, detached
 --   web      history, bookmarks, search and the like; anything else typed opens
 --            as an address, or is searched on the first engine, in $BROWSER
@@ -42,6 +42,51 @@ local function tool_file(name) return rows.untilde(setting("bookmarks")) .. "/" 
 
 local app_rows = morf.signal("eva.menus.apps", {})
 
+-- The kinds the apps menu lists, one at a time, in the order Tab goes through.
+M.GROUPS = { { id = "flatpak", name = "Flatpak" }, { id = "appimage", name = "AppImages" } }
+M.group = morf.signal("eva.menus.group", M.GROUPS[1].id)
+
+local function filled(id)
+  for _, r in ipairs(app_rows:get()) do
+    if r.group == id then return true end
+  end
+  return false
+end
+
+--- The group on show: the chosen one while it has apps, else the first that has.
+function M.shown_group()
+  if filled(M.group:get()) then return M.group:get() end
+  for _, g in ipairs(M.GROUPS) do
+    if filled(g.id) then return g.id end
+  end
+  return M.group:get()
+end
+
+--- The name of the group on show.
+function M.group_name()
+  local id = M.shown_group()
+  for _, g in ipairs(M.GROUPS) do
+    if g.id == id then return g.name end
+  end
+  return "Apps"
+end
+
+--- The next group with apps, `delta` 1 or -1; true when it moved.
+function M.next_group(delta)
+  local at, count = 1, #M.GROUPS
+  for i, g in ipairs(M.GROUPS) do
+    if g.id == M.shown_group() then at = i end
+  end
+  for step = 1, count - 1 do
+    local g = M.GROUPS[(at - 1 + step * (delta or 1)) % count + 1]
+    if filled(g.id) then
+      M.group:set(g.id)
+      return true
+    end
+  end
+  return false
+end
+
 --- Reads the Flatpak apps and the AppImages afresh.
 function M.refresh_apps()
   local list = {}
@@ -53,7 +98,7 @@ function M.refresh_apps()
         local name = e.name or ""
         if e.is_file and name:lower():match("%.appimage$") then
           list[#list + 1] = {
-            id = "appimage:" .. name, name = (name:gsub("%.[Aa]pp[Ii]mage$", "")),
+            id = "appimage:" .. name, group = "appimage", name = (name:gsub("%.[Aa]pp[Ii]mage$", "")),
             description = dir .. "/" .. name, material = "deployed_code",
             argv = { dir .. "/" .. name },
           }
@@ -70,7 +115,7 @@ function M.refresh_apps()
       local id, name = line:match("^(%S+)\t(.*)$")
       if id then
         all[#all + 1] = {
-          id = "flatpak:" .. id, name = name ~= "" and name or id, description = id, icon = id,
+          id = "flatpak:" .. id, group = "flatpak", name = name ~= "" and name or id, description = id, icon = id,
           argv = { "flatpak", "run", id },
         }
       end
@@ -290,7 +335,11 @@ function M.search(query, limit)
   local source = M.source:get()
   local found
   if source == "apps" then
-    local list = fuzzy(app_rows:get(), query)
+    local shown, pool = M.shown_group(), {}
+    for _, r in ipairs(app_rows:get()) do
+      if r.group == shown then pool[#pool + 1] = r end
+    end
+    local list = fuzzy(pool, query)
     local out = {}
     for i = 1, math.min(#list, limit or #list) do
       local r = list[i]
@@ -315,7 +364,10 @@ function M.open(source)
   local before = M.source:get()
   if before == "dmenu" and source ~= "dmenu" then M.finish(nil) end
   M.source:set((source == "web" or source == "apps" or source == "dmenu") and source or "")
-  if M.source:get() == "apps" then M.refresh_apps() end
+  if M.source:get() == "apps" then
+    M.group:set(M.GROUPS[1].id)
+    M.refresh_apps()
+  end
 end
 
 --- Escape: back to the menu from a page (true), or nothing to go back to.

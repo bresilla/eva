@@ -95,6 +95,25 @@ test.describe("the holes that were open", function()
     test.truthy(host.logged("/my-images/Thing-1.2.AppImage"))
   end)
 
+  test.it("opens the apps menu on Flatpaks, and Tab goes to the AppImages and back", function()
+    local folder = morf.env("XDG_CACHE_HOME") .. "/env-app"
+    host.write(folder .. "/Tool-2.AppImage", "")
+    test.stub_run("flatpak", { code = 0, stdout = "org.example.Viewer\tViewer\n" })
+    host.load { settings = { launcher = { menus = { appimages = { folder } } } } }
+    test.ipc("launcher", "apps")
+    test.advance(300)
+    test.eq(host.names(), { "Viewer" })
+    test.key("Tab") test.advance(50)
+    test.eq(host.names(), { "Tool-2" })
+    test.key("Tab") test.advance(50)
+    test.eq(host.names(), { "Viewer" })
+  end)
+
+  test.it("reads AppImages from /env/app unless told otherwise", function()
+    local source = morf.fs.read(morf.env("PWD") .. "/shell/config.lua")
+    test.truthy(source:find('appimages = { "/env/app" }', 1, true))
+  end)
+
   test.it("plays a playlist with the player of the settings", function()
     local tool = morf.env("XDG_CACHE_HOME") .. "/marks"
     host.write(tool .. "/playmarks_v0.1.json", morf.json.encode { urls = { items = { { id = 1, name = "Song", url = "https://s" } } } })

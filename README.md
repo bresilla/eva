@@ -687,13 +687,14 @@ a plain search reaches. Pages and tiles register themselves: anything added to
 `settings_model.DETAILS` or `TOGGLES` is found as it stands, and
 `lib/shell/launcher/search_index.lua` takes an entry from anywhere else.
 
-`launcher apps` lists Flatpaks and the AppImages in `launcher.menus.appimages`.
+`launcher apps` lists Flatpaks; Tab moves to the AppImages in
+`launcher.menus.appimages` (`/env/app` unless set) and back.
 `launcher web` lists browser history, bookmarks and search, and shows the pages of
 the `bookmark` tool's files when they are in `launcher.menus.bookmarks`. A person
 with their AppImages elsewhere and their own player sets, in the settings file:
 
 ```json
-{ "launcher": { "menus": { "appimages": ["/env/app"], "player": ["~/.local/sbin/play"] } } }
+{ "launcher": { "menus": { "appimages": ["~/Applications"], "player": ["~/.local/sbin/play"] } } }
 ```
 
 `eva open launcher/timer` opens on a mode and `eva launcher query TEXT` with text

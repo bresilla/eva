@@ -588,6 +588,11 @@ function M.key(_, _, modifiers, _, key)
   if key == "Page_Up" or key == "Page_Down" then return choice.key(wide() and "" or key) end
   if key == "Tab" or key == "ISO_Left_Tab" then
     if ctrl then cycle(shift and -1 or 1) return true end
+    local menus = require("menus")
+    local back = shift or key == "ISO_Left_Tab"
+    if menus.source:get() == "apps" and M.acting:get() == "" and menus.next_group(back and -1 or 1) then
+      return true
+    end
     if not complete() then toggle_actions() end
     return true
   end
@@ -620,7 +625,7 @@ local MODE_NAMES = {
 local function mode_name()
   if M.acting:get() ~= "" then return "Actions", "bolt" end
   local menus = require("menus")
-  if menus.source:get() == "apps" then return "Apps", "apps" end
+  if menus.source:get() == "apps" then return menus.group_name(), "apps" end
   if menus.source:get() == "web" then return "Web", "language" end
   if menus.source:get() == "dmenu" then return menus.prompt(), "list" end
   if grid() then

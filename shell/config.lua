@@ -286,7 +286,7 @@ local config = settings.open {
       projects = { "~/code", "~/src", "~/projects" },
       -- What `launcher apps` and `launcher web` read.
       menus = {
-        appimages = { "~/Applications", "~/AppImages", "~/.local/share/AppImages" },
+        appimages = { "/env/app" },
         -- The `bookmark` tool's folder.
         bookmarks = "~/.local/share/bookmark",
         -- What plays a playlist's address.
