@@ -152,6 +152,18 @@ test.it("the window switcher comes and goes", function()
   film("switcher-close", 12, 25)
 end)
 
+test.it("the island opens and shuts", function()
+  local settings = morf.env("XDG_CACHE_HOME") .. "/island-film-settings.json"
+  morf.fs.write(settings, morf.json.encode { island = { enabled = true } })
+  load { EVA_SETTINGS = settings }
+  test.settle(1500)
+  test.ipc("island", "toggle")
+  film("island-open", 16, 25)
+  test.settle(800)
+  test.ipc("island", "toggle")
+  film("island-close", 16, 25)
+end)
+
 test.it("the controls turn on and off", function()
   local cache = morf.env("XDG_CACHE_HOME")
   test.load("../../shell/init.lua", { size = { 420, 90 }, source = [[
