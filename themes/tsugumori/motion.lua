@@ -19,12 +19,19 @@ return function(theme)
     return { { at = 0, value = from }, { at = .24, value = from }, { at = .25, value = from * .4 },
       { at = 1, value = 0, easing = "out_expo" } }
   end
+  -- The page cover in three bands, a step apart: a slice reveal.
+  local SLICES, SLICE_STEP = 3, 15
   function M.page_wipe(host, width, id)
-    local cover = ui.Rect { id = id .. "-page-curtain", z = 90,
-      anchors = { top = true, bottom = true }, x = 0, width = 0, visible = false,clip=true,
-      color=function() return theme.color.primary end,
-      require("themes.kit.widgets").shield { anchors = { fill = true } },
-    }
+    local function band(k, name)
+      local function top(i) return math.floor((host.layout_height or 0) * i / SLICES) end
+      return ui.Rect { id = id .. name, z = 90, x = 0, width = 0, visible = false, clip = true,
+        y = function() return top(k) end, height = function() return top(k + 1) - top(k) end,
+        color = function() return theme.color.primary end,
+        require("themes.kit.widgets").shield { anchors = { fill = true } },
+      }
+    end
+    local cover = band(1, "-page-curtain")
+    local bands = { band(0, "-page-slice-1"), cover, band(2, "-page-slice-3") }
     -- This stroke is a sibling of the cover: children of a clipped, animated
     -- rectangle are not reliably composited above its fill by the renderer.
     local glow = ui.Rect { id=id.."-page-glow",z=91,x=-12,width=16,
@@ -38,7 +45,7 @@ return function(theme)
       font_family=theme.font,font_size=12,letter_spacing=2,
       color=function() return theme.color.onPrimary end,
       text="",opacity=0,visible=false}
-    ui.reparent(cover, host)
+    for _, slice in ipairs(bands) do ui.reparent(slice, host) end
     ui.reparent(glow, host)
     ui.reparent(flash, host)
     ui.reparent(register,host)
@@ -50,24 +57,42 @@ return function(theme)
       flash.visible,flash.opacity,glow.visible,glow.opacity=false,0,false,0
       register.visible,register.opacity=false,0
       register.x=22
-      if immediate then cover.visible = false cover.width = 0 swap() return end
+      if immediate then
+        for _, slice in ipairs(bands) do slice.visible, slice.width = false, 0 end
+        swap() return
+      end
       if destination then
         register.text=("%02d / %s"):format(destination.index or 0,
           unicase.upper(tostring(destination.name or destination.key or id)))
       else register.text=("TS / %s"):format(unicase.upper(id)) end
       register.visible=true
-      cover.visible = true
-      running = morf.animation.play { { parallel = {
-        { node = cover, property = "x", to = 0, duration = PAGE_COVER, easing = "in_out_quint" },
-        { node = cover, property = "width", to = width(), duration = PAGE_COVER, easing = "in_out_quint" },
+      local covering = {
         { node = register, property = "opacity",from=0,to=.85,duration=PAGE_COVER,easing="out_cubic" },
-      } }, on_finished = function(reason)
+      }
+      local step_in = PAGE_COVER - (SLICES - 1) * SLICE_STEP
+      for k, slice in ipairs(bands) do
+        slice.visible = true
+        local delay = (k - 1) * SLICE_STEP
+        covering[#covering + 1] = { node = slice, property = "x", to = 0, delay = delay, duration = step_in,
+          easing = "in_out_quint" }
+        covering[#covering + 1] = { node = slice, property = "width", to = width(), delay = delay,
+          duration = step_in, easing = "in_out_quint" }
+      end
+      running = morf.animation.play { { parallel = covering }, on_finished = function(reason)
         if reason ~= "completed" or own ~= generation then return end
         swap()
         flash.x,flash.visible,glow.x,glow.visible=0,true,-12,true
+        local step_out = REVEAL - (SLICES - 1) * SLICE_STEP
+        local revealing = {}
+        for k, slice in ipairs(bands) do
+          local delay = (k - 1) * SLICE_STEP
+          revealing[#revealing + 1] = { node = slice, property = "x", to = width(), delay = delay,
+            duration = step_out, easing = "out_expo" }
+          revealing[#revealing + 1] = { node = slice, property = "width", to = 0, delay = delay,
+            duration = step_out, easing = "out_expo" }
+        end
         running = morf.animation.play { { parallel = {
-          { node = cover, property = "x", to = width(), duration = REVEAL, easing = "out_expo" },
-          { node = cover, property = "width", to = 0, duration = REVEAL, easing = "out_expo" },
+          { parallel = revealing },
           { node = register, property = "opacity",to=0,duration=100,easing="out_cubic" },
           { node = register, property = "x",to=width()+22,duration=REVEAL,easing="out_expo" },
           { node = flash, property = "x", to = width(), duration = REVEAL, easing = "out_expo" },
@@ -78,7 +103,8 @@ return function(theme)
             {at=0,value=0},{at=.12,value=.9},{at=.68,value=.72},{at=1,value=0} } },
         } }, on_finished = function(why)
           if why == "completed" and own == generation then
-            cover.visible,flash.visible,glow.visible,register.visible=false,false,false,false
+            for _, slice in ipairs(bands) do slice.visible = false end
+            flash.visible,glow.visible,register.visible=false,false,false
           end
         end }
       end }
