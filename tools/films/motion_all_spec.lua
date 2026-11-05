@@ -194,6 +194,7 @@ test.it("the controls turn on and off", function()
         w.radio { id = "film-radio", checked = checked },
         w.chip_filter { id = "film-chip", label = "Filter", checked = checked, width = 110, height = 32 } } }
   ]], env = { EVA_STYLE = morf.env("FILM_STYLE") or "tsugumori", EVA_FONT_FILE = "",
+    EVA_THEME_MODE = morf.env("FILM_MODE"), LULE_A = morf.env("FILM_LULE"),
     EVA_SETTINGS = cache .. "/controls-film-settings.json", EVA_APPEARANCE = cache .. "/controls-film-appearance.json" } })
   test.settle(500)
   test.ipc("flip")
@@ -217,6 +218,7 @@ test.it("a menu opens and its items come in", function()
     morf.ipc.menu = function(on) if on == "yes" then menu.open(anchor) else menu.close() end end
     return ui.Rect { width = 360, height = 300, color = function() return theme.color.surface end, anchor }
   ]], env = { EVA_STYLE = morf.env("FILM_STYLE") or "tsugumori", EVA_FONT_FILE = "",
+    EVA_THEME_MODE = morf.env("FILM_MODE"), LULE_A = morf.env("FILM_LULE"),
     EVA_SETTINGS = cache .. "/menu-film-settings.json", EVA_APPEARANCE = cache .. "/menu-film-appearance.json" } })
   test.settle(500)
   test.ipc("menu", "yes")
