@@ -94,7 +94,9 @@ local PRESS = [[
   morf.ipc.shift = function(id) return nodes[id] and nodes[id].translate_x end
   local kit = require("kit")
   ui.Item { width = 400, height = 300,
-    ui.Item { x = 100, y = 100, kit.pill { id = "hud-press", label = "Engage", width = 150 } } }
+    ui.Item { x = 100, y = 100, kit.pill { id = "hud-press", label = "Engage", width = 150 } },
+    kit.action { id = "eva.osk.key.full.letters.q", x = 20, y = 220, width = 40, height = 40, cursor = "pointer",
+      on_pressed = function() end } }
 ]]
 
 test.describe("tsugumori feedback", function()
@@ -113,6 +115,21 @@ test.describe("tsugumori feedback", function()
     test.truthy(at_rest())
     test.near(test.get("hud-press-scan").opacity, 0, .001)
     test.near(test.get("hud-press-mark-1").opacity, 0, .001)
+    clean()
+  end)
+
+  test.it("leaves an on-screen keyboard key's feedback as it was", function()
+    test.load("../shell/init.lua", { source = PRESS, size = { 400, 300 }, env = env() })
+    test.advance(50)
+    local key = "eva.osk.key.full.letters.q"
+    test.truthy(test.find { id = key }, "no key")
+    test.move(40, 240) test.advance(30)
+    -- A layout's area draws its feedback under the shared control name.
+    test.truthy(test.find { id = "tsugumori-control-wash" }, "the key drew no feedback")
+    local shift = test.ipc("shift", "tsugumori-control-mark-1")
+    test.truthy(shift <= 0 and shift >= -3, "the key's marks closed in from further out")
+    test.click(40, 240) test.advance(50)
+    test.eq(test.find { id = "tsugumori-control-scan" }, nil)
     clean()
   end)
 end)

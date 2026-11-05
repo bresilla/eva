@@ -14,7 +14,7 @@ local get, clamp01 = common.get, common.clamp01
 return function(theme)
   local M = {}
   local C = theme.color
-  local feedback = require("themes.tsugumori.interaction")(theme)
+  local feedback, _, keyed = require("themes.tsugumori.interaction")(theme)
   local stripes = require("themes.tsugumori.stripes")
   local hud_parts
   local function hud() hud_parts = hud_parts or require("themes.tsugumori.hud")(theme, M) return hud_parts end
@@ -560,7 +560,9 @@ return function(theme)
     for _,key in ipairs {"enter","exit"} do
       if type(props[key])=="table" then props[key].scale=nil end
     end
-    return feedback(require("themes.kit.widgets").area(props), props.id)
+    -- An on-screen keyboard's key keeps its plain feedback.
+    local plain = keyed(props.id) and { plain_feedback = true } or nil
+    return feedback(require("themes.kit.widgets").area(props, plain), props.id)
   end
   function M.tabbed(spec) return require("themes.tsugumori.tabbed")(theme, M, spec) end
   -- Tsugumori outlines: straight-edged, eight vertices each (repeated

@@ -14,10 +14,16 @@ return function(theme)
   local serial=0
   local MARK="M0 0 H7 V1.5 H1.5 V7 H0 Z"
 
+  --- Whether `id` names an on-screen keyboard's key.
+  local function keyed(id)
+    return type(id) == "string" and id:find("osk", 1, true) ~= nil and id:find(".key.", 1, true) ~= nil
+  end
   --- The pieces in `holder` from z `z`; `size()` gives the target's box.
-  --- Returns `react(over, down)`, to call whenever either changes.
-  local function pieces(holder, id, size, z)
+  --- `plain` (and a keyboard's key) keeps the plain feedback: no reticle,
+  --- no scan. Returns `react(over, down)`, to call whenever either changes.
+  local function pieces(holder, id, size, z, plain)
     z = z or 0
+    local key = plain or keyed(id)
     local wash=ui.Rect { id=id.."-wash",anchors={fill=true},z=z,
       color=function() return C.primary end,opacity=0,
       behavior={opacity={duration=140,easing="out_cubic"}} }
@@ -28,8 +34,8 @@ return function(theme)
       height=function() local _, h = size() return math.max(1,h) end,
       view_box={0,0,28,100},d="M20 0 H28 L8 100 H0 Z",
       fill_color=function() return C.primary end,opacity=0 }
-    local scan = ui.Rect { id=id.."-scan",anchors={left=true,right=true},height=1,
-      color=function() return C.primary end,opacity=0 }
+    local scan = not key and ui.Rect { id=id.."-scan",anchors={left=true,right=true},height=1,
+      color=function() return C.primary end,opacity=0 } or nil
     ui.reparent(ui.Item { id=id.."-glint-clip",anchors={fill=true},clip=true,z=z+1,glint,scan },holder)
     -- Registration marks on the chamfer diagonal only (never four
     -- brackets): they close in onto the control from further out.
@@ -51,7 +57,7 @@ return function(theme)
       local reticle={}
       for i,mark in ipairs(marks) do
         local s=(over and not down) and (i==1 and -3 or 3) or 0
-        if entering and not down then
+        if entering and not down and not key then
           local far=i==1 and -10 or 10
           for _,property in ipairs {"translate_x","translate_y"} do
             reticle[#reticle+1]={node=mark,property=property,from=far,to=s,duration=260,easing="out_expo"}
@@ -65,7 +71,8 @@ return function(theme)
       if not over and not down then
         if running then running:stop() running=nil end
         if scanning then scanning:stop() scanning=nil end
-        glint.opacity,scan.opacity=0,0
+        glint.opacity=0
+        if scan then scan.opacity=0 end
         return
       end
       local w,h=size()
@@ -78,7 +85,7 @@ return function(theme)
           }},
         }},on_finished=function() running=nil end}
       end
-      if pressing and h>2 then
+      if pressing and scan and h>2 then
         if scanning then scanning:stop() end
         scanning=morf.animation.play {{parallel={
           {node=scan,property="translate_y",from=0,to=h-1,duration=200,easing="out_cubic"},
@@ -106,5 +113,5 @@ return function(theme)
     end,{owner=area})
     return area
   end
-  return attach, pieces
+  return attach, pieces, keyed
 end

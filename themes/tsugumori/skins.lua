@@ -27,18 +27,25 @@ return function(theme, M, hud)
   -- brackets. Built the first time the control is reached (a lazy slot);
   -- the target's input box never moves. `id` names the pieces
   -- (`<id>-wash`, `<id>-glint`, `<id>-mark-1`).
-  local _, pieces = require("themes.tsugumori.interaction")(theme)
-  local function feedback(t, id)
+  local _, pieces, keyed = require("themes.tsugumori.interaction")(theme)
+  local function feedback(t, id, plain)
     return lazy(t, function()
       id = id or "tsugumori-control"
       local holder = ui.Item { anchors = { fill = true }, z = 40 }
-      local react = pieces(holder, id, function() return t.width, t.height end)
-      ui.reparent(hud().reticle({ length = 6, weight = 2, color = function() return C.primary end },
-        function() return t.visual_focus end), holder)
+      local react = pieces(holder, id, function() return t.width, t.height end, nil, plain)
+      local focus = { length = 6, weight = 2, color = function() return C.primary end }
+      local function focused() return t.visual_focus end
+      if plain then
+        focus.visible = focused
+        ui.reparent(hud().corners(focus), holder)
+      else
+        ui.reparent(hud().reticle(focus, focused), holder)
+      end
       morf.effect(id .. ".feedback", function() react(t.hovered, t.down) end, { owner = holder })
       return holder
     end)
   end
+  S.feedback = feedback
 
   -- A tick ruler along `len`: a short tick every 8 px, a long one every 5th.
   local function ruler(x, y, len, size, color)
@@ -185,14 +192,17 @@ return function(theme, M, hud)
     }
   end
 
-  function S.Press(t, spec)
+  function S.Press(t, spec, node)
     local widget = spec.widget
     if widget == "menu_item" or widget == "check_menu_item" or widget == "radio_menu_item" then
       return menu_item(t, spec)
     end
     -- A layout's own area draws itself: the wash, the marks and the
     -- keyboard's brackets here.
-    if widget == "area" or widget == "segment" then return { badge = feedback(t, spec.id) } end
+    if widget == "area" or widget == "segment" then
+      -- An on-screen keyboard's key keeps its plain feedback.
+      return { badge = feedback(t, spec.id, spec.plain_feedback or keyed(node and node.id)) }
+    end
     if require("lib.kit.archetypes.press").has(spec, "flat") then return S.flat(t, spec) end
     if widget == "switch" then return switch(t, spec)
     elseif widget == "icon" then return icon(t, spec)
@@ -708,6 +718,7 @@ return function(theme, M, hud)
     end
   end
 
+  S.feedback = nil
   require("themes.kit.widgets").fade(S,0.45)
 
   return S

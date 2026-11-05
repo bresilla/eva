@@ -252,11 +252,14 @@ return function(theme)
         curtain.visible,flash.visible,glow.visible=false,false,false
         if not opening then return end
         corner_a.visible,corner_b.visible,pip.visible=true,true,true
+        -- Snapped in, but slid in on the keyboard's drawer as it always was.
+        local function corner(node,property,from)
+          if not boot then return {node=node,property=property,from=from*7/9,to=0,duration=280,easing="out_cubic"} end
+          return {node=node,property=property,duration=280,keyframes=snap(from)}
+        end
         lock_motion=morf.animation.play {{parallel={
-          {node=corner_a,property="translate_x",duration=280,keyframes=snap(-9)},
-          {node=corner_a,property="translate_y",duration=280,keyframes=snap(-9)},
-          {node=corner_b,property="translate_x",duration=280,keyframes=snap(9)},
-          {node=corner_b,property="translate_y",duration=280,keyframes=snap(9)},
+          corner(corner_a,"translate_x",-9), corner(corner_a,"translate_y",-9),
+          corner(corner_b,"translate_x",9), corner(corner_b,"translate_y",9),
           {node=corner_a,property="opacity",duration=360,keyframes={
             {at=0,value=0},{at=.18,value=.86},{at=.55,value=.56},{at=1,value=0}}},
           {node=corner_b,property="opacity",duration=360,keyframes={
