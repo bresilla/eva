@@ -22,13 +22,27 @@ local MAX_ROWS = 64
 local function list(w, prefix, count, row, none, max)
   local inner = P.inner(w)
   local col = { width = inner, gap = P.ROW_GAP }
+  local slots = {}
   for i = 1, max or MAX_ROWS do
-    col[#col + 1] = ui.Item { id = prefix .. i, width = inner, height = P.ROW_H,
+    slots[i] = ui.Item { id = prefix .. i, width = inner, height = P.ROW_H,
       visible = function() return i <= count() end, row(i, inner) }
+    col[#col + 1] = slots[i]
   end
   col[#col + 1] = P.row { width = inner, icon = "info", on = function() return false end, title = none,
     visible = function() return count() == 0 end }
-  return ui.Column(col)
+  local node = ui.Column(col)
+  -- Rows a scan adds come in as new rows do (`theme.motion.rows`), top first.
+  local had = count()
+  morf.effect("eva.list." .. prefix, function()
+    local now = math.min(count(), #slots)
+    if now > had and theme.motion.rows then
+      local coming = {}
+      for i = had + 1, now do coming[#coming + 1] = slots[i] end
+      theme.motion.rows(coming)
+    end
+    had = now
+  end, { owner = node })
+  return node
 end
 
 --- The one action under a list, the card's width.
