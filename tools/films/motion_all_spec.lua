@@ -203,6 +203,29 @@ test.it("the controls turn on and off", function()
   film("controls-off", 14, 16)
 end)
 
+test.it("a menu opens and its items come in", function()
+  local cache = morf.env("XDG_CACHE_HOME")
+  test.load("../../shell/init.lua", { size = { 360, 300 }, source = [[
+    morf.surface.width, morf.surface.height = 360, 300
+    local ui = require("morf.ui")
+    local theme = require("theme")
+    local anchor = ui.Rect { x = 24, y = 20, width = 120, height = 32, color = function() return theme.color.primary end }
+    local menu = require("themes.kit.popup").make("menu", { width = 220, items = {
+      { label = "Copy", icon = "content_copy" }, { label = "Paste", icon = "content_paste" },
+      { label = "Wrap lines", checked = function() return true end }, { label = "Select all" },
+      { label = "Find", icon = "search" } } })
+    morf.ipc.menu = function(on) if on == "yes" then menu.open(anchor) else menu.close() end end
+    return ui.Rect { width = 360, height = 300, color = function() return theme.color.surface end, anchor }
+  ]], env = { EVA_STYLE = morf.env("FILM_STYLE") or "tsugumori", EVA_FONT_FILE = "",
+    EVA_SETTINGS = cache .. "/menu-film-settings.json", EVA_APPEARANCE = cache .. "/menu-film-appearance.json" } })
+  test.settle(500)
+  test.ipc("menu", "yes")
+  film("menu-open", 18, 25)
+  test.settle(800)
+  test.ipc("menu", "no")
+  film("menu-close", 12, 25)
+end)
+
 test.it("an interrupted drawer turns where it stands", function()
   load()
   test.ipc("sidebar", "open", "settings")

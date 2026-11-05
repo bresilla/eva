@@ -66,6 +66,7 @@ local function build_content(widget, spec, close)
   if spec.items then
     local width=content_width(spec.item_width or 200)
     local rows = { gap = 0, width=width }
+    local items = {}
     for i, item in ipairs(spec.items) do
       local entry = {}
       for k, v in pairs(item) do entry[k] = v end
@@ -81,8 +82,9 @@ local function build_content(widget, spec, close)
         if kind == "menu_item" then close("activated") end
       end
       rows[#rows + 1] = kit[kind](entry)
+      items[i] = rows[#rows]
     end
-    return ui.Column(rows)
+    return ui.Column(rows), items
   end
   -- A dialog: a title, a body and a row of buttons.
   local width=content_width(360)
@@ -223,9 +225,24 @@ function M.make(widget, spec)
     morf.overlay.close(root)
   end
   -- Built when first opened: until then it would hang from nothing.
+  -- A menu's items, which come in one after another as it opens, the way the
+  -- theme brings rows in (`theme.motion.rows`); landed as it shuts.
+  local items, entering = nil, {}
+  local function settle_items()
+    for _, running in ipairs(entering) do running:finish() end
+    entering = {}
+  end
+  local function bring_items()
+    settle_items()
+    local ok, theme = pcall(require, "theme")
+    if items and ok and type(theme) == "table" and theme.motion and theme.motion.rows then
+      entering = theme.motion.rows(items)
+    end
+  end
   local function build()
     if root then return end
-    local content = build_content(widget, spec, close)
+    local content
+    content, items = build_content(widget, spec, close)
     local pad = spec.padding or 0
     local props = {
       width = spec.width or function() return (content.layout_width or 0) + 2 * pad end,
@@ -288,6 +305,7 @@ function M.make(widget, spec)
       return
     end
     ctl.send("close", reason)
+    settle_items()
     if linger() > 0 and reason ~= "gone" then
       place(true, closed)
       leave()
@@ -311,6 +329,7 @@ function M.make(widget, spec)
     -- as itself, in the same turn.)
     if was == "leaving" then morf.overlay.close(root) end
     place(false, closed)
+    if was == "shut" then bring_items() end
   end
   handle.close = close
   function handle.toggle(anchor) if phase == "open" then close("closed") else handle.open(anchor) end end
