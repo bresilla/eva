@@ -431,6 +431,8 @@ function V.build(model)
         duration = curve.duration, easing = curve.easing, delay = 80 } }
     end
 
+    -- The theme's mark as the bud comes up (theme.motion.lock_on).
+    local lock = theme.motion.lock_on and theme.motion.lock_on(body, "levels-bud" .. tag) or function() end
     local B = { held = function() return area.hovered or area.pressed end }
     function B.showing(wanted) return kind() == wanted and not gone() end
     function B.show(wanted)
@@ -443,10 +445,12 @@ function V.build(model)
         starting = nil
         phase:set("out")
         if level() then arrive() end
+        lock(120)
       end, false)
     end
     function B.hide(done)
       if starting then starting:cancel() starting = nil end
+      lock(nil)
       phase:set("leaving")
       going = morf.time.timer(EXIT_MS, function()
         going = nil

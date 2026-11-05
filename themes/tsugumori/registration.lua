@@ -16,10 +16,14 @@ return function(theme)
       anchors={left=true,top=true,bottom=true},opacity=0,
       color=function() return theme.color.primary end}
     ui.reparent(edge,host)
+    -- An arrival is a target lock: four brackets close onto the box from
+    -- well outside it and a scan line crosses it.
+    local lock
     local running,pending
     return function(kind,delay)
       if pending then pending:cancel() pending=nil end
       if running then running:stop() running=nil end
+      if lock then lock.stop() end
       for _,node in ipairs(marks) do
         node.opacity,node.translate_x,node.translate_y=0,0,0
       end
@@ -48,6 +52,11 @@ return function(theme)
       local function start()
         pending=nil
         running=morf.animation.play {{parallel=steps}}
+        if kind=="arrival" then
+          lock=lock or require("themes.tsugumori.boot")(theme).new(host,id,
+            {trace=false,register=false,length=12,reach=16,z=106})
+          lock.play()
+        end
       end
       if delay and delay>0 then pending=morf.time.timer(delay,start,false) else start() end
     end

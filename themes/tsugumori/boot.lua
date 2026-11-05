@@ -70,7 +70,8 @@ return function(theme)
       if want("register") then
         local words = opts.words or "SYS // LINK"
         local W = math.ceil(utf8.len(words) * 6.6) + 2
-        nodes.typed = ui.Item { width = 0, height = 12, clip = true,
+        -- A clip of no width takes its child's, so an empty run keeps a sliver.
+        nodes.typed = ui.Item { width = .001, height = 12, clip = true,
           ui.Text { width = W, height = 12, text = words, font_family = theme.font, font_size = 9,
             letter_spacing = 1.2, vertical_alignment = "center", color = function() return C.primary end } }
         nodes.cursor = ui.Rect { y = 2, width = 5, height = 8, color = function() return C.primary end }
@@ -134,7 +135,8 @@ return function(theme)
       end
       if nodes.register then
         local W = nodes.W
-        add { node = nodes.typed, property = "width", from = 0, to = W, delay = 120, duration = 200, easing = "linear" }
+        nodes.typed.width, nodes.cursor.translate_x = .001, 0
+        add { node = nodes.typed, property = "width", from = .001, to = W, delay = 120, duration = 200, easing = "linear" }
         add { node = nodes.cursor, property = "translate_x", from = 0, to = W + 1, delay = 120, duration = 200,
           easing = "linear" }
         add { node = nodes.register, property = "opacity", delay = 120, duration = 360, keyframes = {

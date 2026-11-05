@@ -112,6 +112,22 @@ return function(theme)
       end }
     end
   end
+  --- A surface coming up under a target lock: four brackets close onto
+  --- `host` from outside and a scan line crosses it. `lock(delay)` plays
+  --- it, `lock(nil)` stops and hides it. Nothing is built before the first.
+  function M.lock_on(host, id, opts)
+    local pass
+    return function(delay)
+      if delay == nil or delay == false then
+        if pass then pass.stop() end
+        return
+      end
+      if require("themes.session").restoring then return end
+      pass = pass or require("themes.tsugumori.boot")(theme).new(host, id .. "-lock",
+        opts or { trace = false, register = false, length = 10, reach = 14 })
+      pass.play(delay)
+    end
+  end
   function M.entries(entries, coming, opts)
     if require("themes.session").restoring then
       for _, entry in ipairs(entries) do

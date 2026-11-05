@@ -66,6 +66,10 @@ return function(theme)
     session = true, capture = true, notifications = true }
   function M.seam_group(name, own) return NEIGHBOURS[name] and 900 or own end
 
+  --- A surface coming up, as a theme marks it: nothing here. `lock(delay)`
+  --- would mark it, `lock(nil)` stop.
+  function M.lock_on() return function() end end
+
   function M.entries(entries, coming, opts)
     if require("themes.session").restoring then
       for _, entry in ipairs(entries) do

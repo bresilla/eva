@@ -171,6 +171,20 @@ function V.build(M)
         radius = { duration = theme.duration.large, easing = theme.ease.spatial } },
     }
     rows[index] = area
+    -- The theme marks the row the focus lands on (theme.motion.lock_on).
+    if theme.motion.lock_on then
+      local lock, was, open_before = theme.motion.lock_on(area, "session-" .. item.id), false, false
+      morf.effect("eva.session.lock." .. item.id, function()
+        local open = M.opened:get()
+        local now = on() and open
+        -- Opening, after the panel has arrived; moving, at once.
+        local delay = open_before and 0 or 360
+        open_before = open
+        if now == was then return end
+        was = now
+        if now then lock(delay) else lock(nil) end
+      end, { owner = area })
+    end
   end
 
   -- The cursor: a frame over the focused row that glides and stretches.
