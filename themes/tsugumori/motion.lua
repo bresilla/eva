@@ -119,7 +119,7 @@ return function(theme)
     local pass
     return function(delay)
       if delay == nil or delay == false then
-        if pass then pass.stop() end
+        if pass then pass.stop(true) end
         return
       end
       if require("themes.session").restoring then return end
@@ -230,7 +230,7 @@ return function(theme)
       arrive = nil
       if running then running:stop() end
       if lock_motion then lock_motion:stop() lock_motion=nil end
-      if boot then boot.stop() end
+      if boot then boot.stop(true) end
       corner_a.visible,corner_b.visible,pip.visible=false,false,false
       corner_a.opacity,corner_b.opacity,pip.opacity=0,0,0
       if hidden then

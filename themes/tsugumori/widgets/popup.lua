@@ -329,7 +329,7 @@ return function(S, theme, M, hud)
           local open = t.open and true or false
           if open == was then return end
           was = open
-          if not open then if pass then pass.stop() end return end
+          if not open then if pass then pass.stop(true) end return end
           if require("themes.session").restoring then return end
           pass = pass or boot.new(ground, "popup-" .. widget, { register = false, length = 8, reach = 8 })
           pass.play(60)

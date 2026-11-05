@@ -213,7 +213,7 @@ function V.build(model)
     if motion then motion:stop() motion = nil end
   end
   local function close(immediate)
-    cancel() shown:set(false) boot.stop()
+    cancel() shown:set(false) boot.stop(not immediate)
     if immediate then
       card.visible, card.opacity, shape.opacity = false, 0, 0
       card[slide] = hidden()

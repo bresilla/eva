@@ -95,9 +95,20 @@ return function(theme)
     end
 
     local P = {}
-    function P.stop()
+    --- Ends a pass: at once, or `soft`ly, its pieces fading out first.
+    function P.stop(soft)
       if running then running:stop() running = nil end
-      hide()
+      if not (soft and nodes) then hide() return end
+      local fades = {}
+      for _, node in ipairs(pieces()) do
+        if node.visible and node.opacity > 0 then
+          fades[#fades + 1] = { node = node, property = "opacity", to = 0, duration = 90, easing = "out_cubic" }
+        end
+      end
+      if #fades == 0 then hide() return end
+      running = morf.animation.play { { parallel = fades }, on_finished = function(reason)
+        if reason == "completed" then running = nil hide() end
+      end }
     end
     --- One pass, `delay` ms from now.
     function P.play(delay)

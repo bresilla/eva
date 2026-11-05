@@ -23,7 +23,7 @@ return function(theme)
     return function(kind,delay)
       if pending then pending:cancel() pending=nil end
       if running then running:stop() running=nil end
-      if lock then lock.stop() end
+      if lock then lock.stop(kind==nil) end
       for _,node in ipairs(marks) do
         node.opacity,node.translate_x,node.translate_y=0,0,0
       end

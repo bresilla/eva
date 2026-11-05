@@ -176,7 +176,7 @@ test.describe("tsugumori chrome in the shell", function()
     test.truthy(at_rest())
     test.ipc("session", "open")
     test.truthy(ever("session-lock-lock-boot-bracket-1", 60), "the focused row was not locked onto")
-    test.ipc("close") test.advance(1)
+    test.ipc("close") test.advance(120)
     test.truthy(hidden("session-lock-lock-boot-bracket-1"), "the lock outlived the menu")
     test.truthy(at_rest())
     clean()
@@ -200,7 +200,7 @@ test.describe("tsugumori drawer boot", function()
     clean()
   end)
 
-  test.it("closing during the pass hides it at once, and reopening plays it again", function()
+  test.it("closing during the pass fades it out quickly, and reopening plays it again", function()
     test.load("../shell/init.lua", { source = DRAWER, size = { 1280, 720 }, env = env() })
     test.ipc("open", true)
     local up = false
@@ -209,7 +209,7 @@ test.describe("tsugumori drawer boot", function()
       if shown("drawer-sample-boot-trace") then up = true break end
     end
     test.truthy(up)
-    test.ipc("open", false) test.advance(1)
+    test.ipc("open", false) test.advance(120)
     for _, id in ipairs(BOOT) do test.truthy(hidden(id), id .. " outlived the close") end
     test.ipc("open", true)
     up = false
