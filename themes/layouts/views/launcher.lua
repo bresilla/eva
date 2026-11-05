@@ -180,14 +180,14 @@ function V.build(M)
       return sel ~= nil and sel.key == key
     end
 
-    -- The chosen row's own hint: Tab, while it has other actions to list.
+    -- The chosen row's own hint: the key that lists its actions, while it has some.
     local function hints(selected, has_actions)
       return ui.Row {
         anchors = { right = true, right_margin = 12, vertical_center = true }, gap = 8, align = "center",
         opacity = function() return (selected() and has_actions()) and 1 or 0 end,
         behavior = { opacity = { duration = theme.duration.small } },
         kit.text { text = "Actions", font_size = theme.size.smaller, color = kit.ink("lo") },
-        kit.keycap { text = "Tab", height = 20 },
+        kit.keycap { text = function() return M.actions_key() end, height = 20 },
       }
     end
 
@@ -273,7 +273,8 @@ function V.build(M)
       local function has_actions() return M.has_actions(now()) and M.acting:get() == "" end
       -- What is left for the words once the row's end has what it shows.
       local function text_width()
-        local trailing = (selected() and has_actions()) and 120 or ((now().tag or "") ~= "" and 76 or 0)
+        local hint = M.actions_key() == "Tab" and 120 or 144
+        local trailing = (selected() and has_actions()) and hint or ((now().tag or "") ~= "" and 76 or 0)
         return INNER - 70 - NUMBER - trailing
       end
       local icon = row_icon(bound.row)

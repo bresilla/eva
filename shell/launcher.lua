@@ -316,6 +316,12 @@ function M.actions_of(row)
   return row.actions or {}
 end
 
+--- The key that lists the chosen row's actions: Ctrl K in the apps menu, where
+--- Tab changes the list, Tab everywhere else.
+function M.actions_key()
+  return require("menus").source:get() == "apps" and "Ctrl K" or "Tab"
+end
+
 --- Whether `row` has an action panel.
 function M.has_actions(row)
   if row.silent or row.kind == "header" then return false end
@@ -590,7 +596,8 @@ function M.key(_, _, modifiers, _, key)
     if ctrl then cycle(shift and -1 or 1) return true end
     local menus = require("menus")
     local back = shift or key == "ISO_Left_Tab"
-    if menus.source:get() == "apps" and M.acting:get() == "" and menus.next_group(back and -1 or 1) then
+    if menus.source:get() == "apps" and M.acting:get() == "" then
+      menus.next_group(back and -1 or 1)
       return true
     end
     if not complete() then toggle_actions() end
