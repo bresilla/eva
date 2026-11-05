@@ -80,6 +80,19 @@ test.it("notifications come, stack and go", function()
   film("notify-dismiss", 16, 25)
 end)
 
+test.it("a notification opens and shuts its body", function()
+  load()
+  test.ipc("notify", "Release notes", "Version 2.4 brings a new compositor path, faster startup on cold boots, "
+    .. "a reworked settings search, quieter notifications at night and many smaller fixes across the shell.",
+    "normal", "Updates")
+  test.settle(1500)
+  test.click("notification-expand-1")
+  film("notify-expand", 16, 25)
+  test.settle(800)
+  test.click("notification-expand-1")
+  film("notify-fold", 16, 25)
+end)
+
 test.it("the history fills and clears", function()
   load()
   for i = 1, 3 do test.ipc("notify", "Build " .. i, "finished in " .. (10 * i) .. " s", "normal", "CI") end
