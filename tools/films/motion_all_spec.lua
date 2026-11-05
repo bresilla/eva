@@ -152,6 +152,32 @@ test.it("the window switcher comes and goes", function()
   film("switcher-close", 12, 25)
 end)
 
+test.it("the controls turn on and off", function()
+  local cache = morf.env("XDG_CACHE_HOME")
+  test.load("../../shell/init.lua", { size = { 420, 90 }, source = [[
+    local ui = require("morf.ui")
+    local theme = require("theme")
+    local w = require("kit").widgets
+    morf.surface.width, morf.surface.height = 420, 90
+    local on = morf.signal("film.controls", false)
+    morf.ipc.flip = function() on:set(not on:get()) end
+    local function checked() return on:get() end
+    return ui.Rect { width = 420, height = 90, color = function() return theme.color.surfaceContainer end,
+      ui.Row { x = 30, y = 29, gap = 40, align = "center",
+        w.switch { id = "film-switch", checked = checked },
+        w.checkbox { id = "film-checkbox", checked = checked },
+        w.radio { id = "film-radio", checked = checked },
+        w.chip_filter { id = "film-chip", label = "Filter", checked = checked, width = 110, height = 32 } } }
+  ]], env = { EVA_STYLE = morf.env("FILM_STYLE") or "tsugumori", EVA_FONT_FILE = "",
+    EVA_SETTINGS = cache .. "/controls-film-settings.json", EVA_APPEARANCE = cache .. "/controls-film-appearance.json" } })
+  test.settle(500)
+  test.ipc("flip")
+  film("controls-on", 14, 16)
+  test.settle(500)
+  test.ipc("flip")
+  film("controls-off", 14, 16)
+end)
+
 test.it("an interrupted drawer turns where it stands", function()
   load()
   test.ipc("sidebar", "open", "settings")

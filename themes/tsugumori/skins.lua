@@ -14,6 +14,11 @@ return function(theme, M, hud)
   local function get(v) if type(v) == "function" then return v() end return v end
   local function clamp01(v) return math.max(0, math.min(1, v)) end
   local quick = { duration = 140, easing = "out_cubic" }
+  -- Three hard beats: a fill that registers in steps rather than gliding.
+  local STEPPED = { duration = 150, easing = { spline = {
+    0.11, 0, 0.22, 0, 0.33, 0, 0.333, 0.34, 0.336, 0.34, 0.34, 0.34,
+    0.45, 0.34, 0.56, 0.34, 0.66, 0.34, 0.663, 0.67, 0.666, 0.67, 0.67, 0.67,
+    0.78, 0.67, 0.89, 1, 1, 1 } } }
   local MARK = "M0 0 H7 V1.5 H1.5 V7 H0 Z"
 
   -- Decoration made the first time the pointer, a press or the keyboard
@@ -118,11 +123,12 @@ return function(theme, M, hud)
     return {
       background = ui.Rect { anchors = { fill = true }, radius = 0, border_width = 1,
         color = function() return C.surfaceContainerHighest end,
-        border_color = function() return t.checked and stroke(C, "focus") or stroke(C, "idle") end },
+        border_color = function() return t.checked and stroke(C, "focus") or stroke(C, "idle") end,
+        behavior = { border_color = quick } },
       indicator = ui.Rect { id = spec.id and spec.id .. "-thumb", y = 5,
         x = function() return (t.checked ~= (t.mirrored == true)) and 28 or 5 end, width = 19, height = 22,
         color = function() return t.checked and C.primary or C.outline end,
-        behavior = { x = theme.spring.press } },
+        behavior = { x = theme.spring.press, color = quick } },
       badge = feedback(t, spec.id),
     }
   end
@@ -151,10 +157,15 @@ return function(theme, M, hud)
   local function checkbox(t)
     return {
       background = ui.Rect { anchors = { fill = true, margins = 3 }, color = "transparent", border_width = 1,
-        border_color = function() return (t.checked or t.partial) and C.primary or stroke(C, "idle") end },
+        border_color = function() return (t.checked or t.partial) and C.primary or stroke(C, "idle") end,
+        behavior = { border_color = quick } },
+      -- The block registers from its left edge in three beats, and back.
       indicator = ui.Item { anchors = { fill = true, margins = 6 }, clip = true,
-        visible = function() return t.checked or t.partial end,
-        ui.Rect { anchors = { fill = true }, color = function() return C.primary:alpha(t.partial and .5 or 1) end } },
+        transform_origin_x = 0,
+        scale_x = function() return (t.checked or t.partial) and 1 or 0 end,
+        behavior = { scale_x = STEPPED },
+        ui.Rect { anchors = { fill = true }, color = function() return C.primary:alpha(t.partial and .5 or 1) end,
+          behavior = { color = quick } } },
       badge = feedback(t),
     }
   end
@@ -163,7 +174,8 @@ return function(theme, M, hud)
   local function radio(t)
     return {
       background = ui.Rect { anchors = { fill = true, margins = 3 }, color = "transparent", border_width = 1,
-        border_color = function() return t.checked and C.primary or stroke(C, "idle") end },
+        border_color = function() return t.checked and C.primary or stroke(C, "idle") end,
+        behavior = { border_color = quick } },
       indicator = ui.Rect { anchors = { center_in = true }, color = function() return C.primary end,
         width = function() return t.checked and 8 or 0 end, height = function() return t.checked and 8 or 0 end,
         behavior = { width = quick, height = quick } },
@@ -187,7 +199,8 @@ return function(theme, M, hud)
         text = function() return unicase.upper(tostring(get(spec.label) or "")) end,color = function() return C.onSurface end },
       indicator = (spec.widget ~= "menu_item") and ui.Rect { anchors = { right = true, right_margin = 12,
         vertical_center = true }, width = 8, height = 8, color = function() return C.primary end,
-        visible = function() return t.checked end } or nil,
+        transform_origin_x = 0, scale_x = function() return t.checked and 1 or 0 end,
+        behavior = { scale_x = STEPPED } } or nil,
       badge = feedback(t, spec.id),
     }
   end
