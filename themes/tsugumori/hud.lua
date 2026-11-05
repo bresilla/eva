@@ -17,8 +17,10 @@ return function(theme, kit)
   H.line = line
 
   --- Four L-brackets on the corners of whatever box they sit in: `length`
-  --- (8), `weight` (1), `inset` (0), `color`.
-  function H.corners(spec)
+  --- (8), `weight` (1), `inset` (0), `color`. `H.marked` returns the node and
+  --- its four marks (top-left, top-right, bottom-left, bottom-right).
+  function H.corners(spec) return (H.marked(spec)) end
+  function H.marked(spec)
     spec = spec or {}
     local l, t, i = spec.length or 8, spec.weight or 1, spec.inset or 0
     local color = spec.color or line("mark")
@@ -28,13 +30,17 @@ return function(theme, kit)
       return ui.Path { anchors = anchors, width = l, height = l, view_box = { 0, 0, l, l }, d = d,
         fill_color = "transparent", stroke_color = color, stroke_width = t, stroke_cap = "square" }
     end
-    return ui.Item { id = spec.id, anchors = { fill = true }, opacity = spec.opacity, visible = spec.visible,
+    local marks = {
       mark({ left = true, top = true }, ("M%g %g V%g H%g"):format(h, l, h, l)),
       mark({ right = true, top = true }, ("M0 %g H%g V%g"):format(h, l - h, l)),
       mark({ left = true, bottom = true }, ("M%g 0 V%g H%g"):format(h, l - h, l)),
       mark({ right = true, bottom = true }, ("M0 %g H%g V0"):format(l - h, l - h)),
     }
+    return ui.Item { id = spec.id, anchors = { fill = true }, opacity = spec.opacity, visible = spec.visible,
+      table.unpack(marks) }, marks
   end
+  -- Each mark's way outwards along its corner's diagonal.
+  H.OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
 
   --- The highlight under a list's chosen row: `track` (the item that moves
   --- from row to row), `color` (the plate), `id`.

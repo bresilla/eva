@@ -12,6 +12,8 @@ return function(theme)
   local PAGE_COVER, REVEAL = 140, 220
   local COVER = 230
   local ENTRY_DELAY, ENTRY_MOVE, ENTRY_LEAVE, STAGGER = 180, 240, 120, 50
+  local card_marks = require("themes.tsugumori.marks")
+  local OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
   -- The working panels whose ground carries the dot grid.
   local GRID = { dashboard = true, sidebar = true, leftbar = true, bottom = true }
   -- A corner mark's way in: held out, a hard step, an expo settle.
@@ -116,6 +118,7 @@ return function(theme)
         entry.node.opacity = coming and 1 or 0
         entry.node.scale, entry.node.translate_x, entry.node.translate_y = 1, 0, 0
         if entry.shape then entry.shape.opacity = coming and 1 or 0 end
+        for _, mark in ipairs(card_marks[entry.node] or {}) do mark.translate_x, mark.translate_y = 0, 0 end
       end
       return {}, 0
     end
@@ -136,6 +139,18 @@ return function(theme)
       if entry.shape then
         steps[#steps + 1] = { node = entry.shape, property = "opacity", from = coming and fresh and 0 or nil,
           to = coming and 1 or 0, delay = delay, duration = coming and ENTRY_MOVE or ENTRY_LEAVE }
+      end
+      -- A card's corner brackets snap onto it as it comes in.
+      for m, mark in ipairs(card_marks[node] or {}) do
+        for axis, property in ipairs { "translate_x", "translate_y" } do
+          if coming and fresh then
+            steps[#steps + 1] = { node = mark, property = property, delay = delay, duration = ENTRY_MOVE,
+              keyframes = snap(OUTWARD[m][axis] * 7) }
+          else
+            steps[#steps + 1] = { node = mark, property = property, to = 0, delay = delay,
+              duration = coming and ENTRY_MOVE or ENTRY_LEAVE, easing = "out_cubic" }
+          end
+        end
       end
       handles[#handles + 1] = morf.animation.play { { parallel = steps } }
     end

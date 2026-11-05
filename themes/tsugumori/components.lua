@@ -295,6 +295,38 @@ return function(theme)
   --- `list` gets `{ node, radius, color, shape }` for each.
   local collector
   function M.collect(list) collector = list end
+  local card_marks = require("themes.tsugumori.marks")
+  -- A card's edge chrome, fixed in size so its paths draw once: a tick
+  -- ruler standing on the foot, a serial strip under the top edge and an
+  -- index notch at the middle of each side.
+  local RULER = {}
+  for i = 0, 10 do RULER[#RULER + 1] = ("M%g 4 V%g "):format(i * 4 + .5, i % 5 == 0 and 0 or 2) end
+  RULER = table.concat(RULER)
+  local SERIALS, serial_count = {}, 0
+  local function serial_d(k)
+    if SERIALS[k] then return SERIALS[k] end
+    local out, x, seed = {}, 0, k * 7 + 3
+    while x < 22 do
+      seed = (seed * 37 + 11) % 97
+      local w = seed % 3 == 0 and 2 or 1
+      out[#out + 1] = ("M%g 0 h%g v3 h-%g Z "):format(x, w, w)
+      x = x + w + 1 + seed % 2
+    end
+    SERIALS[k] = table.concat(out)
+    return SERIALS[k]
+  end
+  local function card_chrome()
+    serial_count = serial_count + 1
+    local quiet, idle = hud().line("quiet"), hud().line("idle")
+    return ui.Item { anchors = { fill = true },
+      ui.Path { anchors = { right = true, bottom = true, right_margin = 18, bottom_margin = 1 }, width = 41, height = 4,
+        view_box = { 0, 0, 41, 4 }, d = RULER, fill_color = "transparent", stroke_color = quiet, stroke_width = 1 },
+      ui.Path { anchors = { right = true, top = true, right_margin = 18, top_margin = 4 }, width = 24, height = 3,
+        view_box = { 0, 0, 24, 3 }, d = serial_d(serial_count % 8), fill_color = quiet },
+      ui.Rect { anchors = { left = true, vertical_center = true }, width = 4, height = 1, color = idle },
+      ui.Rect { anchors = { right = true, vertical_center = true }, width = 4, height = 1, color = idle },
+    }
+  end
   function M.card(props)
     props.radius = 0
     props.radius = M.round(theme.ROUNDING)
@@ -303,11 +335,18 @@ return function(theme)
       anchors = { fill = true }, color = "transparent", border_width = 1,
       border_color = function() return hud().line("faint")() end,
     }
-    props[#props + 1] = hud().corners { length = 12, color = hud().line("hot") }
-    if not collector then return ui.Rect(props) end
+    local corners, marks = hud().marked { length = 12, color = hud().line("hot") }
+    props[#props + 1] = corners
+    props[#props + 1] = card_chrome()
+    if not collector then
+      local node = ui.Rect(props)
+      card_marks[node] = marks
+      return node
+    end
     local color = props.color
     props.radius, props.color = nil, nil
     local node = ui.Item(props)
+    card_marks[node] = marks
     local entry = { node = node, radius = 0, color = color }
     entry.shape = ui.SdfShape {
       shape = "box", radius = 0, track = node,
@@ -389,11 +428,49 @@ return function(theme)
     }
   end
 
-  --- Tsugumori decorations: registration `corners` (any box),
-  --- `brackets` (a sized box), warning `tape` and a hairline `grid`. Ticks, scales and
-  --- hatching are not part of this style.
+  --- Instrument ticks along `length`: `count` of them, every `major`th long,
+  --- `size` deep, rising from the foot (`flip`: hanging from the top) or,
+  --- `vertical`, standing out from the left (`flip`: from the right).
+  local function ticks_d(len, size, count, major, vertical, flip)
+    local out = {}
+    count = math.max(2, math.floor(count or 12))
+    for k = 0, count do
+      local at = math.floor(k * (len - 1) / count) + .5
+      local deep = (major and major > 0 and k % major == 0) and size or math.max(1, math.floor(size * .5))
+      if vertical then
+        local x0 = flip and size or 0
+        out[#out + 1] = ("M%g %g H%g "):format(x0, at, flip and size - deep or deep)
+      else
+        local y0 = flip and 0 or size
+        out[#out + 1] = ("M%g %g V%g "):format(at, y0, flip and deep or size - deep)
+      end
+    end
+    return table.concat(out)
+  end
+
+  --- Tsugumori decorations: registration `corners` (any box), `brackets`
+  --- (a sized box), warning `tape`, a hairline `grid`, instrument `ticks`
+  --- and a graduated `scale` beside a meter. Hatching is not part of this style.
   function M.decor(name, spec)
     spec = spec or {}
+    if name == "ticks" and type(spec.length) == "number" then
+      local size, len = spec.size or 6, spec.length
+      local w, h = len, size
+      if spec.vertical then w, h = size, len end
+      return ui.Path { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
+        view_box = { 0, 0, w, h }, d = ticks_d(len, size, spec.count, spec.major, spec.vertical, spec.flip),
+        fill_color = "transparent", stroke_width = 1, stroke_color = spec.color or M.stroke("idle") }
+    elseif name == "scale" and type(spec.height) == "number" then
+      -- The ticks face the meter they stand beside, on a hairline spine.
+      local size, h = spec.size or 8, spec.height
+      local w = size + 22
+      local x0 = spec.flip and 0 or w - size
+      local d = ticks_d(h, size, spec.count or 20, spec.major or 5, true, not spec.flip)
+      return ui.Item { id = spec.id, x = spec.x, y = spec.y, width = w, height = h,
+        ui.Path { x = x0, width = size, height = h, view_box = { 0, 0, size, h }, d = d,
+          fill_color = "transparent", stroke_width = 1, stroke_color = spec.color or M.stroke("idle") },
+        ui.Rect { x = spec.flip and 0 or w - 1, width = 1, height = h, color = spec.color or M.stroke("idle") } }
+    end
     if name == "corners" or name == "brackets" then
       -- Four bright L-brackets on the box's corners.
       local node = hud().corners { length = spec.length or 10, color = spec.color or hud().line("hot"),
