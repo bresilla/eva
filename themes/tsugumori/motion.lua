@@ -16,6 +16,7 @@ return function(theme)
   local OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
   -- The working panels whose ground carries the dot grid.
   local GRID = { dashboard = true, sidebar = true, leftbar = true, bottom = true }
+  local UNBOOTED = { keyboard = true, notifications = true }
   -- A corner mark's way in: held out, a hard step, an expo settle.
   local function snap(from)
     return { { at = 0, value = from }, { at = .24, value = from }, { at = .25, value = from * .4 },
@@ -179,8 +180,9 @@ return function(theme)
     local panel, content, d = ctx.panel, ctx.spec.content, ctx.drawer
     local id="drawer-" .. (d.name or "auth")
     local curtain, unit = require("themes.tsugumori.curtain")(theme, panel, id)
-    -- The on-screen keyboard keeps its own look and motion: no boot, no grid.
-    local boot = d.name ~= "keyboard" and require("themes.tsugumori.boot")(theme).new(panel, id, {
+    -- The on-screen keyboard keeps its own look and motion, and notification
+    -- cards lock on by themselves: neither boots.
+    local boot = not UNBOOTED[d.name] and require("themes.tsugumori.boot")(theme).new(panel, id, {
       brackets = false, words = ("%s %s // SYS LINK"):format(unit[3], unit[2]) }) or nil
     if GRID[d.name] then require("themes.tsugumori.dots")(theme)(panel, id) end
     local glow=ui.Rect {id=id.."-reveal-glow",z=101,x=-12,width=16,
