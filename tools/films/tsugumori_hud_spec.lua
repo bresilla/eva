@@ -18,6 +18,8 @@ local function load(extra)
   local env = { EVA_STYLE = "tsugumori", EVA_DRY_RUN = "1", EVA_FONT_FILE = "",
     EVA_SETTINGS = morf.env("XDG_CACHE_HOME") .. "/hud-film-settings.json",
     EVA_APPEARANCE = morf.env("XDG_CACHE_HOME") .. "/hud-film-appearance.json" }
+  -- FILM_LULE: a folder holding a colors.json, as tools/see.sh makes one.
+  if morf.env("FILM_LULE") then env.LULE_A = morf.env("FILM_LULE") end
   for k, v in pairs(extra or {}) do env[k] = v end
   test.load("../../shell/init.lua", { size = { W, H }, env = env })
   test.settle(2000)
