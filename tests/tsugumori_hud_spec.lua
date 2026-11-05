@@ -110,6 +110,40 @@ test.describe("tsugumori feedback", function()
   end)
 end)
 
+local METER = [[
+  local ui = require("morf.ui")
+  local kit = require("kit")
+  local level = morf.signal("hud.level", 0)
+  local nodes, path = {}, ui.Path
+  ui.Path = function(props) local node = path(props) nodes[#nodes + 1] = node return node end
+  ui.Item { width = 400, height = 100,
+    kit.meter { id = "hud-meter", width = 160, height = 8, count = 10, value = function() return level:get() end } }
+  ui.Path = path
+  morf.ipc.level = function(v) level:set(v) end
+  morf.ipc.lit = function() return nodes[#nodes].trim_end end
+]]
+
+test.describe("tsugumori meters", function()
+  test.it("light their cells one whole cell at a time and settle on the level", function()
+    test.load("../shell/init.lua", { source = METER, size = { 400, 100 }, env = env() })
+    test.advance(20)
+    test.near(test.ipc("lit"), 0, .001)
+    test.ipc("level", 1)
+    local partial = false
+    for _ = 1, 12 do
+      test.advance(FRAME)
+      local lit = test.ipc("lit")
+      local cells = lit * 10
+      test.truthy(math.abs(cells - math.floor(cells + .5)) < .02, "a cell lit only part way: " .. lit)
+      if lit > .05 and lit < .95 then partial = true end
+    end
+    test.truthy(partial, "the cells all lit at once")
+    test.truthy(at_rest())
+    test.near(test.ipc("lit"), 1, .001)
+    clean()
+  end)
+end)
+
 local function shell()
   for _, program in ipairs { "systemctl", "loginctl" } do test.stub_run(program, { code = 0 }) end
   test.load("../shell/init.lua", { size = { 1280, 800 }, env = env { EVA_WALLPAPER = "", EVA_FAKE_OSD = "1" } })

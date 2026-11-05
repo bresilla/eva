@@ -231,11 +231,35 @@ return function(theme)
   end
 
   --- A large reading: mono digits with the unit raised beside them.
+  --- A changed reading glitches once: a short jitter and flicker, at most
+  --- every few seconds, never on its first value.
+  local function glitch(node, value)
+    local last, running, ready = nil, nil, true
+    morf.effect("tsugumori.readout.glitch", function()
+      local now = tostring(get(value) or "")
+      if last == nil or now == last then last = now return end
+      last = now
+      if not ready or require("themes.session").restoring then return end
+      ready = false
+      morf.time.timer(5000, function() ready = true end, false)
+      if running then running:stop() end
+      running = morf.animation.play { { parallel = {
+        { node = node, property = "translate_x", duration = 180, keyframes = { { at = 0, value = 0 },
+          { at = .15, value = 2 }, { at = .3, value = -1.5 }, { at = .45, value = 1 }, { at = .6, value = 0 },
+          { at = 1, value = 0 } } },
+        { node = node, property = "opacity", duration = 180, keyframes = { { at = 0, value = 1 },
+          { at = .1, value = .35 }, { at = .25, value = 1 }, { at = .4, value = .55 }, { at = .6, value = 1 },
+          { at = 1, value = 1 } } },
+      } }, on_finished = function() running = nil end }
+    end, { owner = node })
+    return node
+  end
+
   function M.readout(spec)
     local size = spec.size or theme.typography.hero
     local row = { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, gap = 4, align = "start",
-      M.text { text = spec.value, font_size = size, font_weight = 400,
-        color = spec.color or M.ink("accent"), height = math.ceil(size * 1.2) },
+      glitch(M.text { text = spec.value, font_size = size, font_weight = 400,
+        color = spec.color or M.ink("accent"), height = math.ceil(size * 1.2) }, spec.value),
     }
     if spec.unit then
       row[#row + 1] = M.label { text = spec.unit, font_size = math.max(9, math.floor(size * .38)),
@@ -1021,8 +1045,7 @@ return function(theme)
     end
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
       line { stroke_color = spec.track and function() return get(spec.track) end or M.stroke("quiet", color) },
-      line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end,
-        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = spec.motion or settle() } },
+      meters.stepped(line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end }, lit, n),
     }
   end
 
@@ -1063,8 +1086,7 @@ return function(theme)
     end
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
       line { stroke_color = M.stroke("quiet", color) },
-      line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end,
-        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = spec.motion or settle() } },
+      meters.stepped(line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end }, lit, n),
     }
   end
 
