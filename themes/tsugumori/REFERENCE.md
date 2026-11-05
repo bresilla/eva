@@ -76,6 +76,37 @@ components. Material retains its own rounded frame, morphing workspace discs
 and grouped history cards. The history controller owns actions and identity;
 neither visual package owns notification expiry or server calls.
 
+## HUD chrome and boot passes
+
+Independent morf work; nothing in this section is code taken from the
+reference. All of it uses wallpaper roles and stops at rest.
+
+- `boot.lua`: one finite pass over a host. The outline traces in from the
+  top-left corner both ways (one path, `trim_start`/`trim_end` out from 0.5),
+  four brackets hold, step in and settle on an expo curve, a scan line with a
+  secondary trail crosses, and a register of static words prints and fades.
+  Nodes are made on the first pass and hidden when it ends; a stop fades
+  them over 90 ms. Drawers (all but the keyboard) play it under the uncover,
+  with the unit call sign of `curtain.lua` as the register.
+- `motion.lock_on(host, id)`: brackets close onto a host from outside and a
+  scan crosses it. The OSD bud and the session menu's focused row use it;
+  Material's hook draws nothing. Notification arrivals (`registration.lua`)
+  and popup grounds (`widgets/popup.lua`) play the same pass directly.
+- `dots.lua`: a dashed-row dot grid behind the dashboard, side, planner and
+  bottom panels, one path per panel.
+- Cards (`kit.card`) carry a foot tick ruler, a serial strip and side index
+  notches, all fixed-size paths; their brackets snap in with each entry.
+  `kit.decor` draws `ticks` and `scale` in the boxes layouts reserve.
+- Captions carry an accent lead and an end stop; the frame has registration
+  Ls at the opening's corners and index notches mid-edge; a workspace switch
+  traces along the rail's lip and the workspace card boots.
+- Page covers slice into three bands a step apart. Rows enter on a decode
+  curve (two flickers, then a settle). Meters light whole cells in sequence
+  from wherever the run stands. Readouts glitch once on a change, at most
+  every five seconds.
+- Feedback: a hovered control's diagonal marks close in from further out,
+  a press scans down it, and keyboard focus brackets lock on.
+
 The moving light blade on drawer and page reveals uses the registration-edge
 motif from [Tsugumori](https://github.com/Aleph1-9012/Tsugumori) and the brief
 HUD accent flashes in [cyberpunk-ui](https://github.com/rintran720/cyberpunk-ui)

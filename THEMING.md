@@ -807,6 +807,11 @@ way off), so a place that changes retargets it with its speed. A hidden bud's la
 is not in the field: the budget of `MAX_FIELD_LAYERS` pays only for what is shown,
 three at most.
 
+`theme.motion.lock_on(host, id)` returns `lock(delay)`, a theme's finite mark
+as a surface comes up (`lock(nil)` stops it). The OSD bud plays it as it
+shows and the session menu on the row the focus lands on; Material's draws
+nothing, so the layout is the same in both.
+
 The controller owns which bud shows which kind, repeated-update timeout renewal
 and the hold under the pointer; the view owns interrupted animation handling.
 `shell/osd_model.lua` is the catalogue and preferences, `shell/osd_sources.lua`
