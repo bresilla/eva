@@ -1430,10 +1430,29 @@ return function(theme)
     for _, node in ipairs(nodes) do entries[#entries + 1] = { node = node } end
     return theme.motion.entries(entries, coming, opts)
   end
-  --- How a list's row comes in, as a node's `enter`: a short, hard step in
-  --- from the side, a beat after the row above (`index`, from 1).
+  -- A decode: two hard flickers on the way in, then a settle. Straight
+  -- segments but the last, which eases out.
+  local DECODE = (function()
+    local out, px, py = {}, 0, 0
+    local points = { { .16, .7 }, { .26, .3 }, { .42, .88 }, { .52, .66 }, { 1, 1 } }
+    for i, p in ipairs(points) do
+      local x, y = p[1], p[2]
+      if i == #points then
+        for _, v in ipairs { px + (x - px) * .2, y, px + (x - px) * .55, y, x, y } do out[#out + 1] = v end
+      else
+        for _, v in ipairs { px + (x - px) / 3, py + (y - py) / 3, px + 2 * (x - px) / 3, py + 2 * (y - py) / 3, x, y } do
+          out[#out + 1] = v
+        end
+      end
+      px, py = x, y
+    end
+    return { spline = out }
+  end)()
+  --- How a list's row comes in, as a node's `enter`: a short step in from
+  --- the side that decodes in two flickers, a beat after the row above
+  --- (`index`, from 1).
   function M.enter(index)
-    return { opacity = 0, translate_x = -8, duration = theme.duration.small, easing = theme.ease.standard,
+    return { opacity = 0, translate_x = -8, duration = theme.duration.small, easing = DECODE,
       delay = math.min((index or 1) - 1, 8) * theme.stagger.step }
   end
   --- Makes `node` ride out with drawer `d`: tied to the panel's far edge on
