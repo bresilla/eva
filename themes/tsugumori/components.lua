@@ -411,6 +411,7 @@ return function(theme)
         border_color = spec.mark or M.stroke("idle", spec.color) }
       node[#node + 1] = anchored_marks(MARK, M.stroke("mark", spec.color))
     end
+    card_chrome(node)
     if spec.header and type(wn) == "number" then
       node[#node + 1] = M.header { x = 12, y = 8, width = wn - 24, key = spec.id or spec.title,
         title = spec.title, status = spec.status, color = spec.color }
