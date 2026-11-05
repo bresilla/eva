@@ -42,6 +42,31 @@ return function(theme, kit)
   -- Each mark's way outwards along its corner's diagonal.
   H.OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
 
+  --- Corner brackets shown while `on()`, closing in onto the box from
+  --- `spec.reach` (6) px out each time they come up: a reticle locking on.
+  function H.reticle(spec, on)
+    local node, marks = H.marked(spec)
+    node.visible = false
+    local reach, was, running = spec.reach or 6, false, nil
+    morf.effect("tsugumori.reticle", function()
+      local now = on() and true or false
+      if now == was then return end
+      was = now
+      if running then running:stop() running = nil end
+      node.visible = now
+      if not now then return end
+      local tracks = {}
+      for i, mark in ipairs(marks) do
+        tracks[#tracks + 1] = { node = mark, property = "translate_x", from = H.OUTWARD[i][1] * reach, to = 0,
+          duration = 220, easing = "out_expo" }
+        tracks[#tracks + 1] = { node = mark, property = "translate_y", from = H.OUTWARD[i][2] * reach, to = 0,
+          duration = 220, easing = "out_expo" }
+      end
+      running = morf.animation.play { { parallel = tracks }, on_finished = function() running = nil end }
+    end, { owner = node })
+    return node
+  end
+
   --- The highlight under a list's chosen row: `track` (the item that moves
   --- from row to row), `color` (the plate), `id`.
   function H.selection(spec)
@@ -52,10 +77,11 @@ return function(theme, kit)
     local strip = ui.Item { anchors = { right = true, top = true, bottom = true, right_margin = 10,
         top_margin = 8, bottom_margin = 8 }, width = 64, z = 1, clip = true,
       stripes.box { width = 64, height = 64, gap = 7, weight = 2.5, color = function() return C.primary:alpha(.5) end } }
+    local brackets, marks = H.marked { length = 7, color = line("hot") }
     for _, child in ipairs {
       ui.Rect { anchors = { left = true, top = true, bottom = true }, width = 3, z = 2,
         color = function() return C.primary end },
-      H.corners { length = 7, color = line("hot") },
+      brackets,
       strip,
       scan,
     } do ui.reparent(child, track) end
@@ -75,11 +101,19 @@ return function(theme, kit)
         if running then running:stop() end
         local h = track.layout_height or 0
         if h <= 0 then return end
-        running = morf.animation.play { { parallel = {
+        local tracks = {
           { node = scan, property = "translate_y", from = 0, to = h - 1, duration = 220, easing = "out_quart" },
           { node = scan, property = "opacity", duration = 260, keyframes = {
             { at = 0, value = .9 }, { at = .7, value = .6 }, { at = 1, value = 0 } } },
-        } }, on_finished = function() running = nil end }
+        }
+        -- The brackets lock on as it lands.
+        for i, mark in ipairs(marks) do
+          tracks[#tracks + 1] = { node = mark, property = "translate_x", from = H.OUTWARD[i][1] * 6, to = 0,
+            duration = 240, easing = "out_expo" }
+          tracks[#tracks + 1] = { node = mark, property = "translate_y", from = H.OUTWARD[i][2] * 4, to = 0,
+            duration = 240, easing = "out_expo" }
+        end
+        running = morf.animation.play { { parallel = tracks }, on_finished = function() running = nil end }
       end, false)
     end, { owner = plate })
     return plate

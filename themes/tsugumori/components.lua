@@ -504,8 +504,8 @@ return function(theme)
   --- focus, so a search field keeps typing. Returns `area`.
   function M.focusable(area)
     area.focus_policy = "tab"
-    ui.reparent(hud().corners { length = 6, weight = 2, color = function() return C.primary end,
-      visible = function() return area.visual_focus end }, area)
+    ui.reparent(hud().reticle({ length = 6, weight = 2, color = function() return C.primary end },
+      function() return area.visual_focus end), area)
     return area
   end
 
@@ -520,8 +520,8 @@ return function(theme)
         color = function() return C.primary:alpha(t.down and .16 or t.hovered and .1 or .05) end,
         border_width = 1, border_color = function() return C.primary:alpha(.35) end },
       hud().corners { length = 8, color = function() return C.primary:alpha(t.hovered and 1 or .5) end },
-      hud().corners { length = 10, weight = 2, color = function() return C.primary end,
-        visible = function() return t.visual_focus end },
+      hud().reticle({ length = 10, weight = 2, color = function() return C.primary end },
+        function() return t.visual_focus end),
     }
     return { background = plate }
   end

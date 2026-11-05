@@ -76,6 +76,40 @@ test.describe("tsugumori cards", function()
   end)
 end)
 
+local PRESS = [[
+  local ui = require("morf.ui")
+  local nodes, path = {}, ui.Path
+  ui.Path = function(props)
+    local node = path(props)
+    if props.id then nodes[props.id] = node end
+    return node
+  end
+  morf.ipc.shift = function(id) return nodes[id] and nodes[id].translate_x end
+  local kit = require("kit")
+  ui.Item { width = 400, height = 300,
+    ui.Item { x = 100, y = 100, kit.pill { id = "hud-press", label = "Engage", width = 150 } } }
+]]
+
+test.describe("tsugumori feedback", function()
+  test.it("closes its reticle onto a hovered control and scans a press", function()
+    test.load("../shell/init.lua", { source = PRESS, size = { 400, 300 }, env = env() })
+    test.advance(50)
+    test.move("hud-press") test.advance(30)
+    test.truthy(test.ipc("shift", "hud-press-mark-1") < -3, "the reticle did not start further out")
+    test.advance(400)
+    test.near(test.ipc("shift", "hud-press-mark-1"), -3, .01)
+    local box = test.get("hud-press")
+    test.press(box.x + 20, box.y + 10) test.advance(50)
+    test.truthy(test.get("hud-press-scan").opacity > 0, "a press drew no scan line")
+    test.release(box.x + 20, box.y + 10)
+    test.leave()
+    test.truthy(at_rest())
+    test.near(test.get("hud-press-scan").opacity, 0, .001)
+    test.near(test.get("hud-press-mark-1").opacity, 0, .001)
+    clean()
+  end)
+end)
+
 local BOOT = { "drawer-sample-boot-trace", "drawer-sample-boot-scan", "drawer-sample-boot-register" }
 
 test.describe("tsugumori drawer boot", function()

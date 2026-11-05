@@ -27,54 +27,15 @@ return function(theme, M, hud)
   -- brackets. Built the first time the control is reached (a lazy slot);
   -- the target's input box never moves. `id` names the pieces
   -- (`<id>-wash`, `<id>-glint`, `<id>-mark-1`).
+  local _, pieces = require("themes.tsugumori.interaction")(theme)
   local function feedback(t, id)
     return lazy(t, function()
       id = id or "tsugumori-control"
       local holder = ui.Item { anchors = { fill = true }, z = 40 }
-      local wash = ui.Rect { id = id .. "-wash", anchors = { fill = true },
-        color = function() return C.primary end, opacity = 0,
-        behavior = { opacity = { duration = 140, easing = "out_cubic" } } }
-      local glint = ui.Path { id = id .. "-glint", x = -36, width = 28,
-        height = function() return math.max(1, t.height) end,
-        view_box = { 0, 0, 28, 100 }, d = "M20 0 H28 L8 100 H0 Z",
-        fill_color = function() return C.primary end, opacity = 0 }
-      ui.reparent(wash, holder)
-      ui.reparent(ui.Item { id = id .. "-glint-clip", anchors = { fill = true }, clip = true, glint }, holder)
-      local marks = {}
-      for i, corner in ipairs { { left = true, top = true }, { right = true, bottom = true } } do
-        marks[i] = ui.Path { id = id .. "-mark-" .. i, anchors = corner, width = 7, height = 7,
-          view_box = { 0, 0, 7, 7 }, d = MARK, rotation = i == 1 and 0 or 180,
-          fill_color = function() return C.primary end, opacity = 0,
-          behavior = { translate_x = { duration = 340, easing = "out_cubic" },
-            translate_y = { duration = 340, easing = "out_cubic" }, opacity = { duration = 180 } } }
-        ui.reparent(marks[i], holder)
-      end
-      ui.reparent(hud().corners { length = 6, weight = 2, color = function() return C.primary end,
-        visible = function() return t.visual_focus end }, holder)
-      local hovered, pressed, running = false, false, nil
-      morf.effect(id .. ".feedback", function()
-        local over, down = t.hovered, t.down
-        local fire = (over and not hovered) or (down and not pressed)
-        hovered, pressed = over, down
-        wash.opacity = down and 0.18 or over and 0.055 or 0
-        for i, mark in ipairs(marks) do
-          local shift = (over and not down) and (i == 1 and -3 or 3) or 0
-          mark.translate_x, mark.translate_y = shift, shift
-          mark.opacity = over and 1 or 0
-        end
-        if not over and not down then
-          if running then running:stop() running = nil end
-          glint.opacity = 0
-        elseif fire then
-          if running then running:stop() end
-          running = morf.animation.play { { parallel = {
-            { node = glint, property = "x", from = -36, to = t.width + 36, duration = 330, easing = "out_cubic" },
-            { node = glint, property = "opacity", duration = 330, keyframes = {
-              { at = 0, value = 0 }, { at = .13, value = .33 }, { at = .65, value = .27 }, { at = 1, value = 0 },
-            } },
-          } }, on_finished = function() running = nil end }
-        end
-      end, { owner = holder })
+      local react = pieces(holder, id, function() return t.width, t.height end)
+      ui.reparent(hud().reticle({ length = 6, weight = 2, color = function() return C.primary end },
+        function() return t.visual_focus end), holder)
+      morf.effect(id .. ".feedback", function() react(t.hovered, t.down) end, { owner = holder })
       return holder
     end)
   end
@@ -567,8 +528,8 @@ return function(theme, M, hud)
             visible = not spec.icons_only },
           ui.Item { id = name .. "-label", x = 34, y = 12, height = 18, clip = true,
             width = text_w, visible = function() return not spec.icons_only and text_w() > 0 end, strip },
-          hud().corners { length = 6, weight = 2, color = function() return C.primary end,
-            visible = function() return t.visual_focus and selected() end },
+          hud().reticle({ length = 6, weight = 2, color = function() return C.primary end },
+            function() return t.visual_focus and selected() end),
         }
         -- Registration marks on the chosen tab's diagonal.
         for k, corner in ipairs { { left = true, top = true }, { right = true, bottom = true } } do
