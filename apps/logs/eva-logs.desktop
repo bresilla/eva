@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Logs
-Comment=The system journal, live
-Exec=eva-logs
-Icon=utilities-log-viewer
-Terminal=false
-Categories=System;Monitor;
-StartupWMClass=eva.logs

@@ -22,8 +22,10 @@ function M.register()
         keywords = entry.keywords, description = "Tools  ·  " .. entry.page, material = entry.icon, kind = "menu",
         run = opener(entry.key) }
     elseif page.page then
+      -- A tool counts as its own app did, among the apps.
       index.register { id = "tool:" .. entry.key, name = entry.name, tag = "Tool", keywords = entry.keywords,
-        description = "Tools  ·  " .. page.summary, material = entry.icon, kind = "menu", run = opener(entry.key) }
+        description = "Tools  ·  " .. page.summary, material = entry.icon, kind = "menu", boost = 1,
+        run = opener(entry.key) }
     end
   end
 end
