@@ -14,14 +14,12 @@ end
 
 local PITCH, MAJOR = 8, 10        -- side rulers: a tick every PITCH px, every MAJORth long
 local EDGE_PAD = 4                -- keep ticks clear of the opening ends
-local STEP, NUMBERED = 10, 100    -- top and bottom: a tick every STEP px, numbered every NUMBERED
-local digits = require("themes.tsugumori.digits")
+local STEP, LONG = 10, 100        -- top and bottom: a tick every STEP px, a long one every LONG
 
 -- A ruler along one edge of the opening: ticks rise out of the band from
 -- the opening's lip, continuing evenly behind the pills. Along the top and
--- bottom they count screen pixels: a long tick every hundred with its number
--- beside it in segment digits, a middle one every fifty, a short one every
--- ten. `edge` is top/bottom/left/right.
+-- bottom a long tick stands every hundred screen pixels, a middle one every
+-- fifty and a short one every ten. `edge` is top/bottom/left/right.
 local function ruler(model, edge)
   local B, L = theme.BORDER, theme.LEFT
   local function size() local _, _, w, h = model.desk() return w, h end
@@ -33,13 +31,12 @@ local function ruler(model, edge)
     local out = {}
     if horizontal then
       for at = math.ceil(a0 / STEP) * STEP, a1, STEP do
-        local long = at % NUMBERED == 0
+        local long = at % LONG == 0
         if long == major then
           local s = long and 7 or (at % 50 == 0 and 4 or 2)
           local p = at + .5
           if edge == "top" then out[#out + 1] = ("M%g %g V%g "):format(p, B, B - s)
           else out[#out + 1] = ("M%g %g V%g "):format(p, h - B, h - B + s) end
-          if long and at + 20 < a1 then digits.put(out, tostring(at), at + 3, edge == "top" and 1 or h - B + 4) end
         end
       end
       return #out > 0 and table.concat(out) or "M0 0"
