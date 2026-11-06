@@ -41,6 +41,7 @@ for _, style in ipairs { "material", "tsugumori" } do
       load(style, size)
       test.ipc("settings", "focus") test.settle(1800)
       test.truthy(test.find { id = "settings-focus-modes", visible = true }, "no modes on the Focus page")
+      reach("focus-mode-switch-1")
       test.click("focus-mode-switch-1") test.settle(600)
       test.eq(test.ipc("focus", "status").active, "work")
       test.contains(test.ipc("focus", "status").status, "Work")
@@ -52,6 +53,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.it(style .. " " .. name .. ": a mode's page edits the mode", function()
       local settings = load(style, size)
       test.ipc("settings", "focus") test.settle(1800)
+      reach("focus-mode-1-press")
       test.click("focus-mode-1-press") test.settle(1800)
       local page = test.find { id = "focus-mode-scroll", visible = true }
       test.truthy(page, "the mode's page did not open")

@@ -20,6 +20,7 @@ local JOBS = {
   startup = "apps_model",
   update = "system_updates",
   info = "info_model",
+  awake = "awake_model",
 }
 
 -- Every word after `--`, a flag (`--check`) among them as it was given.

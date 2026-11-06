@@ -1,8 +1,9 @@
 #!/bin/sh
 # eva-awake: keep the session awake for a while, through the shell's own keep
-# awake: the Keep awake tile, the bar's coffee and this are one state.
+# awake: the Keep awake tile, the bar's coffee, the Focus page and this are one
+# state. The words run shell/awake_model.lua as a job, which asks the shell.
 #
-#   eva-awake               the window
+#   eva-awake               the Settings window, on Focus
 #   eva-awake 30m           awake for a time; also "2 hours", "until 18:30"
 #   eva-awake on            awake until told otherwise
 #   eva-awake off           sleeps as usual again
@@ -13,7 +14,7 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" awake ;;
+  '') eva_settings focus ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
-  *) eva_tool_job awake "$@" ;;
+  *) eva_job awake "$@" ;;
 esac

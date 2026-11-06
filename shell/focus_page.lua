@@ -9,7 +9,7 @@ local RING = { { "", "Leave" }, { "sound", "Sound" }, { "vibrate", "Vibrate" }, 
 
 function M.model(settings)
   local model = { active = require("presentation").active("settings.focus"), MAX = focus.MAX,
-    controls = settings.focus, DURATIONS = focus.DURATIONS }
+    controls = settings.focus, DURATIONS = focus.DURATIONS, awake = require("awake_model").page() }
   model.modes = focus.modes
   --- The modes but Do not disturb, which has its row among the interruptions.
   function model.named()
