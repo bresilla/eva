@@ -38,7 +38,11 @@ end)
 
 test.it("eva-displays --auto applies a profile with no window", function()
   test.stub_run("hyprctl", { code = 1 })
-  test.load("../apps/common/job/app.lua", { args = { "displays", "--auto" }, env = ENV })
+  local out = morf.env("XDG_STATE_HOME") .. "/displays-auto-" .. tostring(morf.time.now_ms())
+  local env = { EVA_JOB_OUT = out }
+  for key, value in pairs(ENV) do env[key] = value end
+  test.load("../apps/common/job/app.lua", { args = { "displays", "--auto" }, env = env })
   test.settle(200)
   test.falsy(test.find { id = "displays-canvas" })
+  test.eq((morf.fs.read(out) or ""):sub(1, 2), "0\n", "the flag did not reach the job")
 end)

@@ -18,13 +18,16 @@ local JOBS = {
   displays = "displays_model",
   fonts = "fonts_model",
   startup = "apps_model",
+  update = "system_updates",
 }
 
-local module = JOBS[morf.operands[1]]
+-- Every word after `--`, a flag (`--check`) among them as it was given.
+local words = morf.args or morf.operands
+local module = JOBS[words[1]]
 if not module then
-  job.finish(nil, "no job " .. tostring(morf.operands[1]))
+  job.finish(nil, "no job " .. tostring(words[1]))
 else
   local args = {}
-  for index = 2, #morf.operands do args[#args + 1] = morf.operands[index] end
+  for index = 2, #words do args[#args + 1] = words[index] end
   require(module).job(args, job.finish, require("common.sys"))
 end

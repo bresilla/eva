@@ -1,11 +1,18 @@
--- eva-update's state: on NixOS the age of a flake's inputs and a rebuild with its
--- live log, elsewhere how many packages wait in each package manager. A rebuild
--- is a machine action: dry, a canned log plays and nothing runs. No nodes.
+-- What the Updates page checks: on NixOS the age of a flake's inputs and a
+-- rebuild with its live log, elsewhere how many packages wait in each package
+-- manager; and `eva-update --check`, that count. A rebuild is a machine
+-- action: dry, a canned log plays and nothing runs. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local host = require("lib.services.host")
+
+-- A package manager, asked: it only reads, so it runs even in a dry run.
+local sys = { dry = host.dry, run = function(argv, options, done)
+  local own = {}
+  for key, value in pairs(options or {}) do if key ~= "read" then own[key] = value end end
+  morf.process.run(argv, own, function(result) done(result or {}) end)
+end }
 
 local M = {
-  tab = morf.signal("update.tab", 1),
   nixos = morf.signal("update.nixos", false),
   flake = morf.signal("update.flake", ""),
   inputs = morf.signal("update.inputs", {}),
@@ -17,7 +24,6 @@ local M = {
   lines = morf.signal("update.lines", 0),
 }
 
-M.TABS = { "overview", "log" }
 -- Days after which an input counts as behind, and shows as such past `OLD`.
 M.STALE = 30
 M.OLD = 90
@@ -274,7 +280,6 @@ function M.rebuild()
   M.lines:set(0)
   M.state:set("running")
   M.message:set("Rebuilding")
-  M.tab:set(2)
   if sys.dry() then
     morf.log("info", "eva: " .. table.concat(M.argv(), " ") .. " (dry run)")
     M.feed("(dry run: this log is canned, nothing is being built)")
@@ -310,18 +315,17 @@ function M.cancel()
   return true
 end
 
-function M.select_tab(name)
-  for index, key in ipairs(M.TABS) do
-    if key == name then M.tab:set(index) return true end
-  end
-  return false
-end
-
 --- Reads what there is to read: `done()` once the managers have answered.
 function M.start(done)
   M.nixos:set(exists(M.root .. "/run/current-system") or exists(M.root .. "/etc/NIXOS"))
   if M.nixos:get() then M.read_flake() end
   M.check_managers(done)
+end
+
+--- `eva-update --check`: how many wait, as a number. `done(text, why)`.
+function M.job(args, done)
+  if args[1] ~= "--check" then done(nil, "no such option: " .. tostring(args[1])) return end
+  M.start(function() done(tostring(M.pending())) end)
 end
 
 return M

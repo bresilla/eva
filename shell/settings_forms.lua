@@ -213,7 +213,7 @@ M.PAGES = {
   commands = { sections = {
     { title = "Updates", fields = {
       { key = "update.flake", kind = "text", title = "Flake", icon = "account_tree",
-        note = "What eva-update reads, or its folder; empty finds /etc/nixos's" },
+        note = "What the Updates page reads, or its folder; empty finds /etc/nixos's" },
     } },
     { title = "Session", note = "$USER is your name", fields = session_commands {
       "lock", "logout", "suspend", "hibernate", "suspend_hibernate", "reboot", "shutdown" } },

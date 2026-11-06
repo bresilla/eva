@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Updates
-Comment=Flake inputs, package updates and a rebuild
-Exec=eva-update
-Icon=system-software-update
-Terminal=false
-Categories=System;Settings;
-StartupWMClass=eva.update

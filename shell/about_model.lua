@@ -59,13 +59,17 @@ function M.about(active)
   return model
 end
 
+--- Updates: the versions running, and what waits (system_updates.lua), asked
+--- again as the page comes on show.
 function M.updates(active)
   local model = page_model.new("updates", active)
   function model.version() return morf.version or "" end
   function model.eva() return about.eva_version() or "" end
   model.nixos = host.nixos
-  function model.available() return host.tool("update") ~= nil end
-  model.open = opener(model, "update", "eva-update")
+  model.check = require("system_updates")
+  model.on_show(function()
+    if model.check.state:get() ~= "running" then model.check.start() end
+  end)
   return model
 end
 

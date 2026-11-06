@@ -1,7 +1,9 @@
 #!/bin/sh
-# eva-update: what waits on this machine, and on NixOS a rebuild with its log.
+# eva-update: what waits on this machine. The Settings window's Updates page
+# shows it, and on NixOS rebuilds with its log; `--check` counts it with no
+# window and no shell (shell/system_updates.lua, as a job).
 #
-#   eva-update          the window
+#   eva-update          the Settings window, on Updates
 #   eva-update --check  how many wait, as a number: flake inputs a month behind
 #                       on NixOS, packages from checkupdates, apt, dnf and flatpak
 #
@@ -11,14 +13,9 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" update ;;
+  '') eva_settings updates ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
-  --check)
-    out=$(eva_private_file update)
-    EVA_UPDATE_OUT=$out "${MORF:-morf}" app "$apps/update/app.lua" -- --check > /dev/null 2>&1 || true
-    cat "$out"
-    rm -f "$out"
-    ;;
+  --check) eva_job update --check ;;
   *)
     eva_say "no such option: $1"
     exit 1
