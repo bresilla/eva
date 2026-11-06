@@ -1,5 +1,6 @@
--- The right panel's two sound pages, Sound (the output) and Microphone
--- (the input), in the page template (themes/layouts/page.lua):
+-- The Settings window's two sound pages, Sound (the output) and Microphone
+-- (the input), in the page template (themes/layouts/page.lua), and Sound's
+-- second page, which ends with the sound server's restart:
 --
 --   Output         the default output, its mute, volume, and each of its
 --                  channels under a Channels expander that remembers
@@ -302,6 +303,18 @@ local function theme_section()
   }
 end
 
+--- The sound server itself, restarted for what only that fixes.
+local function server_section()
+  return P.section { id = "sound-server", width = w, title = "Sound server",
+    P.row { id = "sound-restart", width = INNER, icon = "restart_alt", title = "Restart the sound server",
+      subtitle = function()
+        local said = model.restarted()
+        return said ~= "" and said or "PipeWire and WirePlumber, started again"
+      end,
+      trailing = P.button { id = "sound-restart-button", label = "Restart", on_clicked = model.restart } },
+  }
+end
+
 -- ------------------------------------------------------------------- input --
 
 --- The level as the microphone hears it, while a test runs.
@@ -362,7 +375,8 @@ if more then
   return ui.Item { id = "sound-more-page", width = w, height = h, clip = true,
     P.page { id = "sound-more-scroll", width = w, height = h, preferred_section(),
       cards_section("Bluetooth codec", "sound-codec", model.bluetooth_cards, "sound-codec"),
-      cards_section("Card profile", "sound-profile", model.other_cards, "sound-profile"), theme_section() } }
+      cards_section("Card profile", "sound-profile", model.other_cards, "sound-profile"), theme_section(),
+      model.restart and server_section() or nil } }
 end
 
 local function touch_section()

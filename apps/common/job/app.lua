@@ -13,6 +13,7 @@ local JOBS = {
   nightlight = "lib.services.nightlight",
   battery = "lib.services.charge_limit",
   clock = "lib.services.alarm",
+  audio = "sound_cli",
 }
 
 local module = JOBS[morf.operands[1]]

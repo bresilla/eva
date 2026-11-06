@@ -15,6 +15,15 @@ eva_ipc() {
   eva_morf ipc call "$@"
 }
 
+# The Settings window of the running shell, on page $1.
+eva_settings() {
+  if ! eva_shell_up; then
+    eva_say "the shell is not running, and Settings is a part of it"
+    return 1
+  fi
+  eva_ipc settings "$1" > /dev/null
+}
+
 # The answer of a verb alone, unwrapped from morf's JSON reply.
 eva_answer() {
   sed -e 's/.*"result":\[*//' -e 's/\]*}[[:space:]]*$//' -e 's/^"//' -e 's/"$//'

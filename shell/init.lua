@@ -23,6 +23,8 @@ local ui = require("morf.ui")
 
 -- Before anything asks for the compositor.
 require("windows_stand_in").install()
+-- A stand-in sound server, for the specs and tools/see (EVA_FAKE_AUDIO=1).
+if morf.env("EVA_FAKE_AUDIO") == "1" then require("sound_fake").install() end
 
 local config = require("config")
 local theme = require("theme")

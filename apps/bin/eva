@@ -131,6 +131,8 @@ open_target() {
       ;;
     *)
       if [ -f "$apps/$1/app.lua" ]; then exec sh "$apps/launch" "$1"; fi
+      # A tool folded into Settings: its page there.
+      if [ -f "$apps/bin/eva-$1" ]; then exec sh "$apps/bin/eva-$1"; fi
       eva_say "no such target: $1"
       exit 1
       ;;

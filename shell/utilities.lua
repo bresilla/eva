@@ -134,9 +134,6 @@ end
 morf.effect("eva.settings.lifecycle",function()
   M.shown(require("pages").active("settings")())
 end)
--- `equalizer-state`: what eva-audio's window shows; the asking starts the model
--- that follows the file that window edits.
-morf.ipc["equalizer-state"]=function() return require("equalizer_model").state() end
 -- An equalizer left on comes back with the shell.
 do
   local ok,saved=pcall(function() return morf.json.decode(morf.fs.read(morf.paths.state("eva-equalizer.json"))) end)
