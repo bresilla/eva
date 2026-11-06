@@ -12,7 +12,7 @@ local ui = require("morf.ui")
 local registry = require("themes.tsugumori.marks")
 
 local OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
-local SCAN, TRAIL = 340, 64
+local SCAN, TRAIL = 300, 64
 
 --- A keyframe track waits out its `delay` in a sequence: keyframes take none.
 local function timed(t)
@@ -90,9 +90,8 @@ return function(theme)
 
   --- The content pass over `host`: `play(delay)` and `stop()`.
   function B.content(host)
-    local C2, running, touched, stops, waiting = {}, nil, nil, nil, nil
-    local generation = 0
-    local function restore(cut)
+    local C2, touched, stops, waiting, runs = {}, nil, nil, nil, {}
+    local function restore()
       -- Rest poses, passing over nodes destroyed since the pass began.
       for entry, kind in pairs(touched or {}) do
         if kind == "card" then
@@ -100,28 +99,25 @@ return function(theme)
           pcall(card_rest, entry)
         else pcall(caption_rest, entry) end
       end
-      if cut then for _, stop in ipairs(stops or {}) do stop() end end
+      for _, stop in ipairs(stops or {}) do stop() end
       touched, stops = nil, nil
     end
     function C2.stop()
-      generation = generation + 1
       if waiting then waiting:cancel() waiting = nil end
-      if running then local pass = running running = nil pcall(pass.finish, pass) end
-      restore(true)
+      for _, run in ipairs(runs) do pcall(run.finish, run) end
+      runs = {}
+      restore()
     end
-    --- One pass, `delay` ms on; `deferred`, over what the next frame lays out.
-    function C2.play(delay, deferred)
-      C2.stop()
-      if require("themes.session").restoring then return end
-      delay = delay or 0
-      if deferred then
-        waiting = morf.time.timer(16, function() waiting = nil C2.play(math.max(0, delay - 16)) end, false)
-        return
-      end
+    local function play(tracks)
+      if #tracks > 0 then runs[#runs + 1] = morf.animation.play { { parallel = tracks } } end
+    end
+    local LIMIT = 32
+    --- The cards under the host: outlines draw in, brackets fly in.
+    local function cards(delay)
       local tracks = {}
-      touched, stops = {}, {}
-      local cards, area = registry.within(registry.cards, host)
-      for _, item in ipairs(cards) do
+      local found, area = registry.within(registry.cards, host)
+      for k = 1, math.min(#found, LIMIT) do
+        local item = found[k]
         local entry, at = item.entry, delay + item.at * SCAN
         touched[entry] = "card"
         local o, e = entry.outline, entry.edges
@@ -138,12 +134,16 @@ return function(theme)
             { at = .8, value = 0 }, { at = .86, value = 1 }, { at = 1, value = 1 } } }
         end
         land(entry)
-        local handle
-        handle = morf.animation.play { { parallel = flight(entry, item, area, at, 24) },
-          on_finished = function() if entry.flight == handle then entry.flight = nil end end }
-        entry.flight = handle
+        for _, track in ipairs(flight(entry, item, area, at, 24)) do tracks[#tracks + 1] = track end
       end
-      for _, item in ipairs((registry.within(registry.captions, host))) do
+      play(tracks)
+    end
+    --- The section captions under the host: plates and rules light.
+    local function captions(delay)
+      local tracks = {}
+      local found = registry.within(registry.captions, host)
+      for k = 1, math.min(#found, LIMIT) do
+        local item = found[k]
         local entry, at = item.entry, delay + item.at * SCAN
         touched[entry] = "caption"
         entry.plate.opacity, entry.rule.scale_x = 0, 0
@@ -159,22 +159,42 @@ return function(theme)
             { at = .8, value = 1 }, { at = 1, value = 1 } } }
         end
       end
-      for _, item in ipairs((registry.within(registry.values, host))) do
+      play(tracks)
+    end
+    --- The readings and meters under the host: each replays.
+    local function values(delay)
+      local found = registry.within(registry.values, host)
+      for k = 1, math.min(#found, LIMIT) do
+        local item = found[k]
         local stop = item.entry(delay + item.at * SCAN)
         if stop then stops[#stops + 1] = stop end
       end
-      if #tracks == 0 then return end
-      local own = generation
-      running = morf.animation.play { { parallel = tracks }, on_finished = function(reason)
-        if reason == "completed" and own == generation then running = nil restore() end
-      end }
+    end
+    --- One pass, `delay` ms on, in three turns of its own (cards, captions,
+    --- readings); `deferred`, over what the next frame lays out, or
+    --- `"late"`, over what is laid out when the pass begins.
+    function C2.play(delay, deferred)
+      C2.stop()
+      if require("themes.session").restoring then return end
+      delay = delay or 0
+      touched, stops = {}, {}
+      local stages, k = { cards, captions, values }, 0
+      local wait = deferred == "late" and math.max(16, delay) or (deferred and 16 or 0)
+      local function next_stage()
+        waiting = nil
+        k = k + 1
+        stages[k](math.max(0, delay - wait - (k - 1) * 16))
+        if stages[k + 1] then waiting = morf.time.timer(16, next_stage, false) end
+      end
+      if wait > 0 then waiting = morf.time.timer(wait, next_stage, false) else next_stage() end
     end
     return C2
   end
 
   --- `host` (a node), `id` (names the pieces `<id>-boot-*`), `opts`:
   --- `trace`, `brackets`, `scan`, `register` (booleans, all on by
-  --- default), `content` (off by default), `words` (the register's text),
+  --- default), `content` (off by default; `"late"` finds the content as the
+  --- pass begins, for a host still growing), `words` (the register's text),
   --- `place` (the register's anchors), `z` (104), `length` (the brackets',
   --- 10), `weight` (1.5), `reach` (how far out they start, 10). Returns
   --- `play(delay)` and `stop()`.
@@ -334,7 +354,7 @@ return function(theme)
           { at = .67, value = 1 }, { at = 1, value = 1 } } }
       end
       for _, node in ipairs(pieces()) do node.visible, node.opacity = true, 0 end
-      if content then content.play(delay, true) end
+      if content then content.play(delay, opts.content == "late" and "late" or true) end
       running = morf.animation.play { { parallel = tracks }, on_finished = function(reason)
         if reason == "completed" then running = nil hide() end
       end }

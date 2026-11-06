@@ -133,7 +133,7 @@ return function(theme)
       end
       if require("themes.session").restoring then return end
       pass = pass or boots.new(host, id .. "-lock",
-        opts or { trace = false, register = false, content = true, length = 14, weight = 2.5, reach = 24 })
+        opts or { trace = false, register = false, content = "late", length = 14, weight = 2.5, reach = 24 })
       pass.play(delay)
     end
   end
