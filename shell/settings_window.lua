@@ -30,9 +30,21 @@ end
 -- An authentication prompt hides the window while it asks, and gives it back.
 local covered = morf.signal("eva.settings.window.covered", false)
 
+-- The screen the window is open on, for every screen's runtime: "" with none.
+-- The others dim while it is open, and a press on their dim shuts it.
+local holder = morf.shared("eva.settings.window.screen", "")
+local me = require("focused").output()
+if me == "" then me = "here" end
+local function elsewhere()
+  local screen = holder:get()
+  return screen ~= "" and screen ~= me
+end
+
 local ctx = setmetatable({
   phone = phone, size = responsive.size, top = top(),
   covered = function() return covered:get() end,
+  elsewhere = elsewhere,
+  dismiss = function() settings.close() holder:set("") end,
   -- One page at a time, Back goes up to All settings; beside the way round,
   -- only a page one level into another has a way back.
   nested = nested,
@@ -47,6 +59,14 @@ local ctx = setmetatable({
 
 local view = require("themes").view("settings_window").build(ctx)
 M.node = view.node
+M.dismiss = ctx.dismiss
+M.screen = holder
+--- Whether the window is open on this screen, or on none, or on another.
+function M.where()
+  local screen = holder:get()
+  if screen == "" then return "none" end
+  return screen == me and "here" or "elsewhere"
+end
 
 require("themes.kit.popup").track(view.window, {
   open = function() return settings.opened:get() and not covered:get() end,
@@ -54,8 +74,21 @@ require("themes.kit.popup").track(view.window, {
   on_close = function() settings.close() end,
 })
 morf.effect("eva.settings.window.keys", function() view.shown(settings.opened:get() and not covered:get()) end)
--- The edges' hover strips stay shut under it.
-require("hover").cover(function() return settings.opened:get() end)
+-- The edges' hover strips stay shut under it, and under the dim.
+require("hover").cover(function() return settings.opened:get() or elsewhere() end)
+
+-- Opening here takes the window from any other screen; shutting it here, or a
+-- press on another screen's dim, lets every screen go.
+if settings.opened:get() then holder:set(me) end
+local was_open, was_holder = settings.opened:get(), holder:get()
+morf.effect("eva.settings.window.screens", function()
+  local open, screen = settings.opened:get(), holder:get()
+  if open and not was_open then holder:set(me)
+  elseif not open and was_open then
+    if screen == me then holder:set("") end
+  elseif open and screen ~= was_holder and screen ~= me then settings.close() end
+  was_open, was_holder = open, screen
+end)
 
 -- What else comes up: a prompt that asks for a password covers the window;
 -- any other panel opening takes the screen from it. The keyboard and the

@@ -558,10 +558,20 @@ for _, key in ipairs { "tasks", "calendar", "assistant", "drop" } do
   ipc[key] = page_verb(key)
 end
 ipc.settings = function(page)
-  if not here() then return nil end
+  local window = require("settings_window")
+  -- The screen holding the window answers and shuts it, wherever the focus is.
+  if page == "close" then
+    window.dismiss()
+    if here() then return false end
+    return nil
+  end
+  local where = window.where()
+  if page == "state" and (where == "here" or where == "none" and here()) then
+    local settings = require("utilities")
+    return { open = settings.opened:get(), page = settings.detail:get() }
+  end
+  if not here() or page == "state" then return nil end
   local settings = require("utilities")
-  if page == "state" then return { open = settings.opened:get(), page = settings.detail:get() } end
-  if page == "close" then settings.close() return false end
   if page == nil or page == "" then pages.open("settings") return "" end
   if not settings.request(page) then error("No such Settings page: " .. tostring(page)) end
   return settings.detail:get()

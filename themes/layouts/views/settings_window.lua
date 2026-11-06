@@ -181,14 +181,24 @@ function V.build(model)
   local function shown() return model.opened:get() and not (model.covered and model.covered()) end
   local drawn = theme.motion.appear(window, shown, { id = "settings-window", content = false })
 
+  -- The dim: round the window, or the whole of a screen it is not open on.
+  local function elsewhere() return model.elsewhere ~= nil and model.elsewhere() end
+  local function dim() return shown() or elsewhere() end
   local scrim = kit.surface { id = "settings-scrim", anchors = { fill = true },
-    color = function() return C.scrim:alpha(shown() and .55 or 0) end,
+    color = function() return C.scrim:alpha(dim() and .55 or 0) end,
     behavior = { color = { duration = theme.duration.normal, easing = theme.ease.standard } } }
+  local fading = morf.signal("eva.settings.window.fading", false)
+  local fade
+  morf.effect("eva.settings.window.fade", function()
+    if fade then fade:cancel() fade = nil end
+    if dim() then fading:set(true) return end
+    fade = morf.time.timer(theme.duration.normal, function() fade = nil fading:set(false) end, false)
+  end)
   local root = ui.Item { id = "settings-window-root", anchors = { fill = true },
-    visible = function() return shown() or drawn() end,
+    visible = function() return dim() or drawn() or fading:get() end,
     scrim,
-    ui.MouseArea { id = "settings-scrim-area", anchors = { fill = true }, enabled = shown,
-      accessible_name = "Close Settings", on_clicked = model.close, on_wheel = function() end },
+    ui.MouseArea { id = "settings-scrim-area", anchors = { fill = true }, enabled = dim,
+      accessible_name = "Close Settings", on_clicked = model.dismiss or model.close, on_wheel = function() end },
     window }
   morf.effect("eva.settings.window.present", function() model.present(model.detail:get()) end, { owner = root })
   -- Open, the keys go to the window, unless the search takes them; a turn

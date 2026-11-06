@@ -16,6 +16,11 @@ local SOURCE = [[
       sidebar = require("sidebar").drawer.open:get(), keyboard = morf.surface.keyboard_focus }
   end
   morf.ipc.q_hold = function() require("themes.session").hold() return true end
+  morf.ipc.q_screen = function(name)
+    local screen = require("settings_window").screen
+    if name then screen:set(name) end
+    return screen:get()
+  end
 ]]
 
 local serial = 0
@@ -110,6 +115,31 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.leave() test.advance(300)
       test.move(1597, 500) test.advance(1500)
       test.truthy(state().sidebar, "the edge stayed dead after the window shut")
+    end)
+
+    test.it("dims a screen it is not open on, and a press on that dim shuts it everywhere", function()
+      load(style)
+      test.ipc("settings", "bluetooth") test.settle(1200)
+      local mine = test.ipc("q_screen")
+      test.ne(mine, "", "no screen holds it")
+      -- Another screen opens its own: this one gives way and dims.
+      test.ipc("q_screen", "other") test.settle(1200)
+      test.falsy(state().open, "two screens hold the window")
+      test.falsy(test.find { id = "settings-window", visible = true })
+      local scrim = test.find { id = "settings-scrim", visible = true }
+      test.truthy(scrim, "the screen it is not on is not dimmed")
+      test.eq({ scrim.x, scrim.y, scrim.width, scrim.height }, { 0, 0, 1600, 1000 })
+      test.move(1597, 500) test.advance(1500)
+      test.falsy(state().sidebar, "an edge opened its panel under the dim")
+      test.click(800, 500) test.settle(1200)
+      test.eq(test.ipc("q_screen"), "", "a press on the dim left it open")
+      test.falsy(test.find { id = "settings-scrim", visible = true }, "the dim stayed")
+      -- Shut from any screen.
+      test.ipc("settings", "network") test.settle(1200)
+      test.ipc("q_screen", "other") test.settle(600)
+      test.ipc("settings", "close") test.settle(1200)
+      test.eq(test.ipc("q_screen"), "")
+      test.eq(#test.logs("error"), 0)
     end)
 
     test.it("is drawn while it leaves, and then not at all", function()
