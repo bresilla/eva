@@ -2,6 +2,7 @@
 -- and the media rail are skins of the kit's Range: skins.lua.)
 local morf = require("morf")
 local ui = require("morf.ui")
+local registry = require("themes.tsugumori.marks")
 
 return function(theme, kit)
   local C = theme.color
@@ -10,17 +11,15 @@ return function(theme, kit)
 
   --- Drives `node.trim_end` to `lit()` (a fraction of `n` cells) one whole
   --- cell at a time: cells light in sequence, quickly first and then
-  --- slower, from wherever the run stands when the value changes.
+  --- slower, from wherever the run stands when the value changes. A boot
+  --- pass reaching it runs it up again from empty.
   function M.stepped(node, lit, n)
     local running
-    node.trim_end = math.max(.0001, lit())
-    morf.effect("tsugumori.meter.step", function()
-      local target = math.max(.0001, lit())
+    local function run(from, target, delay, ms)
       if running then running:stop() running = nil end
-      local from = node.trim_end or target
       local a, b = math.floor(from * n + .5), math.floor(target * n + .5)
       local count = math.abs(b - a)
-      if count == 0 then node.trim_end = target return end
+      if count == 0 then node.trim_end = target return false end
       local frames, before, last = { { at = 0, value = from } }, from, 0
       for k = 1, count do
         local at = (k / count) ^ 2
@@ -29,9 +28,29 @@ return function(theme, kit)
         frames[#frames + 1] = { at = at, value = value }
         before, last = value, at
       end
-      running = morf.animation.play { { node = node, property = "trim_end", duration = math.min(360, 60 + 22 * count),
-        keyframes = frames }, on_finished = function() running = nil end }
+      local track = { node = node, property = "trim_end", duration = ms(count), keyframes = frames }
+      if delay and delay > 0 then node.trim_end = from track = { sequence = { { pause = delay }, track } } end
+      running = morf.animation.play { track, on_finished = function() running = nil end }
+      return true
+    end
+    local function quick(count) return math.min(360, 60 + 22 * count) end
+    local function slow(count) return math.min(440, 90 + 26 * count) end
+    local wanted = math.max(.0001, lit())
+    node.trim_end = wanted
+    morf.effect("tsugumori.meter.step", function()
+      local target = math.max(.0001, lit())
+      local from = node.trim_end or target
+      if target == wanted then return end
+      wanted = target
+      run(from, target, 0, quick)
     end, { owner = node })
+    registry.values[node] = function(delay)
+      if not run(.0001, math.max(.0001, lit()), math.max(1, delay), slow) then return nil end
+      return function()
+        if running then running:stop() running = nil end
+        pcall(function() node.trim_end = math.max(.0001, lit()) end)
+      end
+    end
     return node
   end
 

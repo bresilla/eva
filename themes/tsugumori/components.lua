@@ -128,7 +128,43 @@ return function(theme)
     props.font_size = props.font_size or theme.size.normal
     if props.font_weight and props.axes == nil then props.axes = { wght = props.font_weight } end
     if props.color == nil then props.color = function() return C.onSurface end end
-    return ui.Text(props)
+    local node = ui.Text(props)
+    if type(props.text) == "function" and type(props.font_size) == "number" and props.font_size >= 17.5 then
+      M.decoding(node, props.text)
+    end
+    return node
+  end
+
+  --- Marks `node` (a Text bound to `source`) as a reading a boot pass
+  --- decodes: its digits run through others and settle from the left, and
+  --- the binding comes back. Returns `node`.
+  function M.decoding(node, source)
+    registry.values[node] = function(delay)
+      local ok, now = pcall(function() return tostring(get(source) or "") end)
+      if not ok or not now:find("%d") then return nil end
+      local _, n = now:gsub("%d", "")
+      local STEPS, k, handle = 7, -1, nil
+      local function show(text) pcall(function() node.text = text end) end
+      local function settle() handle = nil show(source) end
+      local function scrambled()
+        local i = 0
+        return (now:gsub("%d", function(d)
+          i = i + 1
+          if i <= math.floor(k * n / STEPS) then return d end
+          return tostring((tonumber(d) + i * 3 + k * 7 + 1) % 10)
+        end))
+      end
+      local function step()
+        k = k + 1
+        if k >= STEPS then settle() return end
+        show(scrambled())
+        handle = morf.animation.play { { pause = k == 0 and math.max(1, delay) or 42 },
+          on_finished = function(reason) if reason == "completed" then step() end end }
+      end
+      step()
+      return function() if handle then handle:stop() settle() end end
+    end
+    return node
   end
 
   --- A Material Symbols icon by its ligature name; `props.fill` (a boolean
@@ -836,6 +872,31 @@ return function(theme)
         end
       end
     end, { owner = node })
+    -- A boot pass rolls each digit in from below, one after the other, out
+    -- of another that rolls away.
+    registry.values[node] = function(delay)
+      local tracks = {}
+      for i = 1, n do
+        local slot, st = slots[i], state[i]
+        if st.shown ~= "" then
+          if st.running then st.running:stop() st.running = nil end
+          local at = delay + (i - 1) * 60
+          slot.current.y, slot.old.y, slot.old.opacity = size, 0, 1
+          slot.old.text = tostring((tonumber(st.shown) or 0) * 3 % 10 + 1):sub(-1)
+          tracks[#tracks + 1] = { node = slot.current, property = "y", from = size, to = 0, delay = at,
+            duration = 280, easing = "out_back" }
+          tracks[#tracks + 1] = { node = slot.old, property = "y", from = 0, to = -size, delay = at, duration = 280,
+            easing = "out_cubic" }
+          tracks[#tracks + 1] = { node = slot.old, property = "opacity", from = 1, to = 0, delay = at, duration = 280 }
+        end
+      end
+      if #tracks == 0 then return nil end
+      local handle = morf.animation.play { { parallel = tracks } }
+      return function()
+        handle:stop()
+        for i = 1, n do pcall(function() slots[i].current.y, slots[i].old.opacity = 0, 0 end) end
+      end
+    end
     return node
   end
 

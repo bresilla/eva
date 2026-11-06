@@ -4,6 +4,7 @@
 -- whole from the Futuristic theme's instruments.
 local morf = require("morf")
 local ui = require("morf.ui")
+local registry = require("themes.tsugumori.marks")
 
 return function(theme, kit)
   local C = theme.color
@@ -49,6 +50,11 @@ return function(theme, kit)
     end
     local lit = function() return v() > .002 and 1 or 0 end
     local trim = function() return math.max(.001, v()) end
+    local glow = path { d = value_arc, stroke_color = function() return get(color):alpha(.16) end,
+      stroke_width = thick * 1.7, opacity = lit, trim_end = trim, behavior = { trim_end = settle() } }
+    local value = path { d = value_arc, stroke_color = color, stroke_width = thick,
+      opacity = lit, trim_end = trim, behavior = { trim_end = settle() } }
+    local function angle() return from + sweep * v() end
     local node = { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = s, height = s,
       -- Outer ring in segments, the ruler inside it.
       path { d = arc(c, c, r0, 0, 360), stroke_color = line("quiet", color), stroke_width = 2,
@@ -57,18 +63,15 @@ return function(theme, kit)
       -- Track, then the value: a wide faint stroke under the arc makes its
       -- glow, the arc itself on top.
       path { d = value_arc, stroke_color = function() return get(color):alpha(.12) end, stroke_width = thick },
-      path { d = value_arc, stroke_color = function() return get(color):alpha(.16) end, stroke_width = thick * 1.7,
-        opacity = lit, trim_end = trim, behavior = { trim_end = settle() } },
-      path { d = value_arc, stroke_color = color, stroke_width = thick,
-        opacity = lit, trim_end = trim, behavior = { trim_end = settle() } },
+      glow, value,
       path { d = arc(c, c, r3, 0, 360), stroke_color = line("idle", color), stroke_width = 1, dash = { 3, 3 } },
     }
     -- The needle: a bright bar across the arc at its head.
-    node[#node + 1] = ui.Item { anchors = { fill = true },
-      rotation = function() return from + sweep * v() end, behavior = { rotation = settle() },
+    local needle = ui.Item { anchors = { fill = true }, rotation = angle, behavior = { rotation = settle() },
       ui.Rect { x = c - 1.5, y = c - r1, width = 3, height = r1 - (r2 - thick / 2) + 1,
         color = function() return C.onSurface end },
     }
+    node[#node + 1] = needle
     -- End stops of the sweep.
     for _, at in ipairs { from, from + sweep } do
       node[#node + 1] = ui.Item { anchors = { fill = true }, rotation = at,
@@ -79,12 +82,26 @@ return function(theme, kit)
     -- about four characters across, with room for the label under it.
     local fit = math.max(8, math.floor(math.min(spec.text_size or s * .15, r3 * (spec.label and .5 or .6))))
     node[#node + 1] = ui.Column { anchors = { center_in = true }, width = math.floor(2 * r3), gap = 0, align = "center",
-      ui.Text { text = text, font_family = theme.font, font_size = fit,
-        font_weight = 300, color = color, horizontal_alignment = "center" },
+      kit.decoding(ui.Text { text = text, font_family = theme.font, font_size = fit,
+        font_weight = 300, color = color, horizontal_alignment = "center" }, text),
       spec.label and kit.label { text = spec.label, horizontal_alignment = "center", color = kit.ink("lo") } or nil,
     }
     for _, child in ipairs(spec) do node[#node + 1] = child end
-    return ui.Item(node)
+    local item = ui.Item(node)
+    -- A boot pass empties the arc and the needle and lets them sweep back up.
+    registry.values[item] = function(delay)
+      if v() <= .002 then return nil end
+      glow.trim_end, value.trim_end, needle.rotation = .001, .001, from
+      for node, property in pairs { [glow] = "trim_end", [value] = "trim_end", [needle] = "rotation" } do
+        morf.animation.finish(node, property)
+      end
+      local function bind() glow.trim_end, value.trim_end, needle.rotation = trim, trim, angle end
+      local handle = morf.animation.play { { pause = math.max(1, delay) }, on_finished = function(reason)
+        if reason == "completed" then pcall(bind) end
+      end }
+      return function() handle:stop() pcall(bind) end
+    end
+    return item
   end
 
   --- The kit's gauge: the ring from 72 px up; a plain arc over a dashed
