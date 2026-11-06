@@ -27,8 +27,12 @@ local function top()
   return cut and cut.y == 0 and cut.height or 0
 end
 
+-- An authentication prompt hides the window while it asks, and gives it back.
+local covered = morf.signal("eva.settings.window.covered", false)
+
 local ctx = setmetatable({
   phone = phone, size = responsive.size, top = top(),
+  covered = function() return covered:get() end,
   -- One page at a time, Back goes up to All settings; beside the way round,
   -- only a page one level into another has a way back.
   nested = nested,
@@ -45,11 +49,31 @@ local view = require("themes").view("settings_window").build(ctx)
 M.node = view.node
 
 require("themes.kit.popup").track(view.window, {
-  open = function() return settings.opened:get() end,
+  open = function() return settings.opened:get() and not covered:get() end,
   close_policy = "escape+outside", except = { require("drawer").keyboard_input },
   on_close = function() settings.close() end,
 })
 morf.effect("eva.settings.window.keys", function() view.shown(settings.opened:get()) end)
+
+-- What else comes up: a prompt that asks for a password covers the window;
+-- any other panel opening takes the screen from it. The keyboard and the
+-- notifications' popups do neither.
+local ASKS = { polkit = true, keyring = true, authsteps = true }
+local QUIET = { keyboard = true, notifications = true }
+local drawers = require("drawer").all
+local was = {}
+for _, d in ipairs(drawers) do was[d.name] = d.open:get() end
+morf.effect("eva.settings.window.others", function()
+  local asking, arrived = false, false
+  for _, d in ipairs(drawers) do
+    local on = d.open:get()
+    if on and ASKS[d.name] then asking = true end
+    if on and not was[d.name] and not ASKS[d.name] and not QUIET[d.name] then arrived = true end
+    was[d.name] = on
+  end
+  covered:set(asking)
+  if arrived and settings.opened:get() then settings.close() end
+end)
 
 -- The Lule studio works while its page is on show.
 morf.effect("eva.settings.window.lule", function()

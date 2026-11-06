@@ -178,7 +178,7 @@ function V.build(model)
     ui.Loader { anchors = { fill = true }, keep = true, preload = true, active = function() return wanted:get() end,
       source = content },
     keys }
-  local function shown() return model.opened:get() end
+  local function shown() return model.opened:get() and not (model.covered and model.covered()) end
   local drawn = theme.motion.appear(window, shown, { id = "settings-window", content = false })
 
   local scrim = kit.surface { id = "settings-scrim", anchors = { fill = true },
