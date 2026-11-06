@@ -20,6 +20,10 @@ function M.filter(query)
 end
 function M.open()
   M.opened:set(true)
+  M.list()
+end
+--- Lists the installed families, once, without opening a picker.
+function M.list()
   if families or loading then return end
   loading = true
   M.status:set("Loading installed fonts…")
@@ -116,7 +120,7 @@ local function set_from_tool(family, via, done)
   end)
 end
 
---- Sets the UI font, for the Lule picker and eva-fonts alike.
+--- Sets the UI font, for the Lule picker, the Fonts page and eva-fonts alike.
 --- `choice` is `{ family = name }`, "" for the theme's own, or `{ file = path }`, ""
 --- for the installed faces; `choice.via` is a tool's `common.sys`, for a caller
 --- outside the shell. `done(ok, words)`.

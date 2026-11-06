@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Fonts
-Comment=Browse and preview installed fonts, and set the shell's
-Exec=eva-fonts
-Icon=preferences-desktop-font
-Terminal=false
-Categories=Settings;DesktopSettings;
-StartupWMClass=eva.fonts

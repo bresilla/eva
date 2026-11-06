@@ -21,6 +21,9 @@ function V.theme_page(model,w,h)
       P.row {id="settings-theme-lule",width=inner,icon="palette",title="Lule",
         subtitle="Wallpaper, colours, the shell's theme and font",trailing=P.chevron(),
         on_clicked=function() model.request("theme/lule") end},
+      P.row {id="settings-theme-fonts",width=inner,icon="font_download",title="Fonts",
+        subtitle="Every family, previewed, and the shell's",trailing=P.chevron(),
+        on_clicked=function() model.request("theme/fonts") end},
     },
   }
 end

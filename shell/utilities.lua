@@ -56,6 +56,13 @@ builders.software=function(w,h) return themed("software_page").build(require("so
 builders.screen_time=function(w,h) return themed("screen_time_page").build(require("screen_time_model"),w,h) end
 builders["screen_time/app"]=function(w,h) return themed("screen_time_page").app(require("screen_time_model"),w,h) end
 builders["bar/fold"]=function(w,h) return themed("bar_fold").build(require("status_model"),w,h) end
+builders["theme/fonts"]=function(w,h)
+  local model=require("fonts_model")
+  model.active=active("theme/fonts")
+  model.restore()
+  morf.effect("eva.settings.fonts.list",function() if model.active() then model.load() end end)
+  return themed("fonts_page").page(model,w,h)
+end
 
 -- All settings, and the pages over the shell's own configuration. Beside a
 -- desk's way round it is the index of every page; on a phone, the search and

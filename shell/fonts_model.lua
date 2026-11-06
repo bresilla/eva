@@ -1,8 +1,16 @@
--- eva-fonts' state: the families of themes/fonts.lua and what a preview of one needs
--- on top of them. The shell's font is set by themes/fonts.lua's `set`. No nodes.
+-- The Fonts page's state: the families of themes/fonts.lua and what a preview of
+-- one needs on top of them, and `eva-fonts`' words. The shell's font is set by
+-- themes/fonts.lua's `set`: in the shell directly, from the command line through
+-- `M.via`, a tool's common.sys. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
 local fonts = require("themes.fonts")
+
+-- fontconfig, asked: it only reads, so it runs even in a dry run.
+local sys = { run = function(argv, options, done)
+  local own = {}
+  for key, value in pairs(options or {}) do if key ~= "read" then own[key] = value end end
+  morf.process.run(argv, own, function(result) done(result or {}) end)
+end }
 
 local M = {
   chosen = morf.signal("fonts.chosen", ""),
@@ -86,7 +94,7 @@ end
 
 --- Lists the families; `done()` once they are there.
 function M.load(done)
-  fonts.open()
+  fonts.list()
   if not done then return end
   local heard = false
   morf.effect("fonts.load", function()
@@ -151,9 +159,12 @@ function M.has_weight(weight)
   return false
 end
 
+--- A tool's common.sys where the font is set from outside the shell; nil in it.
+M.via = nil
+
 --- Sets the shell's font, "" for the theme's own: `done(ok, words)`.
 function M.apply(family, done)
-  fonts.set({ family = family, via = sys }, function(ok, words)
+  fonts.set({ family = family, via = M.via }, function(ok, words)
     say(words)
     if done then done(ok, words) end
   end)
@@ -168,14 +179,15 @@ function M.apply_installed(family, done)
   M.apply(family, done)
 end
 
---- `eva-fonts`'s command: `done(text, why)`.
-function M.job(args, done)
+--- `eva-fonts`'s command: `done(text, why)`; `via` is the job's common.sys.
+function M.job(args, done, via)
+  M.via = via
   local how = args[1]
   local function answer(ok, words)
     if ok then done(words) else done(nil, words) end
   end
   if how == "current" then
-    fonts.current(sys, function(font) done(font ~= "" and font or "the theme's own font") end)
+    fonts.current(via, function(font) done(font ~= "" and font or "the theme's own font") end)
   elseif how == "reset" then
     M.apply("", answer)
   elseif how == "list" then
