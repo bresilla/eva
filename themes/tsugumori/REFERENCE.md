@@ -109,7 +109,7 @@ reference. All of it uses wallpaper roles and stops at rest.
   (`widgets/popup.lua`) play the boot pass directly.
 - `dots.lua`: a dot grid behind the dashboard, side, planner and bottom
   panels, with a small cross every fourth step: two paths per panel.
-- Cards (`kit.card`) are square: an outline at 0.7 (one loop the pass
+- Cards (`kit.card`) are square: an outline at 0.3 (one loop the pass
   draws in), four 12 px hairline brackets on the corners, and a foot ruler,
   a serial strip and side notches sharing one path. Framed panels
   (`kit.panel`) keep their registration marks and take the same ticks.

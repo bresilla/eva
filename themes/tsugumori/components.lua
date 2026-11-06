@@ -42,7 +42,7 @@ return function(theme)
     return function() return C.onSurface end
   end
   -- Line strengths, on the same accent ramp as strokes.lua.
-  local STRENGTH = { faint = .1, quiet = .18, idle = .34, mark = .62, hot = .85 }
+  local STRENGTH = { faint = .06, quiet = .10, idle = .18, mark = .42, hot = .65 }
   function M.stroke(strength, color)
     local a = assert(STRENGTH[strength or "idle"], "unknown stroke strength")
     return function() return (color and get(color) or C.primary):alpha(a) end
@@ -347,7 +347,7 @@ return function(theme)
     local function vw() return math.max(0, get(w) - room) end
     local index = next_index(type(spec.note) ~= "function")
     local ink = spec.color or M.ink("accent")
-    local plate = index and ui.Rect { y = 1, width = 20, height = 12, color = ink,
+    local plate = index and ui.Rect { y = 1, width = 20, height = 12, color = function() return get(ink):alpha(.6) end,
       M.text { width = 20, height = 12, text = ("%02d"):format(index), font_size = 9, font_weight = 600,
         horizontal_alignment = "center", vertical_alignment = "center", color = function() return C.onPrimary end } }
       or ui.Rect { y = 5, width = 5, height = 5, color = ink }
@@ -356,9 +356,9 @@ return function(theme)
     local rule = ui.Path { width = vw, height = 16, view_box = function() return { 0, 0, vw(), 16 } end,
       transform_origin_x = 0,
       d = function() local r = vw() return ("M0 15.5 H%g M%g 9 V16 M%g 9 V16"):format(r, r - .5, r - 1.5) end,
-      fill_color = "transparent", stroke_width = 1, stroke_color = function() return C.primary:alpha(.55) end }
+      fill_color = "transparent", stroke_width = 1, stroke_color = function() return C.primary:alpha(.3) end }
     local hazard = ui.Path { width = vw, height = 16, view_box = function() return { 0, 0, vw(), 16 } end,
-      d = function() return hazard_d(vw(), striped) end, fill_color = function() return get(ink):alpha(.85) end }
+      d = function() return hazard_d(vw(), striped) end, fill_color = function() return get(ink):alpha(.4) end }
     local node = ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = 16,
       rule, hazard, plate,
       M.label { text = spec.text, x = lead, y = 0, height = 14, color = ink, elide = "right",
@@ -461,7 +461,7 @@ return function(theme)
     serial_count = serial_count + 1
     local serial = SERIAL[serial_count % 8]
     props[#props + 1] = sized({ fill_color = "transparent", stroke_width = 1,
-      stroke_color = function() return C.primary:alpha(.6) end }, function(w, h) return ticks_on(w, h, serial) end)
+      stroke_color = function() return C.primary:alpha(.3) end }, function(w, h) return ticks_on(w, h, serial) end)
   end
   --- The chrome onto a card's children after what it holds: the outline,
   --- the ticks and the four brackets. Returns the registry entry.

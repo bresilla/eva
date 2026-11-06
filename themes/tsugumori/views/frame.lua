@@ -58,9 +58,9 @@ local function ruler(model, edge)
   end
   return ui.Item { id = "tsugumori-frame-ruler-" .. edge, anchors = { fill = true },
     ui.Path { id = "tsugumori-frame-ruler-" .. edge .. "-minor", anchors = { fill = true }, d = function() return d(false) end,
-      fill_color = "transparent", stroke_color = function() return C.primary:alpha(.5) end, stroke_width = 1 },
+      fill_color = "transparent", stroke_color = function() return C.primary:alpha(.4) end, stroke_width = 1 },
     ui.Path { id = "tsugumori-frame-ruler-" .. edge .. "-major", anchors = { fill = true }, d = function() return d(true) end,
-      fill_color = "transparent", stroke_color = function() return C.primary:alpha(.85) end, stroke_width = 1 },
+      fill_color = "transparent", stroke_color = function() return C.primary:alpha(.72) end, stroke_width = 1 },
   }
 end
 
