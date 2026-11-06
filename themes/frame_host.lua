@@ -40,5 +40,8 @@ return function(model,frame,insets,decorations)
   for _,node in ipairs {model.bar,model.rail.node,model.levels.node} do switcher.fade(node) end
   switcher.fade(decorations)
   local bar=arriving("arrival-bar",model.bar,2,model.bar_edge or function() return "top" end,model.bar_reach or theme.BORDER)
-  return ui.Item {anchors={fill=true},frame,bar,ui.Item(desk),ui.Item(docked),switcher.blocker()}
+  -- Over the frame, the bar and the panels, under the keyboard's dock.
+  local above={id="above",anchors={fill=true}}
+  for _,node in ipairs(model.above or {}) do above[#above+1]=node end
+  return ui.Item {anchors={fill=true},frame,bar,ui.Item(desk),ui.Item(above),ui.Item(docked),switcher.blocker()}
 end

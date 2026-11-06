@@ -486,7 +486,7 @@ test.describe("eva", function()
     test.falsy(shown("sidebar"))
   end)
 
-  test.it("opens a tile's page from its arrow, and comes back", function()
+  test.it("opens a tile's page from its arrow in the Settings window, the panel stepping aside", function()
     load()
     test.ipc("utilities", "open")
     test.settle(1500)
@@ -494,21 +494,30 @@ test.describe("eva", function()
     test.settle(1000)
     test.truthy(test.find { id = "bluetooth-page", visible = true })
     test.truthy(test.find { text = "No Bluetooth adapter", visible = true })
-    local detail = test.get { id = "settings-detail" }
-    test.near(detail.x, drawer("sidebar").x + 31, 1, "the page did not slide in")
+    test.falsy(shown("sidebar"), "the panel stayed open under the window")
+    local window = test.get { id = "settings-window" }
+    test.near(window.width, math.floor(W * 0.7), 1)
+    test.near(window.height, math.floor(H * 0.7), 1)
+    test.near(window.x + window.width / 2, W / 2, 1, "the window is not in the middle")
+    test.near(window.y + window.height / 2, H / 2, 1, "the window is not in the middle")
     test.snapshot("eva-settings-bluetooth.png", { surface = "screen" })
-    test.click { id = "settings-back" }
+    test.key("Escape")
     test.settle(1000)
-    test.near(test.get({ id = "utilities" }).x, drawer("sidebar").x + 31, 1, "the settings did not come back")
-    -- Straight to a page over IPC; shut, the panel forgets it.
+    test.falsy(test.ipc("settings", "state").open, "Escape left it open")
+    -- Straight to a page over IPC; its close control shuts it.
     test.eq(test.ipc("settings", "network"), "network")
     test.settle(1000)
     test.truthy(test.find { id = "network-page", visible = true })
-    test.ipc("sidebar", "close")
+    test.click { id = "settings-close" }
     test.settle(1000)
-    test.ipc("sidebar", "open")
-    test.settle(1500)
-    test.near(test.get({ id = "utilities" }).x, drawer("sidebar").x + 31, 1)
+    test.falsy(test.ipc("settings", "state").open, "the close control left it open")
+    test.falsy(test.find { id = "settings-window", visible = true })
+    -- A press on the dimmed screen around it shuts it too.
+    test.ipc("settings", "network")
+    test.settle(1000)
+    test.click(40, H / 2)
+    test.settle(1000)
+    test.falsy(test.ipc("settings", "state").open, "a press outside left it open")
     test.eq(#test.logs("error"), 0)
   end)
 
@@ -522,7 +531,7 @@ test.describe("eva", function()
     test.click { id = "utilities-toggle-awake" }
     test.settle(1000)
     test.truthy(test.find { text = "^Since ", visible = true } or test.find { id = "utilities-toggle-awake", visible = true })
-    test.click {id="settings-back"} test.settle(1000)
+    test.ipc("settings", "close") test.ipc("utilities", "open") test.settle(1500)
     test.click { id = "utilities-toggle-mic" }
     test.click { id = "utilities-toggle-airplane" }
     test.settle(500)

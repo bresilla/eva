@@ -51,6 +51,12 @@ local function state() return test.ipc("motion_state") end
 local function eva_page()
   test.ipc("utilities", "open") test.settle(900)
   test.click("utilities-toggle-eva") test.advance(2500)
+  -- The Motion section, wheeled into the Settings window's page.
+  for _ = 1, 40 do
+    local node, pane = test.get("settings-motion-playful"), test.get("settings-detail")
+    if node.y > pane.y and node.y + node.height < pane.y + pane.height then return end
+    test.wheel(0, 120, { x = pane.x + pane.width / 2, y = pane.y + pane.height / 2 }) test.advance(200)
+  end
 end
 
 for _, style in ipairs { "material", "tsugumori" } do

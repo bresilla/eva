@@ -58,24 +58,26 @@ local HOST=[[
     return ui.Item {id="fixture-detail-"..key,width=w,height=h,
       kit.heading {id="fixture-title-"..key,text=key,width=w,scope="settings."..key},
       kit.pill {id="fixture-detail-action-"..key,width=120,label="Test action",
-        y=function() return h()-40 end,on_clicked=function() record("detail",key) end}}
+        y=function() return (type(h)=="function" and h() or h)-40 end,on_clicked=function() record("detail",key) end}}
   end
   -- Also lets the preserved pre-extraction module render the same fixture.
   for _,d in ipairs(model.DETAILS) do d.build=function(w,h) return model.page_content(d.key,w,h) end end
   local function open(on)
     shown:set(on)
     require("presentation").set("sidebar.settings",on)
-    if not model.opened then model.shown(on) end
   end
-  package.loaded.sidebar={drawer={set=open}}
+  package.loaded.sidebar={drawer={set=open,open=shown},panel={showing=function(key) return key=="settings" end}}
+  require("pages").publish("sidebar",package.loaded.sidebar)
   package.loaded.capture={drawer={set=function(on) record("capture",on) end}}
   ui.Item {width=W,height=H,
     ui.Rect {anchors={fill=true},color=function() return require("theme").color.surface end},
     ui.Item {x=12,y=12,width=W-24,height=H-24,visible=function() return shown:get() end,
-      -- (In the panel's frame, as the panel builds it: the title and the way back are the frame's.)
+      -- (In the panel's frame, as the panel builds it: the title is the frame's.)
       require("themes.layouts.page").frame {id="page-settings",width=W-24,height=function() return H-24 end,
-        title="Settings",title_id="settings-title",build=model.page}}}
+        title="Settings",title_id="settings-title",build=model.page}},
+    ui.Item {anchors={fill=true},require("settings_window").node}}
   morf.ipc.open=function(on) open(on=="yes") end
+  morf.ipc.close_window=function() model.close() end
   morf.ipc.select=function(key)
     if model.request then return model.request(key) end
     model.detail:set(key) return true
@@ -83,7 +85,7 @@ local HOST=[[
   morf.ipc.update=function() data.volume=.83 data.wifi=true update() end
   morf.ipc.state=function()
     return {calls=calls,reads=reads,awake=model.awake:get(),dnd=require("notifs").dnd:get(),
-      open=shown:get(),requested=model.detail:get(),displayed=(model.displayed or model.detail):get(),
+      open=shown:get(),window=model.opened:get(),requested=model.detail:get(),displayed=(model.displayed or model.detail):get(),
       overview=require("presentation").active("settings.overview")(),volume=data.volume,brightness=data.brightness}
   end
   morf.ipc.clear_calls=function() calls={} end
@@ -142,7 +144,8 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(test.ipc("state").awake)
     test.click("utilities-toggle-dnd") test.advance(100)
     test.truthy(test.ipc("state").dnd)
-    test.click("settings-back") test.advance(2500)
+    test.falsy(test.ipc("state").open,"the panel stayed under the window")
+    test.ipc("close_window") open()
     local slider=test.get("utilities-volume-track")
     test.click(slider.x+slider.width*.75,slider.y+slider.height/2) test.advance(100)
     test.near(test.ipc("state").volume,.75,.06)
@@ -155,7 +158,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(test.ipc("state").displayed,"bluetooth")
     test.truthy(test.get("fixture-detail-bluetooth").visible)
     shot(style.."-settings-detail")
-    test.click("settings-back") test.advance(2500)
+    test.ipc("close_window") open()
     test.click("utilities-capture") test.advance(100)
     test.eq(called("capture"),true)
     test.falsy(test.ipc("state").open)
@@ -163,24 +166,24 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(#test.logs("error"),0)
     test.eq(#test.logs("warn"),0)
   end)
-  test.it(style.." Settings stops hidden reads, resets closed navigation and rejects unknown pages",function()
+  test.it(style.." Settings stops hidden reads, keeps the window's place and rejects unknown pages",function()
     load(style)
     test.eq(test.ipc("state").reads,0)
     open()
     test.truthy(test.ipc("state").reads>0)
     test.ipc("select","network") test.advance(2500)
+    test.falsy(test.ipc("state").open,"the panel stayed under the window")
     local reads=test.ipc("state").reads
     test.ipc("update") test.advance(100)
     test.eq(test.ipc("state").reads,reads)
     test.falsy(test.ipc("select","unknown"))
     test.eq(test.ipc("state").requested,"network")
-    test.ipc("open","no") test.advance(1000)
-    test.eq(test.ipc("state").requested,"")
+    test.ipc("close_window") test.advance(1000)
+    test.falsy(test.ipc("state").window)
     reads=test.ipc("state").reads
     test.ipc("update") test.advance(100)
     test.eq(test.ipc("state").reads,reads)
     open()
-    test.eq(test.ipc("state").displayed,"")
     test.truthy(test.find{text="Preview university",visible=true})
     test.ipc("open","no") test.advance(50)
     test.ipc("select","power") test.ipc("open","yes") test.advance(100)
@@ -218,11 +221,11 @@ for _,style in ipairs {"material","tsugumori"} do
     test.falsy(test.ipc("state").awake) test.falsy(test.ipc("state").dnd)
     test.click("utilities-toggle-awake") test.click("utilities-toggle-dnd") test.advance(100)
     test.truthy(test.ipc("state").awake) test.truthy(test.ipc("state").dnd)
-    test.click("settings-back") test.advance(2500)
+    test.ipc("close_window") open()
     test.truthy(test.find{text="Awake · Silent · DND",visible=true})
     test.truthy(test.ipc("select","tor")) test.advance(2500)
     test.eq(test.ipc("state").displayed,"tunnel")
-    test.ipc("open","no") test.advance(200)
+    test.ipc("close_window") test.advance(200)
     local reads=test.ipc("state").reads
     test.ipc("update") test.advance(100)
     test.eq(test.ipc("state").reads,reads)
@@ -251,11 +254,9 @@ test.it("Tsugumori Settings keeps the latest detail through interrupted shared-p
   test.eq(test.ipc("state").displayed,"network")
   test.truthy(test.get("fixture-detail-network").visible)
   test.falsy(test.get("fixture-detail-sound").visible)
-  test.ipc("open","no") test.advance(100)
-  test.falsy(test.ipc("state").open)
-  test.eq(test.ipc("state").requested,"","Closed navigation was not reset")
+  test.ipc("close_window") test.advance(100)
+  test.falsy(test.ipc("state").window)
   test.ipc("open","yes") test.advance(2500)
-  test.eq(test.ipc("state").displayed,"")
   test.falsy(test.get("fixture-detail-network").visible)
   test.eq(test.get("settings-title-text").text,"SETTINGS")
   test.eq(#test.logs("error"),0)
@@ -303,7 +304,7 @@ test.it("Tsugumori compact Settings reveals scrolled titles and reaches the last
   test.click("utilities-toggle-focus") test.advance(2500)
   test.click("utilities-toggle-dnd") test.advance(100)
   test.truthy(test.ipc("state").dnd)
-  test.click("settings-back") test.advance(2500)
+  test.ipc("close_window") open()
   shot("settings-compact-attention")
   test.ipc("color","#45aa86") test.advance(100)
   shot("settings-compact-palette")

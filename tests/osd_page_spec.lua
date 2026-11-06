@@ -5,7 +5,7 @@ local SOURCE=[[
   require("init")
   morf.ipc.page_state=function()
     local config=require("config")
-    return {detail=require("utilities").detail:get(),sidebar=require("sidebar").drawer.open:get(),
+    return {detail=require("utilities").detail:get(),sidebar=require("utilities").opened:get(),
       shown=require("levels").shown:get(),
       volume=require("osd").volume(),
       popups=#require("notifs").list:get(),
@@ -27,27 +27,37 @@ local function open()
   test.ipc("settings","eva") test.advance(2500)
   test.click("settings-eva-osd") test.advance(2500)
 end
+-- The Settings window's page wheeled until `id` stands in it.
+local function reach(id)
+  for _=1,40 do
+    local node,pane=test.find {id=id,visible=true},test.get("settings-detail")
+    if node and node.y>pane.y and node.y+node.height<pane.y+pane.height then return id end
+    local up=node and node.y<=pane.y
+    test.wheel(0,up and -120 or 120,{x=pane.x+pane.width/2,y=pane.y+pane.height/2}) test.advance(200)
+  end
+  return id
+end
 local KINDS={"volume","brightness","mic","layout","profile","dnd","awake","night","ring","bluetooth","headphones","media"}
 
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." sets a display's place, switches and hold, and tries it",function()
     load(style) open()
     test.eq(state().detail,"osd")
-    test.click("osd-kind-brightness") test.advance(300)
+    test.click(reach("osd-kind-brightness")) test.advance(300)
     test.eq(test.get("osd-chosen-title").text,"Brightness")
-    test.click("osd-place-top_left") test.advance(300)
+    test.click(reach("osd-place-top_left")) test.advance(300)
     test.eq(state().position,"top_left")
     test.eq(test.get("osd-chosen-subtitle").text,"Top left")
-    test.click("osd-hold-5000") test.advance(100)
+    test.click(reach("osd-hold-5000")) test.advance(100)
     test.eq(state().hold,5000)
-    test.click("osd-percent-switch") test.advance(100)
+    test.click(reach("osd-percent-switch")) test.advance(100)
     test.eq(state().percent,false)
-    test.click("osd-enabled-switch") test.advance(100)
+    test.click(reach("osd-enabled-switch")) test.advance(100)
     test.eq(state().enabled,false)
     -- Off, a change stays quiet, and Try still shows it.
     test.eq(test.ipc("osd","brightness"),false)
     test.eq(state().shown,"")
-    test.click("osd-try") test.advance(800)
+    test.click(reach("osd-try")) test.advance(800)
     test.eq(state().shown,"brightness")
     test.truthy(test.get("levels-bar").visible,"it is not lying along the top")
     test.eq(#test.logs("error"),0)
@@ -59,9 +69,9 @@ for _,style in ipairs {"material","tsugumori"} do
     test.falsy(test.find{id="osd-place-center",visible=true},"a popup has no centre")
     test.falsy(test.find{id="osd-place-center_right",visible=true},"a popup has no side")
     test.falsy(test.find{id="osd-enabled",visible=true},"popups have no switches here")
-    test.click("osd-place-top_left") test.advance(300)
+    test.click(reach("osd-place-top_left")) test.advance(300)
     test.eq(state().notifications,"top_left")
-    test.click("osd-try") test.advance(600)
+    test.click(reach("osd-try")) test.advance(600)
     test.eq(state().popups,1)
     test.eq(#test.logs("error"),0)
   end)
@@ -114,23 +124,25 @@ for _,style in ipairs {"material","tsugumori"} do
   end)
 end
 
-test.it("upright the sheet steps aside for a try and comes back to the page",function()
-  load("material",true,868,1932)
-  test.ipc("settings","osd") test.advance(2500)
-  test.eq(state().detail,"osd")
-  test.click("osd-try") test.advance(800)
-  test.eq(state().shown,"volume")
-  test.falsy(state().sidebar,"the sheet hides what it is trying")
-  test.advance(3500)
-  test.truthy(state().sidebar,"the sheet did not come back")
-  test.eq(state().detail,"osd")
-  test.eq(#test.logs("error"),0)
-end)
+for _,size in ipairs {{868,1932},{1600,1000}} do
+  test.it(size[1].."x"..size[2]..": the window steps aside for a try and comes back to the page",function()
+    load("material",true,size[1],size[2])
+    test.ipc("settings","osd") test.advance(2500)
+    test.eq(state().detail,"osd")
+    test.click(reach("osd-try")) test.advance(800)
+    test.eq(state().shown,"volume")
+    test.falsy(state().sidebar,"the window hides what it is trying")
+    test.advance(3500)
+    test.truthy(state().sidebar,"the window did not come back")
+    test.eq(state().detail,"osd")
+    test.eq(#test.logs("error"),0)
+  end)
+end
 
-test.it("upright the sheet stays away if something else was opened meanwhile",function()
+test.it("the window stays away if something else was opened meanwhile",function()
   load("material",true,868,1932)
   test.ipc("settings","osd") test.advance(2500)
-  test.click("osd-try") test.advance(400)
+  test.click(reach("osd-try")) test.advance(400)
   test.ipc("launcher","open") test.advance(3500)
-  test.falsy(state().sidebar,"the sheet came back over the launcher")
+  test.falsy(state().sidebar,"the window came back over the launcher")
 end)

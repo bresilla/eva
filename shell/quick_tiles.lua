@@ -111,7 +111,7 @@ function M.list(model, gamemode)
       present = function() return hotspot().present() end,
       on = function() return hotspot().on() end,
       set = function(now)
-        if now and not hotspot().saved() then model.detail:set("hotspot") return end
+        if now and not hotspot().saved() then model.request("hotspot") return end
         hotspot().set(now)
       end,
       status = function() return hotspot().status() end,
@@ -228,10 +228,17 @@ function M.list(model, gamemode)
       "org.kde.kdeconnect-app" }),
     app("recognise", "Recognise music", "music_note", { "com.github.marinm.songrec" }),
     app("printers", "Printers", "print", { "system-config-printer", "org.gnome.Settings.printers" }),
-    app("displays", "Displays", "monitor", { "eva-displays" }, nil, function()
-      local rows = require("lib.compositor.hyprland").state.monitors
-      return rows ~= nil and rows:len() > 1
-    end),
+    {
+      -- More than one monitor: a press opens their arrangement in Settings.
+      id = "displays", name = "Displays", icon = "monitor",
+      present = function()
+        local rows = require("lib.compositor.hyprland").state.monitors
+        return rows ~= nil and rows:len() > 1
+      end,
+      on = function() return false end,
+      set = function() model.request("displays") end,
+      status = function() return "Arrange" end,
+    },
     asks(model, "timer", "Timer", "timer", function() return prefix() .. " timer " end, "Set one"),
     asks(model, "clipboard", "Clipboard", "content_paste", function() return ";" end, "History"),
     tool(model, "clock", "Clock", "schedule", "clock", "Alarms and timers"),
@@ -256,7 +263,7 @@ function M.list(model, gamemode)
     {
       id = "screentime", icon = "hourglass_bottom", name = "Screen time", detail = "screen_time",
       on = function() return false end,
-      set = function() model.detail:set("screen_time") end,
+      set = function() model.request("screen_time") end,
       status = function()
         local time = require("screen_time_model")
         local _, total = time.report(1)

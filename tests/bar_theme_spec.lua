@@ -105,7 +105,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("bar-window-0xb") test.eq(state().calls,{{"focuswindow","address:0xb"}})
     test.click("bar-logo") test.truthy(state().launcher)
     test.click("bar-clock") test.truthy(state().dashboard)
-    test.click("bar-status") test.truthy(state().sidebar) test.eq(state().detail,"")
+    test.click("bar-status") test.truthy(state().sidebar) test.eq(state().detail,"network")
     test.ipc("show","off") test.advance(600)
     test.falsy(test.get("bar").visible)
     test.eq(state().desk,{0,0,1280,800})

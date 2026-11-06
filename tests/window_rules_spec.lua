@@ -164,7 +164,7 @@ test.it("a rule that cannot be sent stays on the page, and says why", function()
   test.click("rule-save") test.settle(300)
   test.contains(test.ipc("message"), "something to do")
   test.truthy(test.find { id = "rule-scroll", visible = true })
-  test.eq(test.ipc("keyboard"), "on_demand", "its fields can be typed in")
+  test.eq(test.ipc("keyboard"), "exclusive", "its fields can be typed in")
 end)
 
 test.it("a phone has no rules page or dimming", function()

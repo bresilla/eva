@@ -9,7 +9,7 @@ local HOST = [[
   package.loaded["lib.services.modem"] = {connect=function() return mobile end}
   local services = require("services")
   local model = require("settings_model")
-  model.opened:set(true)
+  model.quick:set(true)
   local toggle
   for _, item in ipairs(model.TOGGLES) do
     if item.id == "mobile" then toggle=item end

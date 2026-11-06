@@ -232,12 +232,14 @@ morf.effect("eva.windows.pip.auto", function()
   end
 end)
 
---- Whether a panel is open: what lies over a window then gives way to it.
+--- Whether a panel, or the Settings window, is open: what lies over a window
+--- then gives way to it.
 function M.panel_open()
   for _, d in ipairs(require("drawer").all) do
     if d.name ~= "keyboard" and d.open:get() then return true end
   end
-  return false
+  local settings = package.loaded.utilities
+  return settings ~= nil and settings.opened:get()
 end
 
 --- The picture's box on this surface, or nil.

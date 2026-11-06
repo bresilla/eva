@@ -14,7 +14,8 @@ local SOURCE=[[
     local view=assert(views[id],id)
     return {offset=view.flick.content_y or 0,content=view.state.content_height,
       viewport=view.state.viewport_height,tab=require("dashboard").tab:get(),
-      dashboard=require("dashboard").drawer.open:get(),sidebar=require("sidebar").drawer.open:get()}
+      dashboard=require("dashboard").drawer.open:get(),sidebar=require("sidebar").drawer.open:get(),
+      window=require("utilities").opened:get()}
   end
   morf.ipc.top_state=function()
     local sidebar=require("sidebar")
@@ -50,9 +51,9 @@ for _,style in ipairs {"material","tsugumori"} do
     test.touch("up",0,160,300) test.advance(700)
     test.truthy(test.ipc("top_state").settings)
     test.ipc("settings","theme/lule") test.advance(700)
+    test.ipc("settings","close") test.advance(700)
     drag(380,4,300)
     test.truthy(test.ipc("top_state").settings)
-    test.eq(test.ipc("top_state").detail,"")
     drag(50,4,300)
     test.truthy(test.ipc("top_state").notifications)
     test.eq(test.logs("error"),{})
@@ -87,7 +88,7 @@ for _,style in ipairs {"material","tsugumori"} do
     drag(r.x+4,r.y+r.height-30,-140)
     local after=test.ipc("scroll_state","lule-scroll")
     test.truthy(after.offset>100,"settings did not scroll: "..after.offset)
-    test.truthy(after.sidebar,"scroll dismissed settings")
+    test.truthy(after.window,"scroll dismissed settings")
     test.eq(test.logs("error"),{})
   end)
 end

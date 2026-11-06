@@ -369,7 +369,7 @@ end)
 -- ------------------------------------------------------------------- sheet --
 
 for _,style in ipairs {"material","tsugumori"} do
-  test.it(style.." the phone sheet fits its content, and a detail its own",function()
+  test.it(style.." the phone sheet fits its content, its pages opening in the window",function()
     load({style=style,size={620,1380}})
     test.ipc("sidebar","open","settings") test.settle(2500)
     local sheet=test.get("drawer-sidebar")
@@ -380,11 +380,10 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(sheet.y+sheet.height-(card.y+card.height)<=40,"dead area under the tiles: "
       ..(sheet.y+sheet.height-card.y-card.height))
     test.ipc("settings","theme") test.settle(2500)
-    local detail=test.get("drawer-sidebar")
-    test.truthy(detail.height<full,"the detail kept the dead area")
+    local detail=test.get("settings-detail")
     local last=test.get("settings-theme-lule")
-    test.truthy(last.y+last.height<=detail.y+detail.height,"the sheet cuts the detail")
-    test.click("settings-back") test.settle(2500)
+    test.truthy(last.y+last.height<=detail.y+detail.height,"the window cuts the page")
+    test.ipc("settings","close") test.ipc("sidebar","open","settings") test.settle(2500)
     test.near(test.get("drawer-sidebar").height,sheet.height,1)
     test.eq(#test.logs("error"),0)
   end)

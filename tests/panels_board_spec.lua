@@ -12,13 +12,14 @@ local SOURCE = [[
     return out
   end
   morf.ipc.board = function() return { spare = require("utilities").panels.spare(), reloads = reloads,
-    dirty = require("utilities").panels.dirty:get(), reopen = require("themes.session").keep("eva.panels.reopen", false):get() } end
+    dirty = require("utilities").panels.dirty:get() } end
   morf.ipc.step = function(key, delta) return require("utilities").panels.step(key, tonumber(delta)) end
   morf.ipc.settings_path = function() return require("config").path end
   morf.ipc.showing = function()
     local holder = pages.holder("settings")
     return { settings = pages.on_show("settings"), left = holder == package.loaded.leftbar,
-      right_open = require("drawer").sidebar.open:get(), detail = require("utilities").detail:get() }
+      right_open = require("drawer").sidebar.open:get(), detail = require("utilities").detail:get(),
+      window = require("utilities").opened:get() }
   end
 ]]
 local loads = 0
@@ -122,7 +123,7 @@ test.it("Tab reaches a tile, and Alt with the arrows walks it", function()
   load("material")
   open_page()
   local focused
-  for _ = 1, 6 do
+  for _ = 1, 60 do
     test.key("Tab") test.advance(16)
     focused = test.find(function(n) return n.focused and (n.id or ""):match("^panels%-tile%-") end)
     if focused then break end
@@ -177,7 +178,7 @@ test.it("lands too when the panel is shut on the page, and not at all with nothi
   test.eq(test.ipc("board").reloads, 1)
 end)
 
-test.it("takes Settings along when it moves, reopening where it went", function()
+test.it("moves the quick controls to another panel, the window staying where it is", function()
   load("material")
   open_page()
   test.ipc("step", "notifications", 1)
@@ -185,7 +186,7 @@ test.it("takes Settings along when it moves, reopening where it went", function(
   test.eq(sets().left[1], "settings")
   test.click("settings-back") test.settle(900)
   test.eq(test.ipc("board").reloads, 1)
-  test.truthy(test.ipc("board").reopen, "nothing asked for Settings back after the rebuild")
+  test.truthy(test.ipc("showing").window, "the Settings window shut as the panels moved")
 end)
 
 for _, style in ipairs { "material", "tsugumori" } do
@@ -199,12 +200,12 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(test.find { id = "bottom-tab-assistant" })
     test.falsy(test.find { id = "bottom-tab-drop" }, "the bottom panel kept the page it gave up")
     local now = test.ipc("showing")
-    test.truthy(now.settings, "Settings shut in the rebuild")
+    test.truthy(now.window, "Settings shut in the rebuild")
     test.eq(now.detail, "eva", "Settings lost its place")
     test.eq(#test.logs("error"), 0)
   end)
 
-  test.it(style .. " a real rebuild reopens Settings in the panel it moved to", function()
+  test.it(style .. " a real rebuild hands the quick controls to the panel they moved to", function()
     load(style)
     open_page()
     test.ipc("step", "notifications", 1)
@@ -213,8 +214,10 @@ for _, style in ipairs { "material", "tsugumori" } do
     rebuild(style)
     local now = test.ipc("showing")
     test.truthy(now.left, "Settings did not move")
-    test.truthy(now.settings, "it did not reopen where it went")
-    test.falsy(now.right_open, "the panel it left stayed open")
+    test.truthy(now.window, "the Settings window shut in the rebuild")
+    test.falsy(now.right_open, "the panel it left opened")
+    test.ipc("settings") test.settle(1200)
+    test.truthy(test.ipc("showing").settings, "the quick controls did not open where they went")
     test.eq(#test.logs("error"), 0)
   end)
 

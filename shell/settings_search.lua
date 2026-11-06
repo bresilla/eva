@@ -47,7 +47,6 @@ M.CONTROLS = {
 local function opener(key)
   return function()
     if not require("utilities").request(key) then return "keep" end
-    require("pages").open("settings")
     return "close"
   end
 end

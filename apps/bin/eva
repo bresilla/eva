@@ -21,7 +21,7 @@ dashboard|toggle, open or close|The dashboard
 session|toggle, open or close|The session menu
 sidebar|HOW [TAB]|The right panel: settings or notifications
 utilities|toggle, open or close|The quick settings
-settings|[PAGE]|A page of Settings
+settings|[PAGE], close or state|The quick settings, or the Settings window on PAGE
 settings-search|[WORDS]|Every Settings page, or those matching WORDS
 power-key|-|What Settings chose for the power button
 leftbar|HOW [TAB]|The left panel: tasks or calendar
@@ -32,7 +32,7 @@ screenshot|region, window or screen [quick]|Take a screenshot
 record|region, window or screen|Start or stop a recording
 bottom|HOW [TAB]|The bottom workspace: assistant or drop
 assistant|toggle, open or close|The assistant
-lule|toggle, open or close|The colour tool's panel
+lule|toggle, open, close or state|The colour tool's page, in the Settings window
 osd|volume, brightness, mic or another kind|Show the on-screen display
 notify|SUMMARY [BODY URGENCY APP ICON IMAGE]|Post a notification
 notifications|open, close, toggle, state, status, list, invoke, reply, dismiss, clear, clear-app, clear-silent, undo, snooze, mute, unmute|The page, and notifications from a key

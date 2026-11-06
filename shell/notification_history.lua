@@ -151,12 +151,10 @@ function M.rules_of(key)
   local utilities = require("utilities")
   utilities.rules_app:set(key)
   utilities.request("notifications/app")
-  require("pages").open("settings")
 end
 --- Opens the notification settings.
 function M.settings()
   require("utilities").request("notifications")
-  require("pages").open("settings")
 end
 function M.mute(key, seconds) rules.mute(key, seconds or 0, require("focus_model").now()) end
 

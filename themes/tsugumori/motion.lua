@@ -141,8 +141,9 @@ return function(theme)
   --- screen): it unfolds from a slim band on an expo curve as it lights, the
   --- target-lock brackets close onto it, and it folds a step and goes dark
   --- on the way out, drawn until it has gone. It owns `node`'s `opacity`,
-  --- `scale_y` and `visible`; `shown` is a binding; `opts.id` names the lock.
-  --- Returns `drawn()`, whether it is on screen at all.
+  --- `scale_y` and `visible`; `shown` is a binding; `opts.id` names the lock;
+  --- `opts.content = false` keeps the lock to the frame, for a surface whose
+  --- pages bring themselves in. Returns `drawn()`, whether it is on screen.
   function M.appear(node, shown, opts)
     local claims = ui.claims(node, {
       unfolded = { when = shown, motion = { duration = 300, easing = "out_expo" }, set = { scale_y = 1 } },
@@ -150,7 +151,9 @@ return function(theme)
       lit = { when = shown, motion = { duration = 120, easing = "out_cubic" }, set = { opacity = 1 } },
       gone = { motion = { duration = 140, easing = "in_cubic" }, set = { opacity = 0 } },
     })
-    local lock = M.lock_on(node, (opts and opts.id) or "appear")
+    local frame = opts and opts.content == false
+      and { trace = false, register = false, content = false, length = 14, weight = 2.5, reach = 24 } or nil
+    local lock = M.lock_on(node, (opts and opts.id) or "appear", frame)
     local was = shown()
     morf.effect("eva.appear." .. ((opts and opts.id) or tostring(node)), function()
       local now = shown()

@@ -186,6 +186,7 @@ M.SHELL = [==[
   end
   morf.ipc.settings_detail = function() return require("settings_model").detail:get() end
   morf.ipc.sidebar_open = function() return require("sidebar").drawer.open:get() end
+  morf.ipc.settings_open = function() return require("settings_model").opened:get() end
   morf.ipc.settings_missing = function()
     local model = require("settings_model")
     local index = require("lib.shell.launcher.search_index")

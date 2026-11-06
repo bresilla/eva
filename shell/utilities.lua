@@ -57,9 +57,14 @@ builders.screen_time=function(w,h) return themed("screen_time_page").build(requi
 builders["screen_time/app"]=function(w,h) return themed("screen_time_page").app(require("screen_time_model"),w,h) end
 builders["bar/fold"]=function(w,h) return themed("bar_fold").build(require("status_model"),w,h) end
 
--- All settings, and the pages over the shell's own configuration.
+-- All settings, and the pages over the shell's own configuration. Beside a
+-- desk's way round it is the index of every page; on a phone, the search and
+-- the categories.
 builders.home=function(w,h)
-  return themed("settings_home").build({active=active("home"),request=M.request,page_present=M.page_present},w,h)
+  local home=themed("settings_home")
+  local model={active=active("home"),request=M.request,page_present=M.page_present}
+  if require("responsive").form()=="phone" then return home.build(model,w,h) end
+  return home.index(model,w,h)
 end
 for _,category in ipairs(require("settings_registry").CATEGORIES) do
   builders[category.key]=function(w,h)
@@ -115,25 +120,19 @@ function M.page(w,h)
 end
 function M.height() return built:get() and visual.height and visual.height() or 0 end
 --- How tall the page wants to stand, head included, for a sheet that fits
---- its content: the overview's cards or the detail on show, nil until they
---- are measured.
+--- its content: the quick controls' cards, nil until they are measured.
 function M.fit()
   if not built:get() or not visual.laid_out() then return nil end
   local P=require("themes.layouts.page")
-  local key=M.detail:get()
-  local body=visual.height()+P.GAP
-  if key~="" then body=visual.detail_height(key) end
-  return body and P.header_height(visual.head)+P.GAP+body or nil
+  return P.header_height(visual.head)+P.GAP+visual.height()+P.GAP
 end
+--- The quick controls on show, or put away: tiles being arranged stop.
 function M.shown(open)
-  M.opened:set(open)
-  if not open then
-    M.detail:set("")
-    M.tiles.editing:set(false)
-  end
+  M.quick:set(open)
+  if not open then M.tiles.editing:set(false) end
 end
 morf.effect("eva.settings.lifecycle",function()
-  M.shown(require("presentation").active("sidebar.settings")())
+  M.shown(require("pages").active("settings")())
 end)
 -- `equalizer-state`: what eva-audio's window shows; the asking starts the model
 -- that follows the file that window edits.

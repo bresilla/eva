@@ -95,12 +95,12 @@ test.describe("the Bar page",function()
     load(options)
     test.ipc("settings","bar") test.settle(2500)
   end
-  -- The page wheeled until `id` stands on the screen.
+  -- The page wheeled until `id` stands inside the Settings window's page.
   local function reach(id)
     for _=1,60 do
-      local node=test.find {id=id,visible=true}
-      if node and node.y>160 and node.y+node.height<960 then return node end
-      test.wheel(0,120,{x=1450,y=500}) test.advance(200)
+      local node,pane=test.find {id=id,visible=true},test.get("settings-detail")
+      if node and node.y>pane.y and node.y+node.height<pane.y+pane.height then return node end
+      test.wheel(0,120,{x=pane.x+pane.width/2,y=pane.y+pane.height/2}) test.advance(200)
     end
     return test.get(id)
   end
@@ -141,9 +141,9 @@ test.describe("the Bar page",function()
   test.it("drags a module across into another zone, and the bar follows",function()
     open {}
     local logo=reach("bar-board-toggle-logo")
-    local target=test.get("bar-board-toggle-clock")
-    if target.y+target.height>960 then
-      test.wheel(0,120,{x=1450,y=500}) test.advance(300)
+    local target,pane=test.get("bar-board-toggle-clock"),test.get("settings-detail")
+    if target.y+target.height>pane.y+pane.height then
+      test.wheel(0,120,{x=pane.x+pane.width/2,y=pane.y+pane.height/2}) test.advance(300)
       logo=test.get("bar-board-toggle-logo") target=test.get("bar-board-toggle-clock")
     end
     local x,y=centre(logo)

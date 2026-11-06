@@ -212,11 +212,14 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 end
 
-test.it("Settings pages reach whichever panel holds Settings", function()
+test.it("the quick controls reach whichever panel holds Settings, and its pages the window", function()
   load("material", "desk", { right = { "notifications" }, left = { "settings", "tasks" }, bottom = { "assistant" } })
-  test.ipc("settings", "theme") test.settle(1200)
+  test.ipc("settings") test.settle(1200)
   test.eq(where().open, "leftbar")
   test.eq(where().showing, "settings")
+  test.ipc("settings", "theme") test.settle(1200)
+  test.eq(where().open, "", "the panel stayed open under the Settings window")
+  test.eq(test.ipc("settings", "state").page, "theme")
   shut()
   test.ipc("quick", "edit") test.settle(1200)
   test.eq(where().keyboard, "on_demand")

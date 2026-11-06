@@ -28,6 +28,8 @@ local LIP = 160
 -- before the keyboard itself. The Item is placed in the keyboard below;
 -- it takes no input or focus and disappears with that panel.
 local keyboard_input = ui.Item { anchors = { fill = true } }
+--- The keyboard's bounds, for anything else a press outside shuts.
+M.keyboard_input = keyboard_input
 
 --- `spec`: `name`, `edge` ("top", "bottom", "left" or "right"), `width`,
 --- `height` (numbers or bindings), `content` (a node, laid out in the

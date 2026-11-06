@@ -47,14 +47,14 @@ end
 -- Presses `id`, the page scrolled to bring it into view first.
 local function press(id)
   for _ = 1, 60 do
-    local node, sheet = test.get(id), test.get("drawer-sidebar")
-    if node.y > 140 and node.y + node.height < sheet.y + sheet.height - 4 then
+    local node, sheet = test.get(id), test.get("settings-detail")
+    if node.y > sheet.y and node.y + node.height < sheet.y + sheet.height - 4 then
       test.settle(400)
       node = test.get(id)
       test.click(node.x + node.width / 2, node.y + node.height / 2)
       return
     end
-    test.wheel(0, node.y > PHONE[2] * 0.4 and 300 or -300, { x = 310, y = 500 })
+    test.wheel(0, node.y > sheet.y + sheet.height * 0.5 and 300 or -300, { x = sheet.x + sheet.width / 2, y = sheet.y + 200 })
     test.settle(200)
   end
   error("never came into view: " .. id)

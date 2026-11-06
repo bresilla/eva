@@ -40,8 +40,8 @@ end
 -- Presses `id`, the page scrolled to bring it into view first.
 local function press(id)
   for _ = 1, 40 do
-    local node, sheet = test.get(id), test.get("drawer-sidebar")
-    if node.y > 120 and node.y + node.height < sheet.y + sheet.height - 4 then
+    local node, sheet = test.get(id), test.get("settings-detail")
+    if node.y > sheet.y and node.y + node.height < sheet.y + sheet.height - 4 then
       test.settle(300)
       node = test.get(id)
       test.click(node.x + node.width / 2, node.y + node.height / 2)

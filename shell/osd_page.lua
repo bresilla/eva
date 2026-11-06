@@ -42,19 +42,18 @@ function M.model(active)
   function model.set_percent(on) if active() and not notifying() then prefs.set_percent(chosen:get(),on) end end
   function model.hold() return notifying() and 0 or prefs.chosen_hold(chosen:get()) end
   function model.set_hold(ms) if active() and not notifying() then prefs.set_hold(chosen:get(),ms) end end
-  -- Upright the page is a sheet over the screen's top: it steps aside for what
-  -- it tries, and comes back unless something else was opened meanwhile.
+  -- The Settings window dims the screen's edges: it steps aside for what it
+  -- tries, and comes back unless something else was opened meanwhile.
   local function step_aside(ms)
-    local pages=require("pages")
-    local holder=pages.holder("settings")
-    if not (require("responsive").portrait() and holder and holder.drawer.open:get()) then return end
-    holder.drawer.set(false)
+    local settings=require("utilities")
+    if not settings.opened:get() then return end
+    settings.close()
     morf.time.timer(ms+RETURN,function()
+      if settings.opened:get() then return end
       for _,d in ipairs(require("drawer").all) do
         if d.is_open() and d.name~="notifications" then return end
       end
-      require("utilities").request("osd")
-      pages.open("settings")
+      settings.request("osd")
     end,false)
   end
   --- Flashes the chosen display, whatever its switch says.

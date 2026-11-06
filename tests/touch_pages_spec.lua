@@ -23,6 +23,7 @@ local SOURCE = [[
     local open = {}
     for _, d in ipairs(require("drawer").all) do open[d.name] = d.open:get() end
     return { open = open, detail = utilities.detail:get(), editing = utilities.tiles.editing:get(),
+      settings = utilities.opened:get(),
       month = require("planner").month_offset:get(), haptic = require("haptics").last:get() }
   end
   morf.ipc.q_page = function(key)
@@ -105,31 +106,28 @@ for _, form in ipairs(touch.FORMS) do
       test.eq(test.logs("error"), {})
     end)
 
-    test.it(tag .. ": a swipe in from a Settings detail's edge goes back with a peek", function()
+    test.it(tag .. ": a swipe in from a Settings page's edge goes back with a peek", function()
       touch.load(form, style, SOURCE)
-      open("settings")
-      test.ipc("q_detail", "theme") test.advance(900)
-      test.ne(test.ipc("q_state").detail, "")
-      local box = test.get("settings-detail")
+      test.ipc("q_detail", "bar/tray") test.advance(900)
+      test.eq(test.ipc("q_state").detail, "bar/tray")
+      local box = test.get("settings-detail-bar/tray")
       local x, y = box.x + 6, box.y + box.height / 2
-      local back_edge = test.get("settings-detail")
       touch.drag(x, y, box.width * .6, 0, { hold = true })
-      test.truthy(test.get("settings-detail").x > back_edge.x + box.width * .4, "it follows the finger")
-      test.truthy(test.get("utilities").visible, "the page behind peeks in")
+      test.truthy(test.get("settings-detail-bar/tray").x > box.x + box.width * .4, "it follows the finger")
+      test.truthy(test.get("settings-detail-bar").visible, "the page behind peeks in")
       touch.lift(x + box.width * .6, y, 700)
-      test.eq(test.ipc("q_state").detail, "", "it went back")
-      test.truthy(test.ipc("q_state").open.sidebar, "the panel stays")
+      test.eq(test.ipc("q_state").detail, "bar", "it went back")
+      test.truthy(test.ipc("q_state").settings, "the window stays")
       test.eq(test.logs("error"), {})
     end)
 
-    test.it(tag .. ": a short pull from the edge springs the detail back", function()
+    test.it(tag .. ": a short pull from the edge springs the page back", function()
       touch.load(form, style, SOURCE)
-      open("settings")
-      test.ipc("q_detail", "theme") test.advance(900)
-      local box = test.get("settings-detail")
+      test.ipc("q_detail", "bar/tray") test.advance(900)
+      local box = test.get("settings-detail-bar/tray")
       touch.drag(box.x + 6, box.y + box.height / 2, box.width * .2, 0, { slow = true })
-      test.ne(test.ipc("q_state").detail, "", "it stayed")
-      test.near(test.get("settings-detail").x, box.x, 1)
+      test.eq(test.ipc("q_state").detail, "bar/tray", "it stayed")
+      test.near(test.get("settings-detail-bar/tray").x, box.x, 1)
       test.eq(test.logs("error"), {})
     end)
 

@@ -97,14 +97,9 @@ local function dashboard_tab(key)
   end
 end
 
--- The settings, on a page.
+-- The Settings window, on a page.
 local function settings_page(page)
-  return function()
-    require("utilities").request(page)
-    local sidebar = require("sidebar")
-    sidebar.select("settings")
-    sidebar.drawer.set(true)
-  end
+  return function() require("utilities").request(page) end
 end
 
 local function item(label, icon, on_clicked) return { label = label, icon = icon, on_clicked = on_clicked } end
@@ -233,13 +228,14 @@ function M.list(bar)
   for _, tool in ipairs {
     { "clipboard", "Clipboard", "content_paste", "eva-clipboard", "Clipboard history" },
     { "color_picker", "Colour picker", "colorize", "eva-colorpick", "Pick a colour off the screen" },
-    { "displays", "Displays", "desktop_windows", "eva-displays", "Arrange the monitors" },
     { "keybinds", "Keybindings", "keyboard_keys", "eva-keys", "The live keybindings" },
   } do
     add { id = tool[1], name = tool[2], icon = tool[3], tier = 1,
       present = function() return installed(tool[4]) end,
       press = function() M.run { tool[4] } end, tooltip = function() return tool[5] end }
   end
+  add { id = "displays", name = "Displays", icon = "desktop_windows", tier = 1, press = settings_page("displays"),
+    tooltip = function() return "Arrange the monitors" end }
   add { id = "screenshot", name = "Screenshot", icon = "screenshot_region", tier = 1,
     press = function() require("capture").shoot("region") end, tooltip = function() return "Take a screenshot" end,
     menu = function() return { item("Of a region", "screenshot_region", function() require("capture").shoot("region") end),

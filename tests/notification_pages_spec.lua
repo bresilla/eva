@@ -23,9 +23,9 @@ end
 
 local FORMS = { { "desk", { 1920, 1080 } }, { "laptop", { 1280, 800 } }, { "phone", { 868, 1932 } } }
 
--- Scrolls the Notifications page until the node `id` is in sight.
+-- Scrolls the page on show in the Settings window until the node `id` is in sight.
 local function reach(id)
-  local page = test.get("notif-scroll")
+  local page = test.get("settings-detail")
   for _ = 1, 40 do
     local node = test.get(id)
     if node.y >= page.y and node.y + node.height <= page.y + page.height then return end
@@ -53,8 +53,12 @@ for _, style in ipairs { "material", "tsugumori" } do
       local settings = load(style, size)
       test.ipc("settings", "focus") test.settle(1800)
       test.click("focus-mode-1-press") test.settle(1800)
-      test.truthy(test.find { id = "focus-mode-scroll", visible = true }, "the mode's page did not open")
-      test.eq(test.find { text = "Apps", visible = true }, nil, "a heading over no apps")
+      local page = test.find { id = "focus-mode-scroll", visible = true }
+      test.truthy(page, "the mode's page did not open")
+      for _, node in ipairs(test.find_all { text = "Apps", visible = true }) do
+        test.falsy(node.x >= page.x and node.x < page.x + page.width, "a heading over no apps")
+      end
+      reach("focus-urgency-1")
       test.click("focus-urgency-1") test.settle(300)
       test.eq(test.ipc("focus", "status").active, "")
       local modes = saved(settings).focus.modes
@@ -67,9 +71,11 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.it(style .. " " .. name .. ": New mode opens its page, and Remove takes it", function()
       load(style, size)
       test.ipc("settings", "focus") test.settle(1800)
+      reach("focus-add")
       test.click("focus-add") test.settle(1800)
       test.truthy(test.find { id = "focus-name-field", visible = true })
       test.contains(test.ipc("focus", "list"), "custom")
+      reach("focus-remove")
       test.click("focus-remove") test.settle(1800)
       for _, id in ipairs(test.ipc("focus", "list")) do test.ne(id, "custom") end
       clean()
@@ -80,6 +86,7 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.ipc("settings", "notifications") test.settle(1800)
       test.click("notif-sounds-switch") test.settle(300)
       test.truthy(test.find { id = "notif-volume", visible = true }, "no volume with sounds on")
+      reach("notif-time-3000")
       test.click("notif-time-3000") test.settle(300)
       local stored = saved(settings).notifications
       test.truthy(stored.sounds)

@@ -88,7 +88,6 @@ M.CARDS = {
       not require("responsive").phone() and { key = "rule", label = "Rule", press = function()
         local rules = require("window_rules_model")
         rules.edit(rules.from_window(w.address))
-        require("pages").open("settings")
       end } or nil,
     }
   end },

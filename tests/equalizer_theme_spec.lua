@@ -12,9 +12,7 @@ local HOST=[[
     return ui.Item {width=w,height=h}
   end
   local W,H=tonumber(morf.env("TEST_WIDTH")),tonumber(morf.env("TEST_HEIGHT"))
-  ui.Item {width=W,height=H,require("themes.layouts.page").frame {id="page-settings",width=W,
-    height=function() return H end,title="Settings",title_id="settings-title",build=model.page}}
-  require("presentation").set("sidebar.settings",true)
+  ui.Item {width=W,height=H,require("settings_window").node}
   local eq=require("equalizer_model")
   morf.ipc.select=model.request
   morf.ipc.set=function(key,json) return eq.set(key,morf.json.decode(json)) end
@@ -64,7 +62,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("settings-back") test.advance(400)
     test.eq(test.ipc("state").page,"sound/equalizer")
     test.click("settings-back") test.advance(400) test.eq(test.ipc("state").page,"sound")
-    test.click("settings-back") test.advance(400) test.eq(test.ipc("state").page,"")
+    test.click("settings-back") test.advance(400) test.eq(test.ipc("state").page,"home")
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
   end)
   test.it(style.." audiogram validates input, saves, and discards unfinished edits",function()

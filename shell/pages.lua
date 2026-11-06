@@ -114,6 +114,12 @@ function M.close(key)
   if holder then holder.drawer.set(false) end
 end
 
+--- Shuts the panel holding `key` where one is built: one never built is shut.
+function M.put_away(key)
+  local holder = built[M.panel_name(key) or ""]
+  if holder then holder.drawer.set(false) end
+end
+
 --- Whether `key` is what its panel is showing, open. Read in bindings, so it
 --- never builds a panel: one not built yet shows nothing, until it is.
 function M.on_show(key)
@@ -145,17 +151,9 @@ function M.shown(key)
   return function() return in_panel() or in_settings() end
 end
 
---- Whether the settings page `route` takes text.
-function M.typed_route(route)
-  if route == "calendars" or route == "windows/rule" or route == "windows/layouts" or route == "screen_time"
-    or require("settings_forms").PAGES[route] then return true end
-  return M.all[route] ~= nil and M.all[route].typed == true
-end
-
---- Opens the settings page `route`.
+--- Opens the settings page `route`, in the Settings window.
 function M.settings(route)
-  require("utilities").request(route)
-  return M.open("settings")
+  return require("utilities").request(route)
 end
 
 --- `key` on show in the panel that holds it, or as a settings page where none does.
