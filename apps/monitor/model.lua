@@ -5,8 +5,8 @@ local morf = require("morf")
 local poll = require("lib.util.poll")
 local sysinfo = require("lib.services.sysinfo")
 local performance = require("performance_model")
-local sys = require("common.sys")
-local procfs = require("procfs")
+local sys = require("apps.common.sys")
+local procfs = require("apps.monitor.procfs")
 
 local M = {
   tab = morf.signal("monitor.tab", 1),
@@ -41,17 +41,8 @@ M.root = morf.env("EVA_MONITOR_ROOT") or ""
 
 local function saved() return sys.state("monitor", "settings.json") end
 
---- Whether the window is minimised, as the compositor says.
-function M.minimized()
-  local list = morf.toplevels and morf.toplevels.list and morf.toplevels.list() or {}
-  for _, row in ipairs(list) do
-    if row.app_id == "eva.monitor" then return row.minimized == true end
-  end
-  return false
-end
-
---- Whether anything is sampled at all.
-function M.live() return not M.paused:get() and not M.away:get() and not M.minimized() end
+--- Whether anything is sampled at all: the page on show, and not paused.
+function M.live() return not M.paused:get() and not M.away:get() end
 
 --- Whether the page of `name` is showing and live.
 function M.showing(name) return M.live() and M.TABS[M.tab:get()] == name end
@@ -483,10 +474,15 @@ function M.start()
   follow_selected()
   follow_sensors()
   follow_devices()
+  -- Not live, every sample stops at once, unless something else of the shell
+  -- reads them now; then they idle when it stops reading.
   morf.effect("monitor.rest", function()
-    if M.live() then return end
+    if M.live() or M.shared() then return end
     for _, source in pairs(sysinfo.sources) do source:stop() end
   end)
 end
+
+--- Whether another part of the shell reads the samples now.
+function M.shared() return false end
 
 return M

@@ -1,0 +1,15 @@
+#!/bin/sh
+# eva-logs: the journal, live, by priority, boot, unit and words, a page of the
+# shell's Tools window.
+#
+#   eva-logs            the Tools window, on Logs
+#   eva-logs UNIT       the same, narrowed to UNIT
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_tools logs ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_tools logs "$1" ;;
+esac

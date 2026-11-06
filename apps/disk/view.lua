@@ -8,8 +8,8 @@ local theme = require("theme")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local fit = require("themes.layouts.fit")
-local controls = require("common.controls")
-local model = require("model")
+local controls = require("apps.common.controls")
+local model = require("apps.disk.model")
 local S, C = theme.space, theme.color
 
 local M = {}
@@ -64,7 +64,7 @@ end
 local function folder_page(w, h)
   local top = CRUMB_H + L.lh(theme.size.small) + S.s
   local function body_h() return math.max(1, get(h) - top) end
-  morf.effect("disk.area", function() model.set_area(math.floor(get(w)), math.floor(body_h())) end)
+  local area = morf.effect("disk.area", function() model.set_area(math.floor(get(w)), math.floor(body_h())) end)
   local function crumbs_w() return math.max(1, get(w) - S.TARGET * 3 - S.s * 3) end
   local function crumbs() return model.tail(model.crumbs(model.path:get()), crumbs_w()) end
   local crumb_bar = kit.widgets.breadcrumbs {
@@ -101,7 +101,7 @@ local function folder_page(w, h)
     return ui.Item(boxes)
   end)
   return ui.Item {
-    id = "disk-folder", width = w, height = h,
+    id = "disk-folder", width = w, height = h, on_destroyed = function() area:dispose() end,
     ui.Item {
       width = w, height = CRUMB_H,
       ui.Item { width = crumbs_w, height = CRUMB_H, clip = true, crumb_bar },

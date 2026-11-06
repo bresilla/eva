@@ -32,6 +32,14 @@ M.PAGES = {
 
   { key = "clipboard", name = "Clipboard", icon = "content_paste", category = "text", page = "apps.clipboard.page",
     summary = "History of what was copied", keywords = "copy paste history pin clip" },
+
+  { key = "monitor", name = "Monitor", icon = "monitor_heart", category = "system", page = "apps.monitor.page",
+    actions = true, summary = "Processes, resources and sensors",
+    keywords = "task manager process cpu memory gpu sensors temperature kill top htop" },
+  { key = "logs", name = "Logs", icon = "receipt_long", category = "system", page = "apps.logs.page", actions = true,
+    summary = "The system journal, live", keywords = "journal journalctl log errors systemd unit boot" },
+  { key = "disk", name = "Disk usage", icon = "pie_chart", category = "system", page = "apps.disk.page",
+    summary = "What takes the room under a folder", keywords = "disk usage space treemap folder size baobab" },
 }
 
 return require("page_registry").new(M)

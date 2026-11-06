@@ -14,7 +14,7 @@ local serial = 0
 local HOST = [[
   local morf = require("morf")
   require("morf.ui").Item { width = 1, height = 1 }
-  local procfs = require("procfs")
+  local procfs = require("apps.monitor.procfs")
   morf.ipc.command = function(text) return procfs.command(text:gsub("~", "\0"), nil) or "" end
   morf.ipc.status = function(text) return procfs.status(text) end
   morf.ipc.io = function(text) return procfs.io(text) end
@@ -35,13 +35,16 @@ end
 
 local function env(root, extra)
   local out = { EVA_MONITOR_ROOT = root, EVA_DRY_RUN = "1", EVA_STYLE = "material",
-    XDG_STATE_HOME = root .. "/state", EVA_SETTINGS = "/nonexistent/eva.json" }
+    XDG_STATE_HOME = root .. "/state", EVA_SETTINGS = "/nonexistent/eva.json", EVA_TEST_TOOL = "monitor",
+    EVA_TEST_PAGE = "1008x690" }
   for key, value in pairs(extra or {}) do out[key] = value end
   return out
 end
 
-local function tool(root, extra, source)
-  test.load("../apps/monitor/app.lua", { env = env(root, extra), source = source })
+-- The page alone, as the Tools window shows it.
+local function tool(root, extra, size)
+  test.load("../shell/init.lua", { env = env(root, extra), size = size,
+    source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
 end
 
 -- Two samples, with the machine moved on between them.
@@ -53,7 +56,7 @@ local function sampled(root)
 end
 
 test.it("reads what /proc says of one process", function()
-  test.load("../apps/monitor/app.lua", { source = HOST, env = { EVA_DRY_RUN = "1" } })
+  test.load("../shell/init.lua", { source = HOST, env = { EVA_DRY_RUN = "1" } })
   test.eq(test.ipc("command", "/bin/sh~-c~sleep 1~"), "/bin/sh -c sleep 1")
   test.eq(test.ipc("command", ""), "")
   local status = test.ipc("status", "Name:\tsh\nUid:\t1000\t1000\t1000\t1000\nThreads:\t4\nVmSwap:\t8 kB\n")
@@ -66,7 +69,7 @@ test.it("reads what /proc says of one process", function()
 end)
 
 test.it("reads a DRM client once, however many fds hold it", function()
-  test.load("../apps/monitor/app.lua", { source = HOST, env = { EVA_DRY_RUN = "1" } })
+  test.load("../shell/init.lua", { source = HOST, env = { EVA_DRY_RUN = "1" } })
   local first = "drm-driver:\tamdgpu\ndrm-client-id:\t7\ndrm-pdev:\t0000:03:00.0\ndrm-engine-gfx:\t1000000000 ns\ndrm-memory-vram:\t1024 KiB\n"
   local again = test.ipc("gpu", first, first)
   test.eq(again.clients, 1)
@@ -79,7 +82,7 @@ test.it("reads a DRM client once, however many fds hold it", function()
 end)
 
 test.it("reads sockets by their inode, in both families", function()
-  test.load("../apps/monitor/app.lua", { source = HOST, env = { EVA_DRY_RUN = "1" } })
+  test.load("../shell/init.lua", { source = HOST, env = { EVA_DRY_RUN = "1" } })
   local v4 = "   0: 0100007F:0277 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000 0 555 1\n"
     .. "   1: 0100007F:0278 0101A8C0:01BB 01 00000000:00000000 00:00000000 00000000  1000 0 666 1\n"
   local rows = test.ipc("sockets", "tcp", v4)
@@ -248,13 +251,13 @@ end)
 
 test.it("signals for real when it is not dry", function()
   local root = fresh()
-  local source = morf.fs.read(ROOT .. "apps/monitor/app.lua") .. [[
+  local source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") .. [[
     morf.process.kill = function(pid, signal)
       morf.log("info", "kill " .. pid .. " " .. signal)
       return true
     end
   ]]
-  tool(root, { EVA_DRY_RUN = "0" }, source)
+  test.load("../shell/init.lua", { env = env(root, { EVA_DRY_RUN = "0" }), source = source })
   sampled(root)
   test.truthy(test.ipc("term", 700))
   test.truthy(test.ipc("kill", 700))
@@ -311,27 +314,25 @@ test.it("samples only what the page shows, and nothing when paused or away", fun
   test.eq(#test.logs("error"), 0)
 end)
 
-test.it("stops when the compositor says it is minimised", function()
-  local root = fresh()
-  local source = [[
-    local morf = require("morf")
-    local hidden = morf.signal("spec.hidden", false)
-    morf.toplevels = { list = function()
-      return { { app_id = "eva.monitor", minimized = hidden:get() } }
-    end }
-    morf.ipc.hidden = function(how) hidden:set(how == "on") return true end
-  ]] .. morf.fs.read(ROOT .. "apps/monitor/app.lua")
-  tool(root, nil, source)
+test.it("samples nothing once Tools shuts, and again when its page is back", function()
+  local root = fresh { processes = 12 }
+  test.load("../shell/init.lua", { size = { 1600, 1000 }, env = env(root, { HOME = root, EVA_WALLPAPER = "",
+    LULE_A = "/nonexistent/lule" }) })
+  test.settle(1000)
+  test.ipc("tools", "monitor") test.settle(1200)
   sampled(root)
-  test.truthy(#test.ipc("sampling") > 0)
-  test.truthy(test.ipc("state").live)
-  test.ipc("hidden", "on")
+  test.truthy(test.find { id = "tools-detail-monitor", visible = true })
+  test.truthy(#test.ipc("tool", "monitor", "sampling") > 0)
+  test.truthy(test.ipc("tool", "monitor", "state").live)
+  test.ipc("tools", "close")
   test.advance(9000)
-  test.falsy(test.ipc("state").live)
-  test.eq(#test.ipc("sampling"), 0)
-  test.ipc("hidden", "off")
+  test.falsy(test.ipc("tool", "monitor", "state").live)
+  test.eq(#test.ipc("tool", "monitor", "sampling"), 0)
+  test.falsy(test.find { id = "tools-detail-monitor" }, "the page was kept after Tools shut")
+  test.ipc("tools", "monitor") test.settle(1200)
   test.advance(3000)
-  test.truthy(#test.ipc("sampling") > 0)
+  test.truthy(#test.ipc("tool", "monitor", "sampling") > 0)
+  test.eq(#test.logs("error"), 0)
 end)
 
 test.it("keeps a pool of rows, however long the list", function()
@@ -384,10 +385,9 @@ test.it("reads temperatures and fans, and hides a machine with neither", functio
 end)
 
 for _, style in ipairs { "material", "tsugumori" } do
-  test.it(style .. " fits a phone, the sheet inside the window", function()
+  test.it(style .. " fits a phone, the sheet inside the page", function()
     local root = fresh { processes = 12 }
-    tool(root, { EVA_STYLE = style })
-    test.resize_window("toplevel:Monitor", 380, 800)
+    tool(root, { EVA_STYLE = style, EVA_TEST_PAGE = "380x800" }, { 380, 800 })
     sampled(root)
     test.ipc("select", 700)
     test.settle(600)

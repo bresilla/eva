@@ -1,7 +1,7 @@
 -- eva-disk over a folder tree made in the scratch state dir, walked by the real
 -- `du`: the treemap's arithmetic, what a folder holds, drilling in and back up, the
 -- boxes in one field, the file manager held back when dry, the mounts from a fake
--- machine, and the window on a phone. A real home is tools/see/disk.steps'.
+-- machine, and the page on a phone. A real home is tools/see/disk.steps'.
 --
 --     morf test --no-dbus tests/disk_spec.lua
 
@@ -35,7 +35,8 @@ local function tree()
 end
 
 local function env(extra)
-  local out = { EVA_DRY_RUN = "1", EVA_SETTINGS = "/nonexistent/eva.json" }
+  local out = { EVA_DRY_RUN = "1", EVA_SETTINGS = "/nonexistent/eva.json", EVA_TEST_TOOL = "disk",
+    EVA_TEST_PAGE = "948x650" }
   for key, value in pairs(extra or {}) do out[key] = value end
   return out
 end
@@ -49,26 +50,33 @@ local function scanned()
   test.settle(200)
 end
 
-local function tool(path, extra)
-  test.load("../apps/disk/app.lua", { env = env(extra), args = { path } })
+-- The page alone, as the Tools window shows it, opened on `path` as
+-- `eva-disk PATH` opens it.
+local function page(path, extra, size)
+  test.load("../shell/init.lua", { env = env(extra), args = { path }, size = size,
+    source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
+end
+
+local function tool(path, extra, size)
+  page(path, extra, size)
   scanned()
 end
 
 test.it("makes areas of its sizes, all inside the box", function()
-  test.load("../apps/disk/app.lua", { env = env(), source = [[
+  test.load("../shell/init.lua", { env = env(), source = [[
     local morf = require("morf")
     require("morf.ui").Item { width = 1, height = 1 }
-    local treemap = require("treemap")
+    local treemap = require("apps.disk.treemap")
     morf.ipc.layout = function(w, h, ...)
       local sizes = {}
       for index, value in ipairs { ... } do sizes[index] = tonumber(value) end
       return treemap.layout(sizes, 0, 0, tonumber(w), tonumber(h))
     end
-    morf.ipc.parent = function(path) return require("model").parent(path) or "" end
-    morf.ipc.parse = function(line) return require("model").parse(line) end
-    morf.ipc.crumbs = function(path) return require("model").crumbs(path) end
+    morf.ipc.parent = function(path) return require("apps.disk.model").parent(path) or "" end
+    morf.ipc.parse = function(line) return require("apps.disk.model").parse(line) end
+    morf.ipc.crumbs = function(path) return require("apps.disk.model").crumbs(path) end
     morf.ipc.tail = function(path, width)
-      local model = require("model")
+      local model = require("apps.disk.model")
       return model.tail(model.crumbs(path), tonumber(width))
     end
   ]] })
@@ -178,7 +186,7 @@ end)
 
 test.it("shows an empty folder as that", function()
   local root = folder()
-  test.load("../apps/disk/app.lua", { env = env(), args = { root } })
+  page(root)
   test.wait(function()
     test.advance(250)
     return not test.ipc("state").scanning
@@ -196,7 +204,7 @@ end)
 
 test.it("says so when du cannot start", function()
   local root = tree()
-  test.load("../apps/disk/app.lua", { env = env { EVA_DU = ROOT .. "tests/fixtures/bin/nothing-here" }, args = { root } })
+  page(root, { EVA_DU = ROOT .. "tests/fixtures/bin/nothing-here" })
   test.settle(100)
   local state = test.ipc("state")
   test.falsy(state.scanning)
@@ -220,8 +228,7 @@ end)
 for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. " keeps its boxes inside a phone", function()
     local root = tree()
-    tool(root, { EVA_STYLE = style })
-    test.resize_window("toplevel:Disk usage", 380, 800)
+    tool(root, { EVA_STYLE = style, EVA_TEST_PAGE = "380x800" }, { 380, 800 })
     test.advance(800)
     test.settle(300)
     for _, box in ipairs(test.ipc("state").boxes) do

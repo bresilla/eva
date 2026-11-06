@@ -1,0 +1,15 @@
+#!/bin/sh
+# eva-disk: what takes the room under a folder, as a treemap, a page of the
+# shell's Tools window.
+#
+#   eva-disk            the Tools window, on Disk usage, at home
+#   eva-disk FOLDER     the same, at FOLDER
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_tools disk ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_tools disk "$(readlink -f -- "$1" || printf '%s' "$1")" ;;
+esac

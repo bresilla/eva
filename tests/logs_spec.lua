@@ -11,13 +11,16 @@ local ROOT = morf.fs.join(morf.env("PWD"), "")
 local JOURNAL = ROOT .. "tests/fixtures/bin-see/journalctl"
 
 local function env(extra)
-  local out = { EVA_JOURNALCTL = JOURNAL, EVA_DRY_RUN = "1", EVA_SETTINGS = "/nonexistent/eva.json" }
+  local out = { EVA_JOURNALCTL = JOURNAL, EVA_DRY_RUN = "1", EVA_SETTINGS = "/nonexistent/eva.json",
+    EVA_TEST_TOOL = "logs", EVA_TEST_PAGE = "1008x690" }
   for key, value in pairs(extra or {}) do out[key] = value end
   return out
 end
 
-local function tool(extra, args)
-  test.load("../apps/logs/app.lua", { env = env(extra), args = args })
+-- The page alone, as the Tools window shows it.
+local function tool(extra, args, size)
+  test.load("../shell/init.lua", { env = env(extra), args = args, size = size,
+    source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
 end
 
 local function arrived(count)
@@ -29,10 +32,10 @@ local function arrived(count)
 end
 
 test.it("reads a line of the journal", function()
-  test.load("../apps/logs/app.lua", { env = env(), source = [[
+  test.load("../shell/init.lua", { env = env(), source = [[
     local morf = require("morf")
     require("morf.ui").Item { width = 1, height = 1 }
-    local model = require("model")
+    local model = require("apps.logs.model")
     morf.ipc.parse = function(line) return model.parse(line) end
   ]] })
   local entry = test.ipc("parse", '{"__CURSOR":"a","__REALTIME_TIMESTAMP":"1793613600000000","PRIORITY":"3","_SYSTEMD_UNIT":"x.service","_PID":"9","MESSAGE":"hello"}')
@@ -149,7 +152,7 @@ end)
 test.it("keeps its bound and its pool, however much comes", function()
   local source = [[
     local morf = require("morf")
-    local model = require("model")
+    local model = require("apps.logs.model")
     model.LIMIT = 50
     model.FIRST = 50
     morf.ipc.flood = function(count)
@@ -158,8 +161,8 @@ test.it("keeps its bound and its pool, however much comes", function()
       end
       return true
     end
-  ]] .. morf.fs.read(ROOT .. "apps/logs/app.lua")
-  test.load("../apps/logs/app.lua", { env = env(), source = source })
+  ]] .. morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua")
+  test.load("../shell/init.lua", { env = env(), source = source })
   arrived(10)
   test.ipc("flood", "500")
   test.wait(function()
@@ -175,8 +178,7 @@ end)
 
 for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. " fits a phone", function()
-    tool { EVA_STYLE = style }
-    test.resize_window("toplevel:Logs", 380, 800)
+    tool({ EVA_STYLE = style, EVA_TEST_PAGE = "380x800" }, nil, { 380, 800 })
     arrived(10)
     test.ipc("select", 1)
     test.settle(500)
