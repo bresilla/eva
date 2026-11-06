@@ -31,7 +31,6 @@ return function(theme)
   local function card_rest(entry)
     if entry.outline then
       entry.outline.trim_start, entry.outline.trim_end, entry.outline.opacity = 0, 1, rest_outline()
-      entry.edges.opacity = 1
     end
     for _, mark in ipairs(entry.marks) do mark.translate_x, mark.translate_y, mark.opacity = 0, 0, 1 end
   end
@@ -120,18 +119,15 @@ return function(theme)
         local item = found[k]
         local entry, at = item.entry, delay + item.at * SCAN
         touched[entry] = "card"
-        local o, e = entry.outline, entry.edges
+        local o = entry.outline
         if o then
-          o.trim_start, o.trim_end, o.opacity, e.opacity = .5, .5, 1, 0
+          o.trim_start, o.trim_end, o.opacity = .5, .5, 1
           tracks[#tracks + 1] = { node = o, property = "trim_start", from = .5, to = 0, delay = at, duration = 260,
             easing = "out_cubic" }
           tracks[#tracks + 1] = { node = o, property = "trim_end", from = .5, to = 1, delay = at, duration = 260,
             easing = "out_cubic" }
           tracks[#tracks + 1] = timed { node = o, property = "opacity", delay = at, duration = 440, keyframes = {
             { at = 0, value = 1 }, { at = .62, value = 1 }, { at = 1, value = rest_outline() } } }
-          tracks[#tracks + 1] = timed { node = e, property = "opacity", delay = at, duration = 300, keyframes = {
-            { at = 0, value = 0 }, { at = .06, value = 1 }, { at = .16, value = .2 }, { at = .26, value = 1 },
-            { at = .8, value = 0 }, { at = .86, value = 1 }, { at = 1, value = 1 } } }
         end
         land(entry)
         for _, track in ipairs(flight(entry, item, area, at, 24)) do tracks[#tracks + 1] = track end

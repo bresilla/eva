@@ -1,4 +1,4 @@
--- The chrome a boot pass drives, by node: cards' brackets, outlines and cuts,
+-- The chrome a boot pass drives, by node: cards' brackets and outlines,
 -- captions' plates and rules, and readings that replay (`play(delay)` -> stop),
 -- held until the node is destroyed.
 local R = { cards = {}, captions = {}, values = {}, OUTLINE = .7 }

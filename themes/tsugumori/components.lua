@@ -94,9 +94,9 @@ return function(theme)
   M.mark_path = mark_d
   --- Anchored registration marks for a box of unknown size, on the
   --- top-left / bottom-right diagonal only.
-  local function anchored_marks(l, color, inset, opacity, weight)
+  local function anchored_marks(l, color, inset, opacity)
     l, inset = l or MARK, inset or 0
-    local d = mark_d(l, weight)
+    local d = mark_d(l)
     local function corner(anchors, rotation)
       anchors.left_margin, anchors.right_margin, anchors.top_margin, anchors.bottom_margin = inset, inset, inset, inset
       return ui.Path { anchors = anchors, width = l, height = l, view_box = { 0, 0, l, l }, d = d,
@@ -407,33 +407,14 @@ return function(theme)
     collector = list
     if list then captions.index = 0 end
   end
-  -- Card chrome: the box cut at 45 degrees on its top-left and bottom-right
-  -- corners, the cuts lit, a hairline outline, four heavy corner brackets,
-  -- and a tick ruler on the foot, a serial strip under the top edge and an
-  -- index notch at the middle of each side. Every path is one node whose
-  -- data changes only when the card is resized.
-  local CUT, LEG = 9, 16
-  local function cut_of(w, h) return math.max(0, math.min(CUT, math.floor(math.min(w, h) / 3))) end
-  --- The cut box as one loop from the middle of its bottom-right cut, so
-  --- its half-way point is the middle of the top-left one; inset by `i`.
-  local function cut_d(w, h, i)
-    local c = cut_of(w, h)
-    local m = (c + i) / 2
-    return ("M%g %g L%g %g H%g V%g L%g %g H%g V%g Z"):format(w - m, h - m, w - c, h - i, i, c, c, i, w - i, h - c)
-  end
-  M.cut_path = cut_d
-  --- The lit cuts, each running on along the edge it meets: the top from
-  --- the top-left cut, the foot back from the bottom-right one.
-  local function edges_d(w, h)
-    local c = cut_of(w, h)
-    local top, foot = math.floor(math.min(w * .45, 180)), math.floor(math.min(w * .25, 96))
-    return ("M1 %g L%g 1 H%g M%g %g L%g %g H%g"):format(c + .5, c + .5, c + top, w - 1, h - c - .5,
-      w - c - .5, h - 1, w - c - foot)
-  end
-  local function corners_d(w, h)
-    local c = cut_of(w, h) + .5
-    return ("M0 0 H%g L0 %g Z M%g %g V%g L%g %g Z"):format(c, c, w, h, h - c, w - c, h)
-  end
+  -- Card chrome: a hairline outline, four corner brackets, and a tick ruler
+  -- on the foot, a serial strip under the top edge and an index notch at the
+  -- middle of each side. Every path is one node whose data changes only when
+  -- the card is resized.
+  local LEG = 12
+  --- The box as one loop from its bottom-right corner, so its half-way
+  --- point is the top-left one.
+  local function loop_d(w, h) return ("M%g %g H.5 V.5 H%g Z"):format(w - .5, h - .5, w - .5) end
   local SERIAL = {}
   for k = 0, 7 do
     local xs, x, seed = {}, 0, k * 7 + 3
@@ -475,59 +456,38 @@ return function(theme)
     end
     return node
   end
-  --- The brackets on a box's four corners: `LEG` long, two wide.
-  local function brackets()
-    local marks = {}
-    for i, corner in ipairs {
-      { { left = true, top = true }, ("M1 %g V1 H%g"):format(LEG, LEG) },
-      { { right = true, top = true }, ("M0 1 H%g V%g"):format(LEG - 1, LEG) },
-      { { left = true, bottom = true }, ("M1 0 V%g H%g"):format(LEG - 1, LEG) },
-      { { right = true, bottom = true }, ("M0 %g H%g V0"):format(LEG - 1, LEG - 1) },
-    } do
-      marks[i] = ui.Path { anchors = corner[1], width = LEG, height = LEG, view_box = { 0, 0, LEG, LEG },
-        d = corner[2], fill_color = "transparent", stroke_width = 2, stroke_cap = "square",
-        stroke_color = function() return C.primary end }
-    end
-    return marks
-  end
-  --- The chrome onto `props` (a card's or a panel's children) after what it
-  --- holds: `fill` the cut box's fill, or `ground` the colour its cut
-  --- corners are painted out in. Returns the registry entry.
-  local function card_chrome(props, fill, ground)
+  --- The ruler, serial strip and notches onto `props`.
+  local function ticks(props)
     serial_count = serial_count + 1
     local serial = SERIAL[serial_count % 8]
-    if fill then
-      table.insert(props, 1, sized({ fill_color = fill }, function(w, h) return cut_d(w, h, 0) end))
-    elseif ground then
-      table.insert(props, 1, sized({ fill_color = ground }, corners_d))
-    end
-    local entry = {}
-    entry.outline = sized({ fill_color = "transparent", stroke_width = 1, stroke_join = "miter",
-      stroke_color = function() return C.primary end, opacity = registry.OUTLINE },
-      function(w, h) return cut_d(w, h, .5) end)
-    entry.edges = sized({ fill_color = "transparent", stroke_width = 2, stroke_cap = "square",
-      stroke_color = function() return C.primary end }, edges_d)
-    props[#props + 1] = entry.outline
     props[#props + 1] = sized({ fill_color = "transparent", stroke_width = 1,
       stroke_color = function() return C.primary:alpha(.6) end }, function(w, h) return ticks_on(w, h, serial) end)
-    props[#props + 1] = entry.edges
-    entry.marks = brackets()
-    for _, mark in ipairs(entry.marks) do props[#props + 1] = mark end
+  end
+  --- The chrome onto a card's children after what it holds: the outline,
+  --- the ticks and the four brackets. Returns the registry entry.
+  local function card_chrome(props)
+    local entry = {}
+    entry.outline = sized({ fill_color = "transparent", stroke_width = 1, stroke_join = "miter",
+      stroke_color = function() return C.primary end, opacity = registry.OUTLINE }, loop_d)
+    props[#props + 1] = entry.outline
+    ticks(props)
+    local corners, marks = hud().marked { length = LEG, color = hud().line("hot") }
+    props[#props + 1] = corners
+    entry.marks = marks
     return entry
   end
   function M.card(props)
     captions.cards = captions.cards + 1
     props.radius = M.round(theme.ROUNDING)
-    local color = props.color
-    if color == nil then color = function() return C.surfaceContainer end end
+    if props.color == nil then props.color = function() return C.surfaceContainer end end
     if not collector then
-      props.color = "transparent"
-      local entry = card_chrome(props, color)
+      local entry = card_chrome(props)
       local node = ui.Rect(props)
       registry.cards[node] = entry
       return node
     end
-    local chrome = card_chrome(props, nil, function() return C.surface end)
+    local color = props.color
+    local chrome = card_chrome(props)
     props.radius, props.color = nil, nil
     local node = ui.Item(props)
     registry.cards[node] = chrome
@@ -554,8 +514,21 @@ return function(theme)
   --- an optional header strip or a caps title, and children.
   function M.panel(spec)
     local w, h = spec.width, spec.height
-    local wn = get(w)
+    local wn, hn = get(w), get(h)
+    local fixed = type(wn) == "number" and type(hn) == "number" and type(w) ~= "function" and type(h) ~= "function"
+    local fill = function() return C.surfaceContainer:alpha(spec.fill or .6) end
     local node = { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h, clip = spec.clip }
+    if fixed then
+      node[#node + 1] = ui.Path { width = w, height = h, view_box = { 0, 0, w, h }, d = frame_d(w, h, CH, .5),
+        fill_color = fill, stroke_color = spec.mark or M.stroke("idle", spec.color), stroke_width = 1,
+        stroke_join = "miter" }
+      node[#node + 1] = marks(w, h, MARK, M.stroke("mark", spec.color), { x = 0, y = 0 })
+    else
+      node[#node + 1] = ui.Rect { anchors = { fill = true }, color = fill, border_width = 1,
+        border_color = spec.mark or M.stroke("idle", spec.color) }
+      node[#node + 1] = anchored_marks(MARK, M.stroke("mark", spec.color))
+    end
+    ticks(node)
     if spec.header and type(wn) == "number" then
       node[#node + 1] = M.header { x = 12, y = 8, width = wn - 24, key = spec.id or spec.title,
         title = spec.title, status = spec.status, color = spec.color }
@@ -564,10 +537,7 @@ return function(theme)
         color = spec.color or M.ink("accent") }
     end
     for _, child in ipairs(spec) do node[#node + 1] = child end
-    local chrome = card_chrome(node, function() return C.surfaceContainer:alpha(spec.fill or .6) end)
-    local item = ui.Item(node)
-    registry.cards[item] = chrome
-    return item
+    return ui.Item(node)
   end
 
   --- A panel's chrome strip: a registration pip, the caps title, the status
@@ -664,10 +634,9 @@ return function(theme)
           fill_color = "transparent", stroke_width = 1, stroke_color = M.stroke("hot") } }
     end
     if name == "corners" or name == "brackets" then
-      -- Four bright, heavy L-brackets on the box's corners; a boot pass
-      -- flies them in.
-      local node, marks = hud().marked { length = (spec.length or 10) + 4, weight = spec.weight or 2,
-        color = spec.color or hud().line("hot"), inset = spec.inset, opacity = spec.opacity, id = spec.id }
+      -- Four bright L-brackets on the box's corners; a boot pass flies them in.
+      local node, marks = hud().marked { length = spec.length or 10, color = spec.color or hud().line("hot"),
+        inset = spec.inset, opacity = spec.opacity, id = spec.id }
       registry.cards[node] = { marks = marks }
       if type(spec.width) == "number" and type(spec.height) == "number" then
         return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = spec.height, node }
@@ -974,7 +943,7 @@ return function(theme)
       opacity = function() return down() and 1 or 0 end, behavior = { opacity = { duration = 90 } } }
     node[3] = ui.Rect { width = 3, anchors = { top = true, bottom = true, left = true }, color = tone,
       opacity = function() return on() and 1 or 0 end, behavior = { opacity = { duration = 160 } } }
-    node[4] = anchored_marks(10, tone, 0, function() return on() and 1 or .7 end, 2)
+    node[4] = anchored_marks(8, tone, 0, function() return on() and 1 or 0 end)
     return ui.Item(node)
   end
 
@@ -1009,7 +978,7 @@ return function(theme)
         opacity = function() return down() and 1 or 0 end, behavior = { opacity = theme.spring.effects } },
       ui.Rect { width = 3, anchors = { top = true, bottom = true, left = true }, color = tone,
         opacity = function() return on() and 1 or 0 end, behavior = { opacity = theme.spring.effects } },
-      anchored_marks(10, tone, 0, function() return on() and 1 or .7 end, 2),
+      anchored_marks(8, tone, 0, function() return on() and 1 or 0 end),
     }
   end
 
