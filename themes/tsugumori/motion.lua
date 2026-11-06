@@ -12,9 +12,9 @@ return function(theme)
   local PAGE_COVER, REVEAL = 140, 220
   local COVER = 230
   local ENTRY_DELAY, ENTRY_MOVE, ENTRY_LEAVE, STAGGER = 180, 240, 120, 50
-  -- Each card's corner brackets, by card node (components.lua fills it).
-  local card_marks = require("themes.tsugumori.marks")
-  local OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
+  -- Each card's chrome, by card node (components.lua fills it).
+  local registry = require("themes.tsugumori.marks")
+  local boots = require("themes.tsugumori.boot")(theme)
   -- The working panels whose ground carries the dot grid.
   local GRID = { dashboard = true, sidebar = true, leftbar = true, bottom = true }
   local UNBOOTED = { keyboard = true, notifications = true }
@@ -23,6 +23,8 @@ return function(theme)
     return { { at = 0, value = from }, { at = .24, value = from }, { at = .25, value = from * .4 },
       { at = 1, value = 0, easing = "out_expo" } }
   end
+  -- The page under a wipe boots as the wipe uncovers it.
+  local page_boots = setmetatable({}, { __mode = "k" })
   -- The page cover in three bands, a step apart: a slice reveal.
   local SLICES, SLICE_STEP = 3, 15
   function M.page_wipe(host, width, id)
@@ -61,6 +63,8 @@ return function(theme)
       flash.visible,flash.opacity,glow.visible,glow.opacity=false,0,false,0
       register.visible,register.opacity=false,0
       register.x=22
+      local pass = page_boots[host]
+      if pass then pass.stop() end
       if immediate then
         for _, slice in ipairs(bands) do slice.visible, slice.width = false, 0 end
         swap() return
@@ -85,6 +89,9 @@ return function(theme)
       running = morf.animation.play { { parallel = covering }, on_finished = function(reason)
         if reason ~= "completed" or own ~= generation then return end
         swap()
+        pass = page_boots[host] or boots.content(host)
+        page_boots[host] = pass
+        pass.play(ENTRY_DELAY, true)
         flash.x,flash.visible,glow.x,glow.visible=0,true,-12,true
         local step_out = REVEAL - (SLICES - 1) * SLICE_STEP
         local revealing = {}
@@ -125,8 +132,8 @@ return function(theme)
         return
       end
       if require("themes.session").restoring then return end
-      pass = pass or require("themes.tsugumori.boot")(theme).new(host, id .. "-lock",
-        opts or { trace = false, register = false, length = 10, reach = 14 })
+      pass = pass or boots.new(host, id .. "-lock",
+        opts or { trace = false, register = false, content = true, length = 14, weight = 2.5, reach = 24 })
       pass.play(delay)
     end
   end
@@ -169,7 +176,11 @@ return function(theme)
         entry.node.opacity = coming and 1 or 0
         entry.node.scale, entry.node.translate_x, entry.node.translate_y = 1, 0, 0
         if entry.shape then entry.shape.opacity = coming and 1 or 0 end
-        for _, mark in ipairs(card_marks[entry.node] or {}) do mark.translate_x, mark.translate_y = 0, 0 end
+        local chrome = registry.cards[entry.node]
+        if chrome then
+          boots.land(chrome)
+          boots.card_rest(chrome)
+        end
       end
       return {}, 0
     end
@@ -192,16 +203,12 @@ return function(theme)
           to = coming and 1 or 0, delay = delay, duration = coming and ENTRY_MOVE or ENTRY_LEAVE }
       end
       -- A card's corner brackets snap onto it as it comes in.
-      for m, mark in ipairs(card_marks[node] or {}) do
-        for axis, property in ipairs { "translate_x", "translate_y" } do
-          if coming and fresh then
-            steps[#steps + 1] = { node = mark, property = property, delay = delay, duration = ENTRY_MOVE,
-              keyframes = snap(OUTWARD[m][axis] * 7) }
-          else
-            steps[#steps + 1] = { node = mark, property = property, to = 0, delay = delay,
-              duration = coming and ENTRY_MOVE or ENTRY_LEAVE, easing = "out_cubic" }
-          end
-        end
+      local chrome = registry.cards[node]
+      if chrome and coming and fresh then
+        handles[#handles + 1] = boots.snap(chrome, nil, delay, 7)
+      elseif chrome then
+        boots.land(chrome)
+        for _, mark in ipairs(chrome.marks) do mark.translate_x, mark.translate_y, mark.opacity = 0, 0, 1 end
       end
       handles[#handles + 1] = morf.animation.play { { parallel = steps } }
     end
@@ -216,8 +223,8 @@ return function(theme)
     local curtain, unit = require("themes.tsugumori.curtain")(theme, panel, id)
     -- The on-screen keyboard keeps its own look and motion, and notification
     -- cards lock on by themselves: neither boots.
-    local boot = not UNBOOTED[d.name] and require("themes.tsugumori.boot")(theme).new(panel, id, {
-      brackets = false, words = ("%s %s // SYS LINK"):format(unit[3], unit[2]) }) or nil
+    local boot = not UNBOOTED[d.name] and boots.new(panel, id, {
+      brackets = false, content = true, words = ("%s %s // SYS LINK"):format(unit[3], unit[2]) }) or nil
     if GRID[d.name] then require("themes.tsugumori.dots")(theme)(panel, id) end
     local glow=ui.Rect {id=id.."-reveal-glow",z=101,x=-12,width=16,
       anchors={top=true,bottom=true},color=function() return theme.color.secondary end,
@@ -336,9 +343,9 @@ return function(theme)
       if opening then travel(true,function()
         sweep(true,finish)
         ctx.reveal(true)
-        -- The boot pass overlaps the uncover's settle.
+        -- The boot pass plays over the content once the cover has all but gone.
         if boot and not require("themes.session").restoring then
-          boot.play(math.floor(REVEAL*cover*.35))
+          boot.play(math.floor(REVEAL*cover*.55))
         end
       end)
       else sweep(false,function() travel(false,finish) end) end

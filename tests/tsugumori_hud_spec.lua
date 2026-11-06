@@ -53,7 +53,7 @@ local CARDS = [[
   local card = kit.card { id = "hud-card", width = 200, height = 120 }
   kit.collect(nil)
   ui.Item { width = 400, height = 300, ui.Sdf { anchors = { fill = true }, list[1].shape }, card }
-  local marks = require("themes.tsugumori.marks")[card]
+  local marks = require("themes.tsugumori.marks").cards[card].marks
   local running = {}
   morf.ipc.enter = function(coming)
     for _, h in ipairs(running) do h:stop() end
@@ -236,6 +236,136 @@ test.describe("tsugumori chrome in the shell", function()
 end)
 
 local BOOT = { "drawer-sample-boot-trace", "drawer-sample-boot-scan", "drawer-sample-boot-register" }
+
+local CONTENT = [[
+  if morf.env("TEST_REDUCED") == "1" then require("themes.motion_landing").install() end
+  local ui = require("morf.ui")
+  local kit = require("kit")
+  local drawer = require("drawer")
+  local P = require("themes.layouts.page")
+  local level = morf.signal("boot.level", .8)
+  local clicks = 0
+  local tile = P.tile { id = "boot-tile", title = "Telemetry", width = 260, height = 150,
+    kit.meter { id = "boot-meter", width = 200, height = 6, count = 20, value = function() return level:get() end },
+    kit.action { id = "boot-press", y = 40, width = 120, height = 36, cursor = "pointer",
+      on_clicked = function() clicks = clicks + 1 end } }
+  local content = ui.Item { width = 320, height = 240, ui.Item { x = 30, y = 40, tile } }
+  local d = drawer.new { name = "sample", edge = "top", width = 320, height = 240, content = content }
+  ui.Item { width = 1280, height = 720, ui.Sdf { width = 1280, height = 720, d.shape }, d.panel }
+  morf.ipc.open = d.set
+  local registry = require("themes.tsugumori.marks")
+  local card
+  for _, entry in pairs(registry.cards) do if entry.outline then card = entry end end
+  local caption
+  for node in pairs(registry.captions) do caption = registry.captions[node] end
+  morf.ipc.state = function()
+    local m = card.marks[4]
+    return { trim = card.outline.trim_end, start = card.outline.trim_start, outline = card.outline.opacity,
+      x = m.translate_x, y = m.translate_y, mark = m.opacity, plate = caption.plate.opacity,
+      rule = caption.rule.scale_x }
+  end
+  morf.ipc.clicks = function() return clicks end
+]]
+local function content_env(extra) return env(extra) end
+local function covered()
+  local curtain = test.find { id = "drawer-sample-curtain" }
+  if not curtain or not curtain.visible then return 0 end
+  return (curtain.width or 0) / 320
+end
+local function resting(s)
+  return math.abs(s.trim - 1) < .001 and math.abs(s.start) < .001 and math.abs(s.x) < .01 and math.abs(s.y) < .01
+    and math.abs(s.mark - 1) < .001 and math.abs(s.plate - 1) < .001 and math.abs(s.rule - 1) < .001
+end
+
+test.describe("tsugumori content boot", function()
+  test.it("draws the cards in over the content once the cover has gone, and again on reopening", function()
+    test.load("../shell/init.lua", { source = CONTENT, size = { 1280, 720 }, env = content_env() })
+    test.advance(50)
+    for round = 1, 2 do
+      test.ipc("open", true)
+      local drawing, scanning, flew, lit = nil, nil, false, false
+      for _ = 1, 80 do
+        test.advance(FRAME)
+        local s = test.ipc("state")
+        if not drawing and s.trim > .55 and s.trim < .99 then drawing = covered() end
+        if not scanning and shown("drawer-sample-boot-scan") then scanning = covered() end
+        if math.abs(s.x) > 20 and s.mark > .5 then flew = true end
+        if s.plate > 0 and s.plate < 1 or s.rule > 0 and s.rule < 1 then lit = true end
+      end
+      test.truthy(drawing, "round " .. round .. ": the outline never drew in")
+      test.truthy(drawing < .05, "round " .. round .. ": the outline drew under the cover")
+      test.truthy(scanning and scanning < .05, "round " .. round .. ": the scan ran under the cover")
+      test.truthy(flew, "round " .. round .. ": the brackets did not fly in from further out")
+      test.truthy(lit, "round " .. round .. ": the caption did not light")
+      test.truthy(at_rest(), "round " .. round .. ": the pass kept moving")
+      test.truthy(resting(test.ipc("state")), "round " .. round .. ": the chrome did not come to rest")
+      test.truthy(hidden("drawer-sample-boot-scan"))
+      test.ipc("open", false)
+      test.truthy(at_rest())
+    end
+    clean()
+  end)
+
+  test.it("lets presses through while it plays", function()
+    test.load("../shell/init.lua", { source = CONTENT, size = { 1280, 720 }, env = content_env() })
+    test.advance(50)
+    test.ipc("open", true)
+    test.truthy(ever("drawer-sample-boot-scan", 60), "no scan")
+    test.click("boot-press")
+    test.eq(test.ipc("clicks"), 1)
+    clean()
+  end)
+
+  test.it("stops and rests the chrome when the drawer shuts mid-pass", function()
+    test.load("../shell/init.lua", { source = CONTENT, size = { 1280, 720 }, env = content_env() })
+    test.advance(50)
+    test.ipc("open", true)
+    local mid = false
+    for _ = 1, 60 do
+      test.advance(FRAME)
+      local s = test.ipc("state")
+      if s.trim > .55 and s.trim < .95 then mid = true break end
+    end
+    test.truthy(mid, "never caught the pass mid-way")
+    test.ipc("open", false)
+    test.advance(FRAME)
+    local s = test.ipc("state")
+    test.truthy(resting(s), ("the chrome was left mid-pass: trim %.2f..%.2f mark %.2f,%.2f/%.2f plate %.2f rule %.2f")
+      :format(s.start, s.trim, s.x, s.y, s.mark, s.plate, s.rule))
+    test.advance(120)
+    test.truthy(hidden("drawer-sample-boot-scan"), "the scan outlived the close")
+    test.truthy(at_rest())
+    test.truthy(resting(test.ipc("state")), "the chrome moved again after the close")
+    clean()
+  end)
+
+  test.it("lands at once under Reduce motion", function()
+    test.load("../shell/init.lua", { source = CONTENT, size = { 1280, 720 }, env = content_env { TEST_REDUCED = "1" } })
+    test.advance(50)
+    test.ipc("open", true)
+    for _ = 1, 12 do
+      test.advance(FRAME)
+      local s = test.ipc("state")
+      test.truthy(s.trim > .99 or s.trim < .51, "the outline travelled under Reduce motion")
+    end
+    test.advance(100)
+    test.truthy(resting(test.ipc("state")), "the chrome did not land")
+    test.truthy(hidden("drawer-sample-boot-scan"))
+    clean()
+  end)
+
+  test.it("leaves nothing moving at rest, before or after a pass", function()
+    test.load("../shell/init.lua", { source = CONTENT, size = { 1280, 720 }, env = content_env() })
+    test.truthy(at_rest(), "moving before any pass")
+    test.ipc("open", true)
+    test.truthy(at_rest(), "moving after the pass")
+    test.frames()
+    test.advance(2000)
+    test.eq(test.frames().frames, 0, "frames drawn at rest")
+    test.truthy(resting(test.ipc("state")))
+    clean()
+  end)
+end)
 
 test.describe("tsugumori drawer boot", function()
   test.it("traces, scans and prints once as a drawer opens, then hides", function()
