@@ -111,7 +111,7 @@ reference. All of it uses wallpaper roles and stops at rest.
   panels, with a small cross every fourth step: two paths per panel.
 - Cards (`kit.card`) and framed panels (`kit.panel`) are cut at 45 degrees
   on the top-left and bottom-right; the cuts are lit and run on along the
-  top and the foot, the outline sits at 0.6, four 16 px brackets two wide
+  top and the foot, the outline sits at 0.7, four 16 px brackets two wide
   stand on the corners, and a foot ruler, a serial strip and side notches
   share one path. The box and its geometry are the layout's; only the
   paint is cut (a field card has its corners painted out in the ground).

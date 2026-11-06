@@ -426,7 +426,7 @@ return function(theme)
   --- the top-left cut, the foot back from the bottom-right one.
   local function edges_d(w, h)
     local c = cut_of(w, h)
-    local top, foot = math.floor(math.min(w * .3, 120)), math.floor(math.min(w * .16, 64))
+    local top, foot = math.floor(math.min(w * .45, 180)), math.floor(math.min(w * .25, 96))
     return ("M1 %g L%g 1 H%g M%g %g L%g %g H%g"):format(c + .5, c + .5, c + top, w - 1, h - c - .5,
       w - c - .5, h - 1, w - c - foot)
   end
@@ -974,7 +974,7 @@ return function(theme)
       opacity = function() return down() and 1 or 0 end, behavior = { opacity = { duration = 90 } } }
     node[3] = ui.Rect { width = 3, anchors = { top = true, bottom = true, left = true }, color = tone,
       opacity = function() return on() and 1 or 0 end, behavior = { opacity = { duration = 160 } } }
-    node[4] = anchored_marks(10, tone, 0, function() return on() and 1 or .5 end, 2)
+    node[4] = anchored_marks(10, tone, 0, function() return on() and 1 or .7 end, 2)
     return ui.Item(node)
   end
 
@@ -1009,7 +1009,7 @@ return function(theme)
         opacity = function() return down() and 1 or 0 end, behavior = { opacity = theme.spring.effects } },
       ui.Rect { width = 3, anchors = { top = true, bottom = true, left = true }, color = tone,
         opacity = function() return on() and 1 or 0 end, behavior = { opacity = theme.spring.effects } },
-      anchored_marks(10, tone, 0, function() return on() and 1 or .5 end, 2),
+      anchored_marks(10, tone, 0, function() return on() and 1 or .7 end, 2),
     }
   end
 

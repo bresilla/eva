@@ -1,7 +1,7 @@
 -- The chrome a boot pass drives, by node: cards' brackets, outlines and cuts,
 -- captions' plates and rules, and readings that replay (`play(delay)` -> stop),
 -- held until the node is destroyed.
-local R = { cards = {}, captions = {}, values = {}, OUTLINE = .6 }
+local R = { cards = {}, captions = {}, values = {}, OUTLINE = .7 }
 
 local function read(node) return node.layout_x, node.layout_y, node.layout_width, node.layout_height end
 --- `node`'s last layout box, or nil (and false for a node that is gone).
