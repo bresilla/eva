@@ -38,7 +38,8 @@ bridge, PAM, and, optionally, phone gestures. Its options live under
 `hyprland.extraConfig`, `greeter.*`, `seamless.*`, `wallpaperLogo` and
 `usePackagedShell`.
 
-Idle lives in Settings, under Eva's Idle and sleep page, and runs in the shell.
+Idle lives in Settings, on the Idle and sleep page under Device, and runs in the
+shell. By default the screen turns off and locks after 10 minutes.
 An `idle.*` timeout set in Nix wins over that page, which then shows it as set,
 and stays a timer of hypridle's, which runs without the shell. With no lock timeout
 set in Nix, hypridle keeps one backstop at 15 minutes: it asks the shell, and locks
