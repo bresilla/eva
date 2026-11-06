@@ -256,25 +256,15 @@ def shaders():
 
 
 def displays(*words):
-    pid = machine.succeed("cat /run/user/1000/eva/displays.window").strip()
-    quoted = " ".join(shlex.quote(word) for word in words)
-    return reply_of(machine.execute(session(f"timeout 30 morf -i wayland-1-app-{pid} ipc call {quoted}"))[1].strip())
-
-
-def tool_up():
-    status, text = machine.execute(session(
-        "morf -i wayland-1-app-$(cat /run/user/1000/eva/displays.window) ipc call state"))
-    return status == 0 and '"ok":true' in text
+    return ask("displays", *words)
 
 
 def rotation():
-    sh("systemd-run --user --unit=displays --setenv=PATH=/run/current-system/sw/bin --setenv=WAYLAND_DISPLAY=wayland-1 eva-displays")
-    machine.wait_until_succeeds("test -s /run/user/1000/eva/displays.window", timeout=60)
-    check("eva-displays answers", eventually(tool_up, 120))
+    sh("eva-displays")
     def has_output():
         state = displays("state") or {}
         return any(o.get("name") == "Virtual-1" for o in state.get("outputs", []))
-    check("eva-displays reads the outputs as it opens", eventually(has_output, 30), str(displays("state"))[:300])
+    check("Settings, Displays reads the outputs as it opens", eventually(has_output, 30), str(displays("state"))[:300])
     wide = monitor("Virtual-1")
     displays("set", "Virtual-1", "transform", "1")
     check("it applies", displays("apply") is True, str(displays("state"))[:300])
@@ -314,7 +304,7 @@ def rotation():
     displays("keep")
     machine.sleep(2)
     check("what is kept is upright", "transform = 0" in machine.succeed("cat /home/alice/.local/state/eva/displays/monitors.lua"))
-    sh("systemctl --user stop displays")
+    ipc("settings", "close")
 
 
 def two_outputs():

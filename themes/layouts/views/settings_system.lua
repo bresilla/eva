@@ -277,21 +277,9 @@ end
 
 function M.displays_page(model, w, h)
   local inner = P.inner(w)
-  local outputs = F.list(inner, "displays-row-", function() return #model.outputs() end, function(index, width)
-    local function row() return model.outputs()[index] or {} end
-    return P.row { id = "displays-output-" .. index, width = width, icon = "monitor",
-      on = function() return row().enabled ~= false end,
-      title = function() local r = row() return r.description ~= "" and r.description or r.name or "" end,
-      subtitle = function() return row().name and ((row().name) .. " · " .. model.summary(row())) or "" end }
-  end, "No displays reported", 8)
+  local arrange = require("themes").view("displays_page")
   return P.page { id = "displays-scroll", width = w, height = h, active = model.active,
-    P.section { id = "displays-list", width = w, title = "Connected", outputs,
-      P.button { id = "displays-open", icon = "open_in_new", label = "Arrange displays", width = inner, tone = "primary",
-        visible = model.can_open, on_clicked = model.open },
-      F.note(inner, "Resolution, arrangement, scale, rotation, mirroring and profiles are all in eva-displays.",
-        { id = "displays-note" }),
-      F.status("displays-status", inner, model),
-    },
+    arrange.arrangement(model.arrange, w), arrange.monitor(model.arrange, w), arrange.profiles(model.arrange, w),
     P.section { id = "displays-ddc", width = w, title = "External screens",
       F.toggle { id = "displays-ddc-on", width = inner, icon = "brightness_medium", title = "Brightness over the cable",
         subtitle = "The brightness slider and keys reach the screen they are on, by DDC/CI",

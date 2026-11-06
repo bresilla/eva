@@ -1,7 +1,9 @@
--- eva-displays' state and actions: a draft of the outputs, the live arrangement
--- it replaces, the countdown after applying, and the saved profiles. No nodes.
+-- The Displays page's arrangement: a draft of the outputs, the live arrangement
+-- it replaces, the countdown after applying, and the saved profiles; and
+-- `eva-displays --auto`, the saved profile for what is connected. No nodes.
 local morf = require("morf")
 local displays = require("lib.shell.displays")
+local host = require("lib.services.host")
 
 local M = {
   outputs = morf.signal("displays.outputs", {}),
@@ -45,9 +47,22 @@ local function changed(list)
   M.dirty:set(live ~= nil and differs(list, live))
 end
 
+-- The stand-in machine's outputs (EVA_FAKE_SYSTEM), side by side.
+local function fake_read(cb)
+  local out, x = {}, 0
+  for index, o in ipairs(require("lib.services.host_fake").outputs()) do
+    out[index] = { name = o.name, make = "", model = o.description or "", serial = o.name, description = o.description or "",
+      enabled = o.enabled ~= false, x = x, y = 0, width = o.width, height = o.height, refresh = o.refresh or 60,
+      scale = o.scale or 1, transform = 0, vrr = false, mirror = "", modes = {}, focused = index == 1 }
+    x = x + displays.logical(out[index])
+  end
+  cb(out)
+end
+
 --- Reads the compositor's outputs into the draft: `done()` afterwards.
 function M.refresh(done)
-  displays.read(function(outputs, why)
+  local read = host.fake() and fake_read or displays.read
+  read(function(outputs, why)
     if not outputs then
       M.message:set(why)
       M.ready:set(true)
@@ -188,6 +203,8 @@ end
 
 --- Keeps what was applied, and writes it where the compositor reloads it from.
 function M.keep()
+  -- Nothing read yet (the shell was built again since): the outputs first.
+  if #M.outputs:get() == 0 then return M.refresh(function() if #M.outputs:get() > 0 then M.keep() end end) end
   stop_ticker()
   M.countdown:set(0)
   live = copy(M.outputs:get())
@@ -257,10 +274,26 @@ function M.set_auto(name, on)
   M.load_profiles()
 end
 
---- A name on every monitor: the shell draws it when it runs, else a short-lived
---- configuration of this tool does.
+--- A name on every monitor, each shown on its own.
 function M.identify()
-  morf.process.run({ "sh", morf.paths.shell("identify") }, {}, function() end)
+  require("themes").view("displays_identify").show()
+end
+
+--- An output in a line: its name, mode, refresh and scale.
+function M.summary(o)
+  if o.enabled == false then return o.name .. " · Off" end
+  return ("%s · %d×%d at %.0f Hz · %d%%"):format(o.name, o.width or 0, o.height or 0, o.refresh or 0,
+    math.floor((o.scale or 1) * 100 + 0.5))
+end
+
+--- `eva-displays --auto`: the profile saved for what is connected, applied.
+--- `done(text, why)`.
+function M.job(args, done)
+  if args[1] ~= "--auto" and args[1] ~= "auto" then done(nil, "unknown command: " .. tostring(args[1])) return end
+  displays.auto_apply(function(name, why)
+    if why then morf.log("warn", "eva-displays: " .. tostring(why)) end
+    done(name and ("applied " .. name) or "")
+  end)
 end
 
 return M

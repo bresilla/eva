@@ -1,6 +1,5 @@
--- The About, Updates and Displays pages. Displays reads what
--- lib/shell/displays reads and hands every change to eva-displays; nothing
--- here arranges a monitor.
+-- The About, Updates and Displays pages. Displays arranges the monitors
+-- through displays_model.lua, on what lib/shell/displays reads.
 local morf = require("morf")
 local about = require("lib.services.about")
 local timedate = require("lib.services.timedate")
@@ -70,28 +69,18 @@ function M.updates(active)
   return model
 end
 
---- Displays: the outputs, read-only, and the way to eva-displays.
+--- Displays: the monitors' arrangement (displays_model.lua), read again as the
+--- page comes on show, and screens' brightness over the cable.
 function M.displays(active)
   local model = page_model.new("displays", active)
-  local lib = require("lib.shell.displays")
-  local outputs = morf.signal("eva.displays.page", {})
-  local fake = host.fake() and require("lib.services.host_fake")
-
+  model.arrange = require("displays_model")
   model.on_show(function()
-    if fake then return outputs:set(fake.outputs()) end
-    lib.read(function(found) outputs:set(found or {}) end)
+    model.arrange.refresh()
+    model.arrange.load_profiles()
   end)
-  function model.outputs() return outputs:get() end
   model.ddc = require("ddc_model")
   function model.ddc_on() return require("config").get("displays.ddc") ~= false end
   function model.set_ddc(on) require("config").set("displays.ddc", on == true) end
-  function model.can_open() return host.tool("displays") ~= nil end
-  model.open = opener(model, "displays", "eva-displays")
-  function model.summary(row)
-    if row.enabled == false then return "Off" end
-    return ("%d×%d at %.0f Hz · %d%%"):format(row.width or 0, row.height or 0, row.refresh or 0,
-      math.floor((row.scale or 1) * 100 + 0.5))
-  end
   return model
 end
 

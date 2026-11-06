@@ -1,4 +1,4 @@
--- A monitor's name across it, while eva-displays is told which is which.
+-- A monitor's name across it, while Settings, Displays is told which is which.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")

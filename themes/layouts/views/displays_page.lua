@@ -1,5 +1,6 @@
--- eva-displays' window: the monitors on a canvas to drag, the selected one's
--- settings, the countdown after applying, and the saved profiles.
+-- The Displays page's arrangement (shell/displays_model.lua): the monitors on a
+-- canvas to drag, the countdown after applying, the selected one's settings,
+-- and the saved profiles, each a section of the page.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
@@ -8,15 +9,12 @@ local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local composites = require("themes.kit.composites")
 local displays = require("lib.shell.displays")
-local model = require("model")
 local C, S = theme.color, theme.space
 
 local M = {}
 
 local TILES = 8
-local SIDE = 360
-local NARROW = 900
-local CANVAS_MIN = 240
+local CANVAS_H = 320
 
 local function get(v) if type(v) == "function" then return v() end return v end
 
@@ -33,8 +31,9 @@ local function fit(outputs, w, h)
     end
   end
   if not left then return { scale = 0.1, x = 0, y = 0, left = 0, top = 0 } end
-  local margin = S.xl
-  local scale = math.min((w - 2 * margin) / math.max(1, right - left), (h - 2 * margin) / math.max(1, bottom - top))
+  -- A quarter of the canvas round the monitors: room to drag one about.
+  local mx, my = math.max(S.xl, w / 4), math.max(S.xl, h / 4)
+  local scale = math.min((w - 2 * mx) / math.max(1, right - left), (h - 2 * my) / math.max(1, bottom - top))
   scale = math.max(0.01, scale)
   return {
     scale = scale, left = left, top = top,
@@ -42,7 +41,8 @@ local function fit(outputs, w, h)
   }
 end
 
-local function canvas(w, h)
+-- The monitors, each a tile to drag; a drag snaps to the others' edges.
+local function canvas(model, w, h)
   local area = kit.card { id = "displays-canvas", width = w, height = h, radius = kit.round(P.RADIUS) }
   local frozen
   local function frame() return frozen or fit(model.outputs:get(), get(w), get(h)) end
@@ -63,8 +63,9 @@ local function canvas(w, h)
       return math.max(1, ow * frame().scale), math.max(1, oh * frame().scale)
     end
     local grab
-    local press = ui.MouseArea {
-      id = "displays-tile-" .. index, cursor = "grab", visible = shown,
+    -- A drag on a monitor is its own, not the page's scroll.
+    return ui.MouseArea {
+      id = "displays-tile-" .. index, cursor = "grab", visible = shown, drag_axis = "both",
       accessible_name = function() local o = output() return o and o.name or "" end,
       x = function()
         local o, f = output(), frame()
@@ -116,13 +117,41 @@ local function canvas(w, h)
         },
       },
     }
-    return press
   end
   for index = 1, TILES do ui.reparent(tile(index), area) end
   return area
 end
 
-local function resolution_items()
+--- The canvas, what the last change said, and Identify and Apply; while a
+--- change waits to be kept, Keep and Revert in their place with the seconds left.
+function M.arrangement(model, w)
+  local inner = P.inner(w)
+  local function waiting() return model.countdown:get() > 0 end
+  return P.section { id = "displays-arrangement", width = w, title = "Arrangement",
+    canvas(model, inner, CANVAS_H),
+    kit.text {
+      id = "displays-status", width = inner, elide = "right", font_size = theme.size.small, color = kit.ink("lo"),
+      visible = function() return model.message:get() ~= "" end, text = function() return model.message:get() end,
+    },
+    ui.Item { width = inner, height = P.BUTTON_H, visible = function() return not waiting() end,
+      P.buttons { width = inner,
+        { id = "displays-identify", label = "Identify", icon = "tag", on_clicked = model.identify },
+        { id = "displays-apply", label = "Apply", icon = "check", tone = "primary", on_clicked = model.apply },
+      } },
+    ui.Column { id = "displays-confirm", width = inner, gap = S.s, visible = waiting,
+      kit.text {
+        id = "displays-confirm-text", width = inner, color = kit.ink("hi"), font_size = theme.size.normal,
+        text = function() return ("Keep this arrangement? Reverting in %d s"):format(model.countdown:get()) end,
+      },
+      P.buttons { width = inner,
+        { id = "displays-revert", label = "Revert", on_clicked = model.revert },
+        { id = "displays-keep", label = "Keep", tone = "primary", on_clicked = model.keep },
+      },
+    },
+  }
+end
+
+local function resolution_items(model)
   local items = {}
   for _, mode in ipairs(model.resolutions(model.output())) do
     items[#items + 1] = ("%d × %d"):format(mode.width, mode.height)
@@ -130,34 +159,36 @@ local function resolution_items()
   return items
 end
 
-local function settings(w)
-  local inner = function() return P.inner(w) end
+--- The selected monitor: on or off, its mode, refresh, scale, rotation,
+--- variable refresh and the monitor it mirrors.
+function M.monitor(model, w)
+  local inner = P.inner(w)
+  local FIELD = 180
   local function row(id, title, control, visible)
     return ui.Item {
       id = id, width = inner, height = S.TARGET, visible = visible,
       kit.text { anchors = { vertical_center = true }, text = title, color = kit.ink("hi"), font_size = theme.size.normal },
-      ui.Item { anchors = { right = true, vertical_center = true }, width = control.width_hint, height = S.TARGET, control.node },
+      ui.Item { anchors = { right = true, vertical_center = true }, width = FIELD, height = S.TARGET, control },
     }
   end
   local function combo(id, items, current, on_changed)
-    local field = 180
-    local node = composites.combo_box {
-      id = id, width = field, height = S.TARGET, items = items, current = current, variant = "dropdown",
+    return (composites.combo_box {
+      id = id, width = FIELD, height = S.TARGET, items = items, current = current, variant = "dropdown",
       on_changed = on_changed,
-    }
-    return { node = node, width_hint = field }
+    })
   end
   local function selected() return model.selected:get() end
-  local resolution = row("displays-resolution", "Resolution", combo("displays-resolution-field", resolution_items, function()
-    local o = model.output()
-    for i, mode in ipairs(model.resolutions(o)) do
-      if o and mode.width == o.width and mode.height == o.height then return i end
-    end
-    return 1
-  end, function(index)
-    local mode = model.resolutions(model.output())[index]
-    if mode then model.set_resolution(selected(), mode.width, mode.height) end
-  end))
+  local resolution = row("displays-resolution", "Resolution", combo("displays-resolution-field",
+    function() return resolution_items(model) end, function()
+      local o = model.output()
+      for i, mode in ipairs(model.resolutions(o)) do
+        if o and mode.width == o.width and mode.height == o.height then return i end
+      end
+      return 1
+    end, function(index)
+      local mode = model.resolutions(model.output())[index]
+      if mode then model.set_resolution(selected(), mode.width, mode.height) end
+    end))
   local rate = row("displays-refresh", "Refresh", combo("displays-refresh-field", function()
     local items = {}
     for _, value in ipairs(model.refreshes(model.output())) do items[#items + 1] = ("%.2f Hz"):format(value) end
@@ -226,12 +257,15 @@ local function settings(w)
       return o and o.name or "Monitor"
     end,
     P.row {
-      id = "displays-enabled", width = inner, height = S.TARGET + S.s, title = function()
+      id = "displays-enabled", width = inner, icon = "monitor",
+      on = function() local o = model.output() return o ~= nil and o.enabled end,
+      title = function()
         local o = model.output()
         if not o then return "No monitor" end
-        local words = (o.make .. " " .. o.model):match("^%s*(.-)%s*$")
+        local words = ((o.make or "") .. " " .. (o.model or "")):match("^%s*(.-)%s*$")
         return words ~= "" and words or o.name
       end,
+      subtitle = function() local o = model.output() return o and model.summary(o) or "" end,
       trailing = P.switch {
         id = "displays-enabled-switch", name = "Use this monitor",
         on = function() local o = model.output() return o ~= nil and o.enabled end,
@@ -251,9 +285,10 @@ local function settings(w)
   }
 end
 
--- The saved profiles: a pool of rows following the list.
-local function profiles(w)
-  local inner = function() return P.inner(w) end
+--- The saved profiles, a pool of rows following the list, and a name to save
+--- the arrangement under.
+function M.profiles(model, w)
+  local inner = P.inner(w)
   local function at(index) return model.profiles:get()[index] end
   local rows = {}
   for index = 1, 6 do
@@ -283,96 +318,21 @@ local function profiles(w)
     }
   end
   local name = morf.signal("displays.profile.name", "")
-  local field = kit.text_field("entry", {
-    id = "displays-profile-name", width = function() return math.max(1, P.inner(w) - 120 - S.s) end, height = S.TARGET,
-    placeholder = "Profile name", text = function() return name:get() end,
-    color = kit.ink("hi"), placeholder_color = kit.ink("lo"),
-    on_text_changed = function(value) name:set(value) end,
-    on_accepted = function(value) if model.save_profile(value) then name:set("") end end,
-  })
+  local SAVE = 120
+  local box, field = P.field {
+    id = "displays-profile-name", width = math.max(1, inner - SAVE - S.s), placeholder = "Profile name",
+    on_changed = function(value) name:set(value) end,
+    on_accepted = function(value) if model.save_profile(value) then name:set("") field.text = "" end end,
+  }
   rows[#rows + 1] = ui.Row {
-    gap = S.s, align = "center", field,
+    gap = S.s, align = "center", box,
     P.button {
-      id = "displays-profile-save", label = "Save", width = 120,
-      on_clicked = function() if model.save_profile(name:get()) then name:set("") end end,
+      id = "displays-profile-save", label = "Save", width = SAVE,
+      on_clicked = function() if model.save_profile(name:get()) then name:set("") field.text = "" end end,
     },
   }
   rows.id, rows.width, rows.title = "displays-profiles", w, "Profiles"
   return P.section(rows)
-end
-
-local function actions(w)
-  return P.buttons {
-    width = w, visible = function() return model.countdown:get() == 0 end,
-    { id = "displays-identify", label = "Identify", icon = "tag", on_clicked = model.identify },
-    {
-      id = "displays-apply", label = "Apply", icon = "check", tone = "primary",
-      on_clicked = model.apply,
-    },
-  }
-end
-
--- The bar in the buttons' place while a change waits to be kept.
-local function confirm(w, y, h)
-  return ui.Item {
-    id = "displays-confirm", width = w, y = y, height = h, z = 10,
-    visible = function() return model.countdown:get() > 0 end,
-    kit.card {
-      anchors = { fill = true }, radius = kit.round(P.RADIUS),
-      kit.text {
-        id = "displays-confirm-text", x = S.l, anchors = { vertical_center = true }, color = kit.ink("hi"),
-        font_size = theme.size.normal,
-        text = function() return ("Keep this arrangement? Reverting in %d s"):format(model.countdown:get()) end,
-      },
-      ui.Row {
-        anchors = { right = true, right_margin = S.m, vertical_center = true }, gap = S.s,
-        P.button { id = "displays-revert", label = "Revert", on_clicked = model.revert },
-        P.button { id = "displays-keep", label = "Keep", tone = "primary", on_clicked = model.keep },
-      },
-    },
-  }
-end
-
-local function status(w)
-  return kit.text {
-    id = "displays-status", width = w, height = L.lh(theme.size.small), font_size = theme.size.small,
-    color = kit.ink("lo"), elide = "right",
-    text = function() return model.message:get() end,
-  }
-end
-
---- The window's content, `w` by `h` (fns).
-function M.build(w, h)
-  local function narrow() return w() < NARROW end
-  local function panel_w() return narrow() and w() or SIDE end
-  local foot = S.TARGET + S.m + L.lh(theme.size.small) + S.s
-  local function canvas_w() return narrow() and w() or math.max(1, w() - SIDE - S.l) end
-  local function canvas_h()
-    if narrow() then return math.max(CANVAS_MIN, math.min(h() * 0.34, 320)) end
-    return math.max(1, h() - foot - S.m)
-  end
-  local function page_h()
-    if narrow() then return math.max(1, h() - canvas_h() - foot - S.m) end
-    return math.max(1, h() - S.m)
-  end
-  local page = P.page {
-    id = "displays-panel", width = panel_w, height = page_h,
-    settings(panel_w), profiles(panel_w),
-  }
-  return ui.Item {
-    id = "displays-root", width = w, height = h,
-    canvas(canvas_w, canvas_h),
-    ui.Column {
-      gap = S.s, y = function() return canvas_h() + S.m end, width = canvas_w,
-      status(canvas_w), actions(canvas_w),
-    },
-    ui.Item {
-      x = function() return narrow() and 0 or canvas_w() + S.l end,
-      y = function() return narrow() and canvas_h() + foot + S.m or 0 end,
-      width = panel_w, height = page_h, page,
-    },
-    confirm(canvas_w, function() return canvas_h() + S.m end, foot),
-  }
 end
 
 return M

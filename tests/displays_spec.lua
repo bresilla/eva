@@ -1,7 +1,8 @@
--- eva-displays: the outputs of both compositors in one shape, snapping and the
--- layout's rules, profiles matched by what a monitor is and not by its port,
--- the plans sent to Hyprland and sway, and the window driven by the pointer.
--- swaymsg is stubbed and Hyprland is a double: nothing reaches a session.
+-- Arranging monitors: the outputs of both compositors in one shape, snapping and
+-- the layout's rules, profiles matched by what a monitor is and not by its port,
+-- the plans sent to Hyprland and sway, Settings' Displays page driven by the
+-- pointer, and `eva-displays --auto`. swaymsg is stubbed and Hyprland is a
+-- double: nothing reaches a session.
 --
 --     morf test --no-dbus tests/displays_spec.lua
 
@@ -247,7 +248,7 @@ test.it("leaves an arrangement that already matches alone", function()
   test.eq(#applied(), 0)
 end)
 
--- ----------------------------------------------------------------- the tool --
+-- ------------------------------------------------------- the Displays page --
 
 local OUTPUTS = morf.json.encode {
   { name = "DP-1", make = "Dell", model = "A", serial = "1", active = true, focused = true,
@@ -260,15 +261,22 @@ local OUTPUTS = morf.json.encode {
     modes = { { width = 1920, height = 1080, refresh = 60000 }, { width = 1280, height = 720, refresh = 60000 } } },
 }
 
-local function tool()
+local shells = 0
+local function tool(style, size)
+  shells = shells + 1
   test.stub_run("swaymsg", { code = 0, stdout = OUTPUTS })
-  test.stub_run("sh", { code = 0 })
-  test.load("../apps/displays/app.lua", {
-    size = { 1280, 800 },
-    env = { SWAYSOCK = "/nonexistent/sway.sock", EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule" },
+  test.stub_run("task", { code = 0, stdout = "[]" })
+  test.load("../shell/init.lua", {
+    size = size or { 1600, 1000 },
+    env = { SWAYSOCK = "/nonexistent/sway.sock", EVA_STYLE = style or "material", LULE_A = "/nonexistent/lule",
+      EVA_SETTINGS = morf.env("XDG_CACHE_HOME") .. "/displays-page-" .. shells .. ".json", EVA_WALLPAPER = "",
+      HOME = morf.env("XDG_CACHE_HOME") },
   })
   test.settle(1000)
+  test.ipc("settings", "displays")
+  test.settle(1500)
 end
+local function state() return test.ipc("displays", "state") end
 
 local function output(state, name)
   for _, o in ipairs(state.outputs) do
@@ -284,34 +292,45 @@ local function swaymsg_calls()
   return calls
 end
 
-local WINDOW = "toplevel:Displays"
+for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. ": the page shows both monitors, the selected one's mode, and its profiles", function()
+    tool(style)
+    test.truthy(test.find { id = "displays-tile-1", visible = true })
+    test.truthy(test.find { id = "displays-tile-2", visible = true })
+    test.eq(state().selected, "DP-1")
+    test.truthy(test.find { text = "DP-1 · 1920×1080 at 60 Hz · 100%", visible = true }, "the mode is not said")
+    test.truthy(test.find { id = "displays-resolution", visible = true })
+    test.truthy(test.find { id = "displays-profiles" })
+    test.eq(#test.logs("error"), 0)
+  end)
+end
 
 test.it("drags a monitor with the pointer, snapping it to the other's edge", function()
   tool()
   local tile = test.get { id = "displays-tile-2" }
   local x, y = tile.x + tile.width / 2, tile.y + tile.height / 2
-  test.drag({ x, y }, { x - tile.width, y + tile.height + 4 }, { steps = 6, surface = WINDOW })
+  test.drag({ x, y }, { x - tile.width, y + tile.height + 4 }, { steps = 6 })
   test.settle(200)
-  local state = test.ipc("state")
-  test.eq(state.selected, "DP-2")
-  test.eq(output(state, "DP-2").x, 0)
-  test.eq(output(state, "DP-2").y, 1080)
-  test.truthy(state.dirty)
+  local now = state()
+  test.eq(now.selected, "DP-2")
+  test.eq(output(now, "DP-2").x, 0)
+  test.eq(output(now, "DP-2").y, 1080)
+  test.truthy(now.dirty)
 end)
 
 test.it("applies, counts down, and reverts by itself", function()
   tool()
-  test.ipc("place", "DP-2", "0", "1080")
+  test.ipc("displays", "place", "DP-2", "0", "1080")
   test.click { id = "displays-apply" }
   test.settle(200)
-  test.eq(test.ipc("state").countdown, 15)
+  test.eq(state().countdown, 15)
   test.truthy(test.find { id = "displays-keep" }.visible)
   test.contains(swaymsg_calls()[1], "pos 0 1080")
   test.advance(16000)
   test.settle(200)
-  local state = test.ipc("state")
-  test.eq(state.countdown, 0)
-  test.eq(output(state, "DP-2").x, 1920)
+  local now = state()
+  test.eq(now.countdown, 0)
+  test.eq(output(now, "DP-2").x, 1920)
   local calls = swaymsg_calls()
   test.contains(calls[#calls], "pos 1920 0")
   test.eq(#test.logs("error"), 0)
@@ -319,38 +338,94 @@ end)
 
 test.it("keeps an arrangement in the file a reload reads", function()
   tool()
-  test.ipc("place", "DP-2", "0", "1080")
-  test.ipc("apply")
+  test.ipc("displays", "place", "DP-2", "0", "1080")
+  test.ipc("displays", "apply")
   test.settle(200)
   test.click { id = "displays-keep" }
   test.settle(200)
-  local state = test.ipc("state")
-  test.eq(state.countdown, 0)
-  test.falsy(state.dirty)
-  test.eq(state.message, "Saved.")
+  local now = state()
+  test.eq(now.countdown, 0)
+  test.falsy(now.dirty)
+  test.eq(now.message, "Saved.")
   test.advance(16000)
-  test.eq(output(test.ipc("state"), "DP-2").y, 1080)
+  test.eq(output(state(), "DP-2").y, 1080)
 end)
 
 test.it("refuses an arrangement that cannot work", function()
   tool()
-  test.ipc("set", "DP-1", "enabled", "false")
-  test.ipc("set", "DP-2", "enabled", "false")
-  test.falsy(test.ipc("apply"))
-  test.contains(test.ipc("state").message, "at least one")
+  test.ipc("displays", "set", "DP-1", "enabled", "false")
+  test.ipc("displays", "set", "DP-2", "enabled", "false")
+  test.falsy(test.ipc("displays", "apply"))
+  test.contains(state().message, "at least one")
   test.eq(#swaymsg_calls(), 0)
 end)
 
 test.it("saves a profile and offers it", function()
   tool()
-  test.truthy(test.ipc("save-profile", "Desk"))
-  local state = test.ipc("state")
-  test.eq(state.profiles[#state.profiles].name, "Desk")
-  test.truthy(state.profiles[#state.profiles].auto)
+  test.truthy(test.ipc("displays", "save-profile", "Desk"))
+  local now = state()
+  test.eq(now.profiles[#now.profiles].name, "Desk")
+  test.truthy(now.profiles[#now.profiles].auto)
   test.truthy(test.find { id = "displays-profile-1" })
 end)
 
 test.it("hides mirroring where the compositor has none", function()
   tool()
   test.falsy(test.find { id = "displays-mirror" })
+end)
+
+test.it("fits a phone, the canvas across its width", function()
+  tool("tsugumori", { 412, 915 })
+  local canvas, pane = test.get("displays-canvas"), test.get("settings-detail")
+  test.truthy(canvas.x >= pane.x and canvas.x + canvas.width <= pane.x + pane.width, "the canvas leaves the page")
+  test.eq(#test.logs("error"), 0)
+end)
+
+-- ---------------------------------------------------------------- --auto --
+
+local JOB = [[
+  require("morf.ui").Item { width = 1, height = 1 }
+  local answer
+  morf.ipc.job = function(...)
+    answer = nil
+    require("displays_model").job({ ... }, function(text, why) answer = { text = text or false, why = why } end)
+    return true
+  end
+  morf.ipc.answer = function() return answer end
+]]
+
+test.it("--auto applies the profile saved for what is connected, with no window", function()
+  test.stub_run("swaymsg", { code = 0, stdout = CONNECTED })
+  pure { EVA_SETTINGS = "/nonexistent/eva.json", SWAYSOCK = "/nonexistent/sway.sock" }
+  test.ipc("auto", "500")
+  test.settle(100)
+  test.stub_run("swaymsg", { code = 0, stdout = CONNECTED })
+  test.load("../shell/init.lua", { source = JOB, env = { EVA_SETTINGS = "/nonexistent/eva.json",
+    SWAYSOCK = "/nonexistent/sway.sock" } })
+  test.ipc("job", "--auto")
+  local answer = test.wait(function() return test.ipc("answer") end, 4000, "the job answered")
+  test.eq(answer.text, "applied desk")
+  test.falsy(test.find { id = "displays-canvas" })
+end)
+
+test.it("eva-displays runs the shell's own code for --auto, and opens the page alone", function()
+  local ROOT = morf.fs.join(morf.env("PWD"), "")
+  local BIN = ROOT .. "tests/fixtures/bin"
+  local function run(args, up)
+    local log = morf.env("XDG_STATE_HOME") .. "/displays-cli-" .. tostring(morf.time.now_ms()) .. ".log"
+    morf.fs.write(log, "")
+    local argv = { "env", "PATH=" .. BIN .. ":" .. morf.env("PATH"), "MORF=" .. BIN .. "/morf", "STUB_LOG=" .. log,
+      "HOME=" .. morf.env("XDG_STATE_HOME"), "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR") }
+    if up then argv[#argv + 1] = "STUB_UP=1" end
+    argv[#argv + 1] = "sh"
+    argv[#argv + 1] = ROOT .. "apps/bin/eva-displays"
+    for _, word in ipairs(args) do argv[#argv + 1] = word end
+    test.clear_stubs()
+    test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/cli_host.lua") })
+    test.ipc("run", table.unpack(argv))
+    test.wait(function() return test.ipc("result") end, 8000, "the tool answered")
+    return morf.fs.read(log) or ""
+  end
+  test.contains(run { "--auto" }, "apps/common/job/app.lua -- displays --auto")
+  test.contains(run({}, true), "ipc call settings displays")
 end)
