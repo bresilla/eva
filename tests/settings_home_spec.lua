@@ -220,7 +220,7 @@ test.it("Settings holds what eva-info and eva-update showed", function()
   test.load("../shell/init.lua", { size = { 300, 200 }, env = { EVA_DRY_RUN = "1" }, source = HOST .. [[
     morf.ipc.tools = function()
       local about = require("about_model")
-      return { info = about.about().can_info(), update = about.updates().check ~= nil }
+      return { info = about.about().info ~= nil, update = about.updates().check ~= nil }
     end
   ]] })
   test.advance(100)

@@ -1,5 +1,6 @@
--- The About, Updates and Displays pages. Displays arranges the monitors
--- through displays_model.lua, on what lib/shell/displays reads.
+-- The About, Updates and Displays pages. About sums the machine up and lists
+-- every fact of it (info_model.lua); Updates checks what waits
+-- (system_updates.lua); Displays arranges the monitors (displays_model.lua).
 local morf = require("morf")
 local about = require("lib.services.about")
 local timedate = require("lib.services.timedate")
@@ -7,15 +8,6 @@ local host = require("lib.services.host")
 local page_model = require("page_model")
 
 local M = {}
-
---- Opens a tool of apps/, or says it is not installed.
-local function opener(model, tool, name)
-  return function()
-    if host.open_tool(tool) then return true end
-    model.say(name .. " is not installed here", true)
-    return false
-  end
-end
 
 function M.about(active)
   local model = page_model.new("about", active)
@@ -44,13 +36,16 @@ function M.about(active)
   function model.hostname() return hostname:get() end
   function model.hostname_declared() return timedate.hostname_declared() end
   model.nixos = host.nixos
+  -- Every fact, the summary's and the cards' below it, for a paste.
+  model.info = require("info_model")
+  model.on_show(function() model.info.gather() end)
   function model.copy()
-    local ok = pcall(morf.clipboard.set, about.as_text(rows:get()))
+    local text = about.as_text(rows:get()) .. "\n\n" .. model.info.text()
+    if host.held("copy the facts") then model.say("Would copy it all (dry run)") return true end
+    local ok = pcall(morf.clipboard.set, text)
     model.say(ok and "Copied" or "Could not reach the clipboard", not ok)
     return ok
   end
-  function model.can_info() return host.tool("info") ~= nil end
-  model.open_info = opener(model, "info", "eva-info")
   function model.set_hostname(name)
     local valid, why = timedate.valid_hostname(name)
     if not valid then model.say(why, true) return false end

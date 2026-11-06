@@ -238,7 +238,9 @@ M.PAGES = {
   { key = "backups/more", name = "Backup settings", icon = "tune", parent = "backups",
     keywords = "snapper config restic repository password folders tool" },
   { key = "about", name = "About", icon = "info", category = "system", summary = "This machine and its versions",
-    keywords = "hardware version hostname computer name cpu memory gpu kernel system information" },
+    keywords = "hardware version hostname computer name cpu memory gpu kernel system information",
+    items = { { "Every fact of this machine", "usb portals session failed units uptime firmware board nix generation" },
+      { "Copy the facts", "bug report paste clipboard" } } },
 }
 
 -- A page for each category, under All settings.

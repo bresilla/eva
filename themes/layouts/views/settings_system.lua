@@ -224,6 +224,29 @@ function M.firewall_page(model, w, h)
   }
 end
 
+--- Every fact the machine gives (info_model.lua), a card to each kind, built
+--- again as more of them come in. The versions are the summary's already.
+local FACT_H = 28
+local function details(model, w)
+  local inner = P.inner(w)
+  local info = model.info
+  local cards = morf.list_model({})
+  morf.effect("eva.about.details", function()
+    local revision = info.revision:get()
+    local rows = {}
+    for _, section in ipairs(info.sections(info.facts:get())) do
+      if section.key ~= "versions" then rows[#rows + 1] = { id = section.key .. "@" .. revision, section = section } end
+    end
+    cards:replace(rows, "id")
+  end)
+  return ui.Repeater { as = "column", gap = P.GAP, width = w, model = cards, delegate = function(row)
+    local section, facts = row.section, {}
+    for index, fact in ipairs(section.rows) do facts[index] = { fact[1], fact[2] } end
+    return P.section { id = "about-detail-" .. section.key, width = w, title = section.title,
+      kit.facts(facts, inner, FACT_H, math.min(math.floor(inner * 0.42), 180)) }
+  end }
+end
+
 function M.about_page(model, w, h)
   local inner = P.inner(w)
   local name = morf.signal("eva.about.name", "")
@@ -248,10 +271,7 @@ function M.about_page(model, w, h)
         visible = function() return not model.hostname_declared() end,
         on_clicked = function() model.set_hostname(name:get()) end },
     },
-    P.section { id = "about-more", width = w, title = "More", visible = model.can_info,
-      F.link { id = "about-info", width = inner, icon = "memory", title = "System information",
-        subtitle = "Every sensor and device, in eva-info", go = model.open_info },
-    },
+    details(model, w),
   }
 end
 

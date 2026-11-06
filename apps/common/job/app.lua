@@ -19,6 +19,7 @@ local JOBS = {
   fonts = "fonts_model",
   startup = "apps_model",
   update = "system_updates",
+  info = "info_model",
 }
 
 -- Every word after `--`, a flag (`--check`) among them as it was given.

@@ -1,7 +1,8 @@
 #!/bin/sh
-# eva-info: about this machine, in a window or as words.
+# eva-info: about this machine. Every fact is on the Settings window's About
+# page; as words they come from shell/info_model.lua, run as a job.
 #
-#   eva-info            the window
+#   eva-info            the Settings window, on About
 #   eva-info --text     every fact, for a paste
 #   eva-info --json     every fact, for a program
 #   eva-info --copy     every fact as words, on the clipboard
@@ -9,23 +10,15 @@ set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
-# The facts, by the tool's own code with no window.
-facts() {
-  out=$(eva_private_file info)
-  EVA_INFO_OUT=$out "${MORF:-morf}" app "$apps/info/app.lua" -- "$1" > /dev/null 2>&1 || true
-  cat "$out"
-  rm -f "$out"
-}
-
 case "${1:-}" in
-  '') exec sh "$apps/launch" info ;;
+  '') eva_settings about ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
-  --json | --text) facts "$1" ;;
+  --json | --text) eva_job info "$1" ;;
   --copy)
     if eva_dry; then
       eva_say "would copy the facts (dry run)"
     elif eva_has wl-copy; then
-      facts --text | wl-copy
+      eva_job info --text | wl-copy
     else
       eva_say "wl-copy is not installed"
       exit 1

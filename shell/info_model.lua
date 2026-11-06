@@ -1,11 +1,27 @@
--- eva-info's facts about this machine, gathered once when it opens: what
--- lib.services.sysinfo and lib.shell.displays know, and what only this tool asks
--- about, the firmware, USB, the session and the Nix generation. No nodes.
+-- The About page's facts about this machine, gathered as it comes on show: what
+-- lib.services.sysinfo and lib.shell.displays know, and what only this page asks
+-- about, the firmware, USB, the session and the Nix generation; and `eva-info
+-- --text` and `--json`, the same facts as words. No nodes.
 local morf = require("morf")
 local sysinfo = require("lib.services.sysinfo")
 local performance = require("performance_model")
 local displays = require("lib.shell.displays")
-local sys = require("common.sys")
+local host = require("lib.services.host")
+
+-- What the facts ask of the machine: programs that only read, so they run even
+-- in a dry run, and the clipboard, which a dry run leaves alone.
+local sys = { dry = host.dry, has = host.installed }
+function sys.run(argv, options, done)
+  local own = {}
+  for key, value in pairs(options or {}) do if key ~= "read" then own[key] = value end end
+  morf.process.run(argv, own, function(result) done(result or {}) end)
+end
+function sys.copy(text) if not host.dry() then morf.clipboard.set(text) end end
+function sys.compositor()
+  if morf.env("HYPRLAND_INSTANCE_SIGNATURE") then return "hyprland" end
+  if morf.env("SWAYSOCK") then return "sway" end
+  return "other"
+end
 
 local M = {
   facts = morf.signal("info.facts", {}),
@@ -121,10 +137,15 @@ local function nix()
   return out
 end
 
+-- eva's morf.lua, beside the shell, or up from the job that asks.
 local function eva_version()
-  local file = morf.paths.shell("app.lua"):gsub("/apps/info/app%.lua$", "/morf.lua")
-  local ok, text = pcall(morf.fs.read, file)
-  return ok and type(text) == "string" and text:match('version%s*=%s*"([^"]+)"') or "unknown"
+  for _, up in ipairs { "../morf.lua", "../../../morf.lua" } do
+    local ok, path = pcall(morf.paths.shell, up)
+    local read, text = pcall(morf.fs.read, ok and path or "")
+    local found = read and type(text) == "string" and text:match('version%s*=%s*"([^"]+)"')
+    if found then return found end
+  end
+  return "unknown"
 end
 
 local function cpu_facts(info, cpu)
@@ -396,6 +417,17 @@ function M.copy()
   sys.copy(M.text())
   M.message:set(sys.dry() and "Would copy it all (dry run)" or "Copied")
   return true
+end
+
+--- `eva-info --text` or `--json`: every fact, as words or for a program.
+--- `done(text, why)`.
+function M.job(args, done)
+  local how = args[1]
+  if how ~= "--text" and how ~= "--json" then done(nil, "no such option: " .. tostring(how)) return end
+  M.gather(function(facts)
+    local ok, text = pcall(function() return how == "--json" and morf.json.encode(facts) .. "\n" or M.text(facts) end)
+    if ok then done(text, nil, true) else done(nil, tostring(text)) end
+  end)
 end
 
 return M
