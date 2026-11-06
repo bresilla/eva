@@ -14,7 +14,7 @@ Open, found against a real Hyprland in a VM:
 
 - `lib.compositor.hyprland` starts on a one-millisecond timer, and until then
   `request` answers "unavailable" though `available()` says true. A tool that asks
-  as it loads is told there is no Hyprland: `eva-displays` opened with no outputs.
+  as it loads is told there is no Hyprland: the displays tool opened with no outputs.
   `lib.compositor.hyprland_config` asks again for its flavour, and
   `lib/shell/displays` does the same. Holding requests until the start would save
   each caller the loop.

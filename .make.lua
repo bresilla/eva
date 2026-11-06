@@ -24,7 +24,7 @@ make.recipe{ name = "phone-wire", desc = "the phone layer's D-Bus types on a rea
 make.recipe{ name = "see", desc = "a scenario of tools/see/ on a virtual screen, into .see/",
              run = function(args) sh.bash("tools/see.sh", args[1] or "quick") end }
 
-make.recipe{ name = "app", desc = "a tool of apps/ in a window (make app displays)",
+make.recipe{ name = "app", desc = "a tool of apps/ in a window (make app monitor)",
              run = function(args) sh.sh("apps/launch", args[1] or "keys") end }
 
 make.recipe{ name = "build", desc = "the Nix package, into ./result",

@@ -3,7 +3,7 @@
 start shell
 ipc utilities open; pause 1.2; shot overview
 for page in home network network/connection network/proxy bluetooth displays input input/pointer input/devices \
-  sound sound/more microphone power storage printers wallpaper accessibility eva bar/more launcher rail panels capture osk \
+  sound sound/more microphone power storage printers wallpaper theme/fonts accessibility eva bar/more launcher rail panels capture osk \
   weather commands apps startup datetime region users privacy firewall updates about; do
   ipc settings "$page"; pause 0.9; shot "page-${page//\//-}"
 done

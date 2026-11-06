@@ -168,7 +168,6 @@ Launching one a second time raises the window it has open; an overlay shuts.
 | Command | What it does |
 |---------|--------------|
 | `eva VERB`, `eva open settings/power`, `eva commands --json` | the shell from a command line, the front door for keybindings |
-| `eva-displays` | a canvas to arrange monitors with edge snapping; mode, scale, rotation, VRR and mirroring; a countdown that reverts; profiles matched on make, model and serial that apply on hotplug |
 | `eva-screenshot`, `eva-screenshot region\|window\|screen [--edit\|--copy\|--save\|--pin] [--delay N] [--last]` | the capture panel, or straight to the frozen selection, with or without the shell; `ocr` and `qr` copy what they read; `scroll [region\|window\|screen]` takes a long picture as a window scrolls; `--edit-file FILE` opens the editor on a picture or a recording's trim; `--pin-file FILE` keeps a picture over the windows; `--text FILE` prints the text in a picture |
 | `eva-record region\|window\|monitor [--audio KIND] [--fps N]`, `eva-record stop`, `eva-record pause\|resume`, `eva-record replay [--seconds N]`, `eva-record save`, `eva-record status` | the capture tool's recorder: the panel's Record from a command line, a region chosen on the frozen selection, a pause, and a replay buffer saved on demand; with no shell a pill shows it running and stops it |
 | `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
@@ -180,14 +179,9 @@ Launching one a second time raises the window it has open; an overlay shuts.
 | `eva-messages [sms:NUMBER]` | text threads with delivery marks; the shell receives them and notifies |
 | `eva-clock`, `eva-clock timer 12 min pasta`, `eva-clock at 6pm`, `eva-clock every weekday 7:30 gym`, `eva-clock list\|cancel\|snooze\|sync` | alarms, timers, a stopwatch and world clocks, said in plain words; each alarm is a systemd user timer, so it rings with no shell running, through the notifications server with sound, Stop and Snooze |
 | `eva-monitor` | processes with search, sort and kill, per-core load, memory, GPU, disks, network and sensors |
-| `eva-info [--text\|--json\|--copy]` | about this machine, in a window or as words: hardware, Nix generation, USB, session |
-| `eva-update [--check]` | flake input ages, package counts and a rebuild with its live log; `update.flake` names the flake |
 | `eva-logs [UNIT]` | the journal, live, by priority, boot, unit and words |
 | `eva-disk [FOLDER]` | what takes the room under a folder, as a treemap |
-| `eva-audio [next [input]\|list]` | a full mixer on the shell's own sound pages: apps, recording, routing, channels, equalizer |
-| `eva-awake [30m\|on\|off\|status\|--pid N]` | keep awake for a time, or while a process runs, on the shell's own inhibitor |
 | `eva-webapp add NAME URL [--icon FILE]\|list\|remove NAME` | turn a site into an app with its own desktop entry and icon |
-| `eva-startup list\|enable NAME\|disable NAME\|remove NAME\|timers` | startup apps and scheduled jobs |
 | `eva-breaks [--watch\|status\|pause MINUTES\|resume]` | break reminders that count idle time as rest, and screen time; on NixOS `--watch` runs as a user service |
 | `eva-zoom [in\|out\|reset\|N\|get\|lens]` | a magnifier: Hyprland's cursor zoom, or a lens over the frozen screen |
 | `eva-ruler [horizontal\|vertical\|bounds]` | an on-screen pixel ruler: edge detection, a dragged box, a click copies |
@@ -196,13 +190,26 @@ Launching one a second time raises the window it has open; an overlay shuts.
 | `eva-draw` | draw and write over the screen, with a toolbar |
 | `eva-large [WORDS]` | words huge across the screen, from arguments, stdin or the clipboard |
 | `eva-pomodoro [start\|pause\|skip\|reset\|status]` | a focus timer whose phases ring through eva-clock and hold do not disturb |
-| `eva-fonts [list [--mono]\|current\|set NAME\|reset]` | browse and preview installed fonts, and set the shell's |
 | `eva-qr [TEXT\|-]`, `eva-qr wifi SSID`, `eva-qr --png FILE TEXT` | a QR code from text or a Wi-Fi network, on screen or in a file; `-` reads stdin, and a Wi-Fi password never reaches a command line |
 | `eva-translate [-s LANG] [-t LANG] [-e ENGINE] TEXT\|-\|--clipboard\|--selection` | free translation, offline with Argos where it is set up, else `trans` or MyMemory; text leaves the machine only on a press, and the window says when an online engine is in use |
 | `eva-text TRANSFORM < FILE`, `eva-text list` | a developer's scratchpad: case, lines, encodings, JSON, hashes, UUIDs, passwords, placeholder text |
 | `eva-standby [--when-charging] [--night]` | the shell's StandBy on demand, on any form: a second call closes it |
 
-`make app displays` runs one from a checkout.
+`make app monitor` runs one from a checkout.
+
+Some commands are Settings pages rather than tools. Alone each opens the
+Settings window on its page; its words work with or without the shell, as a job
+on the page's own code (`apps/common/job`).
+
+| Command | Page | Words |
+|---------|------|-------|
+| `eva-displays [--auto]` | Displays: a canvas to arrange monitors with edge snapping; mode, scale, rotation, VRR and mirroring; a countdown that reverts; profiles matched on make, model and serial | `--auto` applies the profile saved for what is connected, as hotplug does |
+| `eva-audio [next [input]\|list]` | Sound and Microphone: apps, recording, routing, channels, equalizer, the server's restart | `next` makes the next output the default, `next input` the next input |
+| `eva-fonts [list [--mono]\|current\|set NAME\|reset]` | Fonts, under Theme: browse and preview the installed fonts | sets the shell's font, saved for the next start with no shell |
+| `eva-startup [list\|enable NAME\|disable NAME\|remove NAME\|timers]` | Startup apps: the session's autostart, a command of your own, the scheduled jobs | the same, from a command line |
+| `eva-update [--check]` | Updates: flake input ages, package counts and a rebuild with its live log; `update.flake` names the flake | `--check` counts what waits |
+| `eva-info [--text\|--json\|--copy]` | About: hardware, Nix generation, USB, session | every fact as words, as JSON, or on the clipboard |
+| `eva-awake [30m\|on\|off\|status\|--pid N]` | Focus: keep awake for a time, on the shell's own inhibitor | for a time, until told otherwise, or while a process runs |
 
 Alarms and timers live in `$XDG_STATE_HOME/eva/clock/alarms.json`, written by
 `lib/services/alarm.lua`, which is also `services.alarm` in the shell: `armed()`
@@ -220,7 +227,7 @@ milliseconds, and `pinned`. Fields are only ever added. The head of
 `apps/clipboard/model.lua` has the whole contract and `tests/clipboard_spec.lua`
 holds it.
 
-`eva-displays` writes what you keep to `$XDG_STATE_HOME/eva/displays/`. eva's
+The Displays page writes what you keep to `$XDG_STATE_HOME/eva/displays/`. eva's
 Hyprland session loads `monitors.lua` from there; on sway, add
 `include $XDG_STATE_HOME/eva/displays/outputs.sway` to your configuration.
 
@@ -325,7 +332,7 @@ running, and starts it on a press.
 files and the phone's notifications. **Notes** are plain files in `notes.folder`
 (`~/Notes`), saved as you stop typing; `note <text>` in the launcher adds a line
 to the quick notes. Neither page is in a panel by default: their tiles open them
-as settings pages, and Settings, Eva, Panels moves one into a panel.
+in the Settings window, and Settings, Eva, Panels moves one into a panel.
 
 **Calendar** adds to Taskwarrior what `calendar.files`, `calendar.folders` and
 `calendar.urls` name, and what vdirsyncer and khal keep, found by themselves:
@@ -1198,15 +1205,30 @@ or rebuilds in response to monitor metadata. Locking remains independent.
 
 ## Settings
 
-**All settings**, under the sliders in quick settings, lists every page by
-category with a search box over every page and setting. `eva open settings/KEY`
-and `morf ipc call settings KEY` open a page directly; `morf ipc call
-settings-search WORDS` searches, and with no words lists every page.
+Settings is a window of the shell's own, over everything: on a desk it stands in
+the middle, seven tenths of the screen, and dims the rest; on a phone it fills
+the screen. Escape, a press on the dimmed screen and its close control shut it.
+On a desk the left column has the search, the categories and their pages, and
+the right one the page on show; a page one level into another has Back. On a
+phone it is one page at a time, Back going up to All settings. It comes and goes
+in the theme's own motion, lands at once under Reduce motion, and is open again
+on its page after the shell is built again in place. A password prompt it leads
+to stands in its place until answered; any other panel opening shuts it.
+
+Quick settings, in the right panel, keeps the tiles, the sliders and who is
+signed in. A tile's chevron, a slider's page and **All settings** under them open
+the window, and the panel shuts as it does. `eva open settings/KEY` and
+`morf ipc call settings KEY` open a page directly (`settings home` is All
+settings, `settings close` shuts it and `settings state` says where it stands);
+`morf ipc call settings-search WORDS` searches, and with no words lists every
+page. The launcher, notifications' actions and a page's own links lead to the
+same window.
 
 `shell/settings_registry.lua` is the one list of pages: `list()` gives `{ key,
 name, icon, keywords }`. A new page is a row there and a builder in
 `shell/utilities.lua`. A page that is only settings is a form in
-`shell/settings_forms.lua`, with no view of its own.
+`shell/settings_forms.lua`, with no view of its own. The window is
+`shell/settings_window.lua` over the theme's `settings_window` view.
 
 Where a system's configuration holds a value, the page says so and names the
 option. On NixOS that is usually `time.timeZone`, `i18n.defaultLocale`,
@@ -1230,8 +1252,7 @@ every page: `EVA_FAKE_SYSTEM=1 tools/see.sh settings`.
 
 ## Welcome
 
-The first login opens **Welcome** in Settings, wherever Settings stands on that
-form: the right panel on a desk, the sheet on a phone. It is four short
+The first login opens **Welcome** in the Settings window. It is four short
 steps, three without a keyboard: dark or light, getting online, the gestures
 this device answers to, and the keys to learn first. Each step leads to the real
 page, and Back returns to the step. Skip leaves it. It comes once; Settings has

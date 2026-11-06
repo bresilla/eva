@@ -635,11 +635,26 @@ overview readings while hidden and owns idle inhibition independently of panel
 visibility. Themes contain no service imports, process commands or configuration
 writes. They own composition, scrolling, control feedback and transition timing.
 
-The sidebar's displayed Settings scope drives the controller lifecycle. Shared
-Material tabs now publish the same visibility scopes as Tsugumori's covered tabs.
-Each Settings detail scope follows the displayed detail, including VPN watch
+The utilities' controller lives while either the sidebar's Settings tab or the
+Settings window shows. The tab is the overview only: `settings.overview` is its
+scope and `model.quick` its presence. Each Settings detail scope,
+`settings.<key>`, follows the page on show in the window, including VPN watch
 lifetime and battery reads. Material presents immediately; Tsugumori presents
 beneath its cover and cancels stale transitions on closing or rapid navigation.
+
+### Settings window
+
+`views.settings_window.build(model)` returns `node`, the whole screen, `window`,
+the dialog a press outside shuts, and `shown(open)`. `shell/settings_window.lua`
+hands it the utilities' model with `phone`, `size()`, `top` (a phone's cutout),
+`nested()`, `can_back()`, `searching()` and `covered()`. `V.geometry(w, h,
+phone)` is the window's box: centred at `V.SHARE` (seven tenths) of a desk, the
+whole of a phone. The view draws the dim, the ground and the head with the
+layout's parts, takes the left column from `views.settings_home.navigation(model,
+w, h)` and keeps each page it has shown built under `settings-detail-<key>`; it
+comes and goes through `theme.motion.appear` with `content = false`. The frame
+host stands it on its `above` layer: over the panels and the bar, under the
+on-screen keyboard.
 
 ### Wired, VPN and Tor builders
 
@@ -828,7 +843,8 @@ switcher, the snap picker) in and out by `shown`, a binding: it claims the
 node's pose, so a reversal goes on from where it stands, and owns its
 `visible`, so it is drawn until it has gone. It returns `drawn()`. Material
 grows it about its centre as it fades; Tsugumori unfolds it from a band on an
-expo curve under a target lock (`opts.id` names it). Its controls should take
+expo curve under a target lock (`opts.id` names it; `opts.content = false`
+keeps the lock to the frame, off the rows inside). Its controls should take
 input only while `shown`.
 
 The controller owns which bud shows which kind, repeated-update timeout renewal
