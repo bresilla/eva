@@ -524,7 +524,7 @@ local config = settings.open {
     -- on battery where it is above 0.
     idle = {
       enabled = true,
-      lock = 300, blank = 330, suspend = 1800, dim = 10,
+      lock = 600, blank = 600, suspend = 1800, dim = 10,
       battery = { lock = 0, blank = 0, suspend = 0 },
       -- Window classes that keep the session awake while open.
       apps = {},
