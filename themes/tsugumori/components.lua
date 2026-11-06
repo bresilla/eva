@@ -42,7 +42,7 @@ return function(theme)
     return function() return C.onSurface end
   end
   -- Line strengths, on the same accent ramp as strokes.lua.
-  local STRENGTH = { faint = .06, quiet = .10, idle = .18, mark = .42, hot = .65 }
+  local STRENGTH = { faint = .1, quiet = .18, idle = .34, mark = .62, hot = .85 }
   function M.stroke(strength, color)
     local a = assert(STRENGTH[strength or "idle"], "unknown stroke strength")
     return function() return (color and get(color) or C.primary):alpha(a) end
@@ -94,9 +94,9 @@ return function(theme)
   M.mark_path = mark_d
   --- Anchored registration marks for a box of unknown size, on the
   --- top-left / bottom-right diagonal only.
-  local function anchored_marks(l, color, inset, opacity)
+  local function anchored_marks(l, color, inset, opacity, weight)
     l, inset = l or MARK, inset or 0
-    local d = mark_d(l)
+    local d = mark_d(l, weight)
     local function corner(anchors, rotation)
       anchors.left_margin, anchors.right_margin, anchors.top_margin, anchors.bottom_margin = inset, inset, inset, inset
       return ui.Path { anchors = anchors, width = l, height = l, view_box = { 0, 0, l, l }, d = d,
@@ -599,15 +599,32 @@ return function(theme)
         view_box = { 0, 0, w, h }, d = ticks_d(len, size, spec.count, spec.major, spec.vertical, spec.flip),
         fill_color = "transparent", stroke_width = 1, stroke_color = spec.color or M.stroke("idle") }
     elseif name == "scale" and type(spec.height) == "number" then
-      -- The ticks face the meter they stand beside, on a hairline spine.
+      -- The ticks face the meter they stand beside, on a hairline spine;
+      -- the long ones, brighter, carry their share of the run (100 at the
+      -- top) in segment digits on the side away from it.
       local size, h = spec.size or 8, spec.height
       local w = size + 22
-      local x0 = spec.flip and 0 or w - size
-      local d = ticks_d(h, size, spec.count or 20, spec.major or 5, true, not spec.flip)
+      local count, major = spec.count or 20, spec.major or 5
+      local spine = spec.flip and .5 or w - .5
+      local minor, long = { ("M%g 0 V%g "):format(spine, h) }, {}
+      for k = 0, count do
+        local at = math.floor(k * (h - 1) / count) + .5
+        local big = major > 0 and k % major == 0
+        local deep = big and size or math.floor(size * .45)
+        local out = big and long or minor
+        if spec.flip then out[#out + 1] = ("M0 %g H%g "):format(at, deep)
+        else out[#out + 1] = ("M%g %g H%g "):format(w - deep, at, w) end
+        if big and not spec.flip then
+          local text = tostring(math.floor(100 * (count - k) / count + .5))
+          local y = math.max(0, math.min(h - 5, math.floor(at - 2.5)))
+          digits.put(long, text, w - size - 3 - digits.width(text), y)
+        end
+      end
       return ui.Item { id = spec.id, x = spec.x, y = spec.y, width = w, height = h,
-        ui.Path { x = x0, width = size, height = h, view_box = { 0, 0, size, h }, d = d,
+        ui.Path { width = w, height = h, view_box = { 0, 0, w, h }, d = table.concat(minor),
           fill_color = "transparent", stroke_width = 1, stroke_color = spec.color or M.stroke("idle") },
-        ui.Rect { x = spec.flip and 0 or w - 1, width = 1, height = h, color = spec.color or M.stroke("idle") } }
+        ui.Path { width = w, height = h, view_box = { 0, 0, w, h }, d = table.concat(long),
+          fill_color = "transparent", stroke_width = 1, stroke_color = M.stroke("hot") } }
     end
     if name == "corners" or name == "brackets" then
       -- Four bright, heavy L-brackets on the box's corners; a boot pass
@@ -895,7 +912,7 @@ return function(theme)
       opacity = function() return down() and 1 or 0 end, behavior = { opacity = { duration = 90 } } }
     node[3] = ui.Rect { width = 3, anchors = { top = true, bottom = true, left = true }, color = tone,
       opacity = function() return on() and 1 or 0 end, behavior = { opacity = { duration = 160 } } }
-    node[4] = anchored_marks(8, tone, 0, function() return on() and 1 or 0 end)
+    node[4] = anchored_marks(10, tone, 0, function() return on() and 1 or .5 end, 2)
     return ui.Item(node)
   end
 
@@ -930,7 +947,7 @@ return function(theme)
         opacity = function() return down() and 1 or 0 end, behavior = { opacity = theme.spring.effects } },
       ui.Rect { width = 3, anchors = { top = true, bottom = true, left = true }, color = tone,
         opacity = function() return on() and 1 or 0 end, behavior = { opacity = theme.spring.effects } },
-      anchored_marks(8, tone, 0, function() return on() and 1 or 0 end),
+      anchored_marks(10, tone, 0, function() return on() and 1 or .5 end, 2),
     }
   end
 
