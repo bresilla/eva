@@ -86,6 +86,32 @@ test.it("the volume readout comes and the session menu boots", function()
   test.eq(#test.logs("error"), 0)
 end)
 
+test.it("a hovered control locks on and a press scans it", function()
+  load()
+  test.ipc("sidebar", "open", "settings")
+  test.settle(1500)
+  -- The quick settings' first wide button, wherever the side panel stands.
+  local x, y = W - 230, math.floor(H * .49)
+  test.move(x, y)
+  film("hover", 12, 25)
+  test.press(x, y)
+  film("press", 12, 25)
+  test.release(x - W / 2, y)
+  test.settle(600)
+  test.eq(#test.logs("error"), 0)
+end)
+
+test.it("keyboard focus slides from control to control", function()
+  load()
+  test.ipc("sidebar", "open", "settings")
+  test.settle(1500)
+  for i = 1, 4 do
+    test.key("Tab")
+    film("focus-" .. i, 8, 25)
+  end
+  test.eq(#test.logs("error"), 0)
+end)
+
 test.it("a workspace change traces along the rail", function()
   load()
   test.ipc("workspace", 4)
