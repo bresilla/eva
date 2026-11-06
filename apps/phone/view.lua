@@ -1,10 +1,10 @@
--- eva-phone's window: a dial pad, the recent calls and the contacts.
+-- eva-phone's page in Tools: a dial pad, the recent calls and the contacts.
 local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local L = require("themes.layouts.parts")
 local P = require("themes.layouts.page")
-local model = require("model")
+local model = require("apps.phone.model")
 local C, S = theme.color, theme.space
 
 local M = {}

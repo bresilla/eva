@@ -2,9 +2,9 @@
 Type=Application
 Name=Phone
 Comment=Make calls: a dial pad, recent calls and contacts
-Exec=eva-phone
+Exec=eva-phone %u
 Icon=call-start
 Terminal=false
+NoDisplay=true
 Categories=Utility;Telephony;
 MimeType=x-scheme-handler/tel;
-StartupWMClass=eva.phone

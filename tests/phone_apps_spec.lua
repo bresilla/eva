@@ -1,4 +1,5 @@
--- eva-phone and eva-messages, each against its own stand-in modem.
+-- eva-phone's and eva-messages' pages of Tools, each against the shell's
+-- stand-in modem, and eva-phone's vCard jobs.
 local test=morf.test
 local run=0
 local dir
@@ -8,7 +9,8 @@ local function load(app,args,seed)
   if seed then
     morf.fs.write(dir.."/eva/phone/"..seed..".jsonl",morf.fs.read("tests/fixtures/phone/"..seed..".jsonl"),{parents=true})
   end
-  test.load("../apps/"..app.."/app.lua",{size={480,860},args=args,env={EVA_DRY_RUN="1",EVA_FAKE_MODEM="1",
+  test.load("../shell/init.lua",{size={480,860},args=args,source=morf.fs.read("tests/fixtures/tool_page.lua"),
+    env={EVA_DRY_RUN="1",EVA_FAKE_MODEM="1",EVA_TEST_TOOL=app,EVA_TEST_PAGE="448x780",
     EVA_CONTACTS="tests/fixtures/contacts",EVA_SETTINGS=dir..".json",XDG_STATE_HOME=dir}})
   test.advance(40)
 end

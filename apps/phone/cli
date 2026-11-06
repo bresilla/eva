@@ -1,0 +1,18 @@
+#!/bin/sh
+# eva-phone: a dial pad that finds people by their letters, recent calls and
+# contacts, a page of the shell's Tools window; the shell shows the call.
+#
+#   eva-phone               the Tools window, on Phone
+#   eva-phone tel:NUMBER    the same, NUMBER typed, as a tel: link opens it
+#   eva-phone import FILE   vCards into the contacts
+#   eva-phone export FILE   the contacts as vCards
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_tools phone ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  import | export) exec sh "$apps/launch" phone "$@" ;;
+  *) eva_tools phone "$1" ;;
+esac

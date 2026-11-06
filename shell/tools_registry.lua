@@ -40,6 +40,11 @@ M.PAGES = {
     summary = "The system journal, live", keywords = "journal journalctl log errors systemd unit boot" },
   { key = "disk", name = "Disk usage", icon = "pie_chart", category = "system", page = "apps.disk.page",
     summary = "What takes the room under a folder", keywords = "disk usage space treemap folder size baobab" },
+
+  { key = "phone", name = "Phone", icon = "call", category = "phone", page = "apps.phone.page",
+    summary = "A dial pad, recent calls and contacts", keywords = "call dial contacts recent telephone number" },
+  { key = "messages", name = "Messages", icon = "sms", category = "phone", page = "apps.messages.page", actions = true,
+    summary = "Text messages, as threads", keywords = "sms text messages threads send" },
 }
 
 return require("page_registry").new(M)

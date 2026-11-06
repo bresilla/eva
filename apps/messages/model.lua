@@ -11,7 +11,8 @@ local M = {
   composing = morf.signal("messages.composing", false),
 }
 
-M.mobile, M.standin = require("lib.services.modem").session()
+-- The shell's own modem, or its stand-in with EVA_FAKE_MODEM.
+M.mobile, M.standin = require("services").modem, require("services").modem_standin
 M.book = contacts.open {
   folder = morf.env("EVA_CONTACTS") or config.get("phone.contacts"), country = config.get("phone.country"),
 }
