@@ -53,7 +53,9 @@ require("themes.kit.popup").track(view.window, {
   close_policy = "escape+outside", except = { require("drawer").keyboard_input },
   on_close = function() settings.close() end,
 })
-morf.effect("eva.settings.window.keys", function() view.shown(settings.opened:get()) end)
+morf.effect("eva.settings.window.keys", function() view.shown(settings.opened:get() and not covered:get()) end)
+-- The edges' hover strips stay shut under it.
+require("hover").cover(function() return settings.opened:get() end)
 
 -- What else comes up: a prompt that asks for a password covers the window;
 -- any other panel opening takes the screen from it. The keyboard and the

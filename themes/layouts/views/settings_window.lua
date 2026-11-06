@@ -195,7 +195,10 @@ function V.build(model)
   -- later, as a panel stepping aside hands focus back as it shuts.
   return { node = root, window = window,
     shown = function(open)
-      morf.time.timer(1, function() keys.focus = model.opened:get() and not model.searching() end, false)
+      morf.time.timer(1, function()
+        local on = shown() and not model.searching()
+        if on or keys.focused then keys.focus = on end
+      end, false)
     end }
 end
 

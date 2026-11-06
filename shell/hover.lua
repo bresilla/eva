@@ -17,6 +17,17 @@ local config = require("config")
 
 local M = {}
 
+-- Readers of what stands over every strip; while one says true, none opens.
+local covers = {}
+
+--- Adds `covered`, a function: while it answers true no strip opens its drawer.
+function M.cover(covered) covers[#covers + 1] = covered end
+
+local function covered()
+  for _, reader in ipairs(covers) do if reader() then return true end end
+  return false
+end
+
 -- How long the pointer may be off both the strip and the panel before a
 -- drawer opened by hover shuts: enough to cross the frame's seam.
 local GRACE_MS = 120
@@ -79,7 +90,7 @@ function M.edge(opts)
   local function enabled()
     return (not opts.enabled or opts.enabled())
       and (not opts.setting or config.get(opts.setting))
-      and not dragging() and not held_off
+      and not dragging() and not held_off and not covered()
   end
   -- The pointer over the strip, whatever is drawn above it.
   local function on_strip() return strip.hovered or strip.contains_pointer end

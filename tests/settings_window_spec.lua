@@ -100,6 +100,18 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.eq(#test.logs("error"), 0)
     end)
 
+    test.it("keeps the edges' panels shut under it, and lets them open again once shut", function()
+      load(style)
+      test.ipc("settings", "bluetooth") test.settle(1200)
+      test.move(1597, 500) test.advance(1500)
+      test.truthy(state().open, "a hover on the edge shut it")
+      test.falsy(state().sidebar, "the edge opened its panel under the window")
+      test.ipc("settings", "close") test.settle(1200)
+      test.leave() test.advance(300)
+      test.move(1597, 500) test.advance(1500)
+      test.truthy(state().sidebar, "the edge stayed dead after the window shut")
+    end)
+
     test.it("is drawn while it leaves, and then not at all", function()
       load(style)
       test.ipc("settings", "bluetooth") test.settle(1500)
