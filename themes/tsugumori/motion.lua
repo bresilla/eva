@@ -297,20 +297,22 @@ return function(theme)
           if not boot then return {node=node,property=property,from=from*7/9,to=0,duration=280,easing="out_cubic"} end
           return {node=node,property=property,duration=280,keyframes=snap(from)}
         end
+        -- A booted panel keeps its lock corners lit at rest.
+        local kept=boot and .85 or 0
         lock_motion=morf.animation.play {{parallel={
           corner(corner_a,"translate_x",-9), corner(corner_a,"translate_y",-9),
           corner(corner_b,"translate_x",9), corner(corner_b,"translate_y",9),
           {node=corner_a,property="opacity",duration=360,keyframes={
-            {at=0,value=0},{at=.18,value=.86},{at=.55,value=.56},{at=1,value=0}}},
+            {at=0,value=0},{at=.18,value=1},{at=.55,value=.56},{at=1,value=kept}}},
           {node=corner_b,property="opacity",duration=360,keyframes={
-            {at=0,value=0},{at=.18,value=.86},{at=.55,value=.56},{at=1,value=0}}},
+            {at=0,value=0},{at=.18,value=1},{at=.55,value=.56},{at=1,value=kept}}},
           {node=pip,property="opacity",duration=360,keyframes={
             {at=0,value=0},{at=.12,value=1},{at=.32,value=0},
             {at=.55,value=1},{at=.75,value=0},{at=1,value=0}}},
         }},on_finished=function(reason)
           if generation~=own then return end
           if reason=="completed" and generation==own then
-            corner_a.visible,corner_b.visible,pip.visible=false,false,false
+            corner_a.visible,corner_b.visible,pip.visible=kept>0,kept>0,false
           end
           lock_motion=nil
         end}
