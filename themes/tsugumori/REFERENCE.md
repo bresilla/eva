@@ -109,23 +109,21 @@ reference. All of it uses wallpaper roles and stops at rest.
   (`widgets/popup.lua`) play the boot pass directly.
 - `dots.lua`: a dot grid behind the dashboard, side, planner and bottom
   panels, with a small cross every fourth step: two paths per panel.
-- Cards (`kit.card`) and framed panels (`kit.panel`) are cut at 45 degrees
-  on the top-left and bottom-right; the cuts are lit and run on along the
-  top and the foot, the outline sits at 0.7, four 16 px brackets two wide
-  stand on the corners, and a foot ruler, a serial strip and side notches
-  share one path. The box and its geometry are the layout's; only the
-  paint is cut (a field card has its corners painted out in the ground).
+- Cards (`kit.card`) are square: an outline at 0.7 (one loop the pass
+  draws in), four 12 px hairline brackets on the corners, and a foot ruler,
+  a serial strip and side notches sharing one path. Framed panels
+  (`kit.panel`) keep their registration marks and take the same ticks.
 - Section captions (one built just after its card) carry an index plate,
   numbered in card order per page; the rule runs to the caption's end
   tick with a block of hazard stripes before it. Menus and rows have none.
-- `kit.decor`: `corners` are heavy brackets the pass flies in; `ticks` and
+- `kit.decor`: `corners` are brackets the pass flies in; `ticks` and
   `scale` draw in the boxes layouts reserve, a scale's long ticks numbered
   in segment digits (`digits.lua`).
-- The frame's top and bottom edges count screen pixels: a long tick every
-  hundred with its number in segment digits, a middle one every fifty, a
-  short one every ten. The corner reticles are 46 px Ls with a pip in the
-  band's corner. A workspace switch sends a bright segment with a glowing
-  tail along the rail's lip, which fades where it lands.
+- The frame's top and bottom edges carry a long tick every hundred screen
+  pixels, a middle one every fifty and a short one every ten, with the
+  registration Ls at the opening's corners. A workspace switch sends a
+  bright segment with a glowing tail along the rail's lip, which fades
+  where it lands.
 - Page covers slice into three bands a step apart. Rows enter on a decode
   curve (two flickers, then a settle). Meters light whole cells in sequence
   from wherever the run stands. Readouts glitch once on a change, at most
