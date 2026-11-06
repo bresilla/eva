@@ -1,4 +1,5 @@
 -- The Default apps and Startup apps pages.
+local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
 local P = require("themes.layouts.page")
@@ -57,9 +58,43 @@ function M.startup_page(model, w, h)
       trailing = P.switch { id = "startup-unit-switch-" .. index, name = "Service enabled", on = on,
         on_toggled = function(now) model.set_service(row(), now) end } }
   end, "No user services to list", 32)
+  -- A command of one's own: a name and what to run.
+  local name, command = morf.signal("eva.startup.name", ""), morf.signal("eva.startup.command", "")
+  local name_box, name_field = P.field { id = "startup-command-name", width = inner, placeholder = "A name",
+    on_changed = function(value) name:set(value) end }
+  local command_box, command_field
+  local function add_command()
+    local given = name:get():find("%S") and command:get():find("%S")
+    if model.add_command(name:get(), command:get()) and given then
+      name:set("") command:set("") name_field.text = "" command_field.text = ""
+    end
+  end
+  command_box, command_field = P.field { id = "startup-command", width = inner, placeholder = "A command",
+    on_changed = function(value) command:set(value) end, on_accepted = add_command }
+  local timers = F.list(inner, "startup-timer-", function() return #model.timers() end, function(index, width)
+    local function row() return model.timers()[index] or {} end
+    return P.row { id = "startup-timer-row-" .. index, width = width, on = function() return false end,
+      icon = function() return row().alarm and "alarm" or "schedule" end,
+      title = function() local r = row() return r.alarm or r.name or "" end,
+      subtitle = function()
+        local r = row()
+        if not r.unit then return "" end
+        return (r.alarm and "Clock · " or "") .. "Next " .. model.when(r.next) .. " · last " .. model.when(r.last)
+      end }
+  end, nil, 24)
   return P.page { id = "startup-scroll", width = w, height = h, active = model.active,
     P.section { id = "startup-apps", width = w, title = "Apps", entries, add, F.status("startup-status", inner, model) },
+    P.section { id = "startup-own", width = w, title = "A command of your own",
+      name_box, command_box,
+      P.button { id = "startup-command-add", icon = "add", label = "Start it with the session", width = inner,
+        on_clicked = add_command } },
     P.section { id = "startup-services", width = w, title = "User services", services },
+    P.section { id = "startup-scheduled", width = w, title = "Scheduled",
+      F.note(inner, "Scheduled jobs are the timers of systemd's user session, and there is none here.",
+        { id = "startup-timers-none", visible = function() return model.scheduled:get() == "none" end }),
+      F.note(inner, "No timers.",
+        { id = "startup-timers-empty", visible = function() return model.scheduled:get() == "ready" and #model.timers() == 0 end }),
+      timers },
   }
 end
 

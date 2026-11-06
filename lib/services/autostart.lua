@@ -102,10 +102,23 @@ function M.add(app, done, folder)
   if not name:match("%.desktop$") then name = name .. ".desktop" end
   if host.held("autostart add " .. name) then return done(true) end
   morf.fs.mkdir(folder)
-  local text = table.concat({ "[Desktop Entry]", "Type=Application", "Name=" .. tostring(app.name or name),
-    "Exec=" .. tostring(app.exec or ""), app.icon and ("Icon=" .. app.icon) or nil, "" }, "\n")
+  local lines = { "[Desktop Entry]", "Type=Application", "Name=" .. tostring(app.name or name),
+    "Exec=" .. tostring(app.exec or "") }
+  if app.icon then lines[#lines + 1] = "Icon=" .. app.icon end
+  lines[#lines + 1] = ""
+  local text = table.concat(lines, "\n")
   local wrote, why = pcall(morf.fs.write, folder .. "/" .. name, text)
   done(wrote or nil, not wrote and tostring(why) or nil)
+end
+
+--- Starts a command of the person's own with the session, as `eva-<name>.desktop`.
+--- `done(ok, why)`.
+function M.add_command(name, command, done, folder)
+  name, command = tostring(name or ""):match("^%s*(.-)%s*$"), tostring(command or ""):match("^%s*(.-)%s*$")
+  if name == "" or command == "" then return done(nil, "Give it a name and a command") end
+  local slug = name:lower():gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
+  if slug == "" then slug = "command" end
+  return M.add({ id = "eva-" .. slug, name = name, exec = command }, done, folder)
 end
 
 --- Removes the person's own entry. `done(ok, why)`.
@@ -161,6 +174,56 @@ end
 function M.set_service(unit, on, done)
   if not unit:match("^[%w_%.@%-]+%.service$") then return done(nil, "That is not a service") end
   host.act({ "systemctl", "--user", on and "enable" or "disable", "--now", unit }, done)
+end
+
+-- ------------------------------------------------------------------ timers --
+
+-- What each of eva's own alarms is for, by its unit's id.
+local function alarms()
+  local root = (morf.env("XDG_STATE_HOME") or (morf.fs.home() .. "/.local/state")) .. "/eva"
+  local ok, list = pcall(function() return morf.json.decode(morf.fs.read(root .. "/clock/alarms.json")) end)
+  local out = {}
+  if not ok or type(list) ~= "table" then return out end
+  local lib = require("lib.services.alarm")
+  for _, item in ipairs(list) do out[item.id] = lib.describe(item) end
+  return out
+end
+
+local function seconds(value)
+  if type(value) ~= "number" or value <= 0 then return nil end
+  return value / 1000000
+end
+
+--- The rows `systemctl --user list-timers --output=json` gives, soonest first:
+--- `unit`, `name`, `next`, `last` (in seconds), `service`, `alarm` (what an
+--- alarm of eva's says, for its own units).
+function M.timer_rows(list)
+  local known = alarms()
+  local out = {}
+  for _, row in ipairs(list) do
+    local unit = tostring(row.unit or "")
+    local id = unit:match("^eva%-alarm%-(.+)%.timer$")
+    out[#out + 1] = { key = unit, unit = unit, name = (unit:gsub("%.timer$", "")), next = seconds(row.next),
+      last = seconds(row.last), service = row.activates, alarm = id and (known[id] or "Alarm") or nil }
+  end
+  table.sort(out, function(a, b) return (a.next or math.huge) < (b.next or math.huge) end)
+  return out
+end
+
+--- The user's timers, the scheduled jobs: `done(rows)`, or `done(nil, why)`
+--- where there is no user session of systemd.
+function M.timers(done)
+  host.read({ "systemctl", "--user", "list-timers", "--all", "--output=json", "--no-pager" }, function(text)
+    local ok, list = pcall(morf.json.decode, text or "")
+    if not ok or type(list) ~= "table" then return done(nil, "no user session of systemd") end
+    done(M.timer_rows(list))
+  end, { timeout_ms = 3000 })
+end
+
+--- When a time comes, in a few words.
+function M.when(at)
+  if not at then return "never" end
+  return (morf.time.format("%a %-d %b %H:%M", at))
 end
 
 return M

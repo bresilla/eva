@@ -17,6 +17,7 @@ local JOBS = {
   audio = "sound_cli",
   displays = "displays_model",
   fonts = "fonts_model",
+  startup = "apps_model",
 }
 
 local module = JOBS[morf.operands[1]]

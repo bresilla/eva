@@ -126,6 +126,15 @@ local function answer(argv, options)
   end
   if argv[1] == "firewall-cmd" then return { ok = firewall_on, code = firewall_on and 0 or 252, stdout = firewall_on and "running\n" or "not running\n" } end
   if argv[1] == "systemctl" and argv[2] == "is-active" then return { ok = true, stdout = "active\n" } end
+  if line:find("list-timers", 1, true) then
+    local now = morf.time.now()
+    local function at(seconds) return math.floor((now + seconds) * 1000000) end
+    return { ok = true, stdout = morf.json.encode {
+      { unit = "backup.timer", activates = "backup.service", next = at(5400), last = at(-81000) },
+      { unit = "mail-sync.timer", activates = "mail-sync.service", next = at(240), last = at(-660) },
+      { unit = "systemd-tmpfiles-clean.timer", activates = "systemd-tmpfiles-clean.service", next = at(69000), last = at(-17400) },
+    } }
+  end
   if line:find("list-unit-files", 1, true) then
     return { ok = true, stdout = "eva-clipboard.service enabled enabled\nsyncthing.service enabled enabled\nredshift.service disabled enabled\n" }
   end

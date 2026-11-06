@@ -199,8 +199,11 @@ M.PAGES = {
 
   { key = "apps", name = "Default apps", icon = "apps", category = "apps", summary = "What opens what",
     keywords = "browser mail music video pdf editor terminal file manager mime type association" },
-  { key = "startup", name = "Startup apps", icon = "rocket_launch", category = "apps", summary = "Apps and user services",
-    keywords = "autostart login boot systemd service background" },
+  { key = "startup", name = "Startup apps", icon = "rocket_launch", category = "apps",
+    summary = "Apps, commands, user services and timers",
+    keywords = "autostart login boot systemd service background",
+    items = { { "Start a command with the session", "own script run login" },
+      { "Scheduled jobs", "timers systemd cron when next" } } },
   { key = "notes", name = "Notes", icon = "sticky_note_2", category = "apps", summary = "Quick notes, in a folder",
     keywords = "jot write markdown text" },
   { key = "software", name = "Software", icon = "deployed_code", category = "apps", summary = "Install, remove, hidden apps",
