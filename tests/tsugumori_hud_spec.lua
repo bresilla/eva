@@ -213,7 +213,7 @@ end
 test.describe("tsugumori chrome in the shell", function()
   test.it("traces a workspace change along the rail and leaves nothing up", function()
     shell()
-    test.truthy(test.find { id = "tsugumori-frame-corners" }, "the frame has no corner reticles")
+    test.eq(test.find { id = "tsugumori-frame-corners" }, nil, "the frame still has corner reticles")
     test.ipc("workspace", 4)
     test.truthy(ever("rail-trace"), "the switch drew no trace")
     test.truthy(at_rest())

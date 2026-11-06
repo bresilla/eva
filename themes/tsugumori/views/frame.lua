@@ -64,38 +64,12 @@ local function ruler(model, edge)
   }
 end
 
--- Registration reticles in the band at the opening's four corners: a heavy
--- L along both edges, and a short index notch where each edge's centre is.
-local REACH, HEAVY = 26, 2
-local function corners(model)
-  local function d()
-    local _, _, w, h = model.desk()
-    local B, L = theme.BORDER, theme.LEFT
-    local out = {}
-    local function bar(x, y, bw, bh) out[#out + 1] = ("M%g %g h%g v%g h%g Z "):format(x, y, bw, bh, -bw) end
-    for _, c in ipairs { { L, B, 1, 1 }, { w - B, B, -1, 1 }, { L, h - B, 1, -1 }, { w - B, h - B, -1, -1 } } do
-      local x, y, sx, sy = c[1], c[2], c[3], c[4]
-      local ox, oy = x - sx * (HEAVY + 2), y - sy * (HEAVY + 2)
-      bar(sx > 0 and ox or ox - REACH - HEAVY, sy > 0 and oy or oy - HEAVY, REACH + HEAVY, HEAVY)
-      bar(sx > 0 and ox or ox - HEAVY, sy > 0 and oy or oy - REACH - HEAVY, HEAVY, REACH + HEAVY)
-    end
-    local mx, my = math.floor((L + w - B) / 2), math.floor(h / 2)
-    bar(mx - 1, 1, HEAVY, B - 3)
-    bar(mx - 1, h - B + 2, HEAVY, B - 3)
-    bar(w - B + 2, my - 1, B - 3, HEAVY)
-    return table.concat(out)
-  end
-  return ui.Path { id = "tsugumori-frame-corners", anchors = { fill = true }, d = d,
-    fill_color = function() return C.primary:alpha(.72) end }
-end
-
 local function decorations(model)
   return ui.Item { id = "tsugumori-frame-marks", anchors = { fill = true },
     ruler(model, "top"),
     ruler(model, "bottom"),
     ruler(model, "left"),
     ruler(model, "right"),
-    corners(model),
   }
 end
 

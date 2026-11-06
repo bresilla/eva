@@ -90,7 +90,7 @@ reference. All of it uses wallpaper roles and stops at rest.
 - The content pass (`B.content`) boots what is laid out under the host as
   the scan reaches it: each card's outline draws itself in, its brackets
   fly in from the host's corners and snap on past their corner and back,
-  its lit cuts flicker on, section captions light their plate and run
+  section captions light their plate and run
   their rule out, readings decode (`kit.decoding`), rolling numbers roll
   in, meters refill cell by cell and gauges sweep up. `marks.lua` holds
   what it drives, by node, until the node is destroyed; a pass looks it up
@@ -120,8 +120,8 @@ reference. All of it uses wallpaper roles and stops at rest.
   `scale` draw in the boxes layouts reserve, a scale's long ticks numbered
   in segment digits (`digits.lua`).
 - The frame's top and bottom edges carry a long tick every hundred screen
-  pixels, a middle one every fifty and a short one every ten, with the
-  registration Ls at the opening's corners. A workspace switch sends a
+  pixels, a middle one every fifty and a short one every ten; the
+  opening's corners carry no marks. A workspace switch sends a
   bright segment with a glowing tail along the rail's lip, which fades
   where it lands.
 - Page covers slice into three bands a step apart. Rows enter on a decode
