@@ -1,8 +1,8 @@
 #!/bin/sh
 # eva-qr: a QR code from text or a Wi-Fi network, on screen or in a file.
 #
-#   eva-qr                        the window
-#   eva-qr TEXT                   the window, showing TEXT
+#   eva-qr                        the Tools window, on QR code
+#   eva-qr TEXT                   the same, showing TEXT
 #   eva-qr -                      the same, the text read from stdin
 #   eva-qr wifi SSID              a network; its password is read from stdin,
 #                                 or asked for on a terminal
@@ -42,7 +42,7 @@ is_piped() {
 }
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" qr ;;
+  '') eva_tools qr ;;
   -h | --help | help)
     sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
     exit 0
@@ -61,8 +61,11 @@ fi
 status=0
 if [ "$1" = --png ]; then
   eva_tool_job qr "$@" || status=$?
+elif [ -n "${EVA_JOB_IN:-}" ]; then
+  # The page reads the private file once and removes it.
+  eva_tools qr "$@" --input "$EVA_JOB_IN" || status=$?
 else
-  sh "$apps/launch" qr "$@" || status=$?
+  eva_tools qr "$@" || status=$?
 fi
 rm -f "${EVA_JOB_IN:-}"
 exit "$status"

@@ -6,7 +6,7 @@
 local morf = require("morf")
 local poll = require("lib.util.poll")
 local codec = require("lib.shell.launcher.codec")
-local formats = require("colorpick.formats")
+local formats = require("apps.colorpick.formats")
 
 local M = {}
 

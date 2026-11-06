@@ -1,6 +1,6 @@
 -- What a focus session asks of the machine: quiet while it lasts, through the
 -- shell's `focus` verb, which is do not disturb.
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 
 local M = {}
 

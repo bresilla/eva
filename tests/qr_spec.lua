@@ -1,4 +1,4 @@
--- eva-qr: the `WIFI:` string, where a password may and may not go, the window, and
+-- eva-qr: the `WIFI:` string, where a password may and may not go, its page, and
 -- the command line, all on the shared encoder (lib/util/qr.lua; tests/launcher_tools_spec.lua
 -- reads its codes back). A code read back off the screen by a real decoder is
 -- tools/see/qr.steps'.
@@ -15,7 +15,7 @@ local PIECES = [[
   local morf = require("morf")
   require("morf.ui").Item { width = 1, height = 1 }
   local qr = require("lib.util.qr")
-  local model = require("model")
+  local model = require("apps.qr.model")
   morf.ipc.wifi = function(ssid, security, password, hidden)
     return qr.wifi({ ssid = ssid, security = security, hidden = hidden == "yes" }, password)
   end
@@ -32,18 +32,19 @@ local function environment(state, style, extra)
   local appearance = state .. "/appearance.json"
   morf.fs.write(appearance, morf.json.encode { theme = style or "material", font = "" })
   local env = { XDG_STATE_HOME = state, EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule",
-    EVA_APPEARANCE = appearance, EVA_DRY_RUN = "1" }
+    EVA_APPEARANCE = appearance, EVA_DRY_RUN = "1", EVA_TEST_TOOL = "qr", EVA_TEST_PAGE = "488x700" }
   for key, value in pairs(extra or {}) do env[key] = value end
   return env
 end
 
 local function pieces()
-  test.load("../apps/qr/app.lua", { source = PIECES, env = environment(fresh("pieces")) })
+  test.load("../shell/init.lua", { source = PIECES, env = environment(fresh("pieces")) })
 end
 
 local function window(style, args, extra)
   test.clear_stubs()
-  test.load("../apps/qr/app.lua", { args = args, env = environment(fresh("window"), style, extra) })
+  test.load("../shell/init.lua", { args = args, env = environment(fresh("window"), style, extra),
+    source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
   test.settle(300)
 end
 
@@ -58,19 +59,15 @@ end
 -- writes to them.
 local function stdin_host()
   test.clear_stubs()
-  test.load("../apps/qr/app.lua", { env = environment(fresh("stdin"), nil, { EVA_DRY_RUN = "0" }), source = [[
+  test.load("../shell/init.lua", { env = environment(fresh("stdin"), nil, { EVA_DRY_RUN = "0" }), source = [[
     local morf = require("morf")
-    local real = morf.process.run
     local fed = {}
     morf.process.run = function(argv, options, done)
       fed[#fed + 1] = { argv = argv, stdin = options and options.stdin }
       done { ok = true, stdout = "####\n####\n" }
     end
-    local frame = require("common.frame")
-    local model = require("model")
-    local view = require("view")
-    frame.open { id = "qr", title = "QR code", width = 520, height = 760, build = function(w, h) return view.build(w, h) end }
-    morf.ipc.state = function() return model.state() end
+  ]] .. morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") .. [[
+    local model = require("apps.qr.model")
     morf.ipc.fed = function() return fed end
     morf.ipc.ssid = function(name) model.mode:set(2) model.ssid:set(name) return true end
     morf.ipc.password = function(value) model.set_password(value) return true end
@@ -126,17 +123,18 @@ test.it("saves a network's PNG with no program", function()
   test.ipc("password", SECRET)
   test.advance(300)
   local out = fresh("save") .. "/deep/out.png"
+  local before = #test.ipc("fed")
   test.ipc("save", out)
   test.advance(300)
   test.eq(morf.fs.read(out):sub(2, 4), "PNG")
-  test.eq(test.ipc("fed"), {})
+  test.eq(#test.ipc("fed"), before, "saving ran a program")
 end)
 
 test.it("takes a password piped in and lets its file go", function()
   local state = fresh("piped")
   local secret = state .. "/secret"
   morf.fs.write(secret, SECRET .. "\n", { mode = 384 })
-  window(nil, { "wifi", "home", "--security", "WEP", "--hidden" }, { EVA_JOB_IN = secret })
+  window(nil, { "wifi", "home", "--security", "WEP", "--hidden", "--input", secret })
   local seen = test.ipc("state")
   test.eq(seen.ssid, "home")
   test.eq(seen.security, "WEP")
@@ -149,7 +147,8 @@ end)
 test.it("fills a saved network's secret into the input, never a signal", function()
   test.clear_stubs()
   test.stub_run("nmcli", { code = 0, stdout = "wpa-psk\n" .. SECRET .. "\nyes\n" })
-  test.load("../apps/qr/app.lua", { env = environment(fresh("nm")) })
+  test.load("../shell/init.lua", { env = environment(fresh("nm")),
+    source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
   test.settle(200)
   test.ipc("pick", "home")
   test.advance(300)
@@ -247,13 +246,13 @@ local function cli(args, env)
   return morf.fs.read(log) or ""
 end
 
-test.it("opens the window on text", function()
-  test.contains(cli { "hello", "world" }, "qr/app.lua -- hello world")
+test.it("opens Tools on text", function()
+  test.contains(cli({ "hello", "world" }, { "STUB_UP=1" }), "ipc call tools qr hello world")
 end)
 
-test.it("keeps a network's password off the tool's command line", function()
-  local calls = cli { "wifi", "home", "--hidden" }
-  test.contains(calls, "qr/app.lua -- wifi home --hidden")
+test.it("keeps a network's password off the shell's command line", function()
+  local calls = cli({ "wifi", "home", "--hidden" }, { "STUB_UP=1" })
+  test.contains(calls, "ipc call tools qr wifi home --hidden --input ")
 end)
 
 test.it("writes a PNG as a job, and wants a file and a text", function()

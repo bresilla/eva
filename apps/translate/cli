@@ -1,9 +1,9 @@
 #!/bin/sh
 # eva-translate: free translation with no keys. Argos Translate stays on this
 # machine and comes first; translate-shell and MyMemory send the text away, which
-# running this command asks for. The window sends nothing until pressed.
+# running this command asks for. The page sends nothing until pressed.
 #
-#   eva-translate                     the window
+#   eva-translate                     the Tools window, on Translate
 #   eva-translate [-s LANG] [-t LANG] [-e ENGINE] TEXT
 #   eva-translate [...] -             the text read from stdin
 #   eva-translate [...] --clipboard   the clipboard's text
@@ -19,7 +19,7 @@ for word in "$@"; do
 done
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" translate ;;
+  '') eva_tools translate ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
   *)
     if [ -n "$reads_stdin" ]; then

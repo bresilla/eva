@@ -2,10 +2,10 @@
 -- A generated secret stays in `secret` below and the node showing it, never in a
 -- signal; `made` says only that there is one. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 local codec = require("lib.shell.launcher.codec")
 local password = require("lib.shell.launcher.password")
-local transforms = require("transforms")
+local transforms = require("apps.text.transforms")
 
 local M = {
   text = morf.signal("text.text", ""),

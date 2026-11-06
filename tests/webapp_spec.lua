@@ -32,7 +32,9 @@ local function window(style, browser, root)
   root = root or fresh()
   local appearance = root .. "/appearance.json"
   morf.fs.write(appearance, morf.json.encode { theme = style or "material", font = "" })
-  test.load("../apps/webapp/app.lua", { env = env_of(root, browser or "chromium", { EVA_APPEARANCE = appearance }) })
+  test.load("../shell/init.lua", { env = env_of(root, browser or "chromium", { EVA_APPEARANCE = appearance,
+    EVA_TEST_TOOL = "webapp", EVA_TEST_PAGE = "608x560", EVA_STYLE = style or "material" }),
+    source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
   test.settle(400)
   return root
 end
@@ -83,7 +85,7 @@ end)
 local HOST = [[
   local morf = require("morf")
   require("morf.ui").Item { width = 1, height = 1 }
-  local model = require("model")
+  local model = require("apps.webapp.model")
   morf.ipc.links = function(html, base) return model.icon_links(html, base) end
   morf.ipc.letter = function(name) return (model.letter(name)) end
   morf.ipc.entry = function(name, url)
@@ -92,7 +94,7 @@ local HOST = [[
 ]]
 
 test.it("escapes what the format reserves", function()
-  test.load("../apps/webapp/app.lua", { source = HOST })
+  test.load("../shell/init.lua", { source = HOST })
   local text = test.ipc("entry", "Tom & Jerry\nX\\Y", "https://icon.test/a?b=1&c=50%")
   test.contains(text, "Name=Tom & Jerry\\nX\\\\Y\n")
   test.contains(text, 'Exec=chromium "--app=https://icon.test/a?b=1&c=50%%" --class=eva-webapp-tom-jerry-x-y\n')
@@ -182,13 +184,13 @@ test.it("writes nothing under a dry run", function()
   test.falsy(morf.fs.exists(root .. "/data/applications/eva-webapp-notes.desktop"))
 end)
 
-test.it("says why it cannot work when the window opens", function()
+test.it("says why it cannot work when its page opens", function()
   window("material", "firefox")
   test.contains(test.get("webapp-message").text, "Firefox has no --app window")
 end)
 
 test.it("finds the icons a page names, largest first", function()
-  test.load("../apps/webapp/app.lua", { source = HOST })
+  test.load("../shell/init.lua", { source = HOST })
   local html = [[
     <LINK REL="shortcut icon" HREF="fav.png">
     <link rel='apple-touch-icon' href='/touch.png' sizes='180x180'>
