@@ -42,8 +42,15 @@ return function(theme, kit)
   -- Each mark's way outwards along its corner's diagonal.
   H.OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
 
-  --- Corner brackets shown while `on()`, closing in onto the box from
-  --- `spec.reach` (6) px out each time they come up: a reticle locking on.
+  -- The keyboard's focus as it moves: the box of the reticle on show, or
+  -- of the one that just went, for a moment.
+  local focus = { on = nil, gone = nil, clear = nil }
+  local box = require("themes.tsugumori.marks").box
+  local function corners(x, y, w, h) return { { x, y }, { x + w, y }, { x, y + h }, { x + w, y + h } } end
+
+  --- Corner brackets shown while `on()`. Each time they come up they slide
+  --- over from the corners of the reticle the focus just left, or, with
+  --- none, close in from `spec.reach` (6) px out: a reticle locking on.
   function H.reticle(spec, on)
     local node, marks = H.marked(spec)
     node.visible = false
@@ -54,13 +61,31 @@ return function(theme, kit)
       was = now
       if running then running:stop() running = nil end
       node.visible = now
-      if not now then return end
+      if not now then
+        if focus.on == node then
+          local x, y, w, h = box(node)
+          focus.on, focus.gone = nil, x and corners(x, y, w, h) or nil
+          if focus.clear then focus.clear:cancel() end
+          focus.clear = morf.time.timer(120, function() focus.gone, focus.clear = nil, nil end, false)
+        end
+        return
+      end
+      local from
+      if focus.on and focus.on ~= node then
+        local x, y, w, h = box(focus.on)
+        from = x and corners(x, y, w, h) or nil
+      else from = focus.gone end
+      focus.on = node
+      local x, y, w, h = box(node)
+      local here = x and corners(x, y, w, h) or nil
       local tracks = {}
       for i, mark in ipairs(marks) do
-        tracks[#tracks + 1] = { node = mark, property = "translate_x", from = H.OUTWARD[i][1] * reach, to = 0,
-          duration = 220, easing = "out_expo" }
-        tracks[#tracks + 1] = { node = mark, property = "translate_y", from = H.OUTWARD[i][2] * reach, to = 0,
-          duration = 220, easing = "out_expo" }
+        for axis, property in ipairs { "translate_x", "translate_y" } do
+          local start = H.OUTWARD[i][axis] * reach
+          if from and here then start = from[i][axis] - here[i][axis] end
+          tracks[#tracks + 1] = { node = mark, property = property, from = start, to = 0,
+            duration = from and here and 260 or 220, easing = from and here and "out_cubic" or "out_expo" }
+        end
       end
       running = morf.animation.play { { parallel = tracks }, on_finished = function() running = nil end }
     end, { owner = node })

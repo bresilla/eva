@@ -38,7 +38,7 @@ return function(theme, M, hud)
       id = id or "tsugumori-control"
       local holder = ui.Item { anchors = { fill = true }, z = 40 }
       local react = pieces(holder, id, function() return t.width, t.height end, nil, plain)
-      local focus = { length = 6, weight = 2, color = function() return C.primary end }
+      local focus = { length = plain and 6 or 10, weight = 2, color = function() return C.primary end }
       local function focused() return t.visual_focus end
       if plain then
         focus.visible = focused
