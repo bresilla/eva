@@ -102,17 +102,26 @@ function V.build(model)
     behavior = { x = hard, y = hard } },
     function() return center(model.active()) end), root)
 
-  -- A switch traces along the opening's lip from the old slot to the new:
-  -- the lead runs out, the tail follows it in, and it is gone.
-  local trace = ui.Rect { id = "rail-trace", color = function() return C.primary end, opacity = 0, visible = false }
+  -- A switch sends a bright segment along the opening's lip from the old
+  -- slot to the new, its head leading a glowing tail, and it fades there.
+  local SEG = 44
+  local along = B and "x" or "y"
+  local function streak(alpha, inset, thick)
+    local props = { gradient = function()
+      return { angle = B and 90 or 180, stops = { C.primary:alpha(0), C.primary:alpha(alpha) } } end }
+    if B then props.y, props.height, props.width = inset, thick, SEG
+    else props.x, props.width, props.height = inset, thick, SEG end
+    return ui.Rect(props)
+  end
+  local trace = ui.Item { id = "rail-trace", opacity = 0, visible = false,
+    streak(.4, 0, 8), streak(1, B and 3 or 2, 3) }
   if B then
-    trace.y, trace.height = function() return model.edge() - theme.BORDER + 1 end, 1
+    trace.y, trace.height, trace.width = function() return model.edge() - theme.BORDER - 3 end, 8, SEG
   else
-    trace.x, trace.width = theme.LEFT - 2, 1
+    trace.x, trace.width, trace.height = theme.LEFT - 5, 8, SEG
   end
   ui.reparent(trace, root)
   local tracing
-  local along, span = B and "x" or "y", B and "width" or "height"
   local function untrace()
     if tracing then tracing:stop() tracing = nil end
     trace.visible, trace.opacity = false, 0
@@ -121,18 +130,17 @@ function V.build(model)
     untrace()
     if from == to then return end
     local a, b = center(from), center(to)
-    local low, length = math.min(a, b), math.abs(b - a)
-    trace[along], trace[span], trace.visible = a, 0, true
-    local grow = b > a and { { node = trace, property = span, to = length, duration = 170, easing = "out_expo" } }
-      or { { node = trace, property = along, to = low, duration = 170, easing = "out_expo" },
-        { node = trace, property = span, to = length, duration = 170, easing = "out_expo" } }
-    grow[#grow + 1] = { node = trace, property = "opacity", from = 0, to = 1, duration = 60 }
-    local settle = { { node = trace, property = span, to = 0, duration = 210, easing = "in_out_cubic" },
-      { node = trace, property = "opacity", duration = 210, keyframes = {
-        { at = 0, value = 1 }, { at = .6, value = .8 }, { at = 1, value = 0 } } } }
-    if b > a then settle[#settle + 1] = { node = trace, property = along, to = b, duration = 210,
-      easing = "in_out_cubic" } end
-    tracing = morf.animation.play { { parallel = grow }, { parallel = settle }, on_finished = function(reason)
+    local ahead = b > a
+    -- Flipped about its middle on the way back, so the head still leads.
+    trace[B and "scale_x" or "scale_y"] = ahead and 1 or -1
+    local function lead(at) return ahead and at - SEG or at end
+    trace[along], trace.visible = lead(a), true
+    tracing = morf.animation.play { { parallel = {
+      { node = trace, property = along, from = lead(a), to = lead(b), duration = 320, easing = "out_cubic" },
+      { node = trace, property = "opacity", duration = 560, keyframes = {
+        { at = 0, value = 0 }, { at = .08, value = 1 }, { at = .55, value = 1 }, { at = .64, value = .45 },
+        { at = .72, value = 1 }, { at = 1, value = 0 } } },
+    } }, on_finished = function(reason)
       if reason == "completed" then tracing = nil trace.visible = false end
     end }
   end
