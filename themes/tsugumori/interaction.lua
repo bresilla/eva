@@ -14,7 +14,7 @@ return function(theme)
   local attached = setmetatable({}, {__mode="k"})
   local serial=0
   local MARK="M0 0 H7 V1.5 H1.5 V7 H0 Z"
-  local LEG, FAR, REST = 8, 10, 2
+  local LEG, FAR, REST = 10, 12, 2
   local OUTWARD = {{-1,-1},{1,-1},{-1,1},{1,1}}
   local BRACKETS = {
     {{left=true,top=true},("M1 %g V1 H%g"):format(LEG,LEG)},
