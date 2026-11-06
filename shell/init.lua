@@ -205,7 +205,7 @@ morf.effect("eva.keyboard.focus", function()
     or overview.opened:get() or window_switcher.opened:get() or snap.picking:get() or snap.assisting:get()
     or kill_mode.active:get()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get()
-    or notifs.replying:get() ~= false or require("utilities").opened:get()
+    or notifs.replying:get() ~= false or require("utilities").opened:get() or require("tools_model").opened:get()
   -- Typed into on a click: the Tasks and Calendar pages, the terminal, the
   -- quick tiles being arranged, wherever their panels hold them.
   local editor_open = pages.typing()
@@ -289,8 +289,9 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
 -- The rail's targets, over the panels.
 if rail.hits then triggers[#triggers+1]=rail.hits end
 local frame_view=require("themes").view("frame")
--- Over the panels and the bar, under the on-screen keyboard: the Settings window.
-local above={require("settings_window").node}
+-- Over the panels and the bar, under the on-screen keyboard: the Settings and
+-- Tools windows.
+local above={require("settings_window").node,require("tools_window").node}
 local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
   rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape,panels=levels.panels},
   island=require("island").build(bar.desk),overlays=overlays,above=above,triggers=triggers}
@@ -583,6 +584,44 @@ ipc["settings-search"] = function(query)
   if query and query ~= "" then return require("settings_registry").search(query) end
   return require("settings_registry").list()
 end
+-- `tools [NAME [ARGS]]`: the Tools window on a tool's page (`home` is All
+-- tools), ARGS handed to it as `eva-NAME ARGS` would; `tools close` shuts it and
+-- `tools state` says where it is. `tool NAME VERB [ARGS]` is a verb of that
+-- tool's page, and `tools-search [WORDS]` the pages matching WORDS.
+ipc.tools = function(page, ...)
+  local window = require("tools_window")
+  if page == "close" then
+    window.dismiss()
+    if here() then return false end
+    return nil
+  end
+  local where = window.where()
+  local tools = require("tools_model")
+  if page == "state" and (where == "here" or where == "none" and here()) then
+    return { open = tools.opened:get(), page = tools.detail:get() }
+  end
+  if not here() or page == "state" then return nil end
+  if page == nil or page == "" then page = tools.registry.HOME end
+  if tools.registry.BY_KEY[page] and tools.registry.BY_KEY[page].page then
+    tools.open_tool(page, { ... })
+  elseif not tools.request(page) then error("No such tool: " .. tostring(page)) end
+  return tools.detail:get()
+end
+ipc.tool = function(name, verb, ...)
+  if not here() then return nil end
+  return require("tools_model").verb(name, verb, ...)
+end
+ipc["tools-search"] = function(query)
+  if query and query ~= "" then return require("tools_registry").search(query) end
+  return require("tools_registry").list()
+end
+-- A tool opened from the shell (a tile, a notification's action, a link) is
+-- its page here: in Tools, or the Settings page a tool became.
+local SETTINGS_TOOLS = { keys = "input/shortcuts", breaks = "breaks" }
+require("lib.services.host").in_shell = function(name, args)
+  if SETTINGS_TOOLS[name] then return require("utilities").request(SETTINGS_TOOLS[name]) end
+  return require("tools_model").open_tool(name, args)
+end
 -- `tablet on` or `tablet off`: the hinge moved, as Hyprland's switch binds say;
 -- the kernel is asked before it counts. `tablet pin on|off` holds the posture
 -- whatever the switch says, `tablet auto` lets it go, `tablet state` reads it.
@@ -861,6 +900,7 @@ ipc.close = function()
   capture.drawer.set(false)
   drawer.close_all()
   require("utilities").close()
+  require("tools_model").close()
   return true
 end
 -- `phone VERB ARGS`: calls and what stands in for a modem (shell/phone.lua).

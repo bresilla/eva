@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Tools
+Comment=Clock, clipboard, screenshots, monitor and the rest of eva's tools
+Exec=eva open tools
+Icon=applications-utilities
+Terminal=false
+Categories=Utility;
+Keywords=utilities;clock;clipboard;screenshot;monitor;logs;translate;qr;
