@@ -1,12 +1,12 @@
--- eva-clock's window: the alarms and timers of lib/services/alarm.lua, the
--- stopwatch, the world clocks. No nodes.
+-- eva-clock's page in Tools: the shell's alarms and timers (lib/services/alarm.lua,
+-- as the bar reads them), the stopwatch, the world clocks. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 local lib = require("lib.services.alarm")
 local unicase = require("lib.util.unicase")
 
 local M = {
-  alarm = lib.new { ring = true, delay = 1500 },
+  alarm = require("services").alarm,
   draft = morf.signal("clock.draft", ""),
   tab = morf.signal("clock.tab", 1),
   world = morf.signal("clock.world", {}),
@@ -115,6 +115,11 @@ function M.tick()
   M.shown:set(M.elapsed())
   if not M.running:get() then return end
   ticker = morf.time.timer(50, function() M.shown:set(M.elapsed()) end, true)
+end
+
+--- Stops following the stopwatch, while nothing shows it.
+function M.rest()
+  if ticker then ticker:cancel() ticker = nil end
 end
 
 --- "start", "stop", "lap" or "reset".

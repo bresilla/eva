@@ -8,8 +8,9 @@ local test = morf.test
 local ROOT = morf.fs.join(morf.env("PWD"), "")
 local ENV = { EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_DRY_RUN = "1" }
 
--- The tool, with a clipboard offer to hand it.
-local HOST = morf.fs.read(ROOT .. "apps/clipboard/app.lua") .. [[
+-- The tool's page, with a clipboard offer to hand it.
+local HOST = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") .. [[
+  local model = require("apps.clipboard.model")
   local reads = 0
   morf.ipc.offer = function(mime, text)
     model.offer { mime_types = { mime }, read = function(_, kind, cb)
@@ -32,9 +33,9 @@ local HOST = morf.fs.read(ROOT .. "apps/clipboard/app.lua") .. [[
 local function tool()
   local state = morf.env("XDG_STATE_HOME") .. "/clip-" .. tostring(morf.time.now_ms())
   morf.fs.mkdir(state)
-  local env = { XDG_STATE_HOME = state }
+  local env = { XDG_STATE_HOME = state, EVA_TEST_TOOL = "clipboard" }
   for key, value in pairs(ENV) do env[key] = value end
-  test.load("../apps/clipboard/app.lua", { source = HOST, env = env })
+  test.load("../shell/init.lua", { source = HOST, env = env })
   test.settle(300)
   return state
 end
@@ -93,9 +94,9 @@ end)
 test.it("remembers across a start", function()
   local state = tool()
   test.ipc("text", "still here")
-  local env = { XDG_STATE_HOME = state }
+  local env = { XDG_STATE_HOME = state, EVA_TEST_TOOL = "clipboard" }
   for key, value in pairs(ENV) do env[key] = value end
-  test.load("../apps/clipboard/app.lua", { source = HOST, env = env })
+  test.load("../shell/init.lua", { source = HOST, env = env })
   test.settle(300)
   test.eq(test.ipc("ids"), "still here")
 end)

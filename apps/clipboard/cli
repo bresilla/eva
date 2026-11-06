@@ -1,0 +1,19 @@
+#!/bin/sh
+# eva-clipboard: a history of what was copied, with pins, skipping what a
+# password manager marks.
+#
+#   eva-clipboard           the Tools window, on Clipboard
+#   eva-clipboard --watch   keeps the history, with no window, for a session to start
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_tools clipboard ;;
+  --watch) exec sh "$apps/launch" clipboard --watch ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *)
+    eva_say "eva-clipboard: no option $1"
+    exit 2
+    ;;
+esac

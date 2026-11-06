@@ -8,12 +8,6 @@ local test = morf.test
 
 local ENV ={ EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_DRY_RUN = "1" }
 
-test.it("eva-clipboard opens its window with no flag", function()
-  test.load("../apps/clipboard/app.lua", { env = ENV })
-  test.settle(200)
-  test.truthy(test.find { id = "clipboard-root" })
-end)
-
 test.it("eva-clipboard --watch keeps the history with no window", function()
   test.load("../apps/clipboard/app.lua", { args = { "--watch" }, env = ENV })
   test.settle(200)

@@ -59,6 +59,21 @@ local function pages(model, w, h)
   morf.effect("eva." .. name .. ".window.pages", function()
     if model.opened:get() then want(model.detail:get()) end
   end)
+  -- A book that forgets lets its pages go a second after the window shuts,
+  -- once it has left the screen; each is built again as it opens.
+  local made = {}
+  if model.forget then
+    local later
+    morf.effect("eva." .. name .. ".window.forget", function()
+      if later then later:cancel() later = nil end
+      if model.opened:get() then return end
+      later = morf.time.timer(1000, function()
+        later, have, made = nil, {}, {}
+        built:replace({}, "id")
+        acting:replace({}, "id")
+      end, false)
+    end)
+  end
   local function page(row)
     local key = row.id
     local function current() return model.detail:get() == key end
@@ -84,7 +99,6 @@ local function pages(model, w, h)
     return node
   end
   -- What a built page puts in the head beside the close control, while on show.
-  local made = {}
   local function actions(row)
     local key = row.id
     made[key] = model.page_actions(key)

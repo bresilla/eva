@@ -1,8 +1,8 @@
 #!/bin/sh
 # eva-clock: alarms and timers, said in plain words, and they ring whether or not
-# the shell or this window is running.
+# the shell is running.
 #
-#   eva-clock                       the window
+#   eva-clock                       the Tools window, on Clock
 #   eva-clock timer 12 min pasta    a timer
 #   eva-clock at 6pm call mum       an alarm; also "tomorrow 7am", "every
 #                                   weekday 6:30 gym", "tue thu 18:00"
@@ -64,7 +64,7 @@ fire() {
 }
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" clock ;;
+  '') eva_tools clock ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
   fire)
     shift

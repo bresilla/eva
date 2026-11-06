@@ -23,6 +23,15 @@ M.CATEGORIES = {
 M.PAGES = {
   { key = "home", name = "All tools", icon = "handyman", summary = "Every tool, by category",
     keywords = "search find everything" },
+
+  { key = "clock", name = "Clock", icon = "alarm", category = "time", page = "apps.clock.page",
+    summary = "Alarms, timers, a stopwatch and world clocks",
+    keywords = "alarm timer stopwatch world clock time zone wake ring lap countdown",
+    items = { { "Set an alarm", "wake morning ring" }, { "Start a timer", "countdown minutes" },
+      { "Stopwatch", "lap time" }, { "World clocks", "city time zone" } } },
+
+  { key = "clipboard", name = "Clipboard", icon = "content_paste", category = "text", page = "apps.clipboard.page",
+    summary = "History of what was copied", keywords = "copy paste history pin clip" },
 }
 
 return require("page_registry").new(M)

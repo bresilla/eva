@@ -5,7 +5,8 @@
 local morf = require("morf")
 local session = require("themes.session")
 
-local M = { name = "tools", title = "Tools", search_hint = "Search tools", page_max = 1040, preload = false }
+local M = { name = "tools", title = "Tools", search_hint = "Search tools", page_max = 1040, preload = false,
+  forget = true }
 
 M.registry = require("tools_registry")
 local HOME = M.registry.HOME
