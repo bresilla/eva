@@ -1,16 +1,18 @@
 # The right panel's quick controls, then the Settings window over everything:
-# the home, a category, a nested page, Sound with its mixer and Displays, and
-# the window opening and closing a frame at a time. The sound server is the
-# stand-in, so the mixer has something to show.
+# the home, a category, a nested page, Sound with its mixer and Displays over
+# two outputs, and the window opening and closing a frame at a time. The sound
+# server is the stand-in, so the mixer has something to show.
 export EVA_FAKE_AUDIO=1
+swaymsg create_output > /dev/null
+pause 0.3
 start shell
 ipc sidebar open settings; pause 1.4; shot panel
-ipc settings; pause 1.4; shot home
+ipc settings home; pause 1.4; shot home
 ipc settings home/connections; pause 1; shot category
 ipc settings bluetooth; pause 1; shot page
 ipc settings bar/tray; pause 1; shot nested
 ipc settings sound; pause 1.2; shot sound
-ipc settings displays; pause 1.2; shot displays
+ipc settings displays; pause 1.6; shot displays
 ipc settings theme/fonts; pause 1.2; shot fonts
 ipc settings startup; pause 1.2; shot startup
 ipc settings updates; pause 1.2; shot updates
