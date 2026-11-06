@@ -234,17 +234,12 @@ return function(theme)
       opacity=0,visible=false}
     ui.reparent(glow,panel)
     ui.reparent(flash,panel)
-    -- A booted panel's lock corners are longer and the primary's; the
-    -- keyboard's are as they were.
-    local CL=boot and 22 or 16
-    local CD=("M0 0 H%d V2 H2 V%d H0 Z"):format(CL,CL)
-    local function corner_ink() return boot and theme.color.primary or theme.color.secondary end
     local corner_a=ui.Path {id=id.."-lock-corner-a",z=103,anchors={left=true,top=true},
-      width=CL,height=CL,view_box={0,0,CL,CL},d=CD,
-      fill_color=corner_ink,opacity=0,visible=false}
+      width=16,height=16,view_box={0,0,16,16},d="M0 0 H16 V2 H2 V16 H0 Z",
+      fill_color=function() return theme.color.secondary end,opacity=0,visible=false}
     local corner_b=ui.Path {id=id.."-lock-corner-b",z=103,anchors={right=true,bottom=true},
-      width=CL,height=CL,rotation=180,view_box={0,0,CL,CL},d=CD,
-      fill_color=corner_ink,opacity=0,visible=false}
+      width=16,height=16,rotation=180,view_box={0,0,16,16},d="M0 0 H16 V2 H2 V16 H0 Z",
+      fill_color=function() return theme.color.secondary end,opacity=0,visible=false}
     local pip=ui.Rect {id=id.."-lock-pip",z=103,anchors={top=true,horizontal_center=true},
       y=7,width=5,height=5,color=function() return theme.color.primary end,
       opacity=0,visible=false}
@@ -302,22 +297,20 @@ return function(theme)
           if not boot then return {node=node,property=property,from=from*7/9,to=0,duration=280,easing="out_cubic"} end
           return {node=node,property=property,duration=280,keyframes=snap(from)}
         end
-        -- A booted panel keeps its lock corners lit at rest.
-        local kept=boot and .85 or 0
         lock_motion=morf.animation.play {{parallel={
           corner(corner_a,"translate_x",-9), corner(corner_a,"translate_y",-9),
           corner(corner_b,"translate_x",9), corner(corner_b,"translate_y",9),
           {node=corner_a,property="opacity",duration=360,keyframes={
-            {at=0,value=0},{at=.18,value=1},{at=.55,value=.56},{at=1,value=kept}}},
+            {at=0,value=0},{at=.18,value=.86},{at=.55,value=.56},{at=1,value=0}}},
           {node=corner_b,property="opacity",duration=360,keyframes={
-            {at=0,value=0},{at=.18,value=1},{at=.55,value=.56},{at=1,value=kept}}},
+            {at=0,value=0},{at=.18,value=.86},{at=.55,value=.56},{at=1,value=0}}},
           {node=pip,property="opacity",duration=360,keyframes={
             {at=0,value=0},{at=.12,value=1},{at=.32,value=0},
             {at=.55,value=1},{at=.75,value=0},{at=1,value=0}}},
         }},on_finished=function(reason)
           if generation~=own then return end
           if reason=="completed" and generation==own then
-            corner_a.visible,corner_b.visible,pip.visible=kept>0,kept>0,false
+            corner_a.visible,corner_b.visible,pip.visible=false,false,false
           end
           lock_motion=nil
         end}
