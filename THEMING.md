@@ -647,9 +647,11 @@ beneath its cover and cancels stale transitions on closing or rapid navigation.
 `views.settings_window.build(model)` returns `node`, the whole screen, `window`,
 the dialog a press outside shuts, and `shown(open)`. `shell/settings_window.lua`
 hands it the utilities' model with `phone`, `size()`, `top` (a phone's cutout),
-`nested()`, `can_back()`, `searching()` and `covered()`. `V.geometry(w, h,
-phone)` is the window's box: centred at `V.SHARE` (seven tenths) of a desk, the
-whole of a phone. The view draws the dim, the ground and the head with the
+`nested()`, `can_back()`, `searching()`, `covered()`, `elsewhere()` (open on
+another screen, which this one dims) and `dismiss()` (a press on any dim).
+`V.geometry(w, h, phone)` is the window's box: centred at `V.SHARE` (seven
+tenths) of a desk, the whole of a phone. The view draws the dim, the ground and
+the head with the
 layout's parts, takes the left column from `views.settings_home.navigation(model,
 w, h)` and keeps each page it has shown built under `settings-detail-<key>`; it
 comes and goes through `theme.motion.appear` with `content = false`. The frame

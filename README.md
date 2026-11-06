@@ -1207,7 +1207,8 @@ or rebuilds in response to monitor metadata. Locking remains independent.
 
 Settings is a window of the shell's own, over everything: on a desk it stands in
 the middle, seven tenths of the screen, and dims the rest; on a phone it fills
-the screen. Escape, a press on the dimmed screen and its close control shut it.
+the screen. Every other screen dims with it. Escape, a press on any dimmed
+screen and its close control shut it.
 On a desk the left column has the search, the categories and their pages, and
 the right one the page on show; a page one level into another has Back. On a
 phone it is one page at a time, Back going up to All settings. It comes and goes
