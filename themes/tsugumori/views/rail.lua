@@ -131,7 +131,7 @@ function V.build(model)
     if from == to then return end
     local a, b = center(from), center(to)
     local ahead = b > a
-    -- Flipped about its middle on the way back, so the head still leads.
+    -- Flipped about its middle on the way back: the head leads.
     trace[B and "scale_x" or "scale_y"] = ahead and 1 or -1
     local function lead(at) return ahead and at - SEG or at end
     trace[along], trace.visible = lead(a), true

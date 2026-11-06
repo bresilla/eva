@@ -324,8 +324,8 @@ return function(theme)
     captions.index = captions.index + 1
     return captions.index
   end
-  --- Stripes `/` across a block `x`..`x + 34`, 4..12 high, and the lead
-  --- under the index plate.
+  --- The lead under the index plate and, `striped`, a block of `/` stripes
+  --- 4..12 high ending a little short of `vw`.
   local function hazard_d(vw, striped)
     local out = { "M0 14 H20 V16 H0 Z " }
     if striped and vw > 120 then
@@ -491,7 +491,8 @@ return function(theme)
     return marks
   end
   --- The chrome onto `props` (a card's or a panel's children) after what it
-  --- holds; `fill` the ground under it, or nil. Returns the registry entry.
+  --- holds: `fill` the cut box's fill, or `ground` the colour its cut
+  --- corners are painted out in. Returns the registry entry.
   local function card_chrome(props, fill, ground)
     serial_count = serial_count + 1
     local serial = SERIAL[serial_count % 8]

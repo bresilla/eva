@@ -1,5 +1,4 @@
--- Segment digits for rulers and scales: each digit 3 x 5 px of 1 px strokes,
--- 4 px apart, drawn into a path's data rather than as text.
+-- Segment digits, 3 x 5 px of 1 px strokes 4 px apart, as path data.
 local SEGMENTS = {
   a = { 0, .5, 3, .5 }, g = { 0, 2.5, 3, 2.5 }, d = { 0, 4.5, 3, 4.5 },
   f = { .5, 0, .5, 3 }, b = { 2.5, 0, 2.5, 3 }, e = { .5, 2, .5, 5 }, c = { 2.5, 2, 2.5, 5 },

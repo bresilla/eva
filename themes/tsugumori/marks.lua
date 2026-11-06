@@ -1,13 +1,10 @@
--- The chrome a boot pass drives, by node: each card's corner brackets,
--- outline and lit cuts (`cards`), each section caption's plate and rule
--- (`captions`), and the readings and meters that replay on an opening
--- (`values`: a `play(delay)` returning its stop). Held until the node is
--- destroyed, and let go the next time a pass looks.
+-- The chrome a boot pass drives, by node: cards' brackets, outlines and cuts,
+-- captions' plates and rules, and readings that replay (`play(delay)` -> stop),
+-- held until the node is destroyed.
 local R = { cards = {}, captions = {}, values = {}, OUTLINE = .6 }
 
 local function read(node) return node.layout_x, node.layout_y, node.layout_width, node.layout_height end
---- The layout box of `node` as the last frame laid it out, or nil; and
---- false for a node that is gone.
+--- `node`'s last layout box, or nil (and false for a node that is gone).
 function R.box(node)
   local ok, x, y, w, h = pcall(read, node)
   if not ok then return nil, false end
@@ -15,8 +12,7 @@ function R.box(node)
   return x, y, w, h
 end
 
---- The nodes of `set` laid out over `host`'s box, top first, each with
---- its box and where its top stands in the host (0..1).
+--- `set`'s nodes laid out over `host`, top first, with where each top stands (0..1).
 function R.within(set, host)
   local hx, hy, hw, hh = R.box(host)
   local out = {}

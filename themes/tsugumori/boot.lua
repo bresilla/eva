@@ -14,7 +14,7 @@ local registry = require("themes.tsugumori.marks")
 local OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
 local SCAN, TRAIL = 300, 64
 
---- A keyframe track waits out its `delay` in a sequence: keyframes take none.
+--- A keyframe track behind a pause of its `delay`.
 local function timed(t)
   local d = t.delay
   if not t.keyframes or not d or d <= 0 then return t end
@@ -74,7 +74,7 @@ return function(theme)
 
   --- The marks of card `entry` flying onto `box` (a layout box) from
   --- `reach` px out after `delay` ms: its own handle, stopping the last.
-  --- Lands `entry`'s flight (started tracks run on past a stop).
+  --- Lands `entry`'s flight on its rest pose.
   local function land(entry)
     if entry.flight then local flown = entry.flight entry.flight = nil pcall(flown.finish, flown) end
   end
