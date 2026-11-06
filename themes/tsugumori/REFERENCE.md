@@ -83,29 +83,57 @@ reference. All of it uses wallpaper roles and stops at rest.
 
 - `boot.lua`: one finite pass over a host. The outline traces in from the
   top-left corner both ways (one path, `trim_start`/`trim_end` out from 0.5),
-  four brackets hold, step in and settle on an expo curve, a scan line with a
-  secondary trail crosses, and a register of static words prints and fades.
-  Nodes are made on the first pass and hidden when it ends; a stop fades
-  them over 90 ms. Drawers (all but the keyboard) play it under the uncover,
-  with the unit call sign of `curtain.lua` as the register.
-- `motion.lock_on(host, id)`: brackets close onto a host from outside and a
-  scan crosses it. The OSD bud and the session menu's focused row use it;
-  Material's hook draws nothing. Notification arrivals (`registration.lua`)
-  and popup grounds (`widgets/popup.lua`) play the same pass directly.
-- `dots.lua`: a dashed-row dot grid behind the dashboard, side, planner and
-  bottom panels, one path per panel.
-- Cards (`kit.card`) carry a foot tick ruler, a serial strip and side index
-  notches, all fixed-size paths; their brackets snap in with each entry.
-  `kit.decor` draws `ticks` and `scale` in the boxes layouts reserve.
-- Captions carry an accent lead and an end stop; the frame has registration
-  Ls at the opening's corners and index notches mid-edge; a workspace switch
-  traces along the rail's lip and the workspace card boots.
+  four brackets hold, step in and settle with an overshoot, a 2 px scan line
+  with a glowing trail sweeps it top to bottom in 300 ms, and a register of
+  static words prints and fades. Nodes are made on the first pass and hidden
+  when it ends; a stop fades them over 90 ms.
+- The content pass (`B.content`) boots what is laid out under the host as
+  the scan reaches it: each card's outline draws itself in, its brackets
+  fly in from the host's corners and snap on past their corner and back,
+  its lit cuts flicker on, section captions light their plate and run
+  their rule out, readings decode (`kit.decoding`), rolling numbers roll
+  in, meters refill cell by cell and gauges sweep up. `marks.lua` holds
+  what it drives, by node, until the node is destroyed; a pass looks it up
+  by layout box, in three turns of its own (cards, captions, readings), at
+  most 32 of each. A stop lands every track on its rest pose.
+- Drawers (all but the keyboard and the notification stack) play the pass
+  as their cover all but lifts, so it runs over the content, with the unit
+  call sign of `curtain.lua` as the register; a dashboard tab plays its
+  content pass as the wipe uncovers it.
+- `motion.lock_on(host, id)`: heavy brackets close onto a host from outside,
+  a scan crosses it and its content boots, looked up as the pass begins
+  (the host may still be growing). The OSD bud, the session menu's focused
+  row and dialogs in place use it; Material's hook draws nothing.
+  Notification arrivals (`registration.lua`) lock on with heavier brackets
+  from further out and flash the card's header band; popup grounds
+  (`widgets/popup.lua`) play the boot pass directly.
+- `dots.lua`: a dot grid behind the dashboard, side, planner and bottom
+  panels, with a small cross every fourth step: two paths per panel.
+- Cards (`kit.card`) and framed panels (`kit.panel`) are cut at 45 degrees
+  on the top-left and bottom-right; the cuts are lit and run on along the
+  top and the foot, the outline sits at 0.6, four 16 px brackets two wide
+  stand on the corners, and a foot ruler, a serial strip and side notches
+  share one path. The box and its geometry are the layout's; only the
+  paint is cut (a field card has its corners painted out in the ground).
+- Section captions (one built just after its card) carry an index plate,
+  numbered in card order per page; the rule runs to the caption's end
+  tick with a block of hazard stripes before it. Menus and rows have none.
+- `kit.decor`: `corners` are heavy brackets the pass flies in; `ticks` and
+  `scale` draw in the boxes layouts reserve, a scale's long ticks numbered
+  in segment digits (`digits.lua`).
+- The frame's top and bottom edges count screen pixels: a long tick every
+  hundred with its number in segment digits, a middle one every fifty, a
+  short one every ten. The corner reticles are 46 px Ls with a pip in the
+  band's corner. A workspace switch sends a bright segment with a glowing
+  tail along the rail's lip, which fades where it lands.
 - Page covers slice into three bands a step apart. Rows enter on a decode
   curve (two flickers, then a settle). Meters light whole cells in sequence
   from wherever the run stands. Readouts glitch once on a change, at most
   every five seconds.
-- Feedback: a hovered control's diagonal marks close in from further out,
-  a press scans down it, and keyboard focus brackets lock on.
+- Feedback: a hovered control's four brackets close in from 12 px out and
+  snap on, a press sends a bright bar with a trail across it, and the
+  keyboard focus reticle slides from the control it left. An on-screen
+  keyboard's keys keep their two marks and no scan.
 
 The moving light blade on drawer and page reveals uses the registration-edge
 motif from [Tsugumori](https://github.com/Aleph1-9012/Tsugumori) and the brief
