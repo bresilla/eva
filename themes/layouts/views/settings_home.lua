@@ -1,11 +1,12 @@
--- All settings: a search box over every page and setting, and the pages by
--- category. The box takes focus as the page comes on show, Enter opens the
--- first result, and leaving the page clears it.
+-- The home of a window of pages (Settings, Tools): a search box over every page
+-- and what each holds, and the pages by category. The box takes focus as the
+-- page comes on show, Enter opens the first result, and leaving the page clears
+-- it. `model.registry` is the window's book (shell/page_registry.lua) and
+-- `model.name` the prefix of its ids, `settings` without one.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
 local kit = require("kit")
-local registry = require("settings_registry")
 local P = require("themes.layouts.page")
 local F = require("themes.layouts.form")
 local rows = require("themes.layouts.rows")
@@ -16,8 +17,15 @@ local M = {}
 local RESULTS = 12
 local NAMED = 3
 
+-- The book, the ids' prefix and the search's hint of `model`.
+local function book(model)
+  local name = model.name or "settings"
+  return model.registry or require("settings_registry"), name, model.search_hint or ("Search " .. name)
+end
+
 --- The first pages of `category` this machine has, for its row.
 function M.names(model, category)
+  local registry = book(model)
   local names = {}
   for _, entry in ipairs(registry.category(category.id)) do
     if model.page_present(entry.key) then names[#names + 1] = entry.name end
@@ -28,25 +36,25 @@ end
 
 --- One category's pages.
 function M.category(model, category, w, h)
+  local registry, name = book(model)
   local inner = P.inner(w)
-  local section = { id = "settings-pages-" .. category.id, width = w }
+  local section = { id = name .. "-pages-" .. category.id, width = w }
   for _, entry in ipairs(registry.category(category.id)) do
-    section[#section + 1] = P.row { id = "settings-open-" .. entry.key:gsub("/", "-"), width = inner, icon = entry.icon,
+    section[#section + 1] = P.row { id = name .. "-open-" .. entry.key:gsub("/", "-"), width = inner, icon = entry.icon,
       title = entry.name, subtitle = entry.summary, trailing = P.chevron(),
       visible = function() return model.page_present(entry.key) end,
       on_clicked = function() model.request(entry.key, category.key) end }
   end
-  return ui.Item { id = "settings-category-page-" .. category.id, width = w, height = h,
-    P.page { id = "settings-" .. category.id .. "-scroll", width = w, height = h, active = model.active,
+  return ui.Item { id = name .. "-category-page-" .. category.id, width = w, height = h,
+    P.page { id = name .. "-" .. category.id .. "-scroll", width = w, height = h, active = model.active,
       P.section(section) } }
 end
 
-function M.build(model, w, h)
-  local inner = P.inner(w)
-  local query = morf.signal("eva.settings.home.query", "")
-  -- Each row reads the list: the search itself runs once for what is typed.
+-- The search over `registry` as typed into `query`: what this machine has, at
+-- most RESULTS of it. Each row reads the list; the search runs once per text.
+local function finder(model, registry, query)
   local searched, found = nil, {}
-  local function results()
+  return function()
     local typed = query:get()
     if typed ~= searched then searched, found = typed, registry.search(typed) end
     local out = {}
@@ -56,6 +64,27 @@ function M.build(model, w, h)
     end
     return out
   end
+end
+
+-- The rows of what the search found, `chevron` at their right.
+local function hits(registry, name, width, results, open, chevron)
+  return F.list(width, name .. "-result-", function() return #results() end, function(index, row_w)
+    local function entry() return results()[index] or {} end
+    return P.row { id = name .. "-hit-" .. index, width = row_w, icon = function() return entry().icon or "settings" end,
+      title = function() return entry().name or "" end,
+      subtitle = function()
+        local e = entry()
+        return e.page or (registry.BY_KEY[e.key or ""] or {}).summary or ""
+      end,
+      trailing = chevron and P.chevron() or nil, on_clicked = function() open(entry()) end }
+  end, "Nothing matches", RESULTS)
+end
+
+function M.build(model, w, h)
+  local registry, name, hint = book(model)
+  local inner = P.inner(w)
+  local query = morf.signal("eva." .. name .. ".home.query", "")
+  local results = finder(model, registry, query)
   local function searching() return query:get():find("%S") ~= nil end
   local box, handle
   local function clear()
@@ -63,65 +92,57 @@ function M.build(model, w, h)
     handle.text = ""
   end
   local function open(entry) model.request(entry.key, registry.HOME) end
-  box, handle = P.field { id = "settings-search", kind = "search", width = w, placeholder = "Search settings",
+  box, handle = P.field { id = name .. "-search", kind = "search", width = w, placeholder = hint,
     on_changed = function(value) query:set(value) end,
     on_accepted = function() local first = results()[1] if first then open(first) end end,
     on_escape = clear }
 
-  local hits = F.list(inner, "settings-result-", function() return #results() end, function(index, width)
-    local function entry() return results()[index] or {} end
-    return P.row { id = "settings-hit-" .. index, width = width, icon = function() return entry().icon or "settings" end,
-      title = function() return entry().name or "" end,
-      subtitle = function()
-        local e = entry()
-        return e.page or (registry.BY_KEY[e.key or ""] or {}).summary or ""
-      end,
-      trailing = P.chevron(), on_clicked = function() open(entry()) end }
-  end, "Nothing matches", RESULTS)
-
-  local categories = { id = "settings-categories", width = w, visible = function() return not searching() end }
+  local categories = { id = name .. "-categories", width = w, visible = function() return not searching() end }
   for _, category in ipairs(registry.CATEGORIES) do
-    categories[#categories + 1] = P.row { id = "settings-category-" .. category.id, width = inner, icon = category.icon,
+    categories[#categories + 1] = P.row { id = name .. "-category-" .. category.id, width = inner, icon = category.icon,
       title = category.name, subtitle = function() return M.names(model, category) end, trailing = P.chevron(),
       on_clicked = function() open(category) end }
   end
 
-  local page = { id = "settings-home-scroll", width = w, height = h, active = model.active,
+  local page = { id = name .. "-home-scroll", width = w, height = h, active = model.active,
     box,
-    P.section { id = "settings-results", width = w, title = "Results", visible = searching, hits },
+    P.section { id = name .. "-results", width = w, title = "Results", visible = searching,
+      hits(registry, name, inner, results, open, true) },
     P.section(categories),
   }
 
-  morf.effect("eva.settings.home.focus", function()
+  morf.effect("eva." .. name .. ".home.focus", function()
     local on = model.active() == true
     if not on then clear() end
     handle.focus = on
   end)
-  return ui.Item { id = "settings-home", width = w, height = h, P.page(page) }
+  return ui.Item { id = name .. "-home", width = w, height = h, P.page(page) }
 end
 
---- Every page this machine has, by category: All settings beside a desk's
---- way round, where the categories already stand.
+--- Every page this machine has, by category: the home beside a desk's way
+--- round, where the categories already stand.
 function M.index(model, w, h)
+  local registry, name = book(model)
   local inner = P.inner(w)
-  local page = { id = "settings-index-scroll", width = w, height = h, active = model.active }
+  local page = { id = name .. "-index-scroll", width = w, height = h, active = model.active }
   for _, category in ipairs(registry.CATEGORIES) do
-    local section = { id = "settings-index-" .. category.id, width = w, title = category.name }
+    local section = { id = name .. "-index-" .. category.id, width = w, title = category.name }
     for _, entry in ipairs(registry.category(category.id)) do
-      section[#section + 1] = P.row { id = "settings-index-open-" .. entry.key:gsub("/", "-"), width = inner,
+      section[#section + 1] = P.row { id = name .. "-index-open-" .. entry.key:gsub("/", "-"), width = inner,
         icon = entry.icon, title = entry.name, subtitle = entry.summary, trailing = P.chevron(),
         visible = function() return model.page_present(entry.key) end,
         on_clicked = function() model.request(entry.key, category.key) end }
     end
     page[#page + 1] = P.section(section)
   end
-  return ui.Item { id = "settings-index", width = w, height = h, P.page(page) }
+  return ui.Item { id = name .. "-index", width = w, height = h, P.page(page) }
 end
 
---- The category `key` is filed under, and the page the way round marks for
---- it: the route itself, or the first of its parents a category holds. A
---- category's own page marks no page.
-function M.place(key)
+--- The category `key` is filed under in `registry` (Settings' without one),
+--- and the page the way round marks for it: the route itself, or the first of
+--- its parents a category holds. A category's own page marks no page.
+function M.place(key, registry)
+  registry = registry or require("settings_registry")
   local page = registry.BY_KEY[key]
   while page do
     if page.category then return page.category, page.key end
@@ -134,29 +155,21 @@ end
 
 local NAV_ROW, NAV_PAGE = 40, 34
 
---- A desk's way round Settings, beside the page: the search over every page
---- and setting, then the categories, the one on show open on its pages.
---- `model`: `detail` (the route), `request`, `page_present`, `searching`
---- (fn: the search takes focus while it holds).
+--- A desk's way round the window, beside the page: the search over every page
+--- and what each holds, then the categories, the one on show open on its
+--- pages. `model`: `detail` (the route), `request`, `page_present`,
+--- `searching` (fn: the search takes focus while it holds).
 function M.navigation(model, w, h)
-  local query = morf.signal("eva.settings.nav.query", "")
-  local open = morf.signal("eva.settings.nav.open", "")
+  local registry, name, hint = book(model)
+  local query = morf.signal("eva." .. name .. ".nav.query", "")
+  local open = morf.signal("eva." .. name .. ".nav.open", "")
   local function route() return model.detail:get() end
-  morf.effect("eva.settings.nav.follow", function()
-    local category = M.place(route())
+  local function place(key) return M.place(key, registry) end
+  morf.effect("eva." .. name .. ".nav.follow", function()
+    local category = place(route())
     if category then open:set(category) end
   end)
-  local searched, found = nil, {}
-  local function results()
-    local typed = query:get()
-    if typed ~= searched then searched, found = typed, registry.search(typed) end
-    local out = {}
-    for _, entry in ipairs(found) do
-      if model.page_present(entry.present or entry.key) then out[#out + 1] = entry end
-      if #out >= RESULTS then break end
-    end
-    return out
-  end
+  local results = finder(model, registry, query)
   local function searching() return query:get():find("%S") ~= nil end
   local box, handle
   local function clear()
@@ -164,20 +177,11 @@ function M.navigation(model, w, h)
     handle.text = ""
   end
   local function go(entry) clear() model.request(entry.key, registry.HOME) end
-  box, handle = P.field { id = "settings-search", kind = "search", width = w, placeholder = "Search settings",
+  box, handle = P.field { id = name .. "-search", kind = "search", width = w, placeholder = hint,
     on_changed = function(value) query:set(value) end,
     on_accepted = function() local first = results()[1] if first then go(first) end end,
     on_escape = clear }
-  local hits = F.list(w, "settings-result-", function() return #results() end, function(index, width)
-    local function entry() return results()[index] or {} end
-    return P.row { id = "settings-hit-" .. index, width = width, icon = function() return entry().icon or "settings" end,
-      title = function() return entry().name or "" end,
-      subtitle = function()
-        local e = entry()
-        return e.page or (registry.BY_KEY[e.key or ""] or {}).summary or ""
-      end,
-      on_clicked = function() go(entry()) end }
-  end, "Nothing matches", RESULTS)
+  local found = hits(registry, name, w, results, go, false)
 
   -- The rows keep clear of the scroll bar at the right.
   local rw = w - S.s
@@ -185,13 +189,13 @@ function M.navigation(model, w, h)
     return kit.menu_label { x = x, width = rw - x - S.xxl, anchors = { vertical_center = true }, elide = "right",
       text = text, font_size = size, color = ink }
   end
-  local list = { id = "settings-nav", width = rw, gap = S.xxs, visible = function() return not searching() end }
+  local list = { id = name .. "-nav", width = rw, gap = S.xxs, visible = function() return not searching() end }
   local placed = {}
   for _, category in ipairs(registry.CATEGORIES) do
     local function chosen() return route() == category.key end
     local function unfolded() return open:get() == category.id end
     local ink = rows.ink(chosen)
-    list[#list + 1] = rows.choice { id = "settings-nav-" .. category.id, width = rw, height = NAV_ROW, on = chosen,
+    list[#list + 1] = rows.choice { id = name .. "-nav-" .. category.id, width = rw, height = NAV_ROW, on = chosen,
       on_clicked = function()
         if unfolded() and chosen() then open:set("") return end
         open:set(category.id)
@@ -203,9 +207,9 @@ function M.navigation(model, w, h)
         { anchors = { right = true, right_margin = S.s, vertical_center = true } }) }
     placed[category.key] = list[#list]
     for _, entry in ipairs(registry.category(category.id)) do
-      local function marked() local _, key = M.place(route()) return key == entry.key end
+      local function marked() local _, key = place(route()) return key == entry.key end
       local mark = rows.ink(marked)
-      list[#list + 1] = rows.choice { id = "settings-nav-page-" .. entry.key:gsub("/", "-"), width = rw,
+      list[#list + 1] = rows.choice { id = name .. "-nav-page-" .. entry.key:gsub("/", "-"), width = rw,
         height = NAV_PAGE, on = marked,
         visible = function() return unfolded() and model.page_present(entry.key) end,
         on_clicked = function() model.request(entry.key, category.key) end,
@@ -215,12 +219,12 @@ function M.navigation(model, w, h)
     end
   end
   local body_h = function() return math.max(1, (type(h) == "function" and h() or h) - 36 - S.m) end
-  local scroll, flick = kit.scroll { id = "settings-nav-scroll", width = w, height = body_h, clip = true,
+  local scroll, flick = kit.scroll { id = name .. "-nav-scroll", width = w, height = body_h, clip = true,
     ui.Column { width = w, gap = S.s, ui.Column(list),
-      ui.Column { width = w, gap = P.ROW_GAP, visible = searching, hits } } }
+      ui.Column { width = w, gap = P.ROW_GAP, visible = searching, found } } }
   -- The row the route marks scrolls into sight, once its category has opened.
-  morf.effect("eva.settings.nav.reveal", function()
-    local category, key = M.place(route())
+  morf.effect("eva." .. name .. ".nav.reveal", function()
+    local category, key = place(route())
     local row = placed[key or ""] or placed[category and (registry.HOME .. "/" .. category) or ""]
     if not (row and flick) then return end
     morf.time.timer(theme.duration.small, function()
@@ -230,12 +234,12 @@ function M.navigation(model, w, h)
     end, false)
   end)
   -- (A turn later: a panel stepping aside hands focus back as it shuts.)
-  morf.effect("eva.settings.nav.focus", function()
+  morf.effect("eva." .. name .. ".nav.focus", function()
     local on = model.searching() == true
     if not on then clear() end
     morf.time.timer(1, function() handle.focus = model.searching() == true end, false)
   end)
-  return ui.Item { id = "settings-navigation", width = w, height = h, box,
+  return ui.Item { id = name .. "-navigation", width = w, height = h, box,
     ui.Item { y = 36 + S.m, width = w, height = body_h, scroll } }
 end
 

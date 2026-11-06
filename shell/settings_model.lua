@@ -549,6 +549,8 @@ function M.set_motion_style(style) config.set("appearance.motion", style) end
 function M.reduce_motion() return config.get("appearance.reduce_motion") == true end
 function M.set_reduce_motion(on) config.set("appearance.reduce_motion", on == true) end
 
+--- The window's book (shell/window_host.lua): its ids' prefix and name.
+M.name, M.title = "settings", "Settings"
 --- Whether the Settings window is open over everything, its pages on show.
 M.opened = require("themes.session").keep("eva.settings.opened", false)
 --- Whether the quick controls are on show: the panel holding Settings, open on it.
@@ -578,6 +580,7 @@ function M.open()
   if M.detail:get()=="" then M.navigation.request(M.registry.HOME) end
   if M.opened:get() then return end
   require("pages").put_away("settings")
+  if package.loaded.window_host then package.loaded.window_host.only(M) end
   M.opened:set(true)
 end
 --- The Settings window shut.

@@ -7,7 +7,9 @@ local morf=require("morf")
 local control=require("lib.kit.control")
 local M={}
 local made=0
-function M.new(pages, selected, aliases)
+--- `pages` (`{ key, name, parent }`), `selected` (the route's signal),
+--- `aliases` (old route -> route), `root` (the breadcrumb's first name).
+function M.new(pages, selected, aliases, root)
   local by_key={}
   for _,page in ipairs(pages) do
     assert(type(page.key)=="string" and page.key~="" and not by_key[page.key],"Duplicate settings route")
@@ -81,7 +83,7 @@ function M.new(pages, selected, aliases)
     return {["alt+Left"]=pop,["back"]=pop}
   end
   function tree.breadcrumb()
-    local names={"Settings"}
+    local names={root or "Settings"}
     local path=tree.path(selected:get())
     for i=1,#path-1 do names[#names+1]=path[i].name end
     return table.concat(names," / ")

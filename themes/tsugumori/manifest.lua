@@ -29,7 +29,7 @@ return {
     quick_session = "themes.layouts.views.quick_session",
     quick_pages = "themes.layouts.views.quick_pages",
     settings_home = "themes.layouts.views.settings_home",
-    settings_window = "themes.layouts.views.settings_window",
+    page_window = "themes.layouts.views.page_window",
     settings_form = "themes.layouts.views.settings_form",
     settings_input = "themes.layouts.views.settings_input",
     settings_system = "themes.layouts.views.settings_system",

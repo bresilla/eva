@@ -1,8 +1,9 @@
--- The Settings window (shell/settings_window.lua): every page of the registry
--- over everything, the rest of the screen dimmed under it. On a desk it stands
--- in the middle, seven tenths of the screen each way, with the way round
--- (search, categories, their pages) beside the page; on a phone it fills the
--- screen with one page at a time. The pages are the model's builders.
+-- A window of pages over the shell (shell/window_host.lua): Settings, Tools,
+-- every page of its book over everything, the rest of the screen dimmed under
+-- it. On a desk it stands in the middle, seven tenths of the screen each way,
+-- with the way round (search, categories, their pages) beside the page; on a
+-- phone it fills the screen with one page at a time. The pages are the
+-- model's builders.
 local morf = require("morf")
 local ui = require("morf.ui")
 local theme = require("theme")
@@ -29,6 +30,7 @@ end
 --- kept. A pull in from the left edge goes back, the page it goes back to
 --- showing beneath.
 local function pages(model, w, h)
+  local name = model.name
   local pull_x = model.peek
   local function pull() return pull_x:get() end
   local function peek() return math.min(1, pull() / math.max(1, w)) end
@@ -40,16 +42,21 @@ local function pages(model, w, h)
     return parent ~= "" and parent or nil
   end
   -- The pages built so far, a row each: a page is built as it first opens.
-  local built, have = morf.list_model({}), {}
+  -- Those with actions for the head have a row in `acting` too.
+  local built, acting, have = morf.list_model({}), morf.list_model({}), {}
+  local function add(list, key)
+    local rows = {}
+    for index = 1, list:len() do rows[index] = list:get(index) end
+    rows[#rows + 1] = { id = key }
+    list:replace(rows, "id")
+  end
   local function want(key)
     if key == "" or have[key] or parents[key] == nil then return end
     have[key] = true
-    local rows = {}
-    for index = 1, built:len() do rows[index] = built:get(index) end
-    rows[#rows + 1] = { id = key }
-    built:replace(rows, "id")
+    add(built, key)
+    if model.has_actions and model.has_actions(key) then add(acting, key) end
   end
-  morf.effect("eva.settings.window.pages", function()
+  morf.effect("eva." .. name .. ".window.pages", function()
     if model.opened:get() then want(model.detail:get()) end
   end)
   local function page(row)
@@ -57,7 +64,7 @@ local function pages(model, w, h)
     local function current() return model.detail:get() == key end
     local function peeked() return peek_key() == key end
     local node = ui.Item {
-      id = "settings-detail-" .. key, width = w, height = h,
+      id = name .. "-detail-" .. key, width = w, height = h,
       visible = function() return current() or peeked() end,
       opacity = function() return current() and 1 or peeked() and .4 + .6 * peek() or 0 end,
       scale = function()
@@ -76,7 +83,15 @@ local function pages(model, w, h)
       b_rest = { set = { translate_x = function() return (current() or peeked()) and 0 or 20 end } } })
     return node
   end
-  local node = ui.Item { id = "settings-detail", width = w, height = h, clip = true,
+  -- What a built page puts in the head beside the close control, while on show.
+  local made = {}
+  local function actions(row)
+    local key = row.id
+    made[key] = model.page_actions(key)
+    return ui.Item { visible = function() return model.detail:get() == key end, made[key] }
+  end
+  local function shown_actions() return made[model.detail:get()] end
+  local node = ui.Item { id = name .. "-detail", width = w, height = h, clip = true,
     ui.Repeater { model = built, delegate = page } }
   local gesture = require("gesture_motion")
   local pulling
@@ -101,14 +116,19 @@ local function pages(model, w, h)
       end
     end
   end
-  return node
+  return node, model.has_actions and ui.Item { visible = function() return shown_actions() ~= nil end,
+    width = function() local on = shown_actions() return on and on.layout_width or 0 end,
+    height = function() local on = shown_actions() return on and on.layout_height or 0 end,
+    ui.Repeater { model = acting, delegate = actions } }
 end
 
---- `model`: the settings model (shell/settings_model.lua with utilities.lua's
---- `page_content`), plus `phone` (one page at a time), `size()` (the screen's)
---- and `top` (what the screen's top keeps for itself). Returns `node`, the
---- `window` a press outside shuts, and `shown(open)`.
+--- `model`: the window's book (shell/window_host.lua: `name`, the ids' prefix;
+--- `title`; `registry`; the navigation's signals and `page_content`), plus
+--- `phone` (one page at a time), `size()` (the screen's) and `top` (what the
+--- screen's top keeps for itself). Returns `node`, the `window` a press
+--- outside shuts, and `shown(open)`.
 function V.build(model)
+  local name, title = model.name, model.title
   local sw, sh = model.size()
   local x, y, w, h = V.geometry(sw, sh, model.phone)
   local PAD = S.l
@@ -116,7 +136,7 @@ function V.build(model)
   local nav_w = model.phone and 0 or V.NAV_W
   local pane_x = model.phone and PAD or 2 * PAD + nav_w + 1 + PAD
   local room = w - pane_x - PAD
-  local pane_w = math.min(room, V.PAGE_MAX)
+  local pane_w = math.min(room, model.page_max or V.PAGE_MAX)
   pane_x = pane_x + math.floor((room - pane_w) / 2)
   local head_h = math.max(P.HEADER_H, P.BUTTON_H)
   local body_y = top + head_h + P.GAP
@@ -133,20 +153,22 @@ function V.build(model)
   end
   -- The page's head and body, and beside them on a desk the way round.
   local function content()
-    local close = L.icon_button { id = "settings-close", icon = "close", name = "Close Settings",
+    local body, page_actions = pages(model, pane_w, body_h)
+    local close = L.icon_button { id = name .. "-close", icon = "close", name = "Close " .. title,
       width = P.BUTTON_H, height = P.BUTTON_H, on_clicked = model.close }
-    local head = P.header { id = "settings-window-head", width = pane_w, title_id = "settings-page-title",
-      title = function() return names[key()] or "Settings" end,
+    local head = P.header { id = name .. "-window-head", width = pane_w, title_id = name .. "-page-title",
+      title = function() return names[key()] or title end,
       subtitle = subtitle,
-      back = model.back, back_id = "settings-back", can_back = model.can_back, actions = { close },
-      active = function() return require("presentation").active("settings." .. key())() end }
-    local parts = { id = "settings-window-content", anchors = { fill = true },
+      back = model.back, back_id = name .. "-back", can_back = model.can_back,
+      actions = page_actions and { page_actions, close } or { close },
+      active = function() return require("presentation").active(name .. "." .. key())() end }
+    local parts = { id = name .. "-window-content", anchors = { fill = true },
       ui.Item { x = pane_x, y = top, width = pane_w, height = head_h, head },
-      ui.Item { x = pane_x, y = body_y, width = pane_w, height = body_h, pages(model, pane_w, body_h) } }
+      ui.Item { x = pane_x, y = body_y, width = pane_w, height = body_h, body } }
     if not model.phone then
       local nav_h = h - 2 * PAD - L.heading_h(L.SIZE.title) - P.GAP
       parts[#parts + 1] = ui.Column { x = PAD, y = PAD, width = nav_w, gap = P.GAP,
-        L.heading { id = "settings-window-title", width = nav_w, text = "Settings", elide = "right",
+        L.heading { id = name .. "-window-title", width = nav_w, text = title, elide = "right",
           active = function() return model.opened:get() end },
         ui.Item { width = nav_w, height = nav_h, ui.Loader { anchors = { fill = true }, active = true,
           source = function() return require("themes").view("settings_home").navigation(model, nav_w, nav_h) end } } }
@@ -155,52 +177,52 @@ function V.build(model)
     return ui.Item(parts)
   end
 
-  -- The content is made the first time the window opens, or ahead of that
-  -- while the shell is idle.
-  local wanted = morf.signal("eva.settings.window.built", model.opened:get())
-  morf.effect("eva.settings.window.build", function()
+  -- The content is made the first time the window opens, or, where the model
+  -- asks for it, ahead of that while the shell is idle.
+  local wanted = morf.signal("eva." .. name .. ".window.built", model.opened:get())
+  morf.effect("eva." .. name .. ".window.build", function()
     if model.opened:get() and not wanted:get() then wanted:set(true) end
   end)
-  local keys = ui.Item { id = "settings-window-keys", width = 1, height = 1 }
+  local keys = ui.Item { id = name .. "-window-keys", width = 1, height = 1 }
   -- Alt+Left and a mouse's back button go one page up, and shut the window
-  -- from All settings. The panels board keeps Alt with the arrows for its tiles.
+  -- from its home. The panels board keeps Alt with the arrows for its tiles.
   local function pop() return model.back() end
   local shortcuts = { back = pop,
     ["alt+Left"] = function() if key() == "panels" then return false end return pop() end }
-  local window = ui.Item { id = "settings-window", x = x, y = y, width = w, height = h,
-    accessible_role = "dialog", accessible_name = "Settings", shortcuts = shortcuts,
+  local window = ui.Item { id = name .. "-window", x = x, y = y, width = w, height = h,
+    accessible_role = "dialog", accessible_name = title, shortcuts = shortcuts,
     -- Its empty parts take presses, so they reach nothing under it.
     ui.MouseArea { anchors = { fill = true }, z = -1 },
-    kit.surface { id = "settings-window-ground", anchors = { fill = true }, z = -1,
+    kit.surface { id = name .. "-window-ground", anchors = { fill = true }, z = -1,
       radius = model.phone and 0 or kit.round(theme.ROUNDING), color = function() return C.surface end,
       border_width = model.phone and 0 or 1, border_color = kit.stroke("quiet") },
     ui.Item { anchors = { fill = true }, L.decor_box("corners", { length = 12 }) },
-    ui.Loader { anchors = { fill = true }, keep = true, preload = true, active = function() return wanted:get() end,
-      source = content },
+    ui.Loader { anchors = { fill = true }, keep = true, preload = model.preload ~= false,
+      active = function() return wanted:get() end, source = content },
     keys }
   local function shown() return model.opened:get() and not (model.covered and model.covered()) end
-  local drawn = theme.motion.appear(window, shown, { id = "settings-window", content = false })
+  local drawn = theme.motion.appear(window, shown, { id = name .. "-window", content = false })
 
   -- The dim: round the window, or the whole of a screen it is not open on.
   local function elsewhere() return model.elsewhere ~= nil and model.elsewhere() end
   local function dim() return shown() or elsewhere() end
-  local scrim = kit.surface { id = "settings-scrim", anchors = { fill = true },
+  local scrim = kit.surface { id = name .. "-scrim", anchors = { fill = true },
     color = function() return C.scrim:alpha(dim() and .55 or 0) end,
     behavior = { color = { duration = theme.duration.normal, easing = theme.ease.standard } } }
-  local fading = morf.signal("eva.settings.window.fading", false)
+  local fading = morf.signal("eva." .. name .. ".window.fading", false)
   local fade
-  morf.effect("eva.settings.window.fade", function()
+  morf.effect("eva." .. name .. ".window.fade", function()
     if fade then fade:cancel() fade = nil end
     if dim() then fading:set(true) return end
     fade = morf.time.timer(theme.duration.normal, function() fade = nil fading:set(false) end, false)
   end)
-  local root = ui.Item { id = "settings-window-root", anchors = { fill = true },
+  local root = ui.Item { id = name .. "-window-root", anchors = { fill = true },
     visible = function() return dim() or drawn() or fading:get() end,
     scrim,
-    ui.MouseArea { id = "settings-scrim-area", anchors = { fill = true }, enabled = dim,
-      accessible_name = "Close Settings", on_clicked = model.dismiss or model.close, on_wheel = function() end },
+    ui.MouseArea { id = name .. "-scrim-area", anchors = { fill = true }, enabled = dim,
+      accessible_name = "Close " .. title, on_clicked = model.dismiss or model.close, on_wheel = function() end },
     window }
-  morf.effect("eva.settings.window.present", function() model.present(model.detail:get()) end, { owner = root })
+  morf.effect("eva." .. name .. ".window.present", function() model.present(model.detail:get()) end, { owner = root })
   -- Open, the keys go to the window, unless the search takes them; a turn
   -- later, as a panel stepping aside hands focus back as it shuts.
   return { node = root, window = window,
