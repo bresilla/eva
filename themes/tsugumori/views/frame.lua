@@ -65,9 +65,8 @@ local function ruler(model, edge)
 end
 
 -- Registration reticles in the band at the opening's four corners: a heavy
--- L along both edges with a square pip in the band's corner past it, and a
--- short index notch where each edge's centre is.
-local REACH, HEAVY, PIP = 46, 2, 3
+-- L along both edges, and a short index notch where each edge's centre is.
+local REACH, HEAVY = 26, 2
 local function corners(model)
   local function d()
     local _, _, w, h = model.desk()
@@ -79,8 +78,6 @@ local function corners(model)
       local ox, oy = x - sx * (HEAVY + 2), y - sy * (HEAVY + 2)
       bar(sx > 0 and ox or ox - REACH - HEAVY, sy > 0 and oy or oy - HEAVY, REACH + HEAVY, HEAVY)
       bar(sx > 0 and ox or ox - HEAVY, sy > 0 and oy or oy - REACH - HEAVY, HEAVY, REACH + HEAVY)
-      local px, py = ox - sx * (PIP + 2), oy - sy * (PIP + 2)
-      bar(sx > 0 and px or px - PIP, sy > 0 and py or py - PIP, PIP, PIP)
     end
     local mx, my = math.floor((L + w - B) / 2), math.floor(h / 2)
     bar(mx - 1, 1, HEAVY, B - 3)
@@ -89,7 +86,7 @@ local function corners(model)
     return table.concat(out)
   end
   return ui.Path { id = "tsugumori-frame-corners", anchors = { fill = true }, d = d,
-    fill_color = function() return C.primary:alpha(.92) end }
+    fill_color = function() return C.primary:alpha(.72) end }
 end
 
 local function decorations(model)
