@@ -57,6 +57,9 @@ function M.back()
 end
 function M.page_present() return true end
 
+--- The tools of apps/ whose page is a Settings page, tool -> its route there.
+M.SETTINGS = { keys = "input/shortcuts", breaks = "breaks" }
+
 -- The pages of tools built so far, by key, and a count that moves as one is.
 local loaded, made = {}, morf.signal("eva.tools.made", 0)
 
@@ -103,9 +106,10 @@ function M.open_tool(key, args)
   return M.request(key)
 end
 
---- Calls `verb` of tool `key`'s page with `...`; its page is loaded for it.
+--- Calls `verb` of tool `key`'s page with `...`, in Tools or Settings; its
+--- page is loaded for it.
 function M.verb(key, verb, ...)
-  local page = M.page(key)
+  local page = M.page(key) or (M.SETTINGS[key] and require("apps." .. key .. ".page"))
   if not page then error("No such tool: " .. tostring(key)) end
   local handler = (page.verbs or {})[verb]
   if not handler then error(("`%s`: %s has no such verb"):format(tostring(verb), key)) end

@@ -587,7 +587,8 @@ end
 -- `tools [NAME [ARGS]]`: the Tools window on a tool's page (`home` is All
 -- tools), ARGS handed to it as `eva-NAME ARGS` would; `tools close` shuts it and
 -- `tools state` says where it is. `tool NAME VERB [ARGS]` is a verb of that
--- tool's page, and `tools-search [WORDS]` the pages matching WORDS.
+-- tool's page, in Tools or Settings, and `tools-search [WORDS]` the pages
+-- matching WORDS.
 ipc.tools = function(page, ...)
   local window = require("tools_window")
   if page == "close" then
@@ -617,10 +618,10 @@ ipc["tools-search"] = function(query)
 end
 -- A tool opened from the shell (a tile, a notification's action, a link) is
 -- its page here: in Tools, or the Settings page a tool became.
-local SETTINGS_TOOLS = { keys = "input/shortcuts", breaks = "breaks" }
 require("lib.services.host").in_shell = function(name, args)
-  if SETTINGS_TOOLS[name] then return require("utilities").request(SETTINGS_TOOLS[name]) end
-  return require("tools_model").open_tool(name, args)
+  local tools = require("tools_model")
+  if tools.SETTINGS[name] then return require("utilities").request(tools.SETTINGS[name]) end
+  return tools.open_tool(name, args)
 end
 -- `tablet on` or `tablet off`: the hinge moved, as Hyprland's switch binds say;
 -- the kernel is asked before it counts. `tablet pin on|off` holds the posture

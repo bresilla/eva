@@ -25,7 +25,7 @@ utilities|toggle, open or close|The quick settings
 settings|[PAGE], close or state|The quick settings, or the Settings window on PAGE
 settings-search|[WORDS]|Every Settings page, or those matching WORDS
 tools|[TOOL [ARGS]], close or state|The Tools window, on TOOL's page
-tool|TOOL VERB [ARGS]|A verb of a tool's page
+tool|TOOL VERB [ARGS]|A verb of a tool's page, in Tools or Settings
 tools-search|[WORDS]|Every tool, or those matching WORDS
 power-key|-|What Settings chose for the power button
 leftbar|HOW [TAB]|The left panel: tasks or calendar
