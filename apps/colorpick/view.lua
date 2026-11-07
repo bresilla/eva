@@ -1,12 +1,12 @@
--- eva-colorpick: the window with the formats and recent colours, and the frozen
+-- eva-colorpick: its page in Tools, with the formats and recent colours, and the frozen
 -- screen with its magnifier.
 local morf = require("morf")
 local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
-local formats = require("formats")
-local model = require("model")
+local formats = require("apps.colorpick.formats")
+local model = require("apps.colorpick.model")
 local C, S = theme.color, theme.space
 
 local M = {}
@@ -72,14 +72,15 @@ local function recent(w)
   }
 end
 
---- The window's content, `w` by `h` (fns).
-function M.build(w, h)
+--- The page, `w` by `h` (fns); `pick` starts a pick, the frozen screen here without it.
+function M.build(w, h, pick)
   return P.page {
     id = "colorpick-page", width = w, height = h,
     current(w), recent(w),
     P.buttons {
       width = w,
-      { id = "colorpick-pick", label = "Pick from screen", icon = "colorize", tone = "primary", on_clicked = model.freeze },
+      { id = "colorpick-pick", label = "Pick from screen", icon = "colorize", tone = "primary",
+        on_clicked = pick or model.freeze },
       { id = "colorpick-lule", label = "Send to Lule", icon = "palette",
         visible = function() return picked() ~= "" end,
         on_clicked = function() model.send_to_lule(picked()) end },

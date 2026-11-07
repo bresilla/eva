@@ -1,5 +1,5 @@
 -- eva-colorpick: the formats, a colour read from a picture, the recent colours,
--- the pointer on the frozen screen, and the window in its place.
+-- the pointer on the frozen screen, and its page in Tools.
 --
 --     morf test --no-dbus tests/colorpick_spec.lua
 
@@ -11,7 +11,7 @@ local PICTURE = ROOT .. "tests/fixtures/wallpaper.png"
 local HOST = [[
 local morf = require("morf")
 require("morf.ui").Item { width = 1, height = 1 }
-local formats = require("formats")
+local formats = require("apps.colorpick.formats")
 morf.ipc.write = function(hex, name) return formats.write(hex, name) end
 ]]
 
@@ -26,9 +26,12 @@ test.it("writes a colour every way", function()
   test.eq(test.ipc("write", "#808080", "hsl"), "hsl(0, 0%, 50%)")
 end)
 
-local function tool(args)
+-- Its page alone, as the Tools window shows it.
+local function tool()
   test.stub_run("grim", { code = 0 })
-  test.load("../apps/colorpick/app.lua", { args = args, env = ENV })
+  local env = { EVA_TEST_TOOL = "colorpick", EVA_TEST_PAGE = "488x380" }
+  for key, value in pairs(ENV) do env[key] = value end
+  test.load("../shell/init.lua", { env = env, source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
   test.settle(300)
 end
 
@@ -41,7 +44,7 @@ end)
 
 test.it("reads the colour under the pointer and keeps it", function()
   test.load("../apps/colorpick/app.lua", { env = ENV, source = morf.fs.read(ROOT .. "apps/colorpick/app.lua") .. ([[
-    require("model").picture:set { path = %q, width = 64, height = 64 }
+    require("apps.colorpick.model").picture:set { path = %q, width = 64, height = 64 }
   ]]):format(PICTURE) })
   test.settle(300)
   test.ipc("point", "10", "10")
@@ -71,7 +74,7 @@ test.it("reads the colour on a screen too large to read a pixel of at once", fun
   ]]):format(big) }
   test.wait(function() test.advance(16) return test.ipc("done") end, 8000, "the picture was made")
   test.load("../apps/colorpick/app.lua", { env = ENV, source = morf.fs.read(ROOT .. "apps/colorpick/app.lua") .. ([[
-    require("model").picture:set { path = %q, width = 3840, height = 2160 }
+    require("apps.colorpick.model").picture:set { path = %q, width = 3840, height = 2160 }
   ]]):format(big) })
   test.settle(200)
   test.ipc("point", "100", "100")
@@ -85,7 +88,7 @@ end)
 
 test.it("keeps one of each recent colour, the newest first", function()
   test.load("../apps/colorpick/app.lua", { env = ENV, source = morf.fs.read(ROOT .. "apps/colorpick/app.lua") .. ([[
-    local model = require("model")
+    local model = require("apps.colorpick.model")
     morf.ipc.again = function(x)
       model.picture:set { path = %q, width = 64, height = 64 }
       model.point(tonumber(x), 1, 1)

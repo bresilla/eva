@@ -16,13 +16,6 @@ test.it("eva-clipboard --watch keeps the history with no window", function()
   test.eq(test.ipc("state").items[1].text, "still kept")
 end)
 
-test.it("eva-colorpick opens its window with no flag", function()
-  test.stub_run("grim", { code = 0 })
-  test.load("../apps/colorpick/app.lua", { env = ENV })
-  test.settle(200)
-  test.truthy(test.find { id = "colorpick-page" })
-end)
-
 test.it("eva-colorpick --pick is the frozen screen alone", function()
   test.stub_run("grim", { code = 0 })
   test.load("../apps/colorpick/app.lua", { args = { "--pick" }, env = ENV })
