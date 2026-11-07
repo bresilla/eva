@@ -247,9 +247,12 @@ whether the compositor can hold one (docs/IO.md, "Idle").
 - A job without a compositor. `morf app` needs Wayland and has no stdin, stdout or
   exit status for a configuration, so a tool's command line runs through files
   (`lib/util/job.lua`) and fails on a TTY or over SSH, `eva-text` included.
-- `xdg_toplevel`'s suspended state. A window cannot hear that nothing shows it:
-  `eva-monitor` stops sampling when minimised, paused or away, and keeps sampling
-  on a hidden workspace.
+- An effect's owner while a node is built. An effect made while a `Loader` or a
+  `Repeater` row builds lives on after that node is let go unless it names an
+  `owner`. The Tools window lets a tool's page go a second after it shuts, and
+  each page's view had to be read for effects made without one (Disk usage's
+  treemap area was). The node being built as the default owner would make letting
+  a page go safe for any view.
 
 ## What things cost: open
 

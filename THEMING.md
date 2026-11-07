@@ -642,21 +642,40 @@ scope and `model.quick` its presence. Each Settings detail scope,
 lifetime and battery reads. Material presents immediately; Tsugumori presents
 beneath its cover and cancels stale transitions on closing or rapid navigation.
 
-### Settings window
+### Settings and Tools windows
 
-`views.settings_window.build(model)` returns `node`, the whole screen, `window`,
-the dialog a press outside shuts, and `shown(open)`. `shell/settings_window.lua`
-hands it the utilities' model with `phone`, `size()`, `top` (a phone's cutout),
-`nested()`, `can_back()`, `searching()`, `covered()`, `elsewhere()` (open on
-another screen, which this one dims) and `dismiss()` (a press on any dim).
-`V.geometry(w, h, phone)` is the window's box: centred at `V.SHARE` (seven
-tenths) of a desk, the whole of a phone. The view draws the dim, the ground and
-the head with the
-layout's parts, takes the left column from `views.settings_home.navigation(model,
-w, h)` and keeps each page it has shown built under `settings-detail-<key>`; it
-comes and goes through `theme.motion.appear` with `content = false`. The frame
-host stands it on its `above` layer: over the panels and the bar, under the
-on-screen keyboard.
+Settings and Tools are one window, `views.page_window`, on two books of pages.
+`shell/window_host.lua` builds one for each: `shell/settings_window.lua` on the
+utilities' model, `shell/tools_window.lua` on `shell/tools_model.lua`. A book has
+`name` (the prefix of every id, `settings` or `tools`), `title`, `registry` (its
+pages, `shell/page_registry.lua`: `HOME`, `CATEGORIES`, `BY_KEY`, `category(id)`,
+`search(words)`), the routes and their signals (`DETAILS`, `navigation`,
+`opened`, `detail`, `displayed`, `peek`), `request`, `back`, `close`, `present`,
+`breadcrumb`, `page_content(key, w, h)` and `page_present(key)`; and may have
+`page_max` (the widest a page stands), `preload` (false: built only as it first
+opens), `forget` (its pages let go a second after it shuts, built again as they
+open), `has_actions(key)` and `page_actions(key)` (nodes a page puts in the head
+beside the close control), and `search_hint`.
+
+`views.page_window.build(model)` returns `node`, the whole screen, `window`, the
+dialog a press outside shuts, and `shown(open)`. The host hands it the book with
+`phone`, `size()`, `top` (a phone's cutout), `nested()`, `can_back()`,
+`searching()`, `covered()`, `elsewhere()` (open on another screen, which this one
+dims) and `dismiss()` (a press on any dim). `V.geometry(w, h, phone)` is the
+window's box: centred at `V.SHARE` (seven tenths) of a desk, the whole of a phone.
+The view draws the dim, the ground and the head with the layout's parts, takes the
+left column from `views.settings_home.navigation(model, w, h)` and keeps each page
+it has shown built under `<name>-detail-<key>`; it comes and goes through
+`theme.motion.appear` with `content = false`. The frame host stands both on its
+`above` layer: over the panels and the bar, under the on-screen keyboard. One is
+open at a time: a book that opens shuts the other (`window_host.only`).
+
+`views.settings_home` lays out a book's home: `build` (the search and the
+categories, a phone's), `index` (every page by category, beside a desk's way
+round), `category` and `navigation`, each reading `model.registry` and prefixing
+its ids with `model.name`. A tool's page is the tool's own view, `apps/NAME/
+view.lua`, built with the kit and the layout's parts, so it takes each theme's
+look as the shell's pages do.
 
 ### Wired, VPN and Tor builders
 

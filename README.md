@@ -159,47 +159,77 @@ output; the cache workflow runs it after each publish.
 
 ## Tools
 
-Quick controls stay in the shell; heavier work has a tool of its own, in
-`apps/`. A tool is a real window that draws with the shell's theme, kit and
-palette, follows lule's colours and the chosen appearance live, and works when
-the shell is not running. On NixOS they are on `PATH`, each with a desktop entry.
-Launching one a second time raises the window it has open; an overlay shuts.
+Quick controls stay in the right panel; heavier work is a tool of `apps/`, and
+every tool is a page of the **Tools** window. It is the same window as Settings,
+drawn by the shell on a book of its own: on a desk it stands in the middle, seven
+tenths of the screen, and every screen dims; on a phone it fills the screen. Only
+one of the two is open at a time. Escape, a press on any dimmed screen and its
+close control shut it. It comes and goes in the theme's own motion, lands at
+once under Reduce motion, and is open again on its page after the shell is built
+again in place. On a desk the left column has the search, the categories (Time,
+Text, Screen, System, Calls and texts) and their tools; on a phone it is one page
+at a time, Back going up to All tools.
 
-| Command | What it does |
-|---------|--------------|
-| `eva VERB`, `eva open settings/power`, `eva commands --json` | the shell from a command line, the front door for keybindings |
-| `eva-screenshot`, `eva-screenshot region\|window\|screen [--edit\|--copy\|--save\|--pin] [--delay N] [--last]` | the capture panel, or straight to the frozen selection, with or without the shell; `ocr` and `qr` copy what they read; `scroll [region\|window\|screen]` takes a long picture as a window scrolls; `--edit-file FILE` opens the editor on a picture or a recording's trim; `--pin-file FILE` keeps a picture over the windows; `--text FILE` prints the text in a picture |
-| `eva-record region\|window\|monitor [--audio KIND] [--fps N]`, `eva-record stop`, `eva-record pause\|resume`, `eva-record replay [--seconds N]`, `eva-record save`, `eva-record status` | the capture tool's recorder: the panel's Record from a command line, a region chosen on the frozen selection, a pause, and a replay buffer saved on demand; with no shell a pill shows it running and stops it |
-| `eva-colorpick [--pick]` | a frozen screen with a magnifier; hex, rgb, hsl and oklch; recent colours |
-| `eva-keys` | a searchable sheet of the live bindings and the shell's own |
-| `eva-nightlight on\|off\|toggle\|status\|temperature\|follow\|times\|auto\|daemon` | the quick settings' night light from a command line, one implementation with one state; `follow on` has the shell turn it on and off by the sun at `services.weather_location` |
-| `eva-clipboard [--watch]` | a history of text and pictures with pins, skipping what a password manager marks; on NixOS `--watch` runs as a user service |
-| `eva-battery status`, `eva-battery limit on\|off\|NN` | what feeds the battery and how fast, and the charge limit: UPower's `EnableChargeThreshold`, or a level in the kernel's own threshold file |
-| `eva-phone [tel:NUMBER]` | a dial pad that finds people by their letters, recent calls and contacts; the shell shows the call |
-| `eva-messages [sms:NUMBER]` | text threads with delivery marks; the shell receives them and notifies |
-| `eva-clock`, `eva-clock timer 12 min pasta`, `eva-clock at 6pm`, `eva-clock every weekday 7:30 gym`, `eva-clock list\|cancel\|snooze\|sync` | alarms, timers, a stopwatch and world clocks, said in plain words; each alarm is a systemd user timer, so it rings with no shell running, through the notifications server with sound, Stop and Snooze |
-| `eva-monitor` | processes with search, sort and kill, per-core load, memory, GPU, disks, network and sensors |
-| `eva-logs [UNIT]` | the journal, live, by priority, boot, unit and words |
-| `eva-disk [FOLDER]` | what takes the room under a folder, as a treemap |
-| `eva-webapp add NAME URL [--icon FILE]\|list\|remove NAME` | turn a site into an app with its own desktop entry and icon |
-| `eva-breaks [--watch\|status\|pause MINUTES\|resume]` | break reminders that count idle time as rest, and screen time; on NixOS `--watch` runs as a user service |
-| `eva-zoom [in\|out\|reset\|N\|get\|lens]` | a magnifier: Hyprland's cursor zoom, or a lens over the frozen screen |
-| `eva-ruler [horizontal\|vertical\|bounds]` | an on-screen pixel ruler: edge detection, a dragged box, a click copies |
-| `eva-find [--crosshairs\|--ripple]` | shows where the pointer is: a spotlight, crosshairs, or rings on a press |
-| `eva-kill [--active]` | press a window to end it, or end the focused one |
-| `eva-draw` | draw and write over the screen, with a toolbar |
-| `eva-large [WORDS]` | words huge across the screen, from arguments, stdin or the clipboard |
-| `eva-pomodoro [start\|pause\|skip\|reset\|status]` | a focus timer whose phases ring through eva-clock and hold do not disturb |
-| `eva-qr [TEXT\|-]`, `eva-qr wifi SSID`, `eva-qr --png FILE TEXT` | a QR code from text or a Wi-Fi network, on screen or in a file; `-` reads stdin, and a Wi-Fi password never reaches a command line |
-| `eva-translate [-s LANG] [-t LANG] [-e ENGINE] TEXT\|-\|--clipboard\|--selection` | free translation, offline with Argos where it is set up, else `trans` or MyMemory; text leaves the machine only on a press, and the window says when an online engine is in use |
-| `eva-text TRANSFORM < FILE`, `eva-text list` | a developer's scratchpad: case, lines, encodings, JSON, hashes, UUIDs, passwords, placeholder text |
-| `eva-standby [--when-charging] [--night]` | the shell's StandBy on demand, on any form: a second call closes it |
+The app menu holds two of eva's entries, **Settings** and **Tools**. Typing a
+tool's name, something it holds or a word for it into the launcher finds the tool
+and opens its page. `eva open tools`, `eva open tools/NAME`, `eva open NAME` and
+`morf ipc call tools NAME` open the window too (`tools home` is All tools, `tools
+close` shuts it and `tools state` says where it stands); `morf ipc call tool NAME
+VERB` is a verb of a tool's page, and `morf ipc call tools-search WORDS` searches.
+The quick tiles, the bar's modules, a text's notification and `tel:` and `sms:`
+links lead to the same pages.
 
-`make app monitor` runs one from a checkout.
+Each `eva-NAME` alone opens Tools on its page; with words it does what it always
+did on a command line, a job or a watcher with or without the shell. A tool that
+draws over the whole screen keeps a program of its own: its page holds what it
+starts with and a control that starts it, which shuts the window first, and with
+no shell running its command alone draws as it did. A page's tool otherwise needs
+the shell, as Settings does. On NixOS the commands are on `PATH`.
+
+| Command | Page | Words |
+|---------|------|-------|
+| `eva VERB`, `eva open settings/power`, `eva open tools/clock`, `eva commands --json` | | the shell from a command line, the front door for keybindings |
+| `eva-clock` | Clock: alarms, timers, a stopwatch and world clocks, said in plain words | `timer 12 min pasta`, `at 6pm`, `every weekday 7:30 gym`, `list\|cancel\|snooze\|sync`; each alarm is a systemd user timer, so it rings with no shell running, through the notifications server with sound, Stop and Snooze |
+| `eva-pomodoro` | Pomodoro: a focus timer whose phases ring through the clock's store and hold do not disturb | `start\|pause\|skip\|reset\|status` |
+| `eva-clipboard` | Clipboard: a history of text and pictures with pins, skipping what a password manager marks | `--watch` keeps the history; on NixOS it runs as a user service |
+| `eva-text` | Text: a developer's scratchpad: case, lines, encodings, JSON, hashes, UUIDs, passwords, placeholder text | `TRANSFORM < FILE`, `list` |
+| `eva-translate` | Translate: free translation, offline with Argos where it is set up, else `trans` or MyMemory; text leaves the machine only on a press, and the page says when an online engine is in use | `[-s LANG] [-t LANG] [-e ENGINE] TEXT\|-\|--clipboard\|--selection` |
+| `eva-qr` | QR code: from text or a Wi-Fi network, copied, saved, or alone over the page for a camera | `TEXT\|-`, `wifi SSID` open the page on them, a Wi-Fi password never reaching a command line; `--png FILE TEXT` writes a file |
+| `eva-large` | Large Type: words huge across the screen, with a QR beside them | `WORDS`, stdin, `--clipboard`; from a key, with no terminal, the clipboard |
+| `eva-screenshot` | Screenshot: a region, a window or the screen, then edit, copy, save or pin, at once or after a delay; Record; the capture panel | `panel`, `region\|window\|screen [--edit\|--copy\|--save\|--pin] [--delay N] [--last]`, `ocr\|qr`, `scroll`, `--edit-file FILE`, `--pin-file FILE`, `--text FILE`, with or without the shell |
+| `eva-record` | Screenshot | `region\|window\|monitor [--audio KIND] [--fps N]`, `stop`, `pause\|resume`, `replay [--seconds N]`, `save`, `status`: the capture tool's recorder; with no shell a pill shows it running and stops it |
+| `eva-colorpick` | Colour picker: hex, rgb, hsl and oklch, the recent colours, a pick | `--pick`: the frozen screen with a magnifier, one click copies |
+| `eva-draw` | Draw on screen: the keys it takes | `start`: draw and write over the screen |
+| `eva-ruler` | Screen ruler: what it measures | `spacing\|horizontal\|vertical\|bounds`: edge detection, a dragged box, a click copies |
+| `eva-zoom` | Zoom: the factor on a slider for touch, Hyprland's cursor zoom or the lens's | `in\|out\|reset\|N\|get`, `lens`: a lens over the frozen screen |
+| `eva-find` | Find pointer: how it shows | `--spotlight\|--crosshairs\|--ripple` |
+| `eva-monitor` | Monitor: processes with search, sort and kill, per-core load, memory, GPU, disks, network and sensors | |
+| `eva-logs` | Logs: the journal, live, by priority, boot, unit and words | `UNIT` opens the page on it |
+| `eva-disk` | Disk usage: what takes the room under a folder, as a treemap | `FOLDER` opens the page on it |
+| `eva-kill` | End a window: press one to end it, the shell's kill mode | `--pick` presses one at once, `--active` ends the focused one |
+| `eva-webapp` | Web apps: a site as an app with its own desktop entry and icon | `add NAME URL [--icon FILE]\|list\|remove NAME` |
+| `eva-phone` | Phone: a dial pad that finds people by their letters, recent calls and contacts; the shell shows the call | `tel:NUMBER` types it; `import\|export FILE` carries vCards |
+| `eva-messages` | Messages: text threads with delivery marks; the shell receives them and notifies | `sms:NUMBER` opens the thread |
+| `eva-nightlight on\|off\|toggle\|status\|temperature\|follow\|times\|auto\|daemon` | | the quick settings' night light from a command line, one implementation with one state; `follow on` has the shell turn it on and off by the sun at `services.weather_location` |
+| `eva-battery status`, `eva-battery limit on\|off\|NN` | | what feeds the battery and how fast, and the charge limit: UPower's `EnableChargeThreshold`, or a level in the kernel's own threshold file |
+| `eva-standby [--when-charging] [--night]` | | the shell's StandBy on demand, on any form: a second call closes it |
+
+A tool's page is built the first time it opens and let go a second after the
+window shuts, and what it reads (samples, the journal, a scan) runs only while it
+is on show; nothing of a tool loads at shell start. `shell/tools_registry.lua` is
+the one list of pages, a tool's page is `page.lua` in its folder, and the window is
+`shell/tools_window.lua` over the theme's `page_window` view, the same host as
+Settings (`shell/window_host.lua`). `make app draw` runs a tool's own program from
+a checkout.
+
+The desktop entries left beside Settings and Tools are hidden (`NoDisplay=true`)
+and kept for what needs them: `tel:` for Phone, `sms:` for Messages and folders
+for Disk usage. Web apps made with the Web apps page are a person's own and stay
+in the menu.
 
 Some commands are Settings pages rather than tools. Alone each opens the
 Settings window on its page; its words work with or without the shell, as a job
-on the page's own code (`apps/common/job`).
+on the page's own code (`apps/common/job`, or the tool's own program).
 
 | Command | Page | Words |
 |---------|------|-------|
@@ -210,6 +240,8 @@ on the page's own code (`apps/common/job`).
 | `eva-update [--check]` | Updates: flake input ages, package counts and a rebuild with its live log; `update.flake` names the flake | `--check` counts what waits |
 | `eva-info [--text\|--json\|--copy]` | About: hardware, Nix generation, USB, session | every fact as words, as JSON, or on the clipboard |
 | `eva-awake [30m\|on\|off\|status\|--pid N]` | Focus: keep awake for a time, on the shell's own inhibitor | for a time, until told otherwise, or while a process runs |
+| `eva-keys` | Keyboard shortcuts, under Keyboard: the live bindings and the shell's own as one searchable list, a new chord for any row | |
+| `eva-breaks [--watch\|status\|pause MINUTES\|resume]` | Breaks: reminders that count idle time as rest, and the day | `--watch` keeps the count; on NixOS it runs as a user service |
 
 Alarms and timers live in `$XDG_STATE_HOME/eva/clock/alarms.json`, written by
 `lib/services/alarm.lua`, which is also `services.alarm` in the shell: `armed()`
@@ -231,21 +263,24 @@ The Displays page writes what you keep to `$XDG_STATE_HOME/eva/displays/`. eva's
 Hyprland session loads `monitors.lua` from there; on sway, add
 `include $XDG_STATE_HOME/eva/displays/outputs.sway` to your configuration.
 
-A tool's folder holds `app.lua` and three links: `lua -> ../../shell`, which is
-how it reaches `theme`, `kit`, `palette` and `config`, `common -> ../common`, and
-`fonts -> ../../shell/fonts`. `apps/launch` finds the shell's appearance and
-settings files, which the shell names in `$XDG_STATE_HOME/eva/settings-path`.
+A tool's folder holds its `page.lua` (its page in Tools or Settings), its
+`model.lua` and `view.lua`, its command `cli`, `app.lua` where it still runs as a
+program of its own (a job, a watcher, an overlay), and three links: `lua ->
+../../shell`, which is how that program reaches `theme`, `kit`, `palette` and
+`config`, `common -> ../common`, and `fonts -> ../../shell/fonts`. The shell
+reaches a tool's code through `shell/apps -> ../apps`, as `apps.clock.view`, and
+the tool's program by the same names. `apps/launch` finds the shell's appearance
+and settings files, which the shell names in `$XDG_STATE_HOME/eva/settings-path`.
 
-`apps/common/frame.lua` draws a window as the shell draws its frame, one distance
-field in the theme's `app_frame` view: a band round an opening, the title and the
-close button tabs of that band on the theme's seams and springs. It also gives a
-tool `frame.overlay` for the whole screen and `frame.quiet` for no window at all.
-`common/controls.lua` is what a window is built from, `common/sys.lua` the one
-door to the machine, honouring `EVA_DRY_RUN`, and `common/freeze.lua` the screen
-held still for a tool that reads its pixels. `common/job` runs the shell's own
-code for a command line with no shell running, so a tool and the shell share one
-module (`lib/services/nightlight.lua`, `charge_limit.lua`, `alarm.lua`) rather
-than having two.
+`apps/common/controls.lua` is what a page is built from, `common/sys.lua` the one
+door to the machine, honouring `EVA_DRY_RUN`, `common/overlay_page.lua` the page
+of a tool that draws over the whole screen, and `common/freeze.lua` the screen
+held still for a tool that reads its pixels. `common/frame.lua` is what a tool's
+own program draws with: `frame.overlay` for the whole screen and `frame.quiet` for
+no surface at all. `common/job` runs the shell's own code for a command line with
+no shell running, so a tool and the shell share one module
+(`lib/services/nightlight.lua`, `charge_limit.lua`, `alarm.lua`) rather than
+having two.
 
 ## Helpers
 
@@ -803,12 +838,12 @@ page it goes back to in view.
 
 The compositor keys are in `shell/keybinds.lua`. A session with no
 `~/.config/hypr/hyprland.lua` gets them; `programs.eva.hyprland.binds` is `auto`,
-`always` or `never`, and `eva-keys` lists the ones that are not bound with the
-verb to bind.
+`always` or `never`, and Settings' Keyboard shortcuts (`eva-keys`) lists the ones
+that are not bound with the verb to bind.
 
-`eva-keys` also changes them: press a row and press the new keys. Hyprland's own
-bindings stand aside while it listens, so a chord already taken still reaches the
-window; it then says what has it, and waits to be confirmed. New chords live in
+The same page also changes them: press a row and press the new keys. Hyprland's
+own bindings stand aside while it listens, so a chord already taken still reaches
+the page; it then says what has it, and waits to be confirmed. New chords live in
 `keys.overrides` and go through the same run-time path as every other pushed
 setting, now and after each reload, so no file of yours is written. A key from
 your own configuration moves with its action intact, and Reset takes a row back.
@@ -1229,7 +1264,8 @@ same window.
 name, icon, keywords }`. A new page is a row there and a builder in
 `shell/utilities.lua`. A page that is only settings is a form in
 `shell/settings_forms.lua`, with no view of its own. The window is
-`shell/settings_window.lua` over the theme's `settings_window` view.
+`shell/settings_window.lua`, a `shell/window_host.lua` over the theme's
+`page_window` view, the same host as Tools; one of the two is open at a time.
 
 Where a system's configuration holds a value, the page says so and names the
 option. On NixOS that is usually `time.timeZone`, `i18n.defaultLocale`,
