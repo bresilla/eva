@@ -138,6 +138,24 @@ test.it("an overlay's page shuts the window and starts its program", function()
   test.eq(#test.logs("error"), 0)
 end)
 
+for _, style in ipairs { "material", "tsugumori" } do
+  test.it("builds every tool's page whole, in " .. style, function()
+    shell { style = style }
+    for _, entry in ipairs(test.ipc("tools-search")) do
+      if not entry.key:find("/", 1, true) then
+        test.ipc("tools", entry.key) test.settle(900)
+        test.truthy(test.find { id = "tools-detail-" .. entry.key, visible = true }, entry.key)
+      end
+    end
+    for _, level in ipairs { "error", "warn" } do
+      for _, line in ipairs(test.logs(level)) do
+        test.falsy(line.message:find("tools", 1, true) or line.message:find("apps", 1, true), line.message)
+      end
+    end
+    test.eq(#test.logs("error"), 0)
+  end)
+end
+
 test.it("leaves no tool's page behind once Tools has shut", function()
   shell()
   for _, tool in ipairs { "clock", "clipboard", "text", "logs" } do

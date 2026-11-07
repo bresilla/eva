@@ -21,9 +21,9 @@ end
 function M.build(w, h)
   local inner = P.inner(w)
   local field = P.section { id = "large-words-section", width = w, title = "Words",
-    ui.Item { width = inner, height = controls.ROW_H,
-      controls.entry { id = "large-words", width = inner, value = words, placeholder = "What to show; empty, the clipboard",
-        on_accepted = show } } }
+    ui.Item { width = inner, height = require("theme").space.TARGET,
+      (controls.entry { id = "large-words", width = inner, value = words, placeholder = "What to show; empty, the clipboard",
+        on_accepted = show }) } }
   return overlay.build({ id = "large",
     text = "Words huge across the screen, fitted to it, with a QR code beside them, until a press or Escape.",
     extra = { field },
