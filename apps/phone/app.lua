@@ -12,7 +12,7 @@ if how == "import" or how == "export" then
   local count = book[how](file)
   morf.log("info", ("eva: %d contacts %sed"):format(count, how))
 else
-  morf.log("warn", "eva-phone: no job " .. tostring(how))
+  morf.log("info", "eva-phone: no job " .. tostring(how) .. "; the dialler is a page of Tools")
 end
 morf.time.timer(1, function() morf.quit() end, false)
 require("morf.ui").Item { width = 1, height = 1 }
