@@ -5,9 +5,9 @@ local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
-local controls = require("common.controls")
+local controls = require("apps.common.controls")
 local alarm = require("lib.services.alarm")
-local model = require("model")
+local model = require("apps.breaks.model")
 local C, S = theme.color, theme.space
 
 local M = {}

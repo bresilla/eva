@@ -1,11 +1,12 @@
--- eva-keys' window: a search field over the list of bindings. Pressing a row
--- listens for its new chord; a chord another row has waits to be confirmed.
+-- eva-keys' list, Settings' Keyboard shortcuts page: a search field over the list
+-- of bindings. Pressing a row listens for its new chord; a chord another row has
+-- waits to be confirmed.
 local morf = require("morf")
 local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
-local model = require("model")
+local model = require("apps.keys.model")
 local S = theme.space
 
 local M = {}

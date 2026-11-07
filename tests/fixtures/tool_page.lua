@@ -13,6 +13,10 @@ morf.surface.blend = "srgb"
 require("themes.ui_scale").apply()
 require("apps.common.frame").follow_scheme()
 
+-- On show, as the window it stands in would say: Tools' or Settings' page.
+require("presentation").set("tools." .. name, true)
+require("presentation").set("settings." .. name, true)
+
 local registry = require("tools_registry")
 local entry = registry.BY_KEY[name]
 local module = entry and entry.page or ("apps." .. name .. ".page")

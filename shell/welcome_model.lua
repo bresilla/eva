@@ -80,7 +80,7 @@ function M.network()
   return { title = "Not connected", subtitle = "Pick a network" }
 end
 
---- Opens eva-keys, with every key there is.
-function M.all_keys() return host.open_tool("keys") end
+--- Opens Keyboard shortcuts, with every key there is; Back returns here.
+function M.all_keys() return require("utilities").request("input/shortcuts", "welcome") end
 
 return M

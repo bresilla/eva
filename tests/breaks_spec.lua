@@ -18,7 +18,7 @@ local HOST = [[
   local threshold
   morf.idle = { subscribe = function(ms, fn) threshold, fake_idle = ms, fn return { cancel = function() end } end,
     inhibit = function() end }
-  local model = require("model")
+  local model = require("apps.breaks.model")
   local base = tonumber(morf.env("TEST_BASE"))
   model.now = function() return base + shift end
   morf.ipc.pass = function(seconds) shift = shift + tonumber(seconds) return true end
@@ -249,7 +249,8 @@ local function window(style, state)
   morf.fs.write(root .. "/eva/breaks/state.json", morf.json.encode(state or {}))
   local appearance = root .. "/appearance.json"
   morf.fs.write(appearance, morf.json.encode { theme = style, font = "" })
-  test.load("../apps/breaks/app.lua", { env = { XDG_STATE_HOME = root, EVA_SETTINGS = "/nonexistent/eva.json",
+  test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua"),
+    env = { XDG_STATE_HOME = root, EVA_SETTINGS = "/nonexistent/eva.json", EVA_TEST_TOOL = "breaks", EVA_STYLE = style,
     LULE_A = "/nonexistent/lule", EVA_APPEARANCE = appearance, EVA_DRY_RUN = "1" } })
   test.settle(300)
   return root
@@ -268,7 +269,7 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 end
 
-test.it("keeps a choice of the window", function()
+test.it("keeps a choice of the page", function()
   local root = window("material")
   test.click("breaks-eyes-every-2")
   test.settle(200)

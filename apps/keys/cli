@@ -1,0 +1,17 @@
+#!/bin/sh
+# eva-keys: a searchable list of the live bindings and the shell's own, each of
+# which can be given a new chord: Settings' Keyboard shortcuts page.
+#
+#   eva-keys            the Settings window, on Keyboard shortcuts
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_settings input/shortcuts ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *)
+    eva_say "eva-keys: no option $1"
+    exit 2
+    ;;
+esac

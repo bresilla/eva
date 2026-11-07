@@ -53,6 +53,9 @@ builders["lock/fingerprint"]=function(w,h)
   return themed("fingerprint_page").build(require("fingerprint_model"),active("lock/fingerprint"),w,h)
 end
 builders.software=function(w,h) return themed("software_page").build(require("software_model"),w,h) end
+-- Pages of what were tools of apps/, their code still in the tool's folder.
+builders["input/shortcuts"]=function(w,h) return require("apps.keys.page").build(w,h) end
+builders.breaks=function(w,h) return require("apps.breaks.page").build(w,h) end
 builders.screen_time=function(w,h) return themed("screen_time_page").build(require("screen_time_model"),w,h) end
 builders["screen_time/app"]=function(w,h) return themed("screen_time_page").app(require("screen_time_model"),w,h) end
 builders["bar/fold"]=function(w,h) return themed("bar_fold").build(require("status_model"),w,h) end

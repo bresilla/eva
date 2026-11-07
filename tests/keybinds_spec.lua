@@ -43,8 +43,8 @@ test.it("the session binds them only without a configuration of its own", functi
 end)
 
 test.it("eva-keys lists what is not bound, and leaves out what is", function()
-  test.load("../apps/keys/app.lua", { source = [[
-    local model = require("model")
+  test.load("../shell/init.lua", { source = [[
+    local model = require("apps.keys.model")
     morf.ipc.rows = function(live)
       local binds = live == "yes" and { { modmask = 64, key = "Tab", description = "Overview" } } or {}
       return model.merge(binds)
