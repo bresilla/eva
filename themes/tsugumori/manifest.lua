@@ -62,7 +62,6 @@ return {
     notification_digest = "themes.layouts.views.notification_digest",
     rail = "themes.tsugumori.views.rail",
     frame = "themes.tsugumori.views.frame",
-    app_frame = "themes.tsugumori.views.app_frame",
     levels = "themes.layouts.views.levels",
     notifications = "themes.layouts.views.notifications",
     polkit = "themes.layouts.views.polkit",

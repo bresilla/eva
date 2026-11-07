@@ -1,43 +1,19 @@
--- A tool's window: the shell's theme, kit and palette in a real window, the
--- colours following lule and the appearance following the shell's file. Its
--- frame is the shell's: one distance field, a band round an opening, the title
--- and the close button tabs of that band on the theme's seams and springs.
+-- What a tool of apps/ draws with when it runs as a program of its own: the
+-- shell's theme, kit and palette, the colours following lule and the appearance
+-- following the shell's file. Its pages are the shell's Tools window's; on its
+-- own a tool draws over the whole screen, with `frame.overlay`, or nothing at
+-- all, with `frame.quiet`.
 --
 --     local frame = require("common.frame")
---     frame.open { id = "keys", title = "Keys", width = 900, height = 640,
---       build = function(w, h) return node end }
---
--- `w` and `h` are fns following the window, as the page template takes them.
--- A tool that draws on the screen takes `frame.overlay`; a tool with no window
--- at all takes `frame.quiet`.
+--     frame.quiet(true)
+--     frame.overlay { id = "draw", root = node, close = function() morf.quit() end }
 local morf = require("morf")
-local ui = require("morf.ui")
-local app = require("lib.kit.app")
 local config = require("config")
 local theme = require("theme")
-local kit = require("kit")
 local themes = require("themes")
-local color_mode = require("themes.color_mode")
 local terminal_colors = require("terminal_colors")
-local L = require("themes.layouts.parts")
-local C, S = theme.color, theme.space
 
 local M = {}
-
-local second
-
--- A tab's depth from the window's edge, and where the content starts below it.
-M.TAB_H = S.TARGET + S.s
-M.HEADER_H = M.TAB_H + S.s
-M.CLOSE = S.TARGET
-M.PAD = S.l
-M.EDGE = S.s
--- How far a tab reaches past the window's edge, under the band.
-M.REACH = S.xl
--- The title tab's reach: what the close tab always leaves it.
-M.TITLE_ROOM = S.TARGET + S.xl
--- How far in from the window's left edge a swipe back may start.
-M.BACK_EDGE = S.xxl
 
 --- The Material scheme and lule's own colours, from what the colour tool made.
 function M.follow_scheme()
@@ -47,7 +23,7 @@ function M.follow_scheme()
   end)
 end
 
---- A theme, a font, a motion or a density chosen elsewhere builds the window
+--- A theme, a font, a motion or a density chosen elsewhere builds the tool
 --- again in place, when `ready` (a fn, if any) says it may.
 function M.follow_appearance(ready)
   local function look()
@@ -59,142 +35,6 @@ function M.follow_appearance(ready)
   morf.effect("eva.app.appearance", function()
     if look() ~= built and (not ready or ready()) then morf.reload() end
   end)
-end
-
--- A box of the band reaching into the opening: it drops in on the theme's
--- spring and bends as it lands.
-local function tab(id, props)
-  props.id = id
-  props.y = -M.REACH
-  props.height = M.TAB_H + M.REACH
-  props.translate_y = 0
-  props.enter = { translate_y = -M.TAB_H }
-  props.behavior = { width = theme.spring.spatial, x = theme.spring.spatial, translate_y = theme.spring.spatial }
-  props.stretch = kit.STRETCH
-  return ui.Item(props)
-end
-
-local function header(win, spec, w)
-  local close = kit.action {
-    id = spec.id .. "-close", accessible_name = "Close", width = M.CLOSE, height = M.CLOSE,
-    cursor = "pointer", anchors = { right = true, right_margin = M.EDGE, vertical_center = true },
-    on_clicked = function() if spec.on_close then spec.on_close() end win:close() end,
-    kit.icon("close", 20, kit.ink("hi"), { anchors = { center_in = true } }),
-  }
-  kit.hover(close, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
-  local actions = spec.actions and spec.actions(w) or nil
-  if actions then
-    actions.anchors = { right = true, right_margin = M.EDGE + M.CLOSE + S.s, vertical_center = true }
-  end
-  local function actions_w() return actions and (actions.layout_width or 0) + S.s or 0 end
-  local function right_w() return M.EDGE * 2 + M.CLOSE + actions_w() end
-  local measure = kit.text { text = spec.title, font_size = L.SIZE.title, opacity = 0 }
-  local function title_w()
-    local most = math.max(S.TARGET, w() - right_w() - M.TITLE_ROOM)
-    return math.min(most, math.ceil(measure.layout_width or 0) + 2 * M.PAD)
-  end
-  local left = tab(spec.id .. "-title-tab", {
-    x = 0, width = title_w,
-    ui.Item { width = 1, height = 1, clip = true, measure },
-    ui.Item {
-      y = M.REACH, width = title_w, height = M.TAB_H,
-      kit.text {
-        id = spec.id .. "-title", x = M.PAD, anchors = { vertical_center = true }, text = spec.title,
-        width = function() return math.max(1, title_w() - 2 * M.PAD) end, elide = "right",
-        font_size = L.SIZE.title, color = kit.ink("hi"),
-      },
-    },
-  })
-  local right = tab(spec.id .. "-close-tab", {
-    x = function() return w() - right_w() end, width = right_w,
-    ui.Item { y = M.REACH, width = right_w, height = M.TAB_H, actions, close },
-  })
-  local area = ui.MouseArea {
-    id = spec.id .. "-header", width = w, height = M.TAB_H,
-    on_pressed = function() win:start_system_move() end,
-  }
-  return area, left, right
-end
-
---- Opens the tool's window: `id`, `title`, `width`, `height`, `minimum_width`,
---- `minimum_height`, `actions(w)` (a node at the header's right), `on_close`,
---- `back` (fn: goes back a level, true if there was one, for the swipe in from
---- the left; with none the swipe closes it), `build(w, h)` (the content under
---- the header, `w` and `h` fns). Returns the window.
-function M.open(spec)
-  morf.surface.blend = "srgb"
-  morf.surface.namespace = "eva-" .. spec.id
-  require("themes.ui_scale").apply()
-  M.follow_scheme()
-  M.follow_appearance()
-  morf.ipc["eva-app"] = function()
-    return { theme = themes.current.id, primary = C.primary:hex(), settings = config.path }
-  end
-  -- The window's size, kept across a reload.
-  local kept = morf.reloadable("eva.app.size", {})
-  local size = kept:get()
-  -- A second launch asks this: the window comes forward, by its app id.
-  local app_id = "eva." .. spec.id
-  morf.ipc["eva-raise"] = function()
-    if second then return second() end
-    local list = morf.toplevels and morf.toplevels.list and morf.toplevels.list() or {}
-    for _, row in ipairs(list) do
-      if row.app_id == app_id then
-        morf.toplevels.activate(row.identifier)
-        return true
-      end
-    end
-    return false
-  end
-  return app.application {
-    title = spec.title, app_id = app_id,
-    width = size.width or spec.width, height = size.height or spec.height,
-    minimum_width = spec.minimum_width or 340, minimum_height = spec.minimum_height or 400,
-    on_closed = spec.on_close,
-    build = function(win)
-      morf.effect("eva.app.size", function() kept:set { width = win.width, height = win.height } end)
-      local function w() return win.width end
-      local function h() return math.max(0, win.height - M.HEADER_H - M.PAD) end
-      local function body_w() return math.max(1, w() - 2 * M.PAD) end
-      local area, left, right = header(win, spec, w)
-      local opening = M.EDGE
-      local content = ui.Item {
-        x = M.PAD - opening, y = M.HEADER_H - opening, width = body_w, height = h,
-        opacity = 1, translate_y = 0,
-        enter = { opacity = 0, translate_y = S.m },
-        behavior = { opacity = theme.spring.effects, translate_y = theme.spring.spatial },
-        spec.build(body_w, h),
-      }
-      local body = ui.ClipRect {
-        id = spec.id .. "-opening-clip", anchors = { fill = true, margins = opening }, radius = theme.ROUNDING,
-        color = "transparent",
-        content,
-      }
-      local field = themes.view("app_frame").build {
-        id = spec.id, edge = opening,
-        tabs = { { node = left }, { node = right, right = true } },
-      }
-      -- A swipe in from the window's left edge takes the content with it:
-      -- back a level, or out of the tool.
-      local swipe
-      swipe = require("themes.swipe_dismiss").new { id = "frame." .. spec.id, node = content, ways = { right = true },
-        extent = function() return w() end,
-        on_dismiss = function()
-          if spec.back and spec.back() then swipe.reset() return end
-          if spec.on_close then spec.on_close() end
-          win:close()
-        end }
-      return ui.Rect {
-        id = spec.id .. "-root", anchors = { fill = true }, color = function() return C.surface end,
-        on_panned = function(phase, dx, dy, vx, vy, x, y)
-          if phase == "begin" and x > M.BACK_EDGE then return false end
-          return swipe.on_panned(phase, dx, dy, vx, vy, x, y)
-        end,
-        ui.MouseArea { anchors = { fill = true }, z = -1 },
-        body, area, field, left, right,
-      }
-    end,
-  }
 end
 
 --- A surface over everything: `id`, `root` (fills it), `keyboard` ("exclusive"
@@ -228,10 +68,9 @@ function M.quiet(follow)
   if follow then M.follow_scheme() end
 end
 
---- Sets what a second launch does to this tool, in the place of raising a
---- window: an overlay shuts, as a key pressed twice would.
+--- Sets what a second launch does to this tool: an overlay shuts, as a key
+--- pressed twice would.
 function M.on_second(action)
-  second = action
   morf.ipc["eva-raise"] = action
 end
 

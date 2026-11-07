@@ -22,7 +22,6 @@ return {
     notification_digest = "themes.layouts.views.notification_digest",
     rail = "themes.material.views.rail",
     frame = "themes.material.views.frame",
-    app_frame = "themes.material.views.app_frame",
     levels = "themes.layouts.views.levels",
     notifications = "themes.layouts.views.notifications",
     polkit = "themes.layouts.views.polkit",

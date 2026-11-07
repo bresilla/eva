@@ -1,7 +1,8 @@
 #!/bin/sh
 # apps/launch TOOL [ARGS]: one tool of apps/ as a program of its own. With no
-# ARGS it is the tool's window, and one window at a time: a second launch raises
-# the first and ends. With ARGS it is a job or a daemon, which runs beside it.
+# ARGS it is the tool's overlay, and one at a time: a second launch answers the
+# first, which shuts, and ends. With ARGS it is a job or a daemon, which runs
+# beside it.
 #
 # MORF is the binary (default: morf on PATH). EVA_APPEARANCE and EVA_SETTINGS
 # name the shell's files; unset, they are found here.
@@ -37,8 +38,8 @@ if [ "$#" -gt 0 ]; then
   exec "${MORF:-morf}" app "$here/$tool/app.lua" -- "$@"
 fi
 
-# The pid of the window this tool has open, while it lives: the launcher's own,
-# which `exec` hands to morf.
+# The pid of this tool while it is up: the launcher's own, which `exec` hands
+# to morf.
 guard_dir=${XDG_RUNTIME_DIR:-/tmp}/eva
 guard=$guard_dir/$tool.window
 mkdir -p "$guard_dir"
