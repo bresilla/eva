@@ -178,7 +178,7 @@ end)
 
 for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. " fits a phone", function()
-    tool({ EVA_STYLE = style, EVA_TEST_PAGE = "380x800" }, nil, { 380, 800 })
+    tool({ EVA_STYLE = style, EVA_TEST_PAGE = "380x728" }, nil, { 380, 800 })
     arrived(10)
     test.ipc("select", 1)
     test.settle(500)

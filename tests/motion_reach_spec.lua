@@ -164,8 +164,8 @@ test.describe("a tool", function()
         local kept = require("themes").preferences
         kept.set("motion", value)
       end
-      require("common.frame").open { id = "probe", title = "Probe", width = 400, height = 400,
-        build = function() return require("morf.ui").Item {} end }
+      require("common.frame").follow_appearance()
+      require("morf.ui").Item { width = 1, height = 1 }
     ]], env = { EVA_APPEARANCE = path, EVA_DRY_RUN = "1" } })
     test.advance(100)
     test.eq(test.ipc("m_reloads"), 0)

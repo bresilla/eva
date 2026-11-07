@@ -228,7 +228,7 @@ end)
 for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. " keeps its boxes inside a phone", function()
     local root = tree()
-    tool(root, { EVA_STYLE = style, EVA_TEST_PAGE = "380x800" }, { 380, 800 })
+    tool(root, { EVA_STYLE = style, EVA_TEST_PAGE = "380x728" }, { 380, 800 })
     test.advance(800)
     test.settle(300)
     for _, box in ipairs(test.ipc("state").boxes) do

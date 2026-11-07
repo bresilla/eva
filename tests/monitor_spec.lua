@@ -387,7 +387,7 @@ end)
 for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. " fits a phone, the sheet inside the page", function()
     local root = fresh { processes = 12 }
-    tool(root, { EVA_STYLE = style, EVA_TEST_PAGE = "380x800" }, { 380, 800 })
+    tool(root, { EVA_STYLE = style, EVA_TEST_PAGE = "380x728" }, { 380, 800 })
     sampled(root)
     test.ipc("select", 700)
     test.settle(600)
