@@ -61,7 +61,7 @@ function M.page_present() return true end
 M.SETTINGS = { keys = "input/shortcuts", breaks = "breaks" }
 
 -- The pages of tools built so far, by key, and a count that moves as one is.
-local loaded, made = {}, morf.signal("eva.tools.made", 0)
+local loaded, count, made = {}, 0, morf.signal("eva.tools.made", 0)
 
 --- The module of tool `key`'s page, loaded the first time it is asked for.
 function M.page(key)
@@ -69,7 +69,8 @@ function M.page(key)
   if not (entry and entry.page) then return nil end
   if not loaded[key] then
     loaded[key] = require(entry.page)
-    made:set(made:get() + 1)
+    count = count + 1
+    made:set(count)
   end
   return loaded[key]
 end
