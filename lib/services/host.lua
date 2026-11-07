@@ -162,7 +162,7 @@ end
 function M.start_tool(name, args)
   local argv = M.tool(name)
   if not argv then return false end
-  if M.held("open " .. name) or M.fake() then return true end
+  if M.held(table.concat({ "open", name, table.unpack(args or {}) }, " ")) or M.fake() then return true end
   local command = {}
   for _, word in ipairs(argv) do command[#command + 1] = word end
   for _, word in ipairs(args or {}) do command[#command + 1] = word end

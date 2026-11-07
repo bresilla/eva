@@ -4,7 +4,9 @@
 #
 #   eva-large WORDS            the words
 #   echo words | eva-large     what comes on stdin
-#   eva-large                  the clipboard
+#   eva-large --clipboard      the clipboard
+#   eva-large                  on a terminal, the Tools window on Large Type;
+#                              with no shell, the clipboard
 set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
@@ -13,6 +15,13 @@ case "${1:-}" in
   -h | --help | help)
     sed -n '2,/^$/s/^# \{0,1\}//p' "$0"
     exit 0
+    ;;
+  --clipboard) exec sh "$apps/launch" large ;;
+  '')
+    if [ -t 0 ] && eva_shell_up; then
+      eva_tools large
+      exit 0
+    fi
     ;;
 esac
 

@@ -1,7 +1,9 @@
 #!/bin/sh
 # eva-kill: end a window, as the window menu's Force quit does.
 #
-#   eva-kill            press a window to end it, Escape cancels; a second launch
+#   eva-kill            the Tools window, on End a window; with no shell, the
+#                       press below
+#   eva-kill --pick     press a window to end it, Escape cancels; a second launch
 #                       cancels too
 #   eva-kill --active   ends the focused window, with no overlay
 #
@@ -12,6 +14,9 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 
 case "${1:-}" in
   '')
+    if eva_shell_up; then eva_tools kill; else exec sh "$apps/launch" kill; fi
+    ;;
+  --pick)
     # The shell's kill mode where it runs, the same dispatch without it.
     if eva_shell_up; then eva_ipc kill_mode > /dev/null; else exec sh "$apps/launch" kill; fi
     ;;

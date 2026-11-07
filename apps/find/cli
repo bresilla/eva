@@ -2,7 +2,9 @@
 # eva-find: where the pointer is, shown over the whole screen. A second launch
 # shuts it, as a key pressed twice would.
 #
-#   eva-find                 a spotlight at the pointer, gone after a moment or
+#   eva-find                 the Tools window, on Find pointer; with no shell, a
+#                            spotlight
+#   eva-find --spotlight     a spotlight at the pointer, gone after a moment or
 #                            on any input
 #   eva-find --crosshairs    full-screen lines through the pointer
 #   eva-find --ripple        rings on each press, until Escape
@@ -13,8 +15,11 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" find ;;
+  '')
+    if eva_shell_up; then eva_tools find; else exec sh "$apps/launch" find; fi
+    ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  --spotlight) exec sh "$apps/launch" find ;;
   --crosshairs | --ripple) EVA_FIND_MODE=${1#--} exec sh "$apps/launch" find ;;
   *)
     eva_say "eva-find: no mode $1"
