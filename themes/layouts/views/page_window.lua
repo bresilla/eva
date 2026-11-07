@@ -98,13 +98,19 @@ local function pages(model, w, h)
       b_rest = { set = { translate_x = function() return (current() or peeked()) and 0 or 20 end } } })
     return node
   end
-  -- What a built page puts in the head beside the close control, while on show.
+  -- What a built page puts in the head beside the close control, while on show;
+  -- `made_at` moves as a page's actions are made.
+  local made_at = morf.signal("eva." .. name .. ".window.actions", 0)
   local function actions(row)
     local key = row.id
     made[key] = model.page_actions(key)
+    morf.time.timer(1, function() made_at:set(made_at:get() + 1) end, false)
     return ui.Item { visible = function() return model.detail:get() == key end, made[key] }
   end
-  local function shown_actions() return made[model.detail:get()] end
+  local function shown_actions()
+    made_at:get()
+    return made[model.detail:get()]
+  end
   local node = ui.Item { id = name .. "-detail", width = w, height = h, clip = true,
     ui.Repeater { model = built, delegate = page } }
   local gesture = require("gesture_motion")
