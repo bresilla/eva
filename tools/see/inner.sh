@@ -54,6 +54,13 @@ ROLE=""
 HELD=""
 start() {
   stop
+  PAGE=""
+  if [ "$1" = app ] && [ "$#" -eq 2 ] && [ -z "${EVA_ZOOM_LENS:-}" ] && has_page "$2"; then
+    # A tool that is a page: the shell, on that page.
+    start shell
+    page "$2"
+    return
+  fi
   if [ "$1" = app ]; then
     shift
     sh "$SEE_EVA/apps/launch" "$@" > "$SEE_OUT/app-$1.log" 2>&1 &
@@ -103,7 +110,26 @@ click() {
   sleep 0.05
   swaymsg seat seat0 cursor release button1 > /dev/null
 }
-appipc() { timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-app-$ROLE" ipc call "$@"; }
+# Whether tool $1 is a page, in Tools or Settings, rather than a program of its own.
+has_page() {
+  case "$1" in draw | find | kill | large | ruler | screenshot) return 1 ;; esac
+  [ -f "$SEE_EVA/apps/$1/page.lua" ]
+}
+# The page of tool $1, in the Tools window or the Settings page it became.
+page() {
+  PAGE=$1
+  case "$1" in
+    keys) ipc settings input/shortcuts > /dev/null ;;
+    breaks) ipc settings breaks > /dev/null ;;
+    *) ipc tools "$1" > /dev/null ;;
+  esac
+  sleep "${BOOT:-2}"
+}
+# A verb of the tool on show: its page's, else its own program's.
+appipc() {
+  if [ -n "${PAGE:-}" ]; then ipc tool "$PAGE" "$@"; return; fi
+  timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-app-$ROLE" ipc call "$@"
+}
 toolipc() { timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-screenshot" ipc call "$@"; }
 drawn() {
   for _ in $(seq 300); do morf ipc verbs > /dev/null 2>&1 && break; sleep 0.1; done
