@@ -2,7 +2,9 @@
 # eva-screenshot: the capture tool. The panel, the frozen selection, the editor
 # and the recorder, with or without the shell.
 #
-#   eva-screenshot                                   the panel
+#   eva-screenshot                                   the Tools window, on Screenshot;
+#                                                    with no shell, the panel
+#   eva-screenshot panel                             the panel
 #   eva-screenshot region|window|screen [--edit|--copy|--save|--pin] [--delay N] [--last]
 #   eva-screenshot ocr|qr [region|window|screen]     copies what it reads
 #   eva-screenshot scroll [region|window|screen]     a long picture as a window scrolls
@@ -52,6 +54,13 @@ outcome() {
   answer=$(tail -n +2 "$1" 2> /dev/null || true)
   [ "$(head -n 1 "$1" 2> /dev/null || true)" = ok ]
 }
+
+# Alone, the Tools window's page where the shell runs; `panel`, or no shell,
+# the capture panel.
+case "${1:-}" in
+  '') if eva_shell_up; then eva_tools screenshot; exit 0; fi ;;
+  panel) shift ;;
+esac
 
 while [ "$#" -gt 0 ]; do
   case "$1" in

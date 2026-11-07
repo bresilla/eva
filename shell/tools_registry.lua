@@ -46,6 +46,10 @@ M.PAGES = {
   { key = "large", name = "Large Type", icon = "format_size", category = "text", page = "apps.large.page", overlay = true,
     summary = "Words huge across the screen", keywords = "large type big text show huge screen clipboard" },
 
+  { key = "screenshot", name = "Screenshot", icon = "screenshot_region", category = "screen",
+    page = "apps.screenshot.page", overlay = true, summary = "Pictures and recordings of the screen",
+    keywords = "screenshot capture screen picture region window record recording video screencast",
+    items = { { "Record the screen", "recording video screencast" } } },
   { key = "colorpick", name = "Colour picker", icon = "colorize", category = "screen", page = "apps.colorpick.page",
     overlay = true, summary = "A colour off the screen", keywords = "color colour picker eyedropper hex rgb hsl" },
   { key = "draw", name = "Draw on screen", icon = "draw", category = "screen", page = "apps.draw.page", overlay = true,
