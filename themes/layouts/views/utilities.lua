@@ -133,7 +133,9 @@ function V.eva_page(model,w,h)
 end
 
 function V.build(model,w,h)
-local M={TOGGLES=model.TOGGLES,DETAILS=model.DETAILS,detail=model.detail,RADIUS=V.RADIUS}
+-- The panel's own pages and their navigation, apart from the Settings window's.
+local Q=model.in_panel
+local M={TOGGLES=model.TOGGLES,DETAILS=Q.DETAILS,detail=Q.detail,RADIUS=V.RADIUS}
 -- A side panel's cards are 408 wide; a sheet's (a phone's quick settings)
 -- take its width.
 local CARD_W,GAP=w,P.GAP
@@ -240,44 +242,176 @@ local stack = ui.Item { width = CARD_W, height = M.height,
   above(session_card, 1), above(slider_card, 2), above(capture_button, 3), above(all_settings, 4), tiles_slot }
 
 
---- The Settings page of the right panel: the cards, top down. What they lead
---- to opens in the Settings window (shell/settings_window.lua). The panel's
---- frame draws the head: "Settings", or "Edit tiles" while they are arranged
---- (`M.head`).
+--- The Settings page of the right panel: the cards, top down, and the quick
+--- controls' own pages (Network, Bluetooth, Sound) beside them, which slide in
+--- over them as a tile's ">" opens one. The panel's frame draws the head:
+--- "Settings", or a page's name with the way back and More settings, its whole
+--- page in the Settings window (`M.head`). Anything else the cards lead to
+--- opens in that window.
+local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
+-- How far in from a detail's left edge a swipe back may start.
+local BACK_EDGE = theme.space.xxl + theme.space.s
 function M.page(w, h)
   overview_viewport_node, overview_viewport, overview_viewport_t, overview_viewport_ctl = kit.scroll({id="settings-overview-scroll",width=w,height=h,clip=true,
     stack})
+  -- Out of Tab's way while a detail is on show.
   local main = ui.Item {
     id = "utilities", width = w, height = h, clip = true,
+    enabled = function() return M.detail:get() == "" end,
     overview_viewport_node,
   }
+  local stack = {}
+  local names = {}
+  -- How to read each detail's height, once it is built.
+  local measured = morf.signal("eva.settings.quick.measured", 0)
+  local readers = {}
+  function M.detail_height(key)
+    measured:get()
+    local read = readers[key]
+    local whole = read and read() or 0
+    return whole > 0 and whole or nil
+  end
+  -- Going back under a finger: how far the page has been pulled, the page it
+  -- goes back to, and whether that is another detail or the overview.
+  local pull_x = Q.peek
+  local function pull() return pull_x:get() end
+  local function peek() return math.min(1, pull() / math.max(1, w)) end
+  local function parent_of(key)
+    for _, d in ipairs(M.DETAILS) do if d.key == key then return d.parent or "" end end
+    return ""
+  end
+  local function peek_key()
+    if pull() <= 0 then return nil end
+    local parent = parent_of(M.detail:get())
+    return parent ~= "" and parent or nil
+  end
+  local function nested() return parent_of(M.detail:get()) ~= "" end
+  for _, d in ipairs(M.DETAILS) do
+    names[d.key] = d.name
+    -- Each detail is built the first time it opens, and kept.
+    local wanted = morf.signal("eva.settings.quick.built." .. d.key, M.detail:get() == d.key)
+    morf.effect("eva.settings.quick.build." .. d.key, function()
+      if M.detail:get() == d.key and not wanted:get() then wanted:set(true) end
+    end)
+    -- Pulled back from a page, the page above it shows beneath, a touch small.
+    local function peeked() return peek_key()==d.key end
+    stack[#stack + 1] = ui.Item {
+      id = "quick-detail-" .. d.key,
+      width = w, height = h,
+      visible = function() return M.detail:get() == d.key or peeked() end,
+      opacity=function() return M.detail:get()==d.key and 1 or peeked() and .4+.6*peek() or 0 end,
+      scale=function()
+        if M.detail:get()==d.key then return 1-.06*peek() end
+        return peeked() and .94+.06*peek() or 1
+      end,
+      z=function() return M.detail:get()==d.key and 1 or 0 end,
+      behavior={opacity={duration=theme.duration.small}},
+      ui.Loader {
+        anchors = { fill = true }, keep = true,
+        active = function() return wanted:get() end,
+        source = function()
+          local node, _, read = P.measure(function() return Q.page_content(d.key, w, h) end)
+          readers[d.key] = read
+          measured:set(measured:get() + 1)
+          return node
+        end,
+      },
+    }
+    -- A page pulled back from its parent is the finger's; else it eases in.
+    ui.claims(stack[#stack], { motion = SWITCH,
+      a_hand = { when = function() return pull() > 0 and M.detail:get() == d.key and nested() end,
+        motion = { duration = 0 }, set = { translate_x = pull } },
+      b_rest = { set = { translate_x = function()
+        return (M.detail:get() == d.key or peeked()) and 0 or 20
+      end } } })
+  end
   -- The pencil: edits the tiles, and says done while they are.
   local pencil = kit.action { id = "utilities-edit", width = 40, height = 40, cursor = "pointer",
     accessible_name = function() return editing() and "Done" or "Edit quick settings" end,
+    visible = function() return M.detail:get() == "" end,
     on_clicked = function()
       model.tiles.editing:set(not editing())
       if overview_viewport then overview_viewport.content_y = 0 end
     end,
     kit.icon(function() return editing() and "check" or "edit" end, 22, kit.ink("hi"), { anchors = { center_in = true } }) }
   kit.hover(pencil, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
+  -- More settings: the page on show, whole, in the Settings window.
+  local more = P.button { id = "quick-more", label = "More settings", icon = "open_in_new",
+    visible = function() return M.detail:get() ~= "" end, on_clicked = Q.more }
   M.head = {
-    title = function() return editing() and "Edit tiles" or "Settings" end,
-    subtitle = function() return editing() and "Drag to arrange" or "" end,
+    title = function()
+      if M.detail:get() == "" and editing() then return "Edit tiles" end
+      return names[M.detail:get()] or "Settings"
+    end,
+    subtitle = function()
+      if M.detail:get() ~= "" then return Q.breadcrumb() end
+      return editing() and "Drag to arrange" or ""
+    end,
+    back = Q.back, back_id = "quick-back",
+    can_back = function() return M.detail:get() ~= "" end,
     keep = function() return true end,
-    actions = { pencil },
-    -- Read in afresh as the quick controls come on show.
-    active = require("presentation").active("settings.overview"),
+    actions = { pencil, more },
+    -- Read in afresh as the overview or a detail comes on show.
+    active = function()
+      local key = M.detail:get()
+      return require("presentation").active(key == "" and "settings.overview" or "quick." .. key)()
+    end,
   }
-  return main
+  local detail = ui.Item {
+    id = "quick-detail", width = w, height = h,
+    table.unpack(stack),
+  }
+  -- The last detail shown stays drawn while it slides away. The pages are
+  -- a Navigation stack: with focus inside, Alt+Left and the back button pop.
+  local shortcuts = Q.navigation.shortcuts()
+  local row = ui.Row { gap = 24, main, detail }
+  -- Under a finger the row is the finger's; on its own it eases there.
+  ui.claims(row, { motion = SWITCH,
+    a_hand = { when = function() return pull() > 0 and not nested() end, motion = { duration = 0 },
+      set = { translate_x = function() return -(w + 24) + pull() end } },
+    b_rest = { set = { translate_x = function() return M.detail:get() == "" and 0 or -(w + 24) end } } })
+  local holder = ui.Item {
+    width = w, height = h, clip = true,
+    shortcuts = shortcuts,
+    row,
+  }
+  -- A pull in from the page's left edge goes back, what it goes back to
+  -- showing under the finger; let go early, it stays. Further in, a sideways
+  -- drag is the panel's, for its tabs.
+  local gesture = require("gesture_motion")
+  local COMMIT = .35
+  local pulling
+  holder.on_panned = function(phase, dx, dy, vx, _, start_x)
+    if phase == "begin" then
+      pulling = false
+      if M.detail:get() == "" or dx <= 0 or math.abs(dx) <= math.abs(dy) * 1.2 then return false end
+      if not start_x or start_x - (holder.layout_x or 0) > BACK_EDGE then return false end
+      pulling = true
+      return true
+    end
+    if not pulling then return end
+    if phase == "update" then pull_x:set(math.max(0, dx))
+    else
+      local done = phase == "end" and (dx >= w * COMMIT or gesture.fling(dx, vx) and (vx or 0) > 0)
+      pulling = false
+      pull_x:set(0)
+      if done then
+        require("haptics").fire("commit")
+        Q.back()
+      end
+    end
+  end
+  return holder
 end
 
 
 local node=M.page(w,h)
+morf.effect("material.settings.present",function() Q.present(Q.detail:get()) end)
 local running={}
 morf.effect("material.settings.shown",function()
   for _, handle in ipairs(running) do handle:stop() end
   running=kit.bud(cards,model.quick:get())
 end,{owner=node})
-return {node=node,height=M.height,head=M.head,laid_out=M.laid_out}
+return {node=node,height=M.height,head=M.head,laid_out=M.laid_out,detail_height=M.detail_height}
 end
 return V

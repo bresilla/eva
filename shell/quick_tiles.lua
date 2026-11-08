@@ -111,7 +111,7 @@ function M.list(model, gamemode)
       present = function() return hotspot().present() end,
       on = function() return hotspot().on() end,
       set = function(now)
-        if now and not hotspot().saved() then model.request("hotspot") return end
+        if now and not hotspot().saved() then model.reach("hotspot") return end
         hotspot().set(now)
       end,
       status = function() return hotspot().status() end,
@@ -263,7 +263,7 @@ function M.list(model, gamemode)
     {
       id = "screentime", icon = "hourglass_bottom", name = "Screen time", detail = "screen_time",
       on = function() return false end,
-      set = function() model.request("screen_time") end,
+      set = function() model.reach("screen_time") end,
       status = function()
         local time = require("screen_time_model")
         local _, total = time.report(1)

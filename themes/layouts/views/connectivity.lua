@@ -143,11 +143,14 @@ local function network_prompt(model, w)
     { id = "network-share", icon = "qr_code_2", label = "Share", on_clicked = function() model.share_shown:set(true) end,
       visible = function() return row().known == true or row().secure ~= true end } }
   answer.visible, manage.visible, more.visible = asking, mode("manage"), mode("manage")
+  -- The keys go to the page on show, where another host builds it too.
+  local function here() return model.shown == nil or model.shown() end
   morf.effect("eva.network.prompt.focus", function()
     local m = model.mode()
     if m ~= "password" and m ~= "enterprise" then clear() end
-    user.focus = m == "enterprise"
-    pass.focus = m == "password"
+    local on = here()
+    user.focus = on and m == "enterprise"
+    pass.focus = on and m == "password"
   end)
   return ui.Column { id = "network-password-prompt", width = inner, gap = 8,
     visible = function() return model.asked() ~= nil end,
@@ -297,7 +300,7 @@ local function pairing_prompt(model, w)
   morf.effect("eva.bluetooth.pairing.focus", function()
     local on = entry()
     if not on then typed:set("") end
-    handle.focus = on
+    handle.focus = on and (model.shown == nil or model.shown())
   end)
   local buttons = P.buttons { width = inner,
     { id = "bluetooth-pairing-refuse", label = "Cancel", on_clicked = refuse },

@@ -39,7 +39,7 @@ function V.build(model, w, ctx)
       -- other long press starts arranging the board.
       on_long_pressed = function()
         if editing() then return end
-        if t.detail and small() then model.request(t.detail) else tile.hold() end
+        if t.detail and small() then model.reach(t.detail) else tile.hold() end
       end,
       kit.icon(t.icon, 22, fg, { anchors = { vertical_center = true }, fill = t.fill or on,
         visible = not t.glyph or function() return not t.glyph().present end,
@@ -74,7 +74,7 @@ function V.build(model, w, ctx)
         id = "utilities-more-" .. id, accessible_name = "Open " .. name, width = S.TARGET, cursor = "pointer",
         anchors = { right = true, top = true, bottom = true, top_margin = 8, bottom_margin = 8, right_margin = 8 },
         visible = function() return not small() and not editing() end,
-        on_clicked = function() model.request(t.detail) end,
+        on_clicked = function() model.reach(t.detail) end,
         kit.icon("chevron_right", 22, fg, { anchors = { center_in = true } }),
       }
       kit.hover(more, function(hovered) return hovered and fg():alpha(0.12) or fg():alpha(0) end, 10)

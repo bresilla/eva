@@ -1,13 +1,15 @@
 -- Controllers supply one cached audio model per presented Settings page, live
--- while the page shows or the launcher lists its devices.
+-- while the page shows, in the Settings window or the quick controls' panel,
+-- or the launcher lists its devices.
 local models=require("sound_model")
 local presentation=require("presentation")
 local view=require("themes").view("sound_page")
 local M,instances={},{}
 local function shared(kind,key)
   if not instances[kind] then
-    local page,mode=presentation.active("settings."..key),presentation.active("launcher."..key)
-    instances[kind]=models.new(kind,function() return page() or mode() end)
+    local page,quick,mode=presentation.active("settings."..key),presentation.active("quick."..key),
+      presentation.active("launcher."..key)
+    instances[kind]=models.new(kind,function() return page() or quick() or mode() end)
   end
   return instances[kind]
 end

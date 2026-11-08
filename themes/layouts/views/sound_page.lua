@@ -1,6 +1,7 @@
--- The Settings window's two sound pages, Sound (the output) and Microphone
--- (the input), in the page template (themes/layouts/page.lua), and Sound's
--- second page, which ends with the sound server's restart:
+-- The two sound pages, Sound (the output) and Microphone (the input), in the
+-- quick controls' panel and the Settings window, in the page template
+-- (themes/layouts/page.lua), and Sound's second page, which ends with the sound
+-- server's restart:
 --
 --   Output         the default output, its mute, volume, and each of its
 --                  channels under a Channels expander that remembers

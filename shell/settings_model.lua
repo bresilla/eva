@@ -304,7 +304,7 @@ M.TOGGLES = {
     -- Mesh VPNs: one's own machines (NetBird, Tailscale, ZeroTier).
     id = "mesh", icon = "hub", name = "Mesh", detail = "mesh",
     on = function() return #M.vpn_names("mesh") > 0 end,
-    set = function() M.request("mesh") end,
+    set = function() M.reach("mesh") end,
     status = function()
       local names = M.vpn_names("mesh")
       return #names == 0 and "Off" or table.concat(names, ", ")
@@ -314,7 +314,7 @@ M.TOGGLES = {
     -- Tunnel VPNs: out to the internet through elsewhere (Mullvad, Proton).
     id = "tunnel", icon = "vpn_lock", name = "Tunnel", detail = "tunnel",
     on = function() return #M.vpn_names("tunnel") > 0 or services.tor ~= nil and services.tor.on() end,
-    set = function() M.request("tunnel") end,
+    set = function() M.reach("tunnel") end,
     status = function()
       local names = M.vpn_names("tunnel")
       if services.tor and services.tor.on() then names[#names+1]="Tor" end
@@ -408,7 +408,7 @@ M.TOGGLES = {
     id = "battery", name = "Battery", detail = "power", icon = "power",
     glyph = function() return require("battery_status_model").read() end,
     on = function() return require("battery_status_model").read().charging end,
-    set = function() M.request("power") end,
+    set = function() M.reach("power") end,
     status = function()
       local battery = require("battery_status_model")
       return battery.describe(battery.read())
@@ -463,8 +463,8 @@ M.TOGGLES = {
   },
 }
 
---- The detail page on show over the settings ("" for none): a tile's
---- ">" opens one, the back arrow shuts it.
+--- The page the Settings window shows ("" for none); the panel's own pages
+--- are `M.in_panel`'s.
 M.detail = require("themes.session").keep("eva.settings.detail", "")
 --- Which app's rules, and which Focus mode, their pages show.
 M.rules_app = require("themes.session").keep("eva.settings.rules_app", "")
@@ -499,7 +499,7 @@ do
       return "tune"
     end,
     on=function() return M.awake:get() or notifs.dnd:get() or focus.quiet() or M.CONTROLS.ringer.on() end,
-    set=function() M.request("focus") end,
+    set=function() M.reach("focus") end,
     status=function()
       local names={}
       if M.awake:get() then names[#names+1]="Awake" end
@@ -568,7 +568,9 @@ M.navigation.on_back=function() require("themes.layouts.page").hold_place() end
 -- How far a page has been pulled back under a finger, in pixels.
 M.peek=morf.signal("eva.settings.peek",0)
 M.breadcrumb=M.navigation.breadcrumb
-function M.overview() return M.quick:get() end
+--- The quick controls' own pages, opened in their panel (shell/quick_details.lua).
+M.in_panel=require("quick_details").new(M)
+function M.overview() return M.quick:get() and M.in_panel.displayed:get()=="" end
 -- What the tiles read rather than watch is looked at again as they come on show.
 morf.effect("eva.settings.look",function()
   if M.overview() then require("quick_hardware").refresh() end
@@ -595,6 +597,14 @@ function M.request(key,from)
 end
 --- Opens All settings.
 function M.open_home() return M.request(M.registry.HOME) end
+--- Opens page `key` where it lives: a quick control's in the panel over its
+--- cards, any other in the Settings window.
+function M.reach(key,from)
+  if M.in_panel.holds(key) then return M.in_panel.open(key) end
+  return M.request(key,from)
+end
+--- A function: whether the Settings window has page `key` on show.
+function M.showing(key) return require("presentation").active("settings."..key) end
 --- One page back: its parent, or the page it was opened from, else All
 --- settings; from All settings the window shuts.
 function M.back()
@@ -653,7 +663,9 @@ end
 M.tiles=require("tiles_model").new(M.TOGGLES,function() return require("responsive").form_factor() end)
 M.panels=require("panels_board").new(function() return M.opened:get() and M.detail:get()=="panels" end)
 M.focus={}
-local function focus_active() return M.opened:get() and M.displayed:get()=="focus" end
+local function focus_active()
+  return M.opened:get() and M.displayed:get()=="focus" or M.quick:get() and M.in_panel.displayed:get()=="focus"
+end
 for _,id in ipairs {"awake","ringer","dnd"} do
   local control=M.CONTROLS[id]
   M.focus[#M.focus+1]={id=id,name=control.name,set=control.set,
@@ -679,7 +691,7 @@ M.levels.brightness_known=reading(function() return select(2,require("osd").brig
 morf.effect("eva.settings.presentation",function()
   local open,key=M.opened:get(),M.displayed:get()
   local presentation=require("presentation")
-  presentation.set("settings.overview",M.quick:get())
+  presentation.set("settings.overview",M.overview())
   presentation.set("settings.detail",open and key~="")
   for _, detail in ipairs(M.DETAILS) do presentation.set("settings."..detail.key,open and key==detail.key) end
 end)

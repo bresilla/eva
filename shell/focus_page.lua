@@ -7,8 +7,10 @@ local M = {}
 
 local RING = { { "", "Leave" }, { "sound", "Sound" }, { "vibrate", "Vibrate" }, { "silent", "Silent" } }
 
+--- `settings`: the host the page is built in, the Settings window's model or
+--- the quick controls' panel's, for whether it is on show and where it leads.
 function M.model(settings)
-  local model = { active = require("presentation").active("settings.focus"), MAX = focus.MAX,
+  local model = { active = settings.showing("focus"), MAX = focus.MAX,
     controls = settings.focus, DURATIONS = focus.DURATIONS, awake = require("awake_model").page() }
   model.modes = focus.modes
   --- The modes but Do not disturb, which has its row among the interruptions.
@@ -50,7 +52,7 @@ end
 
 --- The model of a mode's page. `settings.focus_mode` names the mode.
 function M.mode_model(settings)
-  local model = { active = require("presentation").active("settings.focus/mode"), ICONS = focus.ICONS,
+  local model = { active = settings.showing("focus/mode"), ICONS = focus.ICONS,
     DAYS = focus.DAYS, URGENCY = focus.URGENCY, RING = RING }
   local function id() return settings.focus_mode:get() end
   local function mode() return focus.mode(id()) or {} end

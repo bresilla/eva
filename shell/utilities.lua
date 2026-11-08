@@ -1,18 +1,20 @@
 -- Settings lifecycle and detail builders; the selected theme owns all layout.
+-- A builder is given the host it builds in, the Settings window's model or the
+-- panel's (shell/quick_details.lua), for what is on show and where links lead.
 local morf=require("morf")
 local M=require("settings_model")
 local view=require("themes").view("utilities")
 M.WIDTH,M.RADIUS=view.WIDTH,view.RADIUS
 local builders={
-  network=function(w,h) return require("connectivity").network_page(w,h) end,
-  mobile=function(w,h) return require("connectivity").mobile_page(w,h) end,
-  bluetooth=function(w,h) return require("connectivity").bluetooth_page(w,h) end,
+  network=function(w,h,host) return require("connectivity").network_page(w,h,host.showing("network")) end,
+  mobile=function(w,h,host) return require("connectivity").mobile_page(w,h,host.showing("mobile")) end,
+  bluetooth=function(w,h,host) return require("connectivity").bluetooth_page(w,h,host.showing("bluetooth")) end,
   sound=function(w,h) return require("sound_page").output_page(w,h) end,
   ["sound/more"]=function(w,h) return require("sound_page").more_page(w,h) end,
   ["sound/equalizer"]=function(w,h) return require("equalizer_page").page(w,h) end,
   ["sound/equalizer/audiogram"]=function(w,h) return require("equalizer_page").audiogram(w,h) end,
   microphone=function(w,h) return require("sound_page").input_page(w,h) end,
-  power=function(w,h) return require("power_page").page(w,h) end,
+  power=function(w,h,host) return require("power_page").page(w,h,host.showing("power")) end,
   bar=function(w,h) return require("bar_page").page(w,h) end,
   ["bar/tray"]=function(w,h) return require("bar_page").tray_page(w,h) end,
   osd=function(w,h) return require("osd_page").page(w,h) end,
@@ -32,17 +34,17 @@ local builders={
   wired=function(w,h) return require("net_pages").wired_page(w,h) end,
   mesh=function(w,h) return require("net_pages").vpn_page("mesh",w,h,M.displayed) end,
   tunnel=function(w,h) return require("net_pages").vpn_page("tunnel",w,h,M.displayed) end,
-  focus=function(w,h) return require("focus_page").page(M,w,h) end,
-  ["focus/mode"]=function(w,h) return require("focus_page").mode_page(M,w,h) end,
+  focus=function(w,h,host) return require("focus_page").page(host,w,h) end,
+  ["focus/mode"]=function(w,h,host) return require("focus_page").mode_page(host,w,h) end,
   notifications=function(w,h) return require("notification_settings").page(w,h) end,
   ["notifications/app"]=function(w,h) return require("notification_settings").app_page(w,h) end,
   theme=function(w,h) return view.theme_page(M,w,h) end,
   eva=function(w,h) return view.eva_page(M,w,h) end,
-  hotspot=function(w,h) return require("themes").view("quick_pages").hotspot_page(M,w,h) end,
-  nightlight=function(w,h) return require("themes").view("quick_pages").nightlight_page(M,w,h) end,
-  flashlight=function(w,h) return require("themes").view("quick_pages").flashlight_page(M,w,h) end,
-  filters=function(w,h) return require("themes").view("quick_pages").filters_page(M,w,h) end,
-  sounds=function(w,h) return require("themes").view("quick_pages").sounds_page(M,w,h) end,
+  hotspot=function(w,h,host) return require("themes").view("quick_pages").hotspot_page(host,w,h) end,
+  nightlight=function(w,h,host) return require("themes").view("quick_pages").nightlight_page(host,w,h) end,
+  flashlight=function(w,h,host) return require("themes").view("quick_pages").flashlight_page(host,w,h) end,
+  filters=function(w,h,host) return require("themes").view("quick_pages").filters_page(host,w,h) end,
+  sounds=function(w,h,host) return require("themes").view("quick_pages").sounds_page(host,w,h) end,
   ["theme/lule"]=function(w,h) return require("lule_page").build(w,h) end,
 }
 local function active(key) return require("presentation").active("settings."..key) end
@@ -118,7 +120,8 @@ builders["network/help"]=function(w,h)
 end
 builders.welcome=function(w,h) return themed("welcome").page(require("welcome_model"),M,w,h) end
 builders.backups=function(w,h) return themed("backups_page").page(with_request(require("backups_model").new()),w,h) end
-function M.page_content(key,w,h) return assert(builders[key],"Unknown Settings page: "..key)(w,h) end
+--- Page `key` built anew for `host`, the Settings window's model without one.
+function M.page_content(key,w,h,host) return assert(builders[key],"Unknown Settings page: "..key)(w,h,host or M) end
 --- Whether page `key` has a builder.
 function M.has_page(key) return builders[key]~=nil end
 local visual
@@ -130,16 +133,24 @@ function M.page(w,h)
 end
 function M.height() return built:get() and visual.height and visual.height() or 0 end
 --- How tall the page wants to stand, head included, for a sheet that fits
---- its content: the quick controls' cards, nil until they are measured.
+--- its content: the quick controls' cards or the page on show over them, nil
+--- until they are measured.
 function M.fit()
   if not built:get() or not visual.laid_out() then return nil end
   local P=require("themes.layouts.page")
-  return P.header_height(visual.head)+P.GAP+visual.height()+P.GAP
+  local key=M.in_panel.detail:get()
+  local body=visual.height()+P.GAP
+  if key~="" then body=visual.detail_height(key) end
+  return body and P.header_height(visual.head)+P.GAP+body or nil
 end
---- The quick controls on show, or put away: tiles being arranged stop.
+--- The quick controls on show, or put away: shut, the panel is back on its
+--- cards and tiles being arranged stop.
 function M.shown(open)
   M.quick:set(open)
-  if not open then M.tiles.editing:set(false) end
+  if not open then
+    M.in_panel.detail:set("")
+    M.tiles.editing:set(false)
+  end
 end
 morf.effect("eva.settings.lifecycle",function()
   M.shown(require("pages").active("settings")())
