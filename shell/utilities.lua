@@ -54,6 +54,9 @@ local function themed(name) return require("themes").view(name) end
 builders["lock/fingerprint"]=function(w,h)
   return themed("fingerprint_page").build(require("fingerprint_model"),active("lock/fingerprint"),w,h)
 end
+builders["lock/pattern"]=function(w,h)
+  return themed("pattern_page").build(require("pattern_model"),active("lock/pattern"),w,h)
+end
 builders.software=function(w,h) return themed("software_page").build(require("software_model"),w,h) end
 -- Pages of what were tools of apps/, their code still in the tool's folder.
 builders["input/shortcuts"]=function(w,h) return require("apps.keys.page").build(w,h) end

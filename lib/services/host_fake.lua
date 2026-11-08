@@ -22,6 +22,8 @@ local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl
 -- Which backup tools this machine has: EVA_FAKE_BACKUPS="snapper,restic". Their
 -- commands are answered below; the real ones never run.
 for tool in (morf.env("EVA_FAKE_BACKUPS") or ""):gmatch("[^,]+") do PROGRAMS[tool] = true end
+-- patty, unless EVA_FAKE_PATTY=none: `pkexec patty set|clear` leaves its files in EVA_PATTY_DIR.
+PROGRAMS.patty = morf.env("EVA_FAKE_PATTY") ~= "none"
 
 -- What the network does: `ok`, or how it breaks (`portal`, `no-address`,
 -- `self-assigned`, `no-gateway`, `no-dns`, `no-internet`, `quiet-router`).
@@ -196,9 +198,27 @@ local function ddcutil(argv)
   return { ok = false, code = 1, stderr = "unknown" }
 end
 
+local function patty(argv, stdin)
+  local dir = morf.env("EVA_PATTY_DIR") or ""
+  if dir == "" then return { ok = true, stdout = "" } end
+  local file = dir .. "/" .. tostring(argv[4])
+  if argv[3] == "clear" then
+    for _, suffix in ipairs { "", ".fails", ".kind" } do pcall(morf.fs.remove, file .. suffix) end
+    return { ok = true, stdout = "patty: cleared\n" }
+  end
+  local first, again = tostring(stdin or ""):match("^(%d+)\n(%d+)\n$")
+  if not first or first ~= again then return { ok = false, code = 1, stderr = "patty: the two patterns differ; nothing saved\n" } end
+  local kind = require("lib.shell.auth.patty").kind_of(first)
+  morf.fs.write(file, kind .. " $y$fake\n", { parents = true })
+  morf.fs.write(file .. ".fails", "0 0\n")
+  morf.fs.write(file .. ".kind", kind .. "\n")
+  return { ok = true, stdout = "patty: saved\n" }
+end
+
 function M.run(argv, options)
   M.ran[#M.ran + 1] = argv
   M.stdin = options and options.stdin or M.stdin
+  if argv[1] == "pkexec" and argv[2] == "patty" then return patty(argv, options and options.stdin) end
   if argv[1] == "ddcutil" then return ddcutil(argv) end
   if argv[1] == "pkexec" and argv[3] == "systemctl" then firewall_on = argv[4] == "enable" return { ok = true, stdout = "" } end
   if argv[1] == "lpadmin" or argv[1] == "cancel" or argv[1] == "cupsenable" or argv[1] == "cupsdisable" then

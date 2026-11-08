@@ -130,6 +130,9 @@ function V.build(model, w, h)
     P.row { id = "lock-set-fingerprints", width = inner, icon = "fingerprint", title = "Fingerprints",
       subtitle = "Add a finger, or take one away", trailing = P.chevron(),
       on_clicked = function() require("utilities").request("lock/fingerprint") end },
+    P.row { id = "lock-set-pattern", width = inner, icon = "pattern", title = "Pattern",
+      subtitle = "Draw or type one before the password", trailing = P.chevron(),
+      on_clicked = function() require("utilities").request("lock/pattern") end },
     P.row { id = "lock-set-readers", width = inner, icon = "fingerprint", title = "Readers", trailing = P.chevron(),
       on_clicked = function() require("utilities").request("lock/more") end },
   }
