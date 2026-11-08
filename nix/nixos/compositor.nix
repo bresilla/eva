@@ -25,6 +25,14 @@ let
     })
   '';
   hyprland = config.programs.hyprland.package;
+  plain = !config.programs.hyprland.withUWSM;
+  # Without UWSM: the compositor's environment to systemd, then the graphical
+  # session, unless UWSM runs this compositor after all.
+  activate = pkgs.writeShellScript "eva-session-start" ''
+    case "$(${pkgs.coreutils}/bin/cat /proc/self/cgroup)" in *wayland-wm@*) exit 0 ;; esac
+    ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd --all
+    exec ${pkgs.systemd}/bin/systemctl --user start eva-session.target
+  '';
   desktopConfig = pkgs.writeText "hyprland-session.lua" ''
     ${handoff}
     local apply_scale = dofile("${./scripts/hyprland-scale.lua}")(
@@ -59,24 +67,43 @@ let
     ${config.programs.eva.hyprland.extraConfig}
     apply_scale()
     ${lib.optionalString seamless.enable "handoff.record(${builtins.toJSON seamless.outputsFile})"}
+    ${lib.optionalString plain ''
+      hl.on("hyprland.start", function()
+        hl.exec_cmd("${activate}")
+      end)
+    ''}
   '';
   desktop =pkgs.writeShellScriptBin "hyprland-session" ''
     # The greeter's picture is the session's before anything reads the old one.
     ${config.system.build.evaWallpaper}/bin/eva-wallpaper adopt >/dev/null 2>&1 || :
-    exec ${pkgs.systemd}/bin/systemd-cat --identifier=hyprland -- \
-      ${hyprland}/bin/start-hyprland -- --config /etc/xdg/hypr/session.lua "$@"
+    ${
+      if plain then
+        ''
+          ${pkgs.systemd}/bin/systemd-cat --identifier=hyprland -- \
+            ${hyprland}/bin/start-hyprland -- --config /etc/xdg/hypr/session.lua "$@"
+          status=$?
+          ${pkgs.systemd}/bin/systemctl --user stop eva-session.target
+          exit "$status"
+        ''
+      else
+        ''
+          exec ${pkgs.systemd}/bin/systemd-cat --identifier=hyprland -- \
+            ${hyprland}/bin/start-hyprland -- --config /etc/xdg/hypr/session.lua "$@"
+        ''
+    }
   '';
   sessions =
     pkgs.runCommand "hyprland-quiet-sessions"
-      {
-        passthru.providedSessions = hyprland.providedSessions;
-      }
+      { passthru.providedSessions = hyprland.providedSessions; }
       ''
         mkdir -p "$out/share"
         cp -R ${hyprland}/share/wayland-sessions "$out/share/"
         chmod -R u+w "$out/share/wayland-sessions"
         substituteInPlace "$out/share/wayland-sessions/hyprland.desktop" \
           --replace-fail '${hyprland}/bin/start-hyprland' '${desktop}/bin/hyprland-session'
+        ${lib.optionalString (!config.programs.hyprland.withUWSM) ''
+          rm -f "$out/share/wayland-sessions/hyprland-uwsm.desktop"
+        ''}
       '';
   cfg = config.programs.eva.greeter;
   greeterExit = pkgs.writeShellScript "eva-greeter-exit" ''
@@ -175,6 +202,13 @@ in
       ];
       system.build.hyprlandQuietSessions = sessions;
       system.build.hyprlandSessionConfig = desktopConfig;
+      # The plain session's hold on the graphical session, which UWSM has otherwise.
+      systemd.user.targets.eva-session = lib.mkIf plain {
+        description = "eva's Hyprland session without UWSM";
+        bindsTo = [ "graphical-session.target" ];
+        wants = [ "graphical-session-pre.target" ];
+        after = [ "graphical-session-pre.target" ];
+      };
     })
     (lib.mkIf config.programs.eva.enable {
       system.build.evaGreeterConfig = greeterConfig;
