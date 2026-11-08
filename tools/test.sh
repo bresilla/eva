@@ -33,6 +33,7 @@ for shard in "$scratch"/shard.*; do
     chmod 700 "$own/run"
     HOME="$own/home" XDG_STATE_HOME="$own/state" XDG_CACHE_HOME="$own/cache" \
     XDG_CONFIG_HOME="$own/config" XDG_RUNTIME_DIR="$own/run" EVA_SCALE_FILE="$own/scale.json" \
+    EVA_PATTY_DIR="$own/patty" \
     DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent \
     DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \
       "$morf" test --no-dbus $(cat "$shard") > "$shard.tap" 2>&1 || true

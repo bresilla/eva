@@ -6,6 +6,9 @@
 set -eu
 cd "$(dirname "$0")/.."
 morf=${MORF:-morf}
+# No pattern of the machine's: patty's folder is one that is not there.
+EVA_PATTY_DIR=/nonexistent/patty
+export EVA_PATTY_DIR
 for role in shell lock greet; do
   set -- "$role/init.lua" --no-dbus --isolate --after 0
   [ "$role" = lock ] && set -- "$@" -- window preview
