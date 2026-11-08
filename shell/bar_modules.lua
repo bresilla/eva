@@ -97,9 +97,10 @@ local function dashboard_tab(key)
   end
 end
 
--- The Settings window, on a page.
+-- A Settings page where it lives: a quick control's in its panel, any other in
+-- the Settings window.
 local function settings_page(page)
-  return function() require("utilities").request(page) end
+  return function() require("utilities").reach(page) end
 end
 
 local function item(label, icon, on_clicked) return { label = label, icon = icon, on_clicked = on_clicked } end

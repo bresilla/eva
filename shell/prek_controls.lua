@@ -37,6 +37,7 @@ local function select_drawer(action)
   local key=action=="notifications" and "notifications" or "settings"
   local holder=require("pages").holder(key)
   if holder then holder.panel.select(key) end
+  if action=="quick_settings" then require("utilities").in_panel.request("") end
 end
 local function horizontal(drawer) return drawer.edge=="left" or drawer.edge=="right" end
 local function move(drawer,r) drawer.drag_by(horizontal(drawer) and r.dx or r.dy) end

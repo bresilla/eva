@@ -108,6 +108,7 @@ function M.new(ctx)
   end
   function model.open_settings()
     if not model.on() then return end
+    require("utilities").in_panel.request("")
     require("pages").open("settings")
   end
   function model.open_notifications()

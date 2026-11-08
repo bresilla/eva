@@ -207,10 +207,12 @@ morf.effect("eva.keyboard.focus", function()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get()
     or notifs.replying:get() ~= false or require("utilities").opened:get() or require("tools_model").opened:get()
   -- Typed into on a click: the Tasks and Calendar pages, the terminal, the
-  -- quick tiles being arranged, wherever their panels hold them.
+  -- quick tiles being arranged and the quick controls' own pages (a password,
+  -- Alt+Left), wherever their panels hold them.
+  local settings = require("utilities")
   local editor_open = pages.typing()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
-    or (pages.on_show("settings") and require("utilities").tiles.editing:get())
+    or (pages.on_show("settings") and (settings.tiles.editing:get() or settings.in_panel.displayed:get() ~= ""))
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
 
@@ -573,7 +575,7 @@ ipc.settings = function(page)
   end
   if not here() or page == "state" then return nil end
   local settings = require("utilities")
-  if page == nil or page == "" then pages.open("settings") return "" end
+  if page == nil or page == "" then settings.in_panel.open("") return "" end
   if not settings.request(page) then error("No such Settings page: " .. tostring(page)) end
   return settings.detail:get()
 end
@@ -635,12 +637,31 @@ ipc.tablet = function(how, value)
   return posture.state()
 end
 -- `quick edit` or `quick done`: the quick settings' tiles being arranged.
+-- `quick PAGE`: their panel open on one of the quick controls' own pages
+-- (network, bluetooth, sound, focus), `quick home` on the tiles, `quick back`
+-- one page back, `quick more` the page on show in the Settings window, `quick
+-- close` shut; each of these and `quick state` say where the panel stands.
 ipc.quick = function(how)
-  if how ~= "edit" and how ~= "done" then error("`" .. tostring(how) .. "`: edit or done") end
   if not here() then return nil end
-  pages.open("settings")
-  require("utilities").tiles.editing:set(how == "edit")
-  return how == "edit"
+  local settings = require("utilities")
+  local inside = settings.in_panel
+  local function state()
+    return { open = pages.on_show("settings"), page = inside.detail:get(), editing = settings.tiles.editing:get() }
+  end
+  if how == "edit" or how == "done" then
+    inside.open("")
+    settings.tiles.editing:set(how == "edit")
+    return how == "edit"
+  end
+  if how == "state" then return state() end
+  if how == "close" then pages.close("settings")
+  elseif how == "back" then inside.back()
+  elseif how == "more" then inside.more()
+  elseif how == nil or how == "" or how == "home" then inside.open("")
+  elseif not inside.holds(how) then error("`" .. tostring(how) .. "`: edit, done, state, home, back, more, close or one of "
+    .. table.concat(require("quick_details").KEYS, ", "))
+  else inside.open(how) end
+  return state()
 end
 -- `bar modules`: what stands on the bar, zone by zone, and what could. `bar add
 -- ID [ZONE]`, `bar remove ID`, `bar move ID INDEX [ZONE]`, `bar small ID`, `bar

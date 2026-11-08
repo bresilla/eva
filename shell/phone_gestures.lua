@@ -96,7 +96,9 @@ local function top_page(x)
 end
 
 local function select_top(sidebar,x)
-  sidebar.select(top_page(x))
+  local page=top_page(x)
+  sidebar.select(page)
+  if page=="settings" then require("utilities").in_panel.request("") end
 end
 
 function M.swipe(edge,x)
