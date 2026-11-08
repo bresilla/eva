@@ -93,7 +93,6 @@ let
         echo "eva $role configuration failed validation; using $fallback" >&2
       fi
     fi
-    if [ "$role" = greet ] && [ -n "''${EVA_GREETER_CONFIG_HOME:-}" ]; then unset EVA_APPEARANCE; fi
     export XDG_CONFIG_DIRS=/etc/xdg
     exec ${morf}/bin/morf "$fallback"
   '';
