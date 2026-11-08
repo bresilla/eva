@@ -93,7 +93,9 @@ local function fake_users(spec)
   return out
 end
 
--- The sound server's recording streams, the shell's own monitors aside.
+-- The sound server's recording streams, the shell's own monitors aside, and the
+-- sound server's own: a loopback module records for itself, not for an app.
+local SERVER = { pipewire = true, wireplumber = true }
 local function microphone()
   local out = {}
   pcall(function()
@@ -101,7 +103,7 @@ local function microphone()
     if not (audio and audio.available() and audio.streams) then return end
     for i = 1, audio.streams:len() do
       local row = audio.streams:get(i)
-      if row.direction == "record" and not (row.app_id or ""):match("^morf%.") then
+      if row.direction == "record" and not (row.app_id or ""):match("^morf%.") and not SERVER[row.binary or ""] then
         out[#out + 1] = { app = row.app_name ~= "" and row.app_name or row.binary or "An app", pid = row.pid, id = row.id,
           via = "pipewire" }
       end
