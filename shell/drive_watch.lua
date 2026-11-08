@@ -20,12 +20,7 @@ end
 
 local ACTIONS = { open = open, human = udisks.human,
   eject = function(row) storage.disks().eject(row) end,
-  settings = function()
-    local sidebar = require("sidebar")
-    require("utilities").request("storage")
-    sidebar.select("settings")
-    sidebar.drawer.set(true)
-  end }
+  settings = function() require("utilities").request("storage") end }
 
 --- Shows the popup for `row`, unless the setting says not to.
 function M.plugged(row)

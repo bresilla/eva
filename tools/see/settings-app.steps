@@ -1,0 +1,27 @@
+# The right panel's quick controls, then the Settings window over everything:
+# the home, a category, a nested page, Sound with its mixer and Displays over
+# two outputs, and the window opening and closing a frame at a time. The sound
+# server is the stand-in, so the mixer has something to show.
+export EVA_FAKE_AUDIO=1
+swaymsg create_output > /dev/null
+pause 0.3
+start shell
+ipc sidebar open settings; pause 1.4; shot panel
+ipc settings home; pause 1.4; shot home
+ipc settings home/connections; pause 1; shot category
+ipc settings bluetooth; pause 1; shot page
+ipc settings bar/tray; pause 1.6; shot nested
+ipc settings sound; pause 1.2; shot sound
+# The other output is dimmed while it is open, and lit again once it shuts.
+ipc settings displays; pause 1.6; shot displays
+ipc settings close; pause 1; shot both-shut
+ipc settings theme/fonts; pause 2; shot fonts
+ipc settings startup; pause 1.2; shot startup
+ipc settings updates; pause 1.2; shot updates
+ipc settings about; pause 1.2; shot about
+ipc settings focus; pause 1.2; shot focus
+key Escape; pause 1; shot closed
+# Opening and closing, a frame every tenth of a second.
+ipc settings network; for i in 0 1 2 3 4 5; do shot "open-$i"; sleep 0.08; done
+pause 0.6
+ipc settings close; for i in 0 1 2 3 4 5; do shot "close-$i"; sleep 0.08; done

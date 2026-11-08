@@ -76,6 +76,63 @@ components. Material retains its own rounded frame, morphing workspace discs
 and grouped history cards. The history controller owns actions and identity;
 neither visual package owns notification expiry or server calls.
 
+## HUD chrome and boot passes
+
+Independent morf work; nothing in this section is code taken from the
+reference. All of it uses wallpaper roles and stops at rest.
+
+- `boot.lua`: one finite pass over a host. The outline traces in from the
+  top-left corner both ways (one path, `trim_start`/`trim_end` out from 0.5),
+  four brackets hold, step in and settle with an overshoot, a 2 px scan line
+  with a glowing trail sweeps it top to bottom in 300 ms, and a register of
+  static words prints and fades. Nodes are made on the first pass and hidden
+  when it ends; a stop fades them over 90 ms.
+- The content pass (`B.content`) boots what is laid out under the host as
+  the scan reaches it: each card's outline draws itself in, its brackets
+  fly in from the host's corners and snap on past their corner and back,
+  section captions light their plate and run
+  their rule out, readings decode (`kit.decoding`), rolling numbers roll
+  in, meters refill cell by cell and gauges sweep up. `marks.lua` holds
+  what it drives, by node, until the node is destroyed; a pass looks it up
+  by layout box, in three turns of its own (cards, captions, readings), at
+  most 32 of each. A stop lands every track on its rest pose.
+- Drawers (all but the keyboard and the notification stack) play the pass
+  as their cover all but lifts, so it runs over the content, with the unit
+  call sign of `curtain.lua` as the register; a dashboard tab plays its
+  content pass as the wipe uncovers it.
+- `motion.lock_on(host, id)`: heavy brackets close onto a host from outside,
+  a scan crosses it and its content boots, looked up as the pass begins
+  (the host may still be growing). The OSD bud, the session menu's focused
+  row and dialogs in place use it; Material's hook draws nothing.
+  Notification arrivals (`registration.lua`) lock on with heavier brackets
+  from further out and flash the card's header band; popup grounds
+  (`widgets/popup.lua`) play the boot pass directly.
+- `dots.lua`: a dot grid behind the dashboard, side, planner and bottom
+  panels, with a small cross every fourth step: two paths per panel.
+- Cards (`kit.card`) are square: an outline at 0.3 (one loop the pass
+  draws in), four 12 px hairline brackets on the corners, and a foot ruler,
+  a serial strip and side notches sharing one path. Framed panels
+  (`kit.panel`) keep their registration marks and take the same ticks.
+- Section captions (one built just after its card) carry an index plate,
+  numbered in card order per page; the rule runs to the caption's end
+  tick with a block of hazard stripes before it. Menus and rows have none.
+- `kit.decor`: `corners` are brackets the pass flies in; `ticks` and
+  `scale` draw in the boxes layouts reserve, a scale's long ticks numbered
+  in segment digits (`digits.lua`).
+- The frame's top and bottom edges carry a long tick every hundred screen
+  pixels, a middle one every fifty and a short one every ten; the
+  opening's corners carry no marks. A workspace switch sends a
+  bright segment with a glowing tail along the rail's lip, which fades
+  where it lands.
+- Page covers slice into three bands a step apart. Rows enter on a decode
+  curve (two flickers, then a settle). Meters light whole cells in sequence
+  from wherever the run stands. Readouts glitch once on a change, at most
+  every five seconds.
+- Feedback: a hovered control's four brackets close in from 12 px out and
+  snap on, a press sends a bright bar with a trail across it, and the
+  keyboard focus reticle slides from the control it left. An on-screen
+  keyboard's keys keep their two marks and no scan.
+
 The moving light blade on drawer and page reveals uses the registration-edge
 motif from [Tsugumori](https://github.com/Aleph1-9012/Tsugumori) and the brief
 HUD accent flashes in [cyberpunk-ui](https://github.com/rintran720/cyberpunk-ui)
@@ -83,3 +140,21 @@ as visual references. It is drawn as a sibling above the clipped cover because
 the renderer can hide children of an animated cover beneath its fill. A narrow
 on-surface stroke leads a low-opacity wallpaper-secondary trail. Both are
 finite native tracks and disappear when the reveal finishes or reverses.
+
+## Motion across the shell
+
+Independent morf work, like the HUD chrome above; it reuses the pieces of
+that section and adds no running timer.
+
+- The drawer calls `ctx.reveal(true)` as its cover starts to lift, and the
+  curtain covers the panel's whole box, the height it grows to included,
+  from the first frame. `motion.rows` plays the row decode (`kit.enter`)
+  again on rows already built: the launcher's rows in sight on every
+  opening, a menu's items as it opens, scan results as they join a list.
+- `kit.leave` runs the decode out as a row leaves its list.
+- `motion.appear`: a dialog in place (window switcher, snap picker, the
+  launcher's quick look) unfolds from a band on an expo curve under a target
+  lock (`motion.lock_on`), and folds a step as it goes dark, drawn until it
+  has gone. Claims hold the pose, so a reversal goes on from where it stands.
+- Checkbox and menu checks register their block from the left in three hard
+  beats; switch, checkbox and radio frames ease their colour.

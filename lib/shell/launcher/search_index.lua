@@ -10,7 +10,8 @@
 --
 -- An entry is a launcher row: `id` and `name` are required, `keywords` is what
 -- else finds it, and `description` may be a function, read as it is listed.
--- Registering an `id` again replaces the entry.
+-- `boost`, where given, is how much a match counts in place of the index's own
+-- weight. Registering an `id` again replaces the entry.
 
 local morf = require("morf")
 

@@ -26,10 +26,14 @@ return function(theme)
     d.shape.blend = function() return theme.SEAM * shown() end
     panel.stretch = theme.stretch.drawer
     return {
-      move = function(opening) if opening then panel.visible = true end end,
+      move = function(opening)
+        if opening then panel.visible = true end
+        ctx.reveal(opening)
+      end,
       stop = axis.stop,
       grab = function(from)
         panel.visible = true
+        ctx.reveal(true)
         return axis.grab(from)
       end,
       drag = axis.drag, release = axis.release,
@@ -52,7 +56,11 @@ return function(theme)
       if claims.gone.presence:get() >= 1 and not open() then panel.visible = false end
     end, { owner = panel })
     local function idle() end
-    return { move = function(opening) if opening then panel.visible = true end end,
+    return {
+      move = function(opening)
+        if opening then panel.visible = true end
+        ctx.reveal(opening)
+      end,
       stop = idle, grab = idle, drag = idle, release = idle }
   end
 
@@ -65,6 +73,35 @@ return function(theme)
   local NEIGHBOURS = { dashboard = true, sidebar = true, leftbar = true, bottom = true,
     session = true, capture = true, notifications = true }
   function M.seam_group(name, own) return NEIGHBOURS[name] and 900 or own end
+
+  --- A surface coming up, as a theme marks it: nothing here. `lock(delay)`
+  --- would mark it, `lock(nil)` stop.
+  function M.lock_on() return function() end end
+
+  --- A surface that comes and goes in place (a dialog in the middle of the
+  --- screen): it grows about its centre on the spatial spring as it fades in,
+  --- and shrinks a touch as it fades out, drawn until it has gone. It owns
+  --- `node`'s `opacity`, `scale` and `visible`; `shown` is a binding. Returns
+  --- `drawn()`, whether it is on screen at all.
+  function M.appear(node, shown)
+    local claims = ui.claims(node, {
+      grown = { when = shown, motion = theme.spring.spatial, set = { scale = 1 } },
+      small = { motion = theme.spring.fast, set = { scale = 0.94 } },
+      lit = { when = shown, motion = theme.spring.effects, set = { opacity = 1 } },
+      gone = { motion = theme.spring.effects, set = { opacity = 0 } },
+    })
+    local function drawn() return shown() or claims.gone.presence:get() < 1 end
+    node.visible = drawn
+    return drawn
+  end
+
+  --- Rows already in a list coming in again as a new row would (`kit.enter`):
+  --- each grows into place on the spatial curve a little after the one above.
+  --- `nodes` top first; `opts.delay`. Returns the handles.
+  function M.rows(nodes, opts)
+    if require("themes.session").restoring then return {} end
+    return require("themes.kit_common").replay(nodes, require("kit").enter, (opts or {}).delay)
+  end
 
   function M.entries(entries, coming, opts)
     if require("themes.session").restoring then

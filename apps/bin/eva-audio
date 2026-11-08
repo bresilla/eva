@@ -1,0 +1,18 @@
+#!/bin/sh
+# eva-audio: the sound server from a command line. The mixer is the Settings
+# window's Sound and Microphone pages; the words run shell/sound_cli.lua as a
+# job, with or without a shell.
+#
+#   eva-audio               the Settings window, on Sound
+#   eva-audio next          the next output becomes the default, for a key
+#   eva-audio next input    the next input
+#   eva-audio list          the devices, and the apps that use them
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_settings sound ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_job audio "$@" ;;
+esac

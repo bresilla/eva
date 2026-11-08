@@ -1,0 +1,49 @@
+# The Tools window: the launcher's grid with eva's own desktop entries installed
+# as the package installs them, a tool found by its name, the home, every
+# tool's page, Settings' two pages that were tools, and the window opening and
+# closing a frame at a time.
+#
+#   SCREEN=1368x912 TIMEOUT=300 tools/see.sh tools-app
+#   SCREEN=868x1932 TOUCH=1 TIMEOUT=300 tools/see.sh tools-app
+mkdir -p "$XDG_DATA_HOME/applications"
+for entry in "$SEE_EVA"/apps/*/*.desktop; do cp "$entry" "$XDG_DATA_HOME/applications/"; done
+for pair in "Browser:Network" "Files:Utility" "Terminal:System" "Mail:Network"; do
+  name=${pair%%:*}; category=${pair##*:}
+  printf '[Desktop Entry]\nType=Application\nName=%s\nComment=The %s app\nExec=true\nCategories=%s;\n' \
+    "$name" "$name" "$category" > "$XDG_DATA_HOME/applications/see-$name.desktop"
+done
+export EVA_SETTINGS=$XDG_STATE_HOME/see-settings.json
+printf '{ "launcher": { "layout": "grid" } }\n' > "$EVA_SETTINGS"
+mkdir -p "$XDG_STATE_HOME/eva/clipboard" "$XDG_STATE_HOME/eva/phone" "$XDG_STATE_HOME/eva/colorpick"
+now=$(date +%s)000
+printf '[{"id":"1","kind":"text","text":"Keep this one","pinned":true,"time":%s},{"id":"2","kind":"text","text":"https://example.org/a/page","time":%s},{"id":"3","kind":"text","text":"#7c3aed","time":%s}]' \
+  "$now" "$now" "$now" > "$XDG_STATE_HOME/eva/clipboard/history.json"
+printf '["#7c3aed","#2dd4bf","#f59e0b"]' > "$XDG_STATE_HOME/eva/colorpick/recent.json"
+cp tests/fixtures/phone/calls.jsonl tests/fixtures/phone/messages.jsonl "$XDG_STATE_HOME/eva/phone/"
+export EVA_ALARM_ENGINE=local EVA_FAKE_MODEM=1 EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts EVA_FAKE_WEBAPP=1
+export EVA_JOURNALCTL=$SEE_EVA/tests/fixtures/bin-see/journalctl STUB_HYPR_BINDS=$SEE_EVA/tests/fixtures/binds.json
+start shell
+pause 2.5
+ipc launcher open; pause 2; shot grid
+ipc close; pause 0.6
+ipc launcher query 'clock'; pause 1.4; shot find-clock
+ipc close; pause 0.6
+ipc launcher query 'stopwatch'; pause 1.4; shot find-stopwatch
+ipc close; pause 0.6
+ipc tools home; pause 1.8; shot home
+ipc tools home/screen; pause 1; shot category
+ipc tools clock; pause 1.4; shot clock
+ipc tool clock add timer 12 min pasta > /dev/null; pause 0.8; shot clock-timer
+ipc tools clipboard; pause 1.2; shot clipboard
+for tool in monitor logs disk translate text qr pomodoro webapp phone messages colorpick zoom screenshot draw ruler find large kill; do
+  ipc tools "$tool" > /dev/null; pause 1.6; shot "$tool"
+done
+ipc tools close; pause 1; shot closed
+ipc settings input/shortcuts > /dev/null; pause 1.6; shot settings-keys
+ipc settings breaks > /dev/null; pause 1.6; shot settings-breaks
+ipc tools translate > /dev/null; pause 1.2; shot one-window
+# Opening and closing, a frame every tenth of a second.
+ipc tools close; pause 1
+ipc tools clock; for i in 0 1 2 3 4 5 6 7; do shot "open-$i"; sleep 0.06; done
+pause 0.6
+ipc tools close; for i in 0 1 2 3 4 5 6 7; do shot "close-$i"; sleep 0.06; done

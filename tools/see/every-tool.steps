@@ -1,11 +1,12 @@
-# Every tool of apps/ as it opens, on the stand-ins, one shot each.
-export EVA_FAKE_AUDIO=1 EVA_FAKE_STARTUP=1 EVA_FAKE_MODEM=1 EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
-export EVA_UPDATE_FLAKE=$SEE_EVA/flake.lock STUB_HYPR_BINDS=$SEE_EVA/tests/fixtures/binds.json
+# Every tool of apps/ as it opens, on the stand-ins, one shot each: its page,
+# or its own program where it has no page.
+export EVA_FAKE_MODEM=1 EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
+export STUB_HYPR_BINDS=$SEE_EVA/tests/fixtures/binds.json
 export EVA_FAKE_SCREEN_MM=344x215 EVA_FAKE_POINTER=420,300
 mkdir -p "$XDG_STATE_HOME/eva/phone"
 cp tests/fixtures/phone/calls.jsonl tests/fixtures/phone/messages.jsonl "$XDG_STATE_HOME/eva/phone/"
-for tool in apps/*/app.lua; do
-  tool=${tool#apps/}; tool=${tool%/app.lua}
+for tool in apps/*/page.lua; do
+  tool=${tool#apps/}; tool=${tool%/page.lua}
   [ "$tool" = screenshot ] && continue
   BOOT=6 start app "$tool"
   shot "$tool"

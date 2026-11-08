@@ -1,0 +1,15 @@
+#!/bin/sh
+# eva-messages: text threads with delivery marks, a page of the shell's Tools
+# window; the shell receives the texts and notifies.
+#
+#   eva-messages              the Tools window, on Messages
+#   eva-messages sms:NUMBER   the same, that thread open, as an sms: link opens it
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_tools messages ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_tools messages "$1" ;;
+esac

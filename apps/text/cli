@@ -2,7 +2,7 @@
 # eva-text: a developer's scratchpad, and its transforms on a command line. Text
 # comes from stdin, or from the words after a transform on a terminal.
 #
-#   eva-text                     the window
+#   eva-text                     the Tools window, on Text
 #   eva-text list                every transform
 #   eva-text TRANSFORM < FILE    upper, sort, dedupe, json, sha256, md5, epoch...
 #   eva-text base64 [-d] < FILE  also url and hex, -d decoding
@@ -15,7 +15,7 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" text ;;
+  '') eva_tools text ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
   list | uuid | lorem | password | passphrase) eva_tool_job text "$@" ;;
   *)

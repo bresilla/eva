@@ -23,6 +23,8 @@ local ui = require("morf.ui")
 
 -- Before anything asks for the compositor.
 require("windows_stand_in").install()
+-- A stand-in sound server, for the specs and tools/see (EVA_FAKE_AUDIO=1).
+if morf.env("EVA_FAKE_AUDIO") == "1" then require("sound_fake").install() end
 
 local config = require("config")
 local theme = require("theme")
@@ -203,17 +205,14 @@ morf.effect("eva.keyboard.focus", function()
     or overview.opened:get() or window_switcher.opened:get() or snap.picking:get() or snap.assisting:get()
     or kill_mode.active:get()
     or (polkit.drawer.open:get() and polkit.pending:get()) or keyring.drawer.open:get()
-    or notifs.replying:get() ~= false
-  -- Typed into on a click: the Tasks and Calendar pages, the terminal, Lule's
-  -- page, wherever their panels hold them.
-  local settings_open = pages.on_show("settings")
-  local shown = require("utilities").displayed:get()
+    or notifs.replying:get() ~= false or require("utilities").opened:get() or require("tools_model").opened:get()
+  -- Typed into on a click: the Tasks and Calendar pages, the terminal, the
+  -- quick tiles being arranged and the quick controls' own pages (a password,
+  -- Alt+Left), wherever their panels hold them.
+  local settings = require("utilities")
   local editor_open = pages.typing()
     or (dashboard.drawer.open:get() and dashboard.tab:get() == dashboard.TERMINAL_TAB)
-    or (settings_open and (shown == "theme/lule"
-      or shown == "hotspot" or shown == "panels" or shown == "bar"
-      or shown == "notifications" or shown == "focus/mode"
-      or pages.typed_route(shown) or require("utilities").tiles.editing:get()))
+    or (pages.on_show("settings") and (settings.tiles.editing:get() or settings.in_panel.displayed:get() ~= ""))
   morf.surface.keyboard_focus = exclusive and "exclusive" or editor_open and "on_demand" or "none"
 end)
 
@@ -292,9 +291,12 @@ local triggers=require("responsive").touch() and {} or require("responsive").she
 -- The rail's targets, over the panels.
 if rail.hits then triggers[#triggers+1]=rail.hits end
 local frame_view=require("themes").view("frame")
+-- Over the panels and the bar, under the on-screen keyboard: the Settings and
+-- Tools windows.
+local above={require("settings_window").node,require("tools_window").node}
 local frame_root=frame_view.build {desk=bar.desk,bar=bar.build(),bar_edge=bar.side,bar_reach=bar.THICK,drawers=drawer.all,
   rail={node=rail_node,shape=rail.shape},levels={node=levels_node,shape=levels.shape,panels=levels.panels},
-  island=require("island").build(bar.desk),overlays=overlays,triggers=triggers}
+  island=require("island").build(bar.desk),overlays=overlays,above=above,triggers=triggers}
 require("phone_gestures").attach(frame_root)
 require("prek_controls").attach(frame_root)
 require("lock_bridge").start()
@@ -546,9 +548,11 @@ local function panel_verb(name, edge)
 end
 
 -- `sidebar`, `leftbar` or `bottom [how [PAGE]]`: the panel, on PAGE, which
--- lands wherever it is held. `utilities` is Settings; `settings PAGE` opens
--- one of its pages (network, bluetooth, sound). `tasks`, `calendar`,
--- `assistant`, `drop` and `notifications` are those pages.
+-- lands wherever it is held. `utilities` and `settings` alone are the quick
+-- controls; `settings PAGE` opens the Settings window on one of its pages
+-- (home, network, bluetooth, sound), `settings close` shuts it and `settings
+-- state` says where it is.
+-- `tasks`, `calendar`, `assistant`, `drop` and `notifications` are those pages.
 ipc.sidebar = panel_verb("sidebar", "right")
 ipc.leftbar = panel_verb("leftbar", "left")
 ipc.bottom = panel_verb("bottom", "bottom")
@@ -557,10 +561,23 @@ for _, key in ipairs { "tasks", "calendar", "assistant", "drop" } do
   ipc[key] = page_verb(key)
 end
 ipc.settings = function(page)
-  if not here() then return nil end
-  if not require("utilities").request(page or "") then error("No such Settings page: " .. tostring(page)) end
-  pages.open("settings")
-  return page or ""
+  local window = require("settings_window")
+  -- The screen holding the window answers and shuts it, wherever the focus is.
+  if page == "close" then
+    window.dismiss()
+    if here() then return false end
+    return nil
+  end
+  local where = window.where()
+  if page == "state" and (where == "here" or where == "none" and here()) then
+    local settings = require("utilities")
+    return { open = settings.opened:get(), page = settings.detail:get() }
+  end
+  if not here() or page == "state" then return nil end
+  local settings = require("utilities")
+  if page == nil or page == "" then settings.in_panel.open("") return "" end
+  if not settings.request(page) then error("No such Settings page: " .. tostring(page)) end
+  return settings.detail:get()
 end
 -- `power-key`: the power button, bound here while Settings chose its action.
 ipc["power-key"] = function() require("lid_watch").power_key() return true end
@@ -568,6 +585,45 @@ ipc["power-key"] = function() require("lid_watch").power_key() return true end
 ipc["settings-search"] = function(query)
   if query and query ~= "" then return require("settings_registry").search(query) end
   return require("settings_registry").list()
+end
+-- `tools [NAME [ARGS]]`: the Tools window on a tool's page (`home` is All
+-- tools), ARGS handed to it as `eva-NAME ARGS` would; `tools close` shuts it and
+-- `tools state` says where it is. `tool NAME VERB [ARGS]` is a verb of that
+-- tool's page, in Tools or Settings, and `tools-search [WORDS]` the pages
+-- matching WORDS.
+ipc.tools = function(page, ...)
+  local window = require("tools_window")
+  if page == "close" then
+    window.dismiss()
+    if here() then return false end
+    return nil
+  end
+  local where = window.where()
+  local tools = require("tools_model")
+  if page == "state" and (where == "here" or where == "none" and here()) then
+    return { open = tools.opened:get(), page = tools.detail:get() }
+  end
+  if not here() or page == "state" then return nil end
+  if page == nil or page == "" then page = tools.registry.HOME end
+  if tools.registry.BY_KEY[page] and tools.registry.BY_KEY[page].page then
+    tools.open_tool(page, { ... })
+  elseif not tools.request(page) then error("No such tool: " .. tostring(page)) end
+  return tools.detail:get()
+end
+ipc.tool = function(name, verb, ...)
+  if not here() then return nil end
+  return require("tools_model").verb(name, verb, ...)
+end
+ipc["tools-search"] = function(query)
+  if query and query ~= "" then return require("tools_registry").search(query) end
+  return require("tools_registry").list()
+end
+-- A tool opened from the shell (a tile, a notification's action, a link) is
+-- its page here: in Tools, or the Settings page a tool became.
+require("lib.services.host").in_shell = function(name, args)
+  local tools = require("tools_model")
+  if tools.SETTINGS[name] then return require("utilities").request(tools.SETTINGS[name]) end
+  return tools.open_tool(name, args)
 end
 -- `tablet on` or `tablet off`: the hinge moved, as Hyprland's switch binds say;
 -- the kernel is asked before it counts. `tablet pin on|off` holds the posture
@@ -580,14 +636,30 @@ ipc.tablet = function(how, value)
   elseif how ~= nil and how ~= "state" then error("`" .. tostring(how) .. "`: on, off, pin on|off, auto or state") end
   return posture.state()
 end
--- `quick edit` or `quick done`: the quick settings' tiles being arranged.
+-- `quick edit|done`: the tiles arranged. `quick PAGE|home|back|more|close|state`:
+-- the panel on a quick control's page, on its tiles, a page back, that page in
+-- the Settings window, shut; each says where the panel stands.
 ipc.quick = function(how)
-  if how ~= "edit" and how ~= "done" then error("`" .. tostring(how) .. "`: edit or done") end
   if not here() then return nil end
-  require("utilities").request("")
-  pages.open("settings")
-  require("utilities").tiles.editing:set(how == "edit")
-  return how == "edit"
+  local settings = require("utilities")
+  local inside = settings.in_panel
+  local function state()
+    return { open = pages.on_show("settings"), page = inside.detail:get(), editing = settings.tiles.editing:get() }
+  end
+  if how == "edit" or how == "done" then
+    inside.open("")
+    settings.tiles.editing:set(how == "edit")
+    return how == "edit"
+  end
+  if how == "state" then return state() end
+  if how == "close" then pages.close("settings")
+  elseif how == "back" then inside.back()
+  elseif how == "more" then inside.more()
+  elseif how == nil or how == "" or how == "home" then inside.open("")
+  elseif not inside.holds(how) then error("`" .. tostring(how) .. "`: edit, done, state, home, back, more, close or one of "
+    .. table.concat(require("quick_details").KEYS, ", "))
+  else inside.open(how) end
+  return state()
 end
 -- `bar modules`: what stands on the bar, zone by zone, and what could. `bar add
 -- ID [ZONE]`, `bar remove ID`, `bar move ID INDEX [ZONE]`, `bar small ID`, `bar
@@ -741,8 +813,16 @@ end
 -- existing terminal/accent diagnostics used by colour-tool integrations.
 ipc.lule = function(how)
   if how then
-    if here() and how ~= "close" then require("utilities").detail:set("theme/lule") end
-    return page_verb("settings")(how)
+    if not here() then return nil end
+    local settings = require("utilities")
+    local shown = settings.opened:get() and settings.detail:get() == "theme/lule"
+    if how == "state" then return shown end
+    if how == "close" or (how == "toggle" and shown) then
+      if shown then settings.close() end
+      return false
+    end
+    if how ~= "open" and how ~= "toggle" then error("`" .. tostring(how) .. "`: open, close, toggle or state") end
+    return settings.request("theme/lule")
   end
   local tty = require("terminal_colors").tty
   return tty and tty.path or "", theme.lule.accent:hex(), theme.color.primary:hex()
@@ -839,6 +919,8 @@ ipc.close = function()
   capture.cancel()
   capture.drawer.set(false)
   drawer.close_all()
+  require("utilities").close()
+  require("tools_model").close()
   return true
 end
 -- `phone VERB ARGS`: calls and what stands in for a modem (shell/phone.lua).
@@ -899,5 +981,3 @@ require("touch_driver").start()
 
 -- The verbs above as keys, wherever the shell has the keyboard.
 frame_root.shortcuts = require("shortcuts").table(ipc)
--- Settings, back open after a change that moved it to another panel.
-require("utilities").panels.settle()

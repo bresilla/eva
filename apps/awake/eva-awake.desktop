@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Keep awake
-Comment=Keep the session awake for a chosen time
-Exec=eva-awake
-Icon=preferences-desktop-screensaver
-Terminal=false
-Categories=Utility;
-StartupWMClass=eva.awake

@@ -17,8 +17,10 @@ return function(theme, kit)
   H.line = line
 
   --- Four L-brackets on the corners of whatever box they sit in: `length`
-  --- (8), `weight` (1), `inset` (0), `color`.
-  function H.corners(spec)
+  --- (8), `weight` (1), `inset` (0), `color`. `H.marked` returns the node and
+  --- its four marks (top-left, top-right, bottom-left, bottom-right).
+  function H.corners(spec) return (H.marked(spec)) end
+  function H.marked(spec)
     spec = spec or {}
     local l, t, i = spec.length or 8, spec.weight or 1, spec.inset or 0
     local color = spec.color or line("mark")
@@ -28,12 +30,66 @@ return function(theme, kit)
       return ui.Path { anchors = anchors, width = l, height = l, view_box = { 0, 0, l, l }, d = d,
         fill_color = "transparent", stroke_color = color, stroke_width = t, stroke_cap = "square" }
     end
-    return ui.Item { id = spec.id, anchors = { fill = true }, opacity = spec.opacity, visible = spec.visible,
+    local marks = {
       mark({ left = true, top = true }, ("M%g %g V%g H%g"):format(h, l, h, l)),
       mark({ right = true, top = true }, ("M0 %g H%g V%g"):format(h, l - h, l)),
       mark({ left = true, bottom = true }, ("M%g 0 V%g H%g"):format(h, l - h, l)),
       mark({ right = true, bottom = true }, ("M0 %g H%g V0"):format(l - h, l - h)),
     }
+    return ui.Item { id = spec.id, anchors = { fill = true }, opacity = spec.opacity, visible = spec.visible,
+      table.unpack(marks) }, marks
+  end
+  -- Each mark's way outwards along its corner's diagonal.
+  H.OUTWARD = { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }
+
+  -- The keyboard's focus as it moves: the box of the reticle on show, or
+  -- of the one that just went, for a moment.
+  local focus = { on = nil, gone = nil, clear = nil }
+  local box = require("themes.tsugumori.marks").box
+  local function corners(x, y, w, h) return { { x, y }, { x + w, y }, { x, y + h }, { x + w, y + h } } end
+
+  --- Corner brackets shown while `on()`. Each time they come up they slide
+  --- over from the corners of the reticle the focus just left, or, with
+  --- none, close in from `spec.reach` (6) px out: a reticle locking on.
+  function H.reticle(spec, on)
+    local node, marks = H.marked(spec)
+    node.visible = false
+    local reach, was, running = spec.reach or 6, false, nil
+    morf.effect("tsugumori.reticle", function()
+      local now = on() and true or false
+      if now == was then return end
+      was = now
+      if running then running:stop() running = nil end
+      node.visible = now
+      if not now then
+        if focus.on == node then
+          local x, y, w, h = box(node)
+          focus.on, focus.gone = nil, x and corners(x, y, w, h) or nil
+          if focus.clear then focus.clear:cancel() end
+          focus.clear = morf.time.timer(120, function() focus.gone, focus.clear = nil, nil end, false)
+        end
+        return
+      end
+      local from
+      if focus.on and focus.on ~= node then
+        local x, y, w, h = box(focus.on)
+        from = x and corners(x, y, w, h) or nil
+      else from = focus.gone end
+      focus.on = node
+      local x, y, w, h = box(node)
+      local here = x and corners(x, y, w, h) or nil
+      local tracks = {}
+      for i, mark in ipairs(marks) do
+        for axis, property in ipairs { "translate_x", "translate_y" } do
+          local start = H.OUTWARD[i][axis] * reach
+          if from and here then start = from[i][axis] - here[i][axis] end
+          tracks[#tracks + 1] = { node = mark, property = property, from = start, to = 0,
+            duration = from and here and 260 or 220, easing = from and here and "out_cubic" or "out_expo" }
+        end
+      end
+      running = morf.animation.play { { parallel = tracks }, on_finished = function() running = nil end }
+    end, { owner = node })
+    return node
   end
 
   --- The highlight under a list's chosen row: `track` (the item that moves
@@ -46,10 +102,11 @@ return function(theme, kit)
     local strip = ui.Item { anchors = { right = true, top = true, bottom = true, right_margin = 10,
         top_margin = 8, bottom_margin = 8 }, width = 64, z = 1, clip = true,
       stripes.box { width = 64, height = 64, gap = 7, weight = 2.5, color = function() return C.primary:alpha(.5) end } }
+    local brackets, marks = H.marked { length = 7, color = line("hot") }
     for _, child in ipairs {
       ui.Rect { anchors = { left = true, top = true, bottom = true }, width = 3, z = 2,
         color = function() return C.primary end },
-      H.corners { length = 7, color = line("hot") },
+      brackets,
       strip,
       scan,
     } do ui.reparent(child, track) end
@@ -69,11 +126,19 @@ return function(theme, kit)
         if running then running:stop() end
         local h = track.layout_height or 0
         if h <= 0 then return end
-        running = morf.animation.play { { parallel = {
+        local tracks = {
           { node = scan, property = "translate_y", from = 0, to = h - 1, duration = 220, easing = "out_quart" },
           { node = scan, property = "opacity", duration = 260, keyframes = {
             { at = 0, value = .9 }, { at = .7, value = .6 }, { at = 1, value = 0 } } },
-        } }, on_finished = function() running = nil end }
+        }
+        -- The brackets lock on as it lands.
+        for i, mark in ipairs(marks) do
+          tracks[#tracks + 1] = { node = mark, property = "translate_x", from = H.OUTWARD[i][1] * 6, to = 0,
+            duration = 240, easing = "out_expo" }
+          tracks[#tracks + 1] = { node = mark, property = "translate_y", from = H.OUTWARD[i][2] * 4, to = 0,
+            duration = 240, easing = "out_expo" }
+        end
+        running = morf.animation.play { { parallel = tracks }, on_finished = function() running = nil end }
       end, false)
     end, { owner = plate })
     return plate

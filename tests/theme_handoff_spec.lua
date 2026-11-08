@@ -6,8 +6,8 @@ end
 local inspect=[[
   morf.ipc.inspect=function()
     local lule=require("lule_studio")
-    -- Lule is a page of the quick settings: Settings, then Theme, then Lule.
-    return {theme=require("themes").current.id,opened=require("sidebar").drawer.open:get(),
+    -- Lule is a page of the Settings window, under Theme.
+    return {theme=require("themes").current.id,opened=require("utilities").opened:get(),
       tab=require("utilities").displayed:get(),mode=lule.mode:get(),method=lule.method:get(),
       folder_draft=lule.folder_draft:get(),busy=require("themes.switcher").busy:get(),
       font=require("theme").font,chosen_font=require("themes").font,
@@ -26,8 +26,7 @@ for _,pair in ipairs {{"material","tsugumori"},{"tsugumori","material"},{"tsugum
       morf.reload=function() end
       morf.broadcast=function() return false end
       morf.ipc.prepare=function(target)
-        local sidebar=require("sidebar")
-        sidebar.select("settings") require("utilities").request("theme/lule") sidebar.drawer.set(true)
+        require("utilities").request("theme/lule")
         local lule=require("lule_studio")
         lule.mode:set("light") lule.method:set("tonal")
         lule.folder_draft:set("/unfinished folder")

@@ -1,5 +1,7 @@
--- The right panel's two sound pages, Sound (the output) and Microphone
--- (the input), in the page template (themes/layouts/page.lua):
+-- The two sound pages, Sound (the output) and Microphone (the input), in the
+-- quick controls' panel and the Settings window, in the page template
+-- (themes/layouts/page.lua), and Sound's second page, which ends with the sound
+-- server's restart:
 --
 --   Output         the default output, its mute, volume, and each of its
 --                  channels under a Channels expander that remembers
@@ -67,7 +69,7 @@ local function device_row(id_prefix, row, icon)
   local function chosen() local d = live() return d ~= nil and d.default == true end
   return rows.choice {
     id = id_prefix .. "-" .. math.floor(row.id), group = id_prefix,
-    width = INNER, height = P.ROW_H, on = chosen, enter = kit.enter(),
+    width = INNER, height = P.ROW_H, on = chosen, enter = kit.enter(), exit = kit.leave(),
     on_clicked = function() model.select_device(row) end,
     P.row { width = INNER, on = chosen, icon = icon,
       title = function() return name_of(live()) end,
@@ -150,7 +152,7 @@ end
 local function devices_section()
   return P.section { id = "sound-devices", caption_id = "sound-title-output-device", width = w, title = "Output device",
     ui.Repeater { as = "column", gap = P.ROW_GAP, width = INNER, model = model.devices,
-      visible = available,
+      visible = function() return available() and model.devices:len() > 0 end,
       delegate = function(row) return device_row("sound-sink", row, "speaker") end },
     nothing("speaker", function() return available() and "No outputs available" or "No sound server" end,
       function() return not available() or model.devices:len() == 0 end),
@@ -302,6 +304,18 @@ local function theme_section()
   }
 end
 
+--- The sound server itself, restarted for what only that fixes.
+local function server_section()
+  return P.section { id = "sound-server", width = w, title = "Sound server",
+    P.row { id = "sound-restart", width = INNER, icon = "restart_alt", title = "Restart the sound server",
+      subtitle = function()
+        local said = model.restarted()
+        return said ~= "" and said or "PipeWire and WirePlumber, started again"
+      end,
+      trailing = P.button { id = "sound-restart-button", label = "Restart", on_clicked = model.restart } },
+  }
+end
+
 -- ------------------------------------------------------------------- input --
 
 --- The level as the microphone hears it, while a test runs.
@@ -344,7 +358,8 @@ end
 
 local function inputs_section()
   return P.section { id = "sound-sources", width = w, title = "Input device",
-    ui.Repeater { as = "column", gap = P.ROW_GAP, width = INNER, model = model.devices, visible = available,
+    ui.Repeater { as = "column", gap = P.ROW_GAP, width = INNER, model = model.devices,
+      visible = function() return available() and model.devices:len() > 0 end,
       delegate = function(row)
         -- A monitor is an output's echo, not a microphone.
         if tostring(row.name or ""):match("%.monitor$") then
@@ -361,7 +376,8 @@ if more then
   return ui.Item { id = "sound-more-page", width = w, height = h, clip = true,
     P.page { id = "sound-more-scroll", width = w, height = h, preferred_section(),
       cards_section("Bluetooth codec", "sound-codec", model.bluetooth_cards, "sound-codec"),
-      cards_section("Card profile", "sound-profile", model.other_cards, "sound-profile"), theme_section() } }
+      cards_section("Card profile", "sound-profile", model.other_cards, "sound-profile"), theme_section(),
+      model.restart and server_section() or nil } }
 end
 
 local function touch_section()

@@ -149,7 +149,7 @@ M.ACTIONS = {
       drawer.toggle()
     end },
   page("settings", { key = "quick_settings", name = "Quick settings", icon = "tune" },
-    function() require("utilities").request("") end),
+    function() require("utilities").in_panel.request("") end),
   page("notifications", { key = "notifications", name = "Notifications", icon = "notifications" }),
   workspace({ key = "workspace_next", name = "Next workspace", icon = "arrow_forward" }, 1, "left"),
   workspace({ key = "workspace_previous", name = "Previous workspace", icon = "arrow_back" }, -1, "right"),

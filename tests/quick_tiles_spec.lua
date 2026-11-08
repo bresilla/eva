@@ -29,7 +29,8 @@ local SOURCE=[[
   morf.ipc.q_saved=function(form) return config.get("quick.tiles."..form) end
   morf.ipc.q_small=function(id) return board.small(id) end
   morf.ipc.q_editing=function() return board.editing:get() end
-  morf.ipc.q_detail=function() return utilities.detail:get() end
+  morf.ipc.q_detail=function() return utilities.in_panel.detail:get() end
+  morf.ipc.q_window=function() return {open=utilities.opened:get(),page=utilities.detail:get()} end
   morf.ipc.q_radius=function(id) return surfaces["utilities-toggle-"..id.."-shape"].radius end
   morf.ipc.q_light=function(id)
     for _,t in ipairs(utilities.TOGGLES) do if t.id==id then return t.on()==true end end
@@ -145,6 +146,7 @@ test.it("a tile acts on click and its chevron opens the detail",function()
   test.eq(test.ipc("q_detail"),"")
   test.click("utilities-more-nightlight") test.settle(1500)
   test.eq(test.ipc("q_detail"),"nightlight")
+  test.falsy(test.ipc("q_window").open,"the chevron opened the Settings window")
   test.truthy(test.find{id="settings-nightlight-temperature",visible=true})
   test.eq(#test.logs("error"),0)
 end)
@@ -369,7 +371,7 @@ end)
 -- ------------------------------------------------------------------- sheet --
 
 for _,style in ipairs {"material","tsugumori"} do
-  test.it(style.." the phone sheet fits its content, and a detail its own",function()
+  test.it(style.." the phone sheet fits its content, and a quick page its own",function()
     load({style=style,size={620,1380}})
     test.ipc("sidebar","open","settings") test.settle(2500)
     local sheet=test.get("drawer-sidebar")
@@ -379,12 +381,20 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(card.y+card.height<=sheet.y+sheet.height,"the sheet cuts its tiles")
     test.truthy(sheet.y+sheet.height-(card.y+card.height)<=40,"dead area under the tiles: "
       ..(sheet.y+sheet.height-card.y-card.height))
+    test.ipc("quick","nightlight") test.settle(2500)
+    local page=test.get("drawer-sidebar")
+    test.truthy(page.height<full,"the page kept the dead area")
+    local slider=test.get("settings-nightlight-temperature")
+    test.truthy(slider.y+slider.height<=page.y+page.height,"the sheet cuts the page")
+    test.truthy(test.find{id="quick-more",visible=true},"the page has no way to its whole")
+    test.click("quick-back") test.settle(2500)
+    test.near(test.get("drawer-sidebar").height,sheet.height,1)
+    -- What is not a quick control opens in the window.
     test.ipc("settings","theme") test.settle(2500)
-    local detail=test.get("drawer-sidebar")
-    test.truthy(detail.height<full,"the detail kept the dead area")
+    local detail=test.get("settings-detail")
     local last=test.get("settings-theme-lule")
-    test.truthy(last.y+last.height<=detail.y+detail.height,"the sheet cuts the detail")
-    test.click("settings-back") test.settle(2500)
+    test.truthy(last.y+last.height<=detail.y+detail.height,"the window cuts the page")
+    test.ipc("settings","close") test.ipc("sidebar","open","settings") test.settle(2500)
     test.near(test.get("drawer-sidebar").height,sheet.height,1)
     test.eq(#test.logs("error"),0)
   end)

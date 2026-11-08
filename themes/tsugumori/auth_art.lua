@@ -34,6 +34,13 @@ return function(ctx)
     return look
   end
 
+  function skin.pattern_look(look)
+    look.ring=function() return C.primary:alpha(.42) end
+    look.dot=function() return C.primary:alpha(.72) end
+    look.round=function() return 0 end
+    return look
+  end
+
   skin.clock=require("themes.tsugumori.auth_clock")(ctx)
 
   function skin.avatar(person, size, selected, id)

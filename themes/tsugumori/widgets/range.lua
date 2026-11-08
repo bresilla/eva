@@ -47,7 +47,9 @@ return function(S, theme, M, hud)
     props.height = props.height or 18
     props.vertical_alignment = props.vertical_alignment or "center"
     props.color = props.color or function() return C.onSurfaceVariant end
-    return M.text(props)
+    local node = M.text(props)
+    if type(props.text) == "function" then M.decoding(node, props.text) end
+    return node
   end
   -- A level's reading: its percent, or what `spec.reading(position)` says.
   local function pct(t, spec)

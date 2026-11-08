@@ -1,0 +1,23 @@
+#!/bin/sh
+# eva-update: what waits on this machine. The Settings window's Updates page
+# shows it, and on NixOS rebuilds with its log; `--check` counts it with no
+# window and no shell (shell/system_updates.lua, as a job).
+#
+#   eva-update          the Settings window, on Updates
+#   eva-update --check  how many wait, as a number: flake inputs a month behind
+#                       on NixOS, packages from checkupdates, apt, dnf and flatpak
+#
+# EVA_UPDATE_FLAKE names the flake.lock, or the folder it is in.
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_settings updates ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  --check) eva_job update --check ;;
+  *)
+    eva_say "no such option: $1"
+    exit 1
+    ;;
+esac

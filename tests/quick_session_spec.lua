@@ -24,7 +24,7 @@ local SOURCE=[[
   end
   morf.ipc.q_set=function(id,on) utilities.CONTROLS[id].set(on) end
   morf.ipc.q_rotation=function() return require("quick_hardware").rotation().on() end
-  morf.ipc.q_detail=function() return utilities.detail:get() end
+  morf.ipc.q_detail=function() return utilities.in_panel.detail:get() end
   morf.ipc.q_tile_status=function(id)
     for _,t in ipairs(utilities.TOGGLES) do if t.id==id then return t.status and t.status() end end
   end
@@ -148,7 +148,7 @@ test.it("a first press of Hotspot asks for its network, then it starts and stops
   test.click("settings-hotspot-password") test.type("-but-longer") test.advance(50)
   test.click("settings-hotspot-save") test.settle(300)
   test.truthy(test.ipc("q_hotspot").saved)
-  test.click("settings-back") test.settle(1500)
+  test.click("quick-back") test.settle(1500)
   test.clear_logs()
   test.click("utilities-toggle-hotspot") test.settle(600)
   test.truthy(test.ipc("q_hotspot").on)
@@ -182,7 +182,7 @@ end)
 
 test.it("night light keeps its temperature and says it",function()
   load()
-  test.ipc("settings","nightlight") test.settle(1500)
+  test.ipc("quick","nightlight") test.settle(1500)
   test.falsy(test.ipc("q_night").on)
   test.click("settings-nightlight-switch") test.settle(400)
   test.truthy(test.ipc("q_night").on)
@@ -190,7 +190,7 @@ test.it("night light keeps its temperature and says it",function()
   test.eq(test.ipc("q_night").temperature,3300)
   test.truthy(said("hyprctl hyprsunset temperature 3300 (dry run)"),"it did not speak to hyprsunset")
   test.eq(test.ipc("q_night").status,"3300 K")
-  test.click("settings-back") test.settle(1500)
+  test.click("quick-back") test.settle(1500)
   test.click("utilities-toggle-nightlight") test.settle(400)
   test.falsy(test.ipc("q_night").on)
   test.truthy(said("hyprctl hyprsunset identity (dry run)"))

@@ -268,6 +268,12 @@ function M.enter(index)
     delay = math.min((index or 1) - 1, 8) * theme.stagger.step }
 end
 
+--- How a list's row goes, as a node's `exit`: it shrinks a touch as it fades,
+--- the way `enter` brought it.
+function M.leave()
+  return { opacity = 0, scale = 0.94, duration = theme.duration.small, easing = theme.ease.emphasized_accel }
+end
+
 -- --------------------------------------------------------------- shapes --
 
 local shapes -- lib/m3shapes, loaded on first use

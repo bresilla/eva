@@ -8,8 +8,8 @@ local theme = require("theme")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local fit = require("themes.layouts.fit")
-local controls = require("common.controls")
-local model = require("model")
+local controls = require("apps.common.controls")
+local model = require("apps.monitor.model")
 local S, C = theme.space, theme.color
 
 local M = {}

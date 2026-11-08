@@ -1,0 +1,17 @@
+#!/bin/sh
+# eva-monitor: processes with search, sort and kill, per-core load, memory, GPU,
+# disks, network and sensors, a page of the shell's Tools window.
+#
+#   eva-monitor             the Tools window, on Monitor
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_tools monitor ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *)
+    eva_say "eva-monitor: no option $1"
+    exit 2
+    ;;
+esac

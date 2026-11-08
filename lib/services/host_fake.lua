@@ -22,6 +22,8 @@ local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl
 -- Which backup tools this machine has: EVA_FAKE_BACKUPS="snapper,restic". Their
 -- commands are answered below; the real ones never run.
 for tool in (morf.env("EVA_FAKE_BACKUPS") or ""):gmatch("[^,]+") do PROGRAMS[tool] = true end
+-- patty, unless EVA_FAKE_PATTY=none: `pkexec patty set|clear` leaves its files in EVA_PATTY_DIR.
+PROGRAMS.patty = morf.env("EVA_FAKE_PATTY") ~= "none"
 
 -- What the network does: `ok`, or how it breaks (`portal`, `no-address`,
 -- `self-assigned`, `no-gateway`, `no-dns`, `no-internet`, `quiet-router`).
@@ -126,6 +128,15 @@ local function answer(argv, options)
   end
   if argv[1] == "firewall-cmd" then return { ok = firewall_on, code = firewall_on and 0 or 252, stdout = firewall_on and "running\n" or "not running\n" } end
   if argv[1] == "systemctl" and argv[2] == "is-active" then return { ok = true, stdout = "active\n" } end
+  if line:find("list-timers", 1, true) then
+    local now = morf.time.now()
+    local function at(seconds) return math.floor((now + seconds) * 1000000) end
+    return { ok = true, stdout = morf.json.encode {
+      { unit = "backup.timer", activates = "backup.service", next = at(5400), last = at(-81000) },
+      { unit = "mail-sync.timer", activates = "mail-sync.service", next = at(240), last = at(-660) },
+      { unit = "systemd-tmpfiles-clean.timer", activates = "systemd-tmpfiles-clean.service", next = at(69000), last = at(-17400) },
+    } }
+  end
   if line:find("list-unit-files", 1, true) then
     return { ok = true, stdout = "eva-clipboard.service enabled enabled\nsyncthing.service enabled enabled\nredshift.service disabled enabled\n" }
   end
@@ -187,9 +198,27 @@ local function ddcutil(argv)
   return { ok = false, code = 1, stderr = "unknown" }
 end
 
+local function patty(argv, stdin)
+  local dir = morf.env("EVA_PATTY_DIR") or ""
+  if dir == "" then return { ok = true, stdout = "" } end
+  local file = dir .. "/" .. tostring(argv[4])
+  if argv[3] == "clear" then
+    for _, suffix in ipairs { "", ".fails", ".kind" } do pcall(morf.fs.remove, file .. suffix) end
+    return { ok = true, stdout = "patty: cleared\n" }
+  end
+  local first, again = tostring(stdin or ""):match("^(%d+)\n(%d+)\n$")
+  if not first or first ~= again then return { ok = false, code = 1, stderr = "patty: the two patterns differ; nothing saved\n" } end
+  local kind = require("lib.shell.auth.patty").kind_of(first)
+  morf.fs.write(file, kind .. " $y$fake\n", { parents = true })
+  morf.fs.write(file .. ".fails", "0 0\n")
+  morf.fs.write(file .. ".kind", kind .. "\n")
+  return { ok = true, stdout = "patty: saved\n" }
+end
+
 function M.run(argv, options)
   M.ran[#M.ran + 1] = argv
   M.stdin = options and options.stdin or M.stdin
+  if argv[1] == "pkexec" and argv[2] == "patty" then return patty(argv, options and options.stdin) end
   if argv[1] == "ddcutil" then return ddcutil(argv) end
   if argv[1] == "pkexec" and argv[3] == "systemctl" then firewall_on = argv[4] == "enable" return { ok = true, stdout = "" } end
   if argv[1] == "lpadmin" or argv[1] == "cancel" or argv[1] == "cupsenable" or argv[1] == "cupsdisable" then

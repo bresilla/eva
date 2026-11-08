@@ -1,4 +1,4 @@
--- What a tool's window is built from (apps/common/controls.lua, sys.lua), in both
+-- What a tool's page is built from (apps/common/controls.lua, sys.lua), in both
 -- themes, through a tool that uses all of it. The clock's own spec covers them in
 -- real use.
 --
@@ -9,9 +9,8 @@ local test = morf.test
 local TOOL = [[
   local morf = require("morf")
   local ui = require("morf.ui")
-  local frame = require("common.frame")
-  local controls = require("common.controls")
-  local sys = require("common.sys")
+  local controls = require("apps.common.controls")
+  local sys = require("apps.common.sys")
   local kit = require("kit")
   local P = require("themes.layouts.page")
   local tab = morf.signal("spec.tab", 1)
@@ -19,9 +18,7 @@ local TOOL = [[
   local draft = morf.signal("spec.draft", "hello")
   local busy = morf.signal("spec.busy", false)
   local rows = morf.signal("spec.rows", { "one", "two" })
-  frame.open {
-    id = "spec", title = "Spec", width = 640, height = 640,
-    build = function(w, h)
+  local function build(w, h)
       local node = controls.pages {
         id = "spec", width = w, height = h, tab = tab,
         tabs = {
@@ -53,8 +50,10 @@ local TOOL = [[
         },
       }
       return node
-    end,
-  }
+  end
+  -- As a page of the Tools window holds it.
+  ui.Rect { anchors = { fill = true }, color = function() return require("theme").color.surface end,
+    ui.Item { width = 608, height = 600, build(function() return 608 end, function() return 600 end) } }
   morf.ipc.tab = function(index) tab:set(tonumber(index)) return true end
   morf.ipc.draft = function(text) draft:set(text) return true end
   morf.ipc.choice = function() return choice:get() end
@@ -86,7 +85,7 @@ local function tool(style, name)
   morf.fs.mkdir(state)
   local appearance = state .. "/appearance.json"
   morf.fs.write(appearance, morf.json.encode { theme = style, font = "" })
-  test.load("../apps/keys/app.lua", { source = TOOL, env = { EVA_DRY_RUN = "1", XDG_STATE_HOME = state,
+  test.load("../shell/init.lua", { source = TOOL, env = { EVA_DRY_RUN = "1", XDG_STATE_HOME = state, EVA_STYLE = style,
     EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_APPEARANCE = appearance } })
   test.settle(500)
 end

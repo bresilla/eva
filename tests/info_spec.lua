@@ -1,6 +1,7 @@
--- eva-info against a machine in a folder: what each section says, Nix hidden on
--- other systems, the words and JSON a command line gets, the copy held back
--- when dry, and the window on a phone. The real machine is tools/see/info.steps'.
+-- The machine's facts against a machine in a folder: what each section says,
+-- Nix hidden on other systems, the words and JSON `eva-info` gets as a job, and
+-- Settings' About page drawing them, holding a copy back when dry and fitting a
+-- phone. The real machine is tools/see/info.steps'.
 --
 --     morf test --no-dbus tests/info_spec.lua
 
@@ -49,11 +50,55 @@ local function env(root, extra)
   return out
 end
 
-local function tool(root, extra)
+-- The model alone, as the job has it: the machine in the folder and nothing of
+-- the shell's own samplers.
+local MODEL = [[
+  require("morf.ui").Item { width = 1, height = 1 }
+  local model = require("info_model")
+  model.gather()
+  morf.ipc.state = function()
+    return { facts = model.facts:get(), sections = model.sections(model.facts:get()), message = model.message:get() }
+  end
+  morf.ipc.text = function() return model.text() end
+]]
+
+local function facts(root, extra)
   test.stub_run("systemctl", { code = 0, stdout = "broken.service loaded failed failed Broken\n" })
   test.stub_run("nixos-version", { code = 0, stdout = '{"nixosVersion":"26.05","nixpkgsRevision":"fa1373130d5a","configurationRevision":"cafe1234"}' })
-  test.load("../apps/info/app.lua", { env = env(root, extra) })
+  test.load("../shell/init.lua", { env = env(root, extra), source = MODEL })
   test.settle(500)
+end
+
+-- The Settings window's page wheeled until `id` stands in it.
+local function reach(id)
+  for _ = 1, 40 do
+    local node, pane = test.find { id = id, visible = true }, test.get("settings-detail")
+    if node and node.y > pane.y and node.y + node.height < pane.y + pane.height then return id end
+    test.wheel(0, 120, { x = pane.x + pane.width / 2, y = pane.y + pane.height / 2 }) test.advance(200)
+  end
+  return id
+end
+
+-- The shell on Settings' About page, its facts at hand.
+local HOST = [[
+  require("init")
+  local model = require("info_model")
+  morf.ipc.state = function()
+    return { facts = model.facts:get(), sections = model.sections(model.facts:get()), message = model.message:get() }
+  end
+  morf.ipc.text = function() return model.text() end
+]]
+
+local function tool(root, extra, size)
+  test.stub_run("systemctl", { code = 0, stdout = "broken.service loaded failed failed Broken\n" })
+  test.stub_run("nixos-version", { code = 0, stdout = '{"nixosVersion":"26.05","nixpkgsRevision":"fa1373130d5a","configurationRevision":"cafe1234"}' })
+  test.stub_run("task", { code = 0, stdout = "[]" })
+  local all = env(root, extra)
+  all.HOME = morf.env("XDG_CACHE_HOME")
+  test.load("../shell/init.lua", { env = all, source = HOST, size = size or { 1600, 1000 } })
+  test.settle(500)
+  test.ipc("settings", "about")
+  test.settle(800)
 end
 
 local function section(state, key)
@@ -69,7 +114,7 @@ end
 
 test.it("names the machine, its system and its hardware", function()
   local root = fresh()
-  tool(root)
+  facts(root)
   local state = test.ipc("state")
   local system = section(state, "system")
   test.eq(system["Host name"], "fakebox")
@@ -89,7 +134,7 @@ end)
 
 test.it("lists the GPU, the disks, USB and the session", function()
   local root = fresh()
-  tool(root)
+  facts(root)
   local state = test.ipc("state")
   test.contains(section(state, "gpus").card0, "8.0 GiB")
   test.contains(section(state, "gpus").card0, "amdgpu")
@@ -107,7 +152,7 @@ end)
 
 test.it("reports its versions", function()
   local root = fresh()
-  tool(root)
+  facts(root)
   local versions = section(test.ipc("state"), "versions")
   test.matches(versions.eva, "^%d+%.%d+%.%d+$")
   test.eq(versions.morf, tostring(morf.version))
@@ -115,24 +160,24 @@ end)
 
 test.it("shows the Nix generation on NixOS, and nothing of it elsewhere", function()
   local root = fresh()
-  tool(root)
+  facts(root)
   test.falsy(section(test.ipc("state"), "nix"))
-  test.falsy(test.find { id = "info-nix" })
 
   local nix_root = fresh()
   nixos(nix_root)
-  tool(nix_root)
+  facts(nix_root)
   local nix = section(test.ipc("state"), "nix")
   test.eq(nix["Generation"], "41")
   test.eq(nix["NixOS"], "26.05.20261031.fa13731")
   test.eq(nix["Flake revision"], "cafe1234")
   test.eq(nix["Nixpkgs"], "fa1373130d5a")
-  test.truthy(test.find { id = "info-nix" })
+  tool(nix_root)
+  test.truthy(test.find { id = "about-detail-nix" }, "the page has no card for Nix")
 end)
 
 test.it("says everything as words, a section to a block", function()
   local root = fresh()
-  tool(root)
+  facts(root)
   local text = test.ipc("text")
   test.contains(text, "System\n  Host name: fakebox\n")
   test.contains(text, "\nStorage\n")
@@ -142,30 +187,26 @@ end)
 test.it("holds the copy back when dry", function()
   local root = fresh()
   tool(root)
-  test.truthy(test.ipc("copy"))
-  test.contains(test.ipc("state").message, "dry run")
-  test.settle(100)
-  test.contains(test.get({ id = "info-note" }).text, "dry run")
+  test.click(reach("about-copy")) test.settle(100)
+  test.truthy(test.find { text_contains = "dry run", visible = true }, "the page did not say it held back")
 end)
 
-test.it("draws the facts", function()
+test.it("draws the facts, a card to each kind", function()
   local root = fresh()
   tool(root)
-  test.eq(test.get({ id = "info-host" }).text, "fakebox")
-  test.truthy(test.find { id = "info-system" })
-  test.truthy(test.find { id = "info-hardware" })
-  test.truthy(test.find { id = "info-copy" })
+  test.truthy(test.find { id = "about-detail-system" })
+  test.truthy(test.find { id = "about-detail-hardware" })
+  test.falsy(test.find { id = "about-detail-versions" }, "the versions are drawn twice")
+  test.truthy(test.find { id = "about-copy" })
 end)
 
 for _, style in ipairs { "material", "tsugumori" } do
-  test.it(style .. " takes one column on a phone", function()
+  test.it(style .. " keeps the cards within a phone", function()
     local root = fresh()
-    tool(root, { EVA_STYLE = style })
-    test.resize_window("toplevel:About this machine", 380, 800)
-    test.settle(400)
-    local card = test.get { id = "info-system" }
-    test.truthy(card.width <= 380, "the card is " .. card.width)
-    local copy = test.get { id = "info-copy" }
+    tool(root, { EVA_STYLE = style }, { 380, 800 })
+    local card = test.get { id = "about-detail-system" }
+    test.truthy(card.x + card.width <= 380, "the card is " .. card.width)
+    local copy = test.get { id = "about-copy" }
     test.truthy(copy.x + copy.width <= 380, "the button runs off the side")
     test.eq(#test.logs("error"), 0)
   end)
@@ -181,7 +222,7 @@ local function cli(args, extra)
     "HOME=" .. state, "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR") }
   for _, word in ipairs(extra or {}) do argv[#argv + 1] = word end
   argv[#argv + 1] = "sh"
-  argv[#argv + 1] = ROOT .. "apps/info/cli"
+  argv[#argv + 1] = ROOT .. "apps/bin/eva-info"
   for _, word in ipairs(args) do argv[#argv + 1] = word end
   test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/cli_host.lua") })
   test.ipc("run", table.unpack(argv))
@@ -189,14 +230,32 @@ local function cli(args, extra)
   return morf.fs.read(log) or "", result
 end
 
-test.it("asks its own code for the facts, with no window", function()
-  test.contains(cli { "--json" }, "info/app.lua -- --json")
-  test.contains(cli { "--text" }, "info/app.lua -- --text")
+test.it("asks the shell's own code for the facts, with no window", function()
+  test.contains(cli { "--json" }, "apps/common/job/app.lua -- info --json")
+  test.contains(cli { "--text" }, "apps/common/job/app.lua -- info --text")
+end)
+
+test.it("alone it opens About in the Settings window", function()
+  test.contains(cli({}, { "STUB_UP=1" }), "ipc call settings about")
+end)
+
+test.it("says every fact as a job, as words and for a program", function()
+  local root = fresh()
+  local out = root .. "/answer"
+  test.stub_run("systemctl", { code = 0, stdout = "" })
+  test.load("../apps/common/job/app.lua", { args = { "info", "--json" }, env = env(root, { EVA_JOB_OUT = out }) })
+  test.settle(500)
+  local text = morf.fs.read(out) or ""
+  test.eq(text:sub(1, 2), "0\n")
+  test.eq(morf.json.decode(text:sub(3)).system.hostname, "fakebox")
+  test.load("../apps/common/job/app.lua", { args = { "info", "--text" }, env = env(root, { EVA_JOB_OUT = out }) })
+  test.settle(500)
+  test.contains(morf.fs.read(out), "System\n  Host name: fakebox\n")
 end)
 
 test.it("copies through wl-copy, and not when dry", function()
   local calls = cli { "--copy" }
-  test.contains(calls, "info/app.lua -- --text")
+  test.contains(calls, "apps/common/job/app.lua -- info --text")
   test.contains(calls, "wl-copy")
   local dry, result = cli({ "--copy" }, { "EVA_DRY_RUN=1" })
   test.falsy(dry:find("wl-copy", 1, true), "copied when dry")

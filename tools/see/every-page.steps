@@ -5,7 +5,7 @@
 #   SCREEN=1920x3000 TIMEOUT=400 EVA_FAKE_SYSTEM=1 tools/see.sh every-page
 export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging} EVA_FAKE_MODEM=1 EVA_FAKE_HARDWARE=1 EVA_FAKE_HAPTICS=1
 export EVA_FAKE_STATUS=wifi,bluetooth EVA_FAKE_AUDIO=1 EVA_FAKE_BACKUPS=snapper EVA_FAKE_FINGER_STACK=1
-export EVA_FAKE_WEATHER=18:2 EVA_FAKE_STARTUP=1 EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
+export EVA_FAKE_WEATHER=18:2 EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
 export EVA_FAKE_NET=$SEE_EVA/tests/fixtures/net
 start shell
 ipc close; pause 1

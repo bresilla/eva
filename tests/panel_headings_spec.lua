@@ -70,22 +70,22 @@ end)
 test.it("settings detail titles and editor titles begin when their own page appears",function()
   load()
   test.ipc("settings","sound")
-  decoded("settings-title","SOUND")
+  decoded("settings-page-title","SOUND")
   test.truthy(test.get("sound-title-output").visible)
   test.truthy(test.get("sound-title-output-device").visible)
   test.truthy(test.get("sound-title-apps").visible)
   test.ipc("settings","microphone")
-  decoded("settings-title","MICROPHONE")
+  decoded("settings-page-title","MICROPHONE")
   test.truthy(test.get("sound-title-input").visible)
   for _,case in ipairs {
-    {"network","settings-title","NETWORK"},
-    {"bluetooth","settings-title","BLUETOOTH"},
-    {"power","settings-title","POWER"},
-    {"bar","settings-title","BAR"},
-    {"wired","settings-title","WIRED"},
-    {"mesh","settings-title","MESH"},
+    {"network","settings-page-title","NETWORK"},
+    {"bluetooth","settings-page-title","BLUETOOTH"},
+    {"power","settings-page-title","POWER"},
+    {"bar","settings-page-title","BAR"},
+    {"wired","settings-page-title","WIRED"},
+    {"mesh","settings-page-title","MESH"},
     -- (Tor is a part of the Tunnel page now: `settings tor` opens Tunnel.)
-    {"tunnel","settings-title","TUNNEL"},
+    {"tunnel","settings-page-title","TUNNEL"},
   } do
     test.ipc("settings",case[1])
     decoded(case[2],case[3])

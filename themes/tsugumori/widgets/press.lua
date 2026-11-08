@@ -19,7 +19,6 @@ return function(S, theme, M, hud)
   local C = theme.color
   local function get(v) if type(v) == "function" then return v() end return v end
   local quick = { duration = 140, easing = "out_cubic" }
-  local MARK = "M0 0 H7 V1.5 H1.5 V7 H0 Z"
   local FS = theme.size.small
   local function none() return nil end
   local SLOTS = { "background", "content", "indicator", "icon", "label", "badge" }
@@ -51,60 +50,9 @@ return function(S, theme, M, hud)
     return ui.Item(props)
   end
 
-  -- The press feedback (as skins.lua's): a faint wash, one glint across
-  -- on entry or press, the registration marks parting while hovered and
-  -- the keyboard's brackets -- built the first time the control is reached.
-  local function feedback(t, id)
-    return function()
-      id = id or "tsugumori-control"
-      local holder = ui.Item { anchors = { fill = true }, z = 40 }
-      local wash = ui.Rect { id = id .. "-wash", anchors = { fill = true },
-        color = function() return C.primary end, opacity = 0,
-        behavior = { opacity = theme.spring.effects } }
-      local glint = ui.Path { id = id .. "-glint", x = -36, width = 28,
-        height = function() return math.max(1, t.height) end,
-        view_box = { 0, 0, 28, 100 }, d = "M20 0 H28 L8 100 H0 Z",
-        fill_color = function() return C.primary end, opacity = 0 }
-      ui.reparent(wash, holder)
-      ui.reparent(ui.Item { id = id .. "-glint-clip", anchors = { fill = true }, clip = true, glint }, holder)
-      local marks = {}
-      for i, corner in ipairs { { left = true, top = true }, { right = true, bottom = true } } do
-        marks[i] = ui.Path { id = id .. "-mark-" .. i, anchors = corner, width = 7, height = 7,
-          view_box = { 0, 0, 7, 7 }, d = MARK, rotation = i == 1 and 0 or 180,
-          fill_color = function() return C.primary end, opacity = 0,
-          behavior = { translate_x = { duration = 340, easing = "out_cubic" },
-            translate_y = { duration = 340, easing = "out_cubic" }, opacity = { duration = 180 } } }
-        ui.reparent(marks[i], holder)
-      end
-      ui.reparent(hud().corners { length = 6, weight = 2, color = function() return C.primary end,
-        visible = function() return t.visual_focus end }, holder)
-      local hovered, pressed, running = false, false, nil
-      morf.effect(id .. ".feedback", function()
-        local over, down = t.hovered, t.down
-        local fire = (over and not hovered) or (down and not pressed)
-        hovered, pressed = over, down
-        wash.opacity = down and 0.18 or over and 0.055 or 0
-        for i, mark in ipairs(marks) do
-          local shift = (over and not down) and (i == 1 and -3 or 3) or 0
-          mark.translate_x, mark.translate_y = shift, shift
-          mark.opacity = over and 1 or 0
-        end
-        if not over and not down then
-          if running then running:stop() running = nil end
-          glint.opacity = 0
-        elseif fire then
-          if running then running:stop() end
-          running = morf.animation.play { { parallel = {
-            { node = glint, property = "x", from = -36, to = t.width + 36, duration = 330, easing = "out_cubic" },
-            { node = glint, property = "opacity", duration = 330, keyframes = {
-              { at = 0, value = 0 }, { at = .13, value = .33 }, { at = .65, value = .27 }, { at = 1, value = 0 },
-            } },
-          } }, on_finished = function() running = nil end }
-        end
-      end, { owner = holder })
-      return holder
-    end
-  end
+  -- The press feedback: skins.lua's, shared by every press.
+  local shared = S.feedback
+  local function feedback(t, id) return shared(t, id) end
 
   -- Registration marks always shown on the top-left / bottom-right corners.
   local function marks(color, l)

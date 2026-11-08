@@ -314,10 +314,27 @@ return function(S, theme, M, hud)
       hud().corners { length = 12, weight = 2, inset = -7, color = primary }) }
   end
 
+  -- Opening, a panel boots: its outline traces in, its brackets snap on and
+  -- a scan line crosses it. Small transient plates do not.
+  local QUIET = { tooltip = true, toast = true, snackbar = true, rich_tooltip = true }
+  local boot = require("themes.tsugumori.boot")(theme)
   for widget, look in pairs(LOOK) do
     S[widget] = function(t, spec)
       local slots = look(t, spec)
       slots.dim = none()
+      local ground = slots.background
+      if ground and not QUIET[widget] then
+        local pass, was = nil, false
+        morf.effect("tsugumori.popup.boot", function()
+          local open = t.open and true or false
+          if open == was then return end
+          was = open
+          if not open then if pass then pass.stop(true) end return end
+          if require("themes.session").restoring then return end
+          pass = pass or boot.new(ground, "popup-" .. widget, { register = false, length = 8, reach = 8 })
+          pass.play(60)
+        end, { owner = ground })
+      end
       return slots
     end
   end

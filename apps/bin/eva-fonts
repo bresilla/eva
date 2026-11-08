@@ -1,0 +1,20 @@
+#!/bin/sh
+# eva-fonts: the installed fonts, and the shell's, from a command line. Browsing
+# and previewing them is the Settings window's Fonts page, under Theme; the words
+# run shell/fonts_model.lua as a job.
+#
+#   eva-fonts                 the Settings window, on Fonts
+#   eva-fonts list [--mono]   the installed families
+#   eva-fonts current         the shell's font
+#   eva-fonts set NAME        sets it: the running shell changes over, and with
+#                             no shell it is saved for the next start
+#   eva-fonts reset           back to the theme's own font
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_settings theme/fonts ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *) eva_job fonts "$@" ;;
+esac

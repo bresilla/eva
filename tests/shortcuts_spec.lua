@@ -45,17 +45,18 @@ test.it("shuts what is open on a mouse's back button", function()
   test.eq(test.ipc("drawers"), "")
 end)
 
-test.it("pops a settings page on Alt+Left before shutting the panel", function()
+test.it("pops a Settings page on Alt+Left and the back button, then shuts the window", function()
   load()
   test.ipc("utilities", "open") test.settle(1500)
   test.eq(test.ipc("settings", "sound/equalizer"), "sound/equalizer") test.settle(1000)
   test.key("Left", { "alt" }) test.settle(1000)
   test.truthy(test.find { id = "sound-page", visible = true }, "Alt+Left did not go up to Sound")
-  local panel = test.find { id = "sound-page" }
-  test.click(panel.x + panel.width / 2, panel.y + 20, { button = "back" }) test.settle(1000)
-  test.truthy(test.find { id = "utilities", visible = true })
-  test.truthy(test.ipc("drawers"):find("sidebar", 1, true), "the panel shut before its pages")
+  local page = test.find { id = "sound-page" }
+  test.click(page.x + page.width / 2, page.y + 20, { button = "back" }) test.settle(1000)
+  test.eq(test.ipc("settings", "state").page, "home", "the back button did not go up to All settings")
+  test.truthy(test.ipc("settings", "state").open, "the window shut before its pages")
   test.key("Left", { "alt" }) test.settle(1500)
+  test.falsy(test.ipc("settings", "state").open, "Alt+Left from All settings left the window open")
   test.eq(test.ipc("drawers"), "")
 end)
 

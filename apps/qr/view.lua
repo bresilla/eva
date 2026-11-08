@@ -1,16 +1,14 @@
--- eva-qr's window: the fields, the code on its plate, and the code alone over the
--- whole screen. The code is one path, its side a whole multiple of its modules,
+-- eva-qr's page in Tools: the fields, the code on its plate, and the code alone over
+-- the whole page. The code is one path, its side a whole multiple of its modules,
 -- the darker of the palette's two on the lighter.
 local ui = require("morf.ui")
-local morf = require("morf")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
-local controls = require("common.controls")
+local controls = require("apps.common.controls")
 local composites = require("themes.kit.composites")
-local frame = require("common.frame")
-local model = require("model")
+local model = require("apps.qr.model")
 local C, S = theme.color, theme.space
 
 local M = {}
@@ -148,35 +146,21 @@ function M.build(w, h)
   }
 end
 
-local function full_screen(done)
+--- The code alone over the whole of what holds it while `model.full` holds; a
+--- press or a key lets go.
+function M.full()
   -- The root, before what is sized from it.
-  local root = ui.Rect { id = "qr-full", anchors = { fill = true }, color = paper }
+  local root = ui.Rect { id = "qr-full", anchors = { fill = true }, color = paper,
+    visible = function() return model.full:get() end }
   local function room_w() return math.max(1, root.layout_width or 1) end
   local function room_h() return math.max(1, root.layout_height or 1) end
-  local function close()
-    model.full:set(false)
-    if done then done() end
-  end
+  local function close() model.full:set(false) end
   ui.reparent(plate("qr-full-plate", room_w, room_h), root)
   ui.reparent(ui.MouseArea {
-    id = "qr-full-area", anchors = { fill = true }, cursor = "pointer", focus = true, on_clicked = close,
-    on_key_pressed = function() close() return true end,
+    id = "qr-full-area", anchors = { fill = true }, cursor = "pointer", focus = function() return model.full:get() end,
+    on_clicked = close, on_key_pressed = function() close() return true end,
   }, root)
-  return frame.overlay { id = "qr", root = root, close = close }
-end
-
---- The code alone on the screen while `model.full` holds; a press or a key lets
---- go, `done()` after it.
-function M.overlay(done)
-  local layer
-  morf.effect("eva.qr.overlay", function()
-    local shown = model.full:get()
-    if shown and not layer then layer = full_screen(done)
-    elseif not shown and layer then
-      layer:destroy()
-      layer = nil
-    end
-  end)
+  return root
 end
 
 return M

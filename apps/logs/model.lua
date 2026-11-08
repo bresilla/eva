@@ -1,7 +1,7 @@
 -- eva-logs' state: journalctl as a child that lives on, its lines kept to a bounded
 -- number, narrowed by priority, boot, unit and words. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 
 local M = {
   rows = morf.list_model({}),

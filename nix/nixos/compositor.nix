@@ -48,7 +48,7 @@ let
     else
       dofile("${hyprland}/share/hypr/hyprland.lua")
     end
-    -- The arrangement eva-displays kept.
+    -- The arrangement Settings, Displays kept.
     local state = os.getenv("XDG_STATE_HOME") or (assert(os.getenv("HOME")) .. "/.local/state")
     local kept = io.open(state .. "/eva/displays/monitors.lua", "r")
     if kept then

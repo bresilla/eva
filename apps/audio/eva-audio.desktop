@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Audio
-Comment=A full mixer: every app, device and channel
-Exec=eva-audio
-Icon=multimedia-volume-control
-Terminal=false
-Categories=AudioVideo;Audio;Mixer;
-StartupWMClass=eva.audio

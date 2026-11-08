@@ -135,21 +135,34 @@ local function apps_dir()
 end
 
 --- How to start the tool `name` of apps/ (`displays`, `update`, `info`), or
---- nil when this install does not have it.
+--- nil when this install does not have it: its command, else its program.
 function M.tool(name)
   local fake = stand_in()
   if fake then return fake.tool(name) end
   local root = apps_dir()
+  if root and morf.fs.exists(root .. "/" .. name .. "/cli") then return { "sh", root .. "/" .. name .. "/cli" } end
   if root and morf.fs.exists(root .. "/" .. name .. "/app.lua") then return { "sh", root .. "/launch", name } end
   if M.installed("eva-" .. name) then return { "eva-" .. name } end
   return nil
 end
 
---- Starts a tool on its own, with `args` if any. True once it is on its way.
+--- Where the running shell shows a tool itself, on a page of its own windows:
+--- `(name, args)`, true when it did. The shell sets it; nil elsewhere.
+M.in_shell = nil
+
+--- Opens a tool, with `args` if any: on its page where the shell shows it,
+--- else started on its own. True once it is on its way.
 function M.open_tool(name, args)
+  if M.in_shell and M.in_shell(name, args) then return true end
+  return M.start_tool(name, args)
+end
+
+--- Starts a tool's own program with `args`, past any page of it: an overlay
+--- that draws over the whole screen. True once it is on its way.
+function M.start_tool(name, args)
   local argv = M.tool(name)
   if not argv then return false end
-  if M.held("open " .. name) or M.fake() then return true end
+  if M.held(table.concat({ "open", name, table.unpack(args or {}) }, " ")) or M.fake() then return true end
   local command = {}
   for _, word in ipairs(argv) do command[#command + 1] = word end
   for _, word in ipairs(args or {}) do command[#command + 1] = word end

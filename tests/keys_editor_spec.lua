@@ -9,7 +9,7 @@ local test = morf.test
 local ROOT = morf.fs.join(morf.env("PWD"), "")
 
 local HOST = [[
-  local model = require("model")
+  local model = require("apps.keys.model")
   morf.ipc.rows_of = function() return model.rows:get() end
   morf.ipc.offer = function(id, chord) return model.offer(id, chord) end
   morf.ipc.overrides = function() return require("keys_model").overrides() end
@@ -19,18 +19,18 @@ local HOST = [[
     for _, line in ipairs(require("lib.services.host_fake").last_hyprland.sent) do out[#out + 1] = line end
     return out
   end
-  require("app")
+]] .. morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") .. [[
 ]]
 
 local function env(name)
   local settings = morf.env("XDG_CACHE_HOME") .. "/keys-editor-" .. name .. ".json"
   morf.fs.remove(settings)
-  return { EVA_SETTINGS = settings, EVA_FAKE_SYSTEM = "1", LULE_A = "/nonexistent/lule" }
+  return { EVA_SETTINGS = settings, EVA_FAKE_SYSTEM = "1", LULE_A = "/nonexistent/lule", EVA_TEST_TOOL = "keys" }
 end
 
 local function tool(name, size)
   test.stub_run("hyprctl", { code = 0, stdout = morf.fs.read(ROOT .. "tests/fixtures/binds.json") })
-  test.load("../apps/keys/app.lua", { source = HOST, env = env(name), size = size })
+  test.load("../shell/init.lua", { source = HOST, env = env(name), size = size })
   test.settle(300)
 end
 

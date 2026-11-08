@@ -635,11 +635,47 @@ overview readings while hidden and owns idle inhibition independently of panel
 visibility. Themes contain no service imports, process commands or configuration
 writes. They own composition, scrolling, control feedback and transition timing.
 
-The sidebar's displayed Settings scope drives the controller lifecycle. Shared
-Material tabs now publish the same visibility scopes as Tsugumori's covered tabs.
-Each Settings detail scope follows the displayed detail, including VPN watch
+The utilities' controller lives while either the sidebar's Settings tab or the
+Settings window shows. The tab is the overview only: `settings.overview` is its
+scope and `model.quick` its presence. Each Settings detail scope,
+`settings.<key>`, follows the page on show in the window, including VPN watch
 lifetime and battery reads. Material presents immediately; Tsugumori presents
 beneath its cover and cancels stale transitions on closing or rapid navigation.
+
+### Settings and Tools windows
+
+Settings and Tools are one window, `views.page_window`, on two books of pages.
+`shell/window_host.lua` builds one for each: `shell/settings_window.lua` on the
+utilities' model, `shell/tools_window.lua` on `shell/tools_model.lua`. A book has
+`name` (the prefix of every id, `settings` or `tools`), `title`, `registry` (its
+pages, `shell/page_registry.lua`: `HOME`, `CATEGORIES`, `BY_KEY`, `category(id)`,
+`search(words)`), the routes and their signals (`DETAILS`, `navigation`,
+`opened`, `detail`, `displayed`, `peek`), `request`, `back`, `close`, `present`,
+`breadcrumb`, `page_content(key, w, h)` and `page_present(key)`; and may have
+`page_max` (the widest a page stands), `preload` (false: built only as it first
+opens), `forget` (its pages let go a second after it shuts, built again as they
+open), `has_actions(key)` and `page_actions(key)` (nodes a page puts in the head
+beside the close control), and `search_hint`.
+
+`views.page_window.build(model)` returns `node`, the whole screen, `window`, the
+dialog a press outside shuts, and `shown(open)`. The host hands it the book with
+`phone`, `size()`, `top` (a phone's cutout), `nested()`, `can_back()`,
+`searching()`, `covered()`, `elsewhere()` (open on another screen, which this one
+dims) and `dismiss()` (a press on any dim). `V.geometry(w, h, phone)` is the
+window's box: centred at `V.SHARE` (seven tenths) of a desk, the whole of a phone.
+The view draws the dim, the ground and the head with the layout's parts, takes the
+left column from `views.settings_home.navigation(model, w, h)` and keeps each page
+it has shown built under `<name>-detail-<key>`; it comes and goes through
+`theme.motion.appear` with `content = false`. The frame host stands both on its
+`above` layer: over the panels and the bar, under the on-screen keyboard. One is
+open at a time: a book that opens shuts the other (`window_host.only`).
+
+`views.settings_home` lays out a book's home: `build` (the search and the
+categories, a phone's), `index` (every page by category, beside a desk's way
+round), `category` and `navigation`, each reading `model.registry` and prefixing
+its ids with `model.name`. A tool's page is the tool's own view, `apps/NAME/
+view.lua`, built with the kit and the layout's parts, so it takes each theme's
+look as the shell's pages do.
 
 ### Wired, VPN and Tor builders
 
@@ -714,6 +750,12 @@ does not create another reader. A view decides where to display these readings;
 it does not connect to MPRIS, create weather polling or resolve remote files.
 The controller retains the primary-output and active-stage policies. Greeter
 views receive `ctx.hostname`, read once by their controller.
+
+Both receive `ctx.pattern` (`models/pattern_entry`: patty's kind, the method,
+tries and lockout, the trace being drawn) with `drawn`, `use_method` and
+`pattern_start`, and place it through `themes/layouts/auth/pattern.lua`. A skin
+may give `pattern_look(look)`, the grid's `ring`, `dot`, `lit`, `line` and
+`error` colours and its `round`; Material keeps the shared defaults.
 
 `views.polkit.build(state)` receives `request`, `phase`, `info`, `typed` (a
 capped count), `opened`, and submit/cancel/focus callbacks. It returns a drawer
@@ -806,6 +848,31 @@ bud's motion is three claims (`gone` at once, `out` on a spring, `leaving` on th
 way off), so a place that changes retargets it with its speed. A hidden bud's layer
 is not in the field: the budget of `MAX_FIELD_LAYERS` pays only for what is shown,
 three at most.
+
+`theme.motion.lock_on(host, id)` returns `lock(delay)`, a theme's finite mark
+as a surface comes up (`lock(nil)` stops it). The OSD bud plays it as it
+shows and the session menu on the row the focus lands on; Material's draws
+nothing, so the layout is the same in both.
+
+A drawer's motion calls `ctx.reveal(true)` when its contents come into sight
+(Material as it starts to open, Tsugumori as its cover lifts, either under a
+finger); shutting clears it. `presentation.active("<name>.revealed")` reads
+it. `theme.motion.rows(nodes, opts)` brings rows already built in again the
+way `kit.enter` brings a new one, top first, and returns the handles; the
+launcher plays it on the rows in sight each time it is revealed and finishes
+the handles as it shuts, a kit menu on its items as it opens, and the Wi-Fi
+and Bluetooth lists on the rows a scan adds. `kit.leave()` is a row's `exit`,
+the way back of `kit.enter`; a list that can empty hides its repeater while
+empty, so its leaving rows do not stand in a column laid out to nothing.
+
+`theme.motion.appear(node, shown, opts)` brings a dialog in place (the window
+switcher, the snap picker) in and out by `shown`, a binding: it claims the
+node's pose, so a reversal goes on from where it stands, and owns its
+`visible`, so it is drawn until it has gone. It returns `drawn()`. Material
+grows it about its centre as it fades; Tsugumori unfolds it from a band on an
+expo curve under a target lock (`opts.id` names it; `opts.content = false`
+keeps the lock to the frame, off the rows inside). Its controls should take
+input only while `shown`.
 
 The controller owns which bud shows which kind, repeated-update timeout renewal
 and the hold under the pointer; the view owns interrupted animation handling.

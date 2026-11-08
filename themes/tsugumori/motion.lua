@@ -12,12 +12,32 @@ return function(theme)
   local PAGE_COVER, REVEAL = 140, 220
   local COVER = 230
   local ENTRY_DELAY, ENTRY_MOVE, ENTRY_LEAVE, STAGGER = 180, 240, 120, 50
+  -- Each card's chrome, by card node (components.lua fills it).
+  local registry = require("themes.tsugumori.marks")
+  local boots = require("themes.tsugumori.boot")(theme)
+  -- The working panels whose ground carries the dot grid.
+  local GRID = { dashboard = true, sidebar = true, leftbar = true, bottom = true }
+  local UNBOOTED = { keyboard = true, notifications = true }
+  -- A corner mark's way in: held out, a hard step, an expo settle.
+  local function snap(from)
+    return { { at = 0, value = from }, { at = .24, value = from }, { at = .25, value = from * .4 },
+      { at = 1, value = 0, easing = "out_expo" } }
+  end
+  -- The page under a wipe boots as the wipe uncovers it.
+  local page_boots = setmetatable({}, { __mode = "k" })
+  -- The page cover in three bands, a step apart: a slice reveal.
+  local SLICES, SLICE_STEP = 3, 15
   function M.page_wipe(host, width, id)
-    local cover = ui.Rect { id = id .. "-page-curtain", z = 90,
-      anchors = { top = true, bottom = true }, x = 0, width = 0, visible = false,clip=true,
-      color=function() return theme.color.primary end,
-      require("themes.kit.widgets").shield { anchors = { fill = true } },
-    }
+    local function band(k, name)
+      local function top(i) return math.floor((host.layout_height or 0) * i / SLICES) end
+      return ui.Rect { id = id .. name, z = 90, x = 0, width = 0, visible = false, clip = true,
+        y = function() return top(k) end, height = function() return top(k + 1) - top(k) end,
+        color = function() return theme.color.primary end,
+        require("themes.kit.widgets").shield { anchors = { fill = true } },
+      }
+    end
+    local cover = band(1, "-page-curtain")
+    local bands = { band(0, "-page-slice-1"), cover, band(2, "-page-slice-3") }
     -- This stroke is a sibling of the cover: children of a clipped, animated
     -- rectangle are not reliably composited above its fill by the renderer.
     local glow = ui.Rect { id=id.."-page-glow",z=91,x=-12,width=16,
@@ -31,7 +51,7 @@ return function(theme)
       font_family=theme.font,font_size=12,letter_spacing=2,
       color=function() return theme.color.onPrimary end,
       text="",opacity=0,visible=false}
-    ui.reparent(cover, host)
+    for _, slice in ipairs(bands) do ui.reparent(slice, host) end
     ui.reparent(glow, host)
     ui.reparent(flash, host)
     ui.reparent(register,host)
@@ -43,24 +63,47 @@ return function(theme)
       flash.visible,flash.opacity,glow.visible,glow.opacity=false,0,false,0
       register.visible,register.opacity=false,0
       register.x=22
-      if immediate then cover.visible = false cover.width = 0 swap() return end
+      local pass = page_boots[host]
+      if pass then pass.stop() end
+      if immediate then
+        for _, slice in ipairs(bands) do slice.visible, slice.width = false, 0 end
+        swap() return
+      end
       if destination then
         register.text=("%02d / %s"):format(destination.index or 0,
           unicase.upper(tostring(destination.name or destination.key or id)))
       else register.text=("TS / %s"):format(unicase.upper(id)) end
       register.visible=true
-      cover.visible = true
-      running = morf.animation.play { { parallel = {
-        { node = cover, property = "x", to = 0, duration = PAGE_COVER, easing = "in_out_quint" },
-        { node = cover, property = "width", to = width(), duration = PAGE_COVER, easing = "in_out_quint" },
+      local covering = {
         { node = register, property = "opacity",from=0,to=.85,duration=PAGE_COVER,easing="out_cubic" },
-      } }, on_finished = function(reason)
+      }
+      local step_in = PAGE_COVER - (SLICES - 1) * SLICE_STEP
+      for k, slice in ipairs(bands) do
+        slice.visible = true
+        local delay = (k - 1) * SLICE_STEP
+        covering[#covering + 1] = { node = slice, property = "x", to = 0, delay = delay, duration = step_in,
+          easing = "in_out_quint" }
+        covering[#covering + 1] = { node = slice, property = "width", to = width(), delay = delay,
+          duration = step_in, easing = "in_out_quint" }
+      end
+      running = morf.animation.play { { parallel = covering }, on_finished = function(reason)
         if reason ~= "completed" or own ~= generation then return end
         swap()
+        pass = page_boots[host] or boots.content(host)
+        page_boots[host] = pass
+        pass.play(ENTRY_DELAY, true)
         flash.x,flash.visible,glow.x,glow.visible=0,true,-12,true
+        local step_out = REVEAL - (SLICES - 1) * SLICE_STEP
+        local revealing = {}
+        for k, slice in ipairs(bands) do
+          local delay = (k - 1) * SLICE_STEP
+          revealing[#revealing + 1] = { node = slice, property = "x", to = width(), delay = delay,
+            duration = step_out, easing = "out_expo" }
+          revealing[#revealing + 1] = { node = slice, property = "width", to = 0, delay = delay,
+            duration = step_out, easing = "out_expo" }
+        end
         running = morf.animation.play { { parallel = {
-          { node = cover, property = "x", to = width(), duration = REVEAL, easing = "out_expo" },
-          { node = cover, property = "width", to = 0, duration = REVEAL, easing = "out_expo" },
+          { parallel = revealing },
           { node = register, property = "opacity",to=0,duration=100,easing="out_cubic" },
           { node = register, property = "x",to=width()+22,duration=REVEAL,easing="out_expo" },
           { node = flash, property = "x", to = width(), duration = REVEAL, easing = "out_expo" },
@@ -71,11 +114,64 @@ return function(theme)
             {at=0,value=0},{at=.12,value=.9},{at=.68,value=.72},{at=1,value=0} } },
         } }, on_finished = function(why)
           if why == "completed" and own == generation then
-            cover.visible,flash.visible,glow.visible,register.visible=false,false,false,false
+            for _, slice in ipairs(bands) do slice.visible = false end
+            flash.visible,glow.visible,register.visible=false,false,false
           end
         end }
       end }
     end
+  end
+  --- A surface coming up under a target lock: four brackets close onto
+  --- `host` from outside and a scan line crosses it. `lock(delay)` plays
+  --- it, `lock(nil)` stops and hides it. Nothing is built before the first.
+  function M.lock_on(host, id, opts)
+    local pass
+    return function(delay)
+      if delay == nil or delay == false then
+        if pass then pass.stop(true) end
+        return
+      end
+      if require("themes.session").restoring then return end
+      pass = pass or boots.new(host, id .. "-lock",
+        opts or { trace = false, register = false, content = "late", length = 14, weight = 2.5, reach = 24 })
+      pass.play(delay)
+    end
+  end
+  --- A surface that comes and goes in place (a dialog in the middle of the
+  --- screen): it unfolds from a slim band on an expo curve as it lights, the
+  --- target-lock brackets close onto it, and it folds a step and goes dark
+  --- on the way out, drawn until it has gone. It owns `node`'s `opacity`,
+  --- `scale_y` and `visible`; `shown` is a binding; `opts.id` names the lock;
+  --- `opts.content = false` keeps the lock to the frame, for a surface whose
+  --- pages bring themselves in. Returns `drawn()`, whether it is on screen.
+  function M.appear(node, shown, opts)
+    local claims = ui.claims(node, {
+      unfolded = { when = shown, motion = { duration = 300, easing = "out_expo" }, set = { scale_y = 1 } },
+      folded = { motion = { duration = 140, easing = "in_cubic" }, set = { scale_y = 0.9 } },
+      lit = { when = shown, motion = { duration = 120, easing = "out_cubic" }, set = { opacity = 1 } },
+      gone = { motion = { duration = 140, easing = "in_cubic" }, set = { opacity = 0 } },
+    })
+    local frame = opts and opts.content == false
+      and { trace = false, register = false, content = false, length = 14, weight = 2.5, reach = 24 } or nil
+    local lock = M.lock_on(node, (opts and opts.id) or "appear", frame)
+    local was = shown()
+    morf.effect("eva.appear." .. ((opts and opts.id) or tostring(node)), function()
+      local now = shown()
+      if now == was then return end
+      was = now
+      lock(now and 40 or nil)
+    end, { owner = node })
+    local function drawn() return shown() or claims.gone.presence:get() < 1 end
+    node.visible = drawn
+    return drawn
+  end
+
+  --- Rows already in a list coming in again as a new row would (`kit.enter`):
+  --- each steps in from the side and decodes in two flickers, a beat after
+  --- the one above. `nodes` top first; `opts.delay`. Returns the handles.
+  function M.rows(nodes, opts)
+    if require("themes.session").restoring then return {} end
+    return require("themes.kit_common").replay(nodes, require("kit").enter, (opts or {}).delay)
   end
   function M.entries(entries, coming, opts)
     if require("themes.session").restoring then
@@ -83,6 +179,11 @@ return function(theme)
         entry.node.opacity = coming and 1 or 0
         entry.node.scale, entry.node.translate_x, entry.node.translate_y = 1, 0, 0
         if entry.shape then entry.shape.opacity = coming and 1 or 0 end
+        local chrome = registry.cards[entry.node]
+        if chrome then
+          boots.land(chrome)
+          boots.card_rest(chrome)
+        end
       end
       return {}, 0
     end
@@ -104,6 +205,14 @@ return function(theme)
         steps[#steps + 1] = { node = entry.shape, property = "opacity", from = coming and fresh and 0 or nil,
           to = coming and 1 or 0, delay = delay, duration = coming and ENTRY_MOVE or ENTRY_LEAVE }
       end
+      -- A card's corner brackets snap onto it as it comes in.
+      local chrome = registry.cards[node]
+      if chrome and coming and fresh then
+        handles[#handles + 1] = boots.snap(chrome, nil, delay, 7)
+      elseif chrome then
+        boots.land(chrome)
+        for _, mark in ipairs(chrome.marks) do mark.translate_x, mark.translate_y, mark.opacity = 0, 0, 1 end
+      end
       handles[#handles + 1] = morf.animation.play { { parallel = steps } }
     end
     return handles, coming and ((opts.delay or ENTRY_DELAY) + ENTRY_MOVE + math.max(0, #entries - 1) * (opts.stagger or STAGGER)) or ENTRY_LEAVE
@@ -114,7 +223,12 @@ return function(theme)
   function M.drawer(ctx)
     local panel, content, d = ctx.panel, ctx.spec.content, ctx.drawer
     local id="drawer-" .. (d.name or "auth")
-    local curtain = require("themes.tsugumori.curtain")(theme, panel, id)
+    local curtain, unit = require("themes.tsugumori.curtain")(theme, panel, id)
+    -- The on-screen keyboard keeps its own look and motion, and notification
+    -- cards lock on by themselves: neither boots.
+    local boot = not UNBOOTED[d.name] and boots.new(panel, id, {
+      brackets = false, content = true, words = ("%s %s // SYS LINK"):format(unit[3], unit[2]) }) or nil
+    if GRID[d.name] then require("themes.tsugumori.dots")(theme)(panel, id) end
     local glow=ui.Rect {id=id.."-reveal-glow",z=101,x=-12,width=16,
       anchors={top=true,bottom=true},color=function() return theme.color.secondary end,
       opacity=0,visible=false}
@@ -162,6 +276,7 @@ return function(theme)
       arrive = nil
       if running then running:stop() end
       if lock_motion then lock_motion:stop() lock_motion=nil end
+      if boot then boot.stop(true) end
       corner_a.visible,corner_b.visible,pip.visible=false,false,false
       corner_a.opacity,corner_b.opacity,pip.opacity=0,0,0
       if hidden then
@@ -180,11 +295,14 @@ return function(theme)
         curtain.visible,flash.visible,glow.visible=false,false,false
         if not opening then return end
         corner_a.visible,corner_b.visible,pip.visible=true,true,true
+        -- Snapped in, but slid in on the keyboard's drawer as it always was.
+        local function corner(node,property,from)
+          if not boot then return {node=node,property=property,from=from*7/9,to=0,duration=280,easing="out_cubic"} end
+          return {node=node,property=property,duration=280,keyframes=snap(from)}
+        end
         lock_motion=morf.animation.play {{parallel={
-          {node=corner_a,property="translate_x",from=-7,to=0,duration=280,easing="out_cubic"},
-          {node=corner_a,property="translate_y",from=-7,to=0,duration=280,easing="out_cubic"},
-          {node=corner_b,property="translate_x",from=7,to=0,duration=280,easing="out_cubic"},
-          {node=corner_b,property="translate_y",from=7,to=0,duration=280,easing="out_cubic"},
+          corner(corner_a,"translate_x",-9), corner(corner_a,"translate_y",-9),
+          corner(corner_b,"translate_x",9), corner(corner_b,"translate_y",9),
           {node=corner_a,property="opacity",duration=360,keyframes={
             {at=0,value=0},{at=.18,value=.86},{at=.55,value=.56},{at=1,value=0}}},
           {node=corner_b,property="opacity",duration=360,keyframes={
@@ -224,7 +342,15 @@ return function(theme)
         if axis.arrived() then next_phase() return end
         arrive=function() if generation==own then next_phase() end end
       end
-      if opening then travel(true,function() sweep(true,finish) end)
+      if not opening then ctx.reveal(false) end
+      if opening then travel(true,function()
+        sweep(true,finish)
+        ctx.reveal(true)
+        -- The boot pass plays over the content once the cover has all but gone.
+        if boot and not require("themes.session").restoring then
+          boot.play(math.floor(REVEAL*cover*.55))
+        end
+      end)
       else sweep(false,function() travel(false,finish) end) end
     end
     return {
@@ -235,11 +361,13 @@ return function(theme)
         axis.stop()
         if running then running:stop() running=nil end
         if lock_motion then lock_motion:stop() lock_motion=nil end
+        if boot then boot.stop() end
         for _, node in ipairs {curtain,glow,flash,corner_a,corner_b,pip} do node.visible=false end
       end,
       grab = function(from)
         panel.visible, content.opacity, d.shape.opacity = true, 1, 1
         out:set(true)
+        ctx.reveal(true)
         return axis.grab(from)
       end,
       drag = axis.drag,
@@ -247,6 +375,7 @@ return function(theme)
         out:set(d.open:get())
         axis.release(velocity, function()
           panel.visible = d.open:get()
+          ctx.reveal(d.open:get())
           done()
         end)
       end,

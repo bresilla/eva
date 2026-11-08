@@ -114,9 +114,13 @@ return function(theme, M)
         border_width = function() return (t.checked or t.partial) and 0 or 2 end,
         border_color = function() return C().onSurfaceVariant end,
         behavior = { color = { duration = theme.duration.small } } },
+      -- The tick springs in from small as the box fills, and out again.
       indicator = M.icon(function() return t.partial and "remove" or "check" end, 16,
         function() return C().onPrimary end,
-        { anchors = { center_in = true }, visible = function() return t.checked or t.partial end }),
+        { anchors = { center_in = true },
+          opacity = function() return (t.checked or t.partial) and 1 or 0 end,
+          scale = function() return (t.checked or t.partial) and 1 or 0.4 end,
+          behavior = { opacity = { duration = theme.duration.small }, scale = M.spring(520, 22) } }),
       badge = ring(t, 6),
     }
   end
@@ -125,7 +129,8 @@ return function(theme, M)
   local function radio(t)
     return {
       background = ui.Rect { anchors = { fill = true, margins = 2 }, radius = 10, color = "transparent",
-        border_width = 2, border_color = function() return t.checked and C().primary or C().onSurfaceVariant end },
+        border_width = 2, border_color = function() return t.checked and C().primary or C().onSurfaceVariant end,
+        behavior = { border_color = { duration = theme.duration.small } } },
       indicator = ui.Rect { anchors = { center_in = true }, color = function() return C().primary end,
         width = function() return t.checked and 10 or 0 end, height = function() return t.checked and 10 or 0 end,
         radius = 5, behavior = { width = M.spring(520, 22), height = M.spring(520, 22) } },
@@ -153,7 +158,9 @@ return function(theme, M)
         if spec.widget == "radio_menu_item" then return t.checked and "radio_button_checked" or "radio_button_unchecked" end
         return "check"
       end, 18, function() return C().primary end, { anchors = { right = true, right_margin = 12, vertical_center = true },
-        visible = function() return spec.widget == "radio_menu_item" or t.checked end }) or nil,
+        opacity = function() return (spec.widget == "radio_menu_item" or t.checked) and 1 or 0 end,
+        scale = function() return (spec.widget == "radio_menu_item" or t.checked) and 1 or 0.4 end,
+        behavior = { opacity = { duration = theme.duration.small }, scale = M.spring(520, 22) } }) or nil,
     }
   end
 

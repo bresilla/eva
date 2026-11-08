@@ -1,7 +1,7 @@
--- The right panel's Focus page, behind the Focus tile: what interrupts, the
--- modes, how long a session runs and what quiets the machine by itself; and one
--- page in, what a mode lets through, when it comes on and what it changes. In the
--- page template (themes/layouts/page.lua).
+-- The Focus page, behind the Focus tile: what interrupts, keeping awake for a
+-- time, the modes, how long a session runs and what quiets the machine by
+-- itself; and one page in, what a mode lets through, when it comes on and what
+-- it changes. In the page template (themes/layouts/page.lua).
 local morf = require("morf")
 local ui = require("morf.ui")
 local kit = require("kit")
@@ -30,6 +30,38 @@ local function choices(w, id, title, items, now, pick, per)
   for i, item in ipairs(items) do named[i] = { item[1], nil, item[2] } end
   return ui.Column { width = P.inner(w), gap = theme.space.xs, caption(w, title),
     F.choices { id = id, width = P.inner(w), items = named, per_row = per or #items, now = now, pick = pick } }
+end
+
+--- Keep awake for a time: a dial of what is left, the presets, and a line that
+--- takes it in words. Its switch is the Interruptions' above.
+local function awake_section(w, awake)
+  local S = theme.space
+  local inner, DIAL, KEEP = P.inner(w), 96, 120
+  local presets = { width = inner }
+  for index, preset in ipairs(awake.PRESETS) do
+    presets[index] = { id = "awake-preset-" .. preset.minutes, label = preset.label,
+      on_clicked = function() awake.keep(preset.minutes) end }
+  end
+  local box, input
+  local function keep() if awake.say(awake.draft:get()) then input.text = "" end end
+  box, input = P.field { id = "awake-words", width = inner - KEEP - S.s, placeholder = "45 min, 2 hours, until 18:30",
+    on_changed = function(value) awake.draft:set(value) end, on_accepted = keep }
+  local words = inner - DIAL - S.l
+  return P.section { id = "focus-awake", width = w, title = "Keep awake",
+    ui.Row { width = inner, gap = S.l, align = "center",
+      ui.Item { width = DIAL, height = DIAL, kit.dial { id = "awake-dial", size = DIAL, value = awake.fraction } },
+      ui.Column { width = words, gap = S.xxs,
+        kit.text { id = "awake-left", width = words, elide = "right", font_size = theme.size.extra, font_weight = 300,
+          color = kit.ink("hi"), text = awake.title },
+        kit.text { id = "awake-until", width = words, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
+          text = awake.subtitle } } },
+    P.buttons(presets),
+    ui.Row { gap = S.s, align = "center", box,
+      P.button { id = "awake-words-go", label = "Keep", tone = "primary", width = KEEP, on_clicked = keep } },
+    kit.text { id = "awake-hint", width = inner, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
+      visible = function() return (awake.hint() or awake.message:get()) ~= "" end,
+      text = function() return awake.hint() or awake.message:get() end },
+  }
 end
 
 function V.build(model, w, h)
@@ -71,6 +103,7 @@ function V.build(model, w, h)
 
   return P.page { id = "settings-focus-scroll", width = w, height = h, active = model.active,
     P.section(section),
+    model.awake and awake_section(w, model.awake) or nil,
     P.section(modes),
     P.section { id = "focus-session", width = w, title = "A session",
       choices(w, "focus-duration", "How long a mode runs when turned on", model.DURATIONS, model.duration, model.set_duration, 3) },

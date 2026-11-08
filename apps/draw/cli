@@ -2,6 +2,9 @@
 # eva-draw: draw on the screen. Press and drag, with a mouse or a finger, over
 # whatever is there; a second launch ends it, as Escape does.
 #
+#   eva-draw         the Tools window, on Draw on screen; with no shell, drawing
+#   eva-draw start   drawing, at once, for a key
+#
 #   r y g c b p      the pens, in the theme's colours
 #   + - [ ] wheel    the pen's width
 #   t                words: press where they go, type, Return keeps them
@@ -14,10 +17,13 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" draw ;;
+  '')
+    if eva_shell_up; then eva_tools draw; else exec sh "$apps/launch" draw; fi
+    ;;
+  start) exec sh "$apps/launch" draw ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
   *)
-    eva_say "eva-draw: takes no arguments"
+    eva_say "eva-draw: no word $1"
     exit 2
     ;;
 esac

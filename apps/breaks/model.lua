@@ -3,7 +3,7 @@
 -- no timer runs but the one to the next break. The window and the command line
 -- read what it writes and change its settings file. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 local alarm = require("lib.services.alarm")
 
 local M = {
@@ -90,10 +90,9 @@ function M.follow()
   M.status_watch = morf.fs.watch(state_path(), function() M.read() end)
 end
 
---- Starts the watcher, to outlive the window.
+--- Starts the watcher, to outlive the page: `eva-breaks --watch`.
 function M.start_watching()
-  local folder = morf.paths.shell():gsub("/$", ""):gsub("/[^/]*$", "")
-  sys.detach { "sh", folder .. "/launch", "breaks", "--watch" }
+  require("lib.services.host").start_tool("breaks", { "--watch" })
 end
 
 --- The day `at` falls in, as the store keys it.

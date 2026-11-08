@@ -108,6 +108,18 @@ local function say(words, wrong)
 end
 local clear = password.clear
 
+-- The chosen account's pattern, from the `.kind` file patty leaves for everyone.
+local patty = require("lib.shell.auth.patty")
+local pattern = require("models.pattern_entry").new { name = "greet", kind_only = true,
+  user = function() return person().name end }
+pattern.read()
+local trace = pattern.trace
+local via_pattern, wrong_drawn = false, nil
+local function fresh()
+  if wrong_drawn then wrong_drawn:cancel() wrong_drawn = nil trace.clear() end
+  if bad:get() then say("") end
+end
+
 -- The dots go at once and everything fades off the wallpaper. Then nothing but
 -- the picture is drawn, and `after` runs once that is on screen.
 local function depart(after)
@@ -138,10 +150,17 @@ local door = auth.greeter {
     clear()
     shake:set(1)
     morf.time.timer(70, function() shake:set(0) end, false)
+    if via_pattern and trace.count() > 0 then
+      if wrong_drawn then wrong_drawn:cancel() end
+      wrong_drawn = morf.time.timer(900, function() wrong_drawn = nil trace.clear() end, false)
+    end
+    via_pattern = false
     if outputs then outputs.release() end
   end,
   -- The stack asks for something more (a code, a new password).
   on_prompt = function(words)
+    via_pattern = false
+    pattern.use("password")
     say(words, false)
     clear()
     if outputs then outputs.release() end
@@ -161,6 +180,7 @@ local function choose(index)
   who:set(index)
   clear()
   say("")
+  pattern.open()
   door:switch(person().name)
   which:set(session_of(person().name))
   door.session = session()
@@ -181,7 +201,7 @@ local function poke()
   if idle then idle:cancel() end
   idle = morf.time.timer(30000, function()
     idle = nil
-    if stage:get() == "sheet" and typed:get() == 0 and not busy:get() then
+    if stage:get() == "sheet" and typed:get() == 0 and trace.count() == 0 and not busy:get() then
       stage:set("rest")
       say("")
     end
@@ -189,6 +209,7 @@ local function poke()
 end
 local function open_sheet()
   if stage:get() ~= "rest" then return end
+  pattern.open()
   stage:set("sheet")
   pull:set(0)
   if not door.available then say(NOT_GREETD, false) end
@@ -209,20 +230,63 @@ local function submit_owned()
   door:submit(password.take())
 end
 local function submit()
-  if busy:get() or stage:get() ~= "sheet" or password.empty() then return end
+  if busy:get() or stage:get() ~= "sheet" then return end
+  local kind = pattern.shown()
+  if kind == "grid" then
+    local digits = trace.digits()
+    if not patty.valid(digits) then
+      trace.clear()
+      say(digits == "" and "Draw your pattern" or "Connect at least 4 dots", false)
+      return
+    end
+    password.clear()
+    password.add(digits)
+  elseif password.empty() then
+    return
+  end
+  via_pattern = kind ~= nil
   outputs.submit()
 end
-
-local function type_text(t)
-  if not password.add(t) then return end
-  if bad:get() then say("") end
+local function drawn()
+  if busy:get() or stage:get() ~= "sheet" then trace.clear() return end
   poke()
+  submit()
+end
+
+-- Digits that fit the pattern go on it; the first that does not moves all
+-- that was typed to the password field.
+local function to_password(t)
+  if pattern.shown() == "grid" then
+    local digits = trace.digits()
+    password.clear()
+    password.add(digits)
+  end
+  pattern.use("password")
+  return password.add(t)
+end
+local function type_text(t)
+  fresh()
+  local kind, digit = pattern.shown(), t:match("^%d$") and tonumber(t)
+  local taken
+  if kind == "grid" and digit then taken = trace.join(digit) or to_password(t)
+  elseif kind == "keypad" and digit then taken = password.add(t)
+  elseif kind then taken = to_password(t)
+  else taken = password.add(t) end
+  if taken then poke() end
 end
 local function backspace()
-  password.erase()
+  if pattern.shown() == "grid" then trace.erase() else password.erase() end
+  poke()
+end
+local function use_method(method)
+  if busy:get() then return end
+  clear()
+  say("")
+  pattern.use(method)
   poke()
 end
 local function escape()
+  if trace.count() > 0 then fresh() trace.clear() say("") return end
   if not password.empty() then clear() say("") return end
   if stage:get() == "sheet" then stage:set("rest") say("") end
 end
@@ -342,6 +406,7 @@ local context = {
   choose = choose,
   clear = clear,
   key = key,
+  pattern = pattern, drawn = drawn, use_method = use_method, pattern_start = fresh,
 }
 local ui=require("morf.ui")
 local root=ui.Item {id="greet-output",anchors={fill=true}}
@@ -376,6 +441,17 @@ if PREVIEW then
   morf.ipc.access = function(what)
     if what == "open" then access.open:set(true) else access.toggle(what) end
     return true
+  end
+  -- For a picture: a stroke half drawn, or a method chosen.
+  morf.ipc.pattern = function(how)
+    if how == "demo" then
+      trace.clear()
+      for _, n in ipairs { 1, 2, 3, 5 } do trace.join(n) end
+      trace.finger:set({ .3, .85 })
+    elseif how == "password" or how == "pattern" then
+      use_method(how)
+    end
+    return { method = pattern.method:get(), kind = pattern.kind:get(), shown = pattern.shown() or "" }
   end
 end
 

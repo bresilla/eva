@@ -22,13 +22,27 @@ local MAX_ROWS = 64
 local function list(w, prefix, count, row, none, max)
   local inner = P.inner(w)
   local col = { width = inner, gap = P.ROW_GAP }
+  local slots = {}
   for i = 1, max or MAX_ROWS do
-    col[#col + 1] = ui.Item { id = prefix .. i, width = inner, height = P.ROW_H,
+    slots[i] = ui.Item { id = prefix .. i, width = inner, height = P.ROW_H,
       visible = function() return i <= count() end, row(i, inner) }
+    col[#col + 1] = slots[i]
   end
   col[#col + 1] = P.row { width = inner, icon = "info", on = function() return false end, title = none,
     visible = function() return count() == 0 end }
-  return ui.Column(col)
+  local node = ui.Column(col)
+  -- Rows a scan adds come in as new rows do (`theme.motion.rows`), top first.
+  local had = count()
+  morf.effect("eva.list." .. prefix, function()
+    local now = math.min(count(), #slots)
+    if now > had and theme.motion.rows then
+      local coming = {}
+      for i = had + 1, now do coming[#coming + 1] = slots[i] end
+      theme.motion.rows(coming)
+    end
+    had = now
+  end, { owner = node })
+  return node
 end
 
 --- The one action under a list, the card's width.
@@ -46,10 +60,15 @@ end
 
 --- What the last action said ("a password is needed"), under the list.
 local function status(id, model, w)
+  local function said() return (model.message:get() or "") ~= "" end
+  -- It fades in where it opens its line, and its colour turns with the news.
   local node = kit.subtitle { id = id, width = P.inner(w), wrap = true, font_size = P.SUB,
     text = function() return model.message:get() or "" end,
-    color = function() return model.failed:get() and theme.color.error or theme.color.onSurfaceVariant end }
-  node.visible = function() return (model.message:get() or "") ~= "" end
+    color = function() return model.failed:get() and theme.color.error or theme.color.onSurfaceVariant end,
+    opacity = function() return said() and 1 or 0 end,
+    behavior = { opacity = { duration = theme.duration.normal, easing = theme.ease.standard },
+      color = { duration = theme.duration.small } } }
+  node.visible = said
   return node
 end
 
@@ -124,11 +143,14 @@ local function network_prompt(model, w)
     { id = "network-share", icon = "qr_code_2", label = "Share", on_clicked = function() model.share_shown:set(true) end,
       visible = function() return row().known == true or row().secure ~= true end } }
   answer.visible, manage.visible, more.visible = asking, mode("manage"), mode("manage")
+  -- The fields take the keys only where the page is on show.
+  local function here() return model.shown == nil or model.shown() end
   morf.effect("eva.network.prompt.focus", function()
     local m = model.mode()
     if m ~= "password" and m ~= "enterprise" then clear() end
-    user.focus = m == "enterprise"
-    pass.focus = m == "password"
+    local on = here()
+    user.focus = on and m == "enterprise"
+    pass.focus = on and m == "password"
   end)
   return ui.Column { id = "network-password-prompt", width = inner, gap = 8,
     visible = function() return model.asked() ~= nil end,
@@ -278,7 +300,7 @@ local function pairing_prompt(model, w)
   morf.effect("eva.bluetooth.pairing.focus", function()
     local on = entry()
     if not on then typed:set("") end
-    handle.focus = on
+    handle.focus = on and (model.shown == nil or model.shown())
   end)
   local buttons = P.buttons { width = inner,
     { id = "bluetooth-pairing-refuse", label = "Cancel", on_clicked = refuse },

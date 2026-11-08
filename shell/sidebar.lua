@@ -27,13 +27,4 @@ morf.effect("eva.sidebar.covered", function()
   notifs.covered:set(pages.on_show("notifications"))
 end)
 morf.effect("eva.sidebar.shown", function() model.opened:set(M.drawer.open:get()) end)
--- The Lule studio works while its page is on show: the panel holding
--- Settings open on it, at Theme, Lule.
-morf.effect("eva.sidebar.lule", function()
-  local studio = require("lule_studio")
-  local settings = require("utilities")
-  if not (studio.active and settings.displayed) then return end
-  local page = settings.displayed:get()
-  studio.active:set(pages.on_show("settings") and page == "theme/lule")
-end)
 return M

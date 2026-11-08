@@ -15,9 +15,7 @@ local function show(key, on) require("presentation").set("launcher." .. key, on)
 
 local function settings_page(key)
   return function()
-    local utilities = require("utilities")
-    utilities.request(key)
-    require("pages").open("settings")
+    require("utilities").reach(key)
     return "close"
   end
 end

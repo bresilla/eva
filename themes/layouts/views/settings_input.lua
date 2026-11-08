@@ -64,7 +64,7 @@ local function keyboard_page(model, w, h)
       F.choices { id = "input-compose", width = inner, items = model.COMPOSE, per_row = 2,
         now = function() return model.value("compose", "") end, pick = function(word) model.set("compose", word) end },
       F.link { id = "input-keys-tool", width = inner, icon = "keyboard_command_key", title = "Keyboard shortcuts",
-        subtitle = "Every key the compositor binds, in eva-keys", go = model.open_keys, visible = model.can_keys },
+        subtitle = "Every key bound, and a new chord for any", go = model.open_keys, visible = model.can_keys },
     },
     P.section { id = "input-more", width = w, title = "More",
       F.link { id = "input-open-pointer", width = inner, icon = "mouse", title = "Mouse and touchpad",

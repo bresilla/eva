@@ -1,6 +1,6 @@
 -- The first-run welcome: which step it is on, and whether this person has had
--- it. It is a Settings page, so it stands wherever Settings does on this form,
--- and it opens the real pages. Only the shell starts
+-- it. It is a Settings page, so it opens in the Settings window, and it opens
+-- the real pages. Only the shell starts
 -- it: the lock and the greeter never load this file. No nodes.
 local morf = require("morf")
 local host = require("lib.services.host")
@@ -52,7 +52,7 @@ function M.start()
 end
 
 local function shut()
-  require("pages").close("settings")
+  require("utilities").close()
   M.step:set(1)
 end
 
@@ -80,7 +80,7 @@ function M.network()
   return { title = "Not connected", subtitle = "Pick a network" }
 end
 
---- Opens eva-keys, with every key there is.
-function M.all_keys() return host.open_tool("keys") end
+--- Opens Keyboard shortcuts, with every key there is; Back returns here.
+function M.all_keys() return require("utilities").request("input/shortcuts", "welcome") end
 
 return M

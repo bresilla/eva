@@ -14,6 +14,7 @@ local HOST = [[
     return { left = require("leftbar").drawer.open:get(), left_notes = require("leftbar").panel.showing("notes"),
       bottom = require("bottom").drawer.open:get(), bottom_assistant = require("bottom").panel.showing("assistant"),
       sidebar = require("sidebar").drawer.open:get(), settings_page = utilities.displayed:get(), route = utilities.detail:get(),
+      window = utilities.opened:get(),
       keyboard = morf.surface.keyboard_focus, typing = pages.typing(), tile_notes = utilities.CONTROLS.notes ~= nil,
       tile_phone = utilities.CONTROLS.linked_phone ~= nil, phone_present = utilities.CONTROLS.linked_phone.present() }
   end
@@ -57,12 +58,13 @@ test.describe("page seams", function()
     test.eq(#test.logs("error"), 0)
   end)
 
-  test.it("opens a page no panel holds as a settings page", function()
+  test.it("opens a page no panel holds as a page of the Settings window", function()
     load()
     test.ipc("seam_open", "notes")
     test.settle(1200)
     local s = state()
-    test.truthy(s.sidebar)
+    test.truthy(s.window)
+    test.falsy(s.sidebar)
     test.eq(s.route, "notes")
     test.truthy(test.get("notes-page").visible)
     test.eq(#test.logs("error"), 0)
@@ -89,7 +91,7 @@ test.describe("page seams", function()
     test.eq(state().keyboard, "none")
     test.ipc("seam_open", "notes")
     test.settle(1200)
-    test.eq(state().keyboard, "on_demand", "nobody could type a note")
+    test.eq(state().keyboard, "exclusive", "nobody could type a note in the Settings window")
   end)
 
   test.it("answers `ai` and `note` in the launcher, and leaves plain words alone", function()

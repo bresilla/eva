@@ -2,9 +2,9 @@
 -- outlives its window. The moment a phase ends is a timer in eva-clock's store,
 -- which rings it and shows it in the bar. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 local lib = require("lib.services.alarm")
-local focus = require("focus")
+local focus = require("apps.pomodoro.focus")
 
 local M = {
   session = morf.signal("pomodoro.session", {}),

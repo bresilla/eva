@@ -6,9 +6,9 @@ local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
-local controls = require("common.controls")
+local controls = require("apps.common.controls")
 local lib = require("lib.services.alarm")
-local model = require("model")
+local model = require("apps.pomodoro.model")
 local C, S = theme.color, theme.space
 
 local M = {}

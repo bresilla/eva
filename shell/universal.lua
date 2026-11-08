@@ -62,7 +62,7 @@ local function index_rows()
     for _, entry in ipairs(index.all()) do
       out[#out + 1] = rows.row {
         id = entry.id, name = entry.name, keywords = entry.keywords, tag = entry.tag, icon = entry.icon, kind = entry.kind,
-        pin = entry.pin or entry.id, run = entry.run, actions = entry.actions, entry = entry,
+        pin = entry.pin or entry.id, run = entry.run, actions = entry.actions, entry = entry, boost = entry.boost,
         description = type(entry.description) == "string" and entry.description or "",
         material = type(entry.material) == "string" and entry.material or nil,
       }
@@ -127,7 +127,7 @@ local function pool(q)
     if name == "files" then list = require("launcher_modes.files").universal(q)
     elseif source then list = source[2]() end
     for _, item in ipairs(list or {}) do
-      item.weight = source and source[1] or 1
+      item.weight = item.boost or source and source[1] or 1
       item.kind = item.kind or "menu"
       items[#items + 1] = item
     end

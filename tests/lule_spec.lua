@@ -8,7 +8,7 @@ local HOST = [[
   morf.ipc.studio = function()
     return { selected = s.selected:get(), busy = s.busy:get(), failed = s.failed:get(), message = s.message:get(),
       preview = s.preview:get() ~= "", preview_error = s.preview_error:get(), active = s.active:get(),
-      here = require("services").here(), bottom = require("bottom").drawer.open:get(), tab = require("utilities").displayed:get() == "theme/lule", dashboard = require("sidebar").drawer.open:get(),
+      here = require("services").here(), bottom = require("bottom").drawer.open:get(), tab = require("utilities").displayed:get() == "theme/lule", dashboard = require("utilities").opened:get(),
       copied = copied, mode = s.mode:get(), method = s.method:get(), count = #s.files:get(), keyboard = morf.surface.keyboard_focus,
       folder = s.folder:get(), saved_folder = require("config").get("lule.folder") }
   end
@@ -42,7 +42,7 @@ local function click(target, ...)
   if type(target) == "string" then
     local scroll = test.find { id = "lule-scroll" }
     local item = test.get(target)
-    local panel = test.find { id = "drawer-sidebar" }
+    local panel = test.find { id = "settings-window" }
     local bottom = scroll and math.min(scroll.y + scroll.height, panel and panel.y + panel.height - 24 or math.huge)
     if scroll and (item.y < scroll.y or item.y + item.height > bottom) then
       test.wheel(0, item.y - scroll.y - 30, { x = scroll.x + 40, y = scroll.y + 60 })
@@ -63,15 +63,13 @@ test.describe("eva Lule", function()
     test.truthy(state().dashboard)
     test.falsy(state().bottom)
     test.falsy(test.find { id = "bottom-tab-lule" })
-    local panel = test.get("drawer-sidebar")
-    -- The panel's width is a side panel's: the cards stack, and the page
-    -- scrolls down to the controls.
-    test.truthy(test.get("lule-colors-card").y >= test.get("lule-wallpaper-card").y + test.get("lule-wallpaper-card").height)
+    local panel = test.get("settings-window")
+    -- Every control stands inside the Settings window.
     for _, id in ipairs { "lule-preview", "lule-color-15", "lule-cursor", "lule-apply", "lule-random-apply" } do
       local item = test.get(id)
       test.truthy(item.x >= panel.x and item.x + item.width <= panel.x + panel.width, id .. " overflows horizontally")
     end
-    test.eq(state().keyboard, "on_demand")
+    test.eq(state().keyboard, "exclusive")
     test.wait(function() return state().preview end, 5000, "wallpaper preview")
     test.eq(state().preview_error, "")
     click("lule-color-1")
@@ -86,7 +84,7 @@ test.describe("eva Lule", function()
     test.falsy(state().busy)
     test.falsy(state().failed, state().message)
     test.eq(lule_runs(), { { "lule", "create", "--image=" .. second, "--theme=light", "--palette=tonal", "--", "set" } })
-    click("sidebar-tab-notifications") test.settle(700)
+    click("settings-close") test.settle(700)
     test.falsy(state().active) test.falsy(state().preview)
     test.eq(state().keyboard, "none")
     test.eq(#test.logs("error"), 0)
@@ -112,8 +110,8 @@ test.describe("eva Lule", function()
     local page = test.get("lule-scroll")
     test.wheel(0, 3000, { x = page.x + 40, y = page.y + 60 }) test.advance(500)
     local apply = test.get("lule-apply")
-    local panel = test.get("drawer-sidebar")
-    test.truthy(apply.y + apply.height < panel.y + panel.height, "Apply is outside the panel")
+    local panel = test.get("settings-window")
+    test.truthy(apply.y + apply.height < panel.y + panel.height, "Apply is outside the window")
     test.falsy(test.ipc("choose", root .. "/missing.png"))
     test.eq(#lule_runs(), 0)
     test.stub_run("lule", { code = 1, stderr = "Image could not be decoded" })
@@ -154,9 +152,9 @@ test.describe("eva Lule", function()
     assert(morf.fs.write(added, png))
     click("lule-browse") test.settle(100)
     test.eq(state().count, 3, "Images used the stale file list")
-    click("sidebar-tab-notifications") test.settle(700)
+    click("settings-close") test.settle(700)
     assert(morf.fs.remove(added))
-    -- Back on the settings the overview shows again; Lule is reopened.
+    -- The window shut; Lule is reopened.
     test.ipc("lule", "open") test.settle(800)
     test.eq(state().count, 2, "reopening the tab did not refresh the folder")
     test.eq(#lule_runs(), 1, "browsing applied a wallpaper")

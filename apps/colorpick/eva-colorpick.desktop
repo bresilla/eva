@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Colour picker
-Comment=Pick a colour from the screen
-Exec=eva-colorpick
-Icon=color-picker
-Terminal=false
-Categories=Utility;Graphics;
-StartupWMClass=eva.colorpick

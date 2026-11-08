@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Text
-Comment=A developer's scratchpad of text transforms and generators
-Exec=eva-text
-Icon=accessories-text-editor
-Terminal=false
-Categories=Utility;Development;
-StartupWMClass=eva.text

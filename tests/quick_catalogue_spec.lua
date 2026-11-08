@@ -80,12 +80,8 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.truthy(test.ipc("spare").qr, "it does not wait to be added")
       test.truthy(test.find { id = "utilities-add-qr", visible = true }, "no way to add it")
       test.ipc("close") test.settle(300)
-      test.ipc("press_tile", "qr") test.settle(200)
-      test.truthy((function()
-        for _, line in ipairs(test.logs("info")) do
-          if line.message:find("open qr", 1, true) then return true end
-        end
-      end)(), "a press opened nothing")
+      test.ipc("press_tile", "qr") test.settle(900)
+      test.eq(test.ipc("tools", "state"), { open = true, page = "qr" }, "a press opened nothing")
     end)
 
     test.it("leaves a tool out where this install lacks it", function()

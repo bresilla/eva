@@ -97,14 +97,10 @@ local function dashboard_tab(key)
   end
 end
 
--- The settings, on a page.
+-- A Settings page where it lives: a quick control's in its panel, any other in
+-- the Settings window.
 local function settings_page(page)
-  return function()
-    require("utilities").request(page)
-    local sidebar = require("sidebar")
-    sidebar.select("settings")
-    sidebar.drawer.set(true)
-  end
+  return function() require("utilities").reach(page) end
 end
 
 local function item(label, icon, on_clicked) return { label = label, icon = icon, on_clicked = on_clicked } end
@@ -229,17 +225,17 @@ function M.list(bar)
     press = function() require("session").drawer.set(true) end, tooltip = function() return "Lock, log out, restart" end }
   add { id = "assistant", name = "Assistant", icon = "smart_toy", tier = 1,
     press = function() require("bottom").drawer.set(true) end, tooltip = function() return "Assistant" end }
-  -- The tools of apps/, each a press away where it is installed.
-  for _, tool in ipairs {
-    { "clipboard", "Clipboard", "content_paste", "eva-clipboard", "Clipboard history" },
-    { "color_picker", "Colour picker", "colorize", "eva-colorpick", "Pick a colour off the screen" },
-    { "displays", "Displays", "desktop_windows", "eva-displays", "Arrange the monitors" },
-    { "keybinds", "Keybindings", "keyboard_keys", "eva-keys", "The live keybindings" },
-  } do
-    add { id = tool[1], name = tool[2], icon = tool[3], tier = 1,
-      present = function() return installed(tool[4]) end,
-      press = function() M.run { tool[4] } end, tooltip = function() return tool[5] end }
-  end
+  -- The tools of apps/, each a press away: their pages, in Tools or Settings.
+  add { id = "clipboard", name = "Clipboard", icon = "content_paste", tier = 1,
+    press = function() require("tools_model").open_tool("clipboard") end,
+    tooltip = function() return "Clipboard history" end }
+  add { id = "color_picker", name = "Colour picker", icon = "colorize", tier = 1,
+    press = function() require("tools_model").open_tool("colorpick") end,
+    tooltip = function() return "Pick a colour off the screen" end }
+  add { id = "keybinds", name = "Keybindings", icon = "keyboard_keys", tier = 1, press = settings_page("input/shortcuts"),
+    tooltip = function() return "The live keybindings" end }
+  add { id = "displays", name = "Displays", icon = "desktop_windows", tier = 1, press = settings_page("displays"),
+    tooltip = function() return "Arrange the monitors" end }
   add { id = "screenshot", name = "Screenshot", icon = "screenshot_region", tier = 1,
     press = function() require("capture").shoot("region") end, tooltip = function() return "Take a screenshot" end,
     menu = function() return { item("Of a region", "screenshot_region", function() require("capture").shoot("region") end),

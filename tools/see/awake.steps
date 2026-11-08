@@ -1,53 +1,35 @@
-# eva-awake on the sealed session, against the real shell: the command line
-# moves the shell's own keep awake, and the verb, the bar's coffee, the Keep
-# awake tile and the window all read the same state. The inhibitor is real, held
-# on this sway.
+# Keep awake on the sealed session, against the real shell: eva-awake moves the
+# shell's own keep awake, and the verb, the bar's coffee, the Keep awake tile and
+# the Focus page all read the same state. The inhibitor is real, held on this sway.
 unset EVA_DRY_RUN
 
 # No shell yet.
-note sh apps/awake/cli status
+note sh apps/bin/eva-awake status
 
 BOOT=4 start shell
 pause 1
-note sh apps/awake/cli 30m
+note sh apps/bin/eva-awake 30m
 note ipc awake state
 pause 0.6
 shot bar-on
 ipc settings
 pause 1.4
 shot tile-on
-ipc close
-pause 0.6
+ipc settings focus
+pause 1.4
+shot page-on
 
-sh apps/launch awake > "$SEE_OUT/window.log" 2>&1 &
-WINDOW=$!
-window() { timeout 10 morf -i "$(basename "$WAYLAND_DISPLAY")-app-$WINDOW" ipc call "$@"; }
-pause 6
-note window state
-shot window-on
-
-# The tile's own switch, seen by the window.
+# The tile's own switch, seen by the page.
 ipc awake off
-pause 2.6
-note window state
-shot window-off
-note sh apps/awake/cli status
+pause 1
+shot page-off
+note sh apps/bin/eva-awake status
 
 # A process keeps it awake, and letting go ends it.
 sleep 3 &
-sh apps/awake/cli --pid $! >> "$SEE_OUT/notes.txt" 2>&1 &
+sh apps/bin/eva-awake --pid $! >> "$SEE_OUT/notes.txt" 2>&1 &
 pause 1.5
 note ipc awake state
-pause 3
-note window state
-shot window-held
-pause 2.5
+shot page-held
+pause 5
 note ipc awake state
-kill "$WINDOW"
-pause 0.3
-
-# The window with no shell at all.
-BOOT=4 start app awake
-pause 0.5
-shot no-shell
-note appipc state

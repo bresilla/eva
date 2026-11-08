@@ -200,37 +200,41 @@ function V.build(M)
       return kind() == "alert" and kit.ink("hi")():mix(kit.signal("alert")(), .25) or kit.ink("lo")()
     end
     local function raw(x) return masked(x) and "Open to read" or x.body end
+    -- The one-line body and the opened one cross over as the card grows.
+    local fade = { duration = theme.duration.small, easing = theme.ease.standard }
+    local function folded() return not expanded(n()) end
+    local function unfolded() return expanded(n()) end
     local body_line = N.body {
       id = "notification-body-" .. i, n = n, raw = raw, x = TEXT_X, y = BODY_Y, width = CARD_W - TEXT_X - 16, height = BODY_H,
-      font_size = BODY, elide = "right", color = body_color,
-      visible = function() return not expanded(n()) end,
+      font_size = BODY, elide = "right", color = body_color, live = folded,
+      opacity = function() return folded() and 1 or 0 end, behavior = { opacity = fade },
     }
     local body_open = N.body {
       id = "notification-body-open-" .. i, n = n, raw = raw, x = TEXT_X, y = BODY_Y, width = CARD_W - TEXT_X - 16,
-      font_size = BODY, wrap = true, max_lines = 4, color = body_color,
-      visible = function() return expanded(n()) end,
+      font_size = BODY, wrap = true, max_lines = 4, color = body_color, live = unfolded,
+      opacity = function() return unfolded() and 1 or 0 end, behavior = { opacity = fade },
     }
 
-    -- What it carries, each standing under the one before.
+    -- What it carries, each standing under the one before, moving with the card.
     local function at(part) return function() return below(n(), part) end end
     local preview = N.preview { id = "notification-preview-" .. i, x = TEXT_X, y = at("preview"), width = PART_W, n = n,
-      shown = function() return previewing(n()) end }
+      glide = motion, shown = function() return previewing(n()) end }
     local transport = N.transport { id = "notification-media-" .. i, x = TEXT_X, y = at("transport"), n = n, model = M,
-      shown = function() return has_transport(n()) end }
+      glide = motion, shown = function() return has_transport(n()) end }
     local chips = N.chips { id = "notification-chip-" .. i, x = TEXT_X, y = at("chips"), width = PART_W, n = n, model = M,
-      shown = function() return has_chips(n()) end }
+      glide = motion, shown = function() return has_chips(n()) end }
     local buttons = N.buttons { id = "notification-action-" .. i, x = TEXT_X, y = at("buttons"), width = PART_W, n = n,
-      model = M, shown = function() return not masked(n()) and N.button_rows(n(), M) > 0 end }
+      model = M, glide = motion, shown = function() return not masked(n()) and N.button_rows(n(), M) > 0 end }
     local reply = N.reply { id = "notification-reply-" .. i, x = TEXT_X, y = at("reply"), width = PART_W, n = n, model = M,
-      shown = function() return replying(n()) end }
+      glide = motion, shown = function() return replying(n()) end }
     local tools = N.tools { id = "notification-tool-" .. i, x = TEXT_X, y = at("tools"), width = PART_W, n = n, model = M,
-      shown = function() return tooled(n()) end }
+      glide = motion, shown = function() return tooled(n()) end }
 
     -- Progress, when the sender reports one: the theme's fill and a counter.
     local COUNT = L.role_size("hero") * .7
     local progress = ui.Item {
       x = TEXT_X, width = CARD_W - TEXT_X - 14, height = PROGRESS_H - 4,
-      y = at("progress"),
+      y = at("progress"), behavior = { y = motion },
       visible = function() return progress_of(n()) ~= nil end,
       kit.fill { y = 4, width = CARD_W - TEXT_X - 74, height = 12, color = signal,
         value = function() return progress_of(n()) or 0 end },

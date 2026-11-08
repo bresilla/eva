@@ -486,7 +486,7 @@ local config = settings.open {
     -- vdir among them) and ICS addresses. `lead` is how many minutes before
     -- an event its reminder comes, when the event names none.
     calendar = { files = {}, folders = {}, urls = {}, discover = true, reminders = true, lead = 10 },
-    -- eva-update: the flake it reads, or its folder; empty finds /etc/nixos's.
+    -- Settings, Updates: the flake it reads, or its folder; empty finds /etc/nixos's.
     update = { flake = "" },
     utilities = {
       commands = {

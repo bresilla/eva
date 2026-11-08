@@ -29,7 +29,7 @@ test.it("both themes select the same content builders; approved edge skins stay 
   ]]})
   local maps=test.ipc("audit")
   for name,path in pairs(maps.material) do
-    if name~="frame" and name~="rail" and name~="levels" and name~="app_frame" then
+    if name~="frame" and name~="rail" and name~="levels" then
       test.eq(maps.tsugumori[name],path,"different content builder: "..name)
       test.truthy(path:find("themes.layouts.views.",1,true)==1)
     end

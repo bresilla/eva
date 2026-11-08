@@ -51,12 +51,15 @@ function M.defaults(active)
   return model
 end
 
---- Startup apps and user services.
+--- Startup apps, a command of one's own, user services and the scheduled jobs.
 function M.startup(active)
   local model = page_model.new("startup", active)
   local entries = morf.signal("eva.startup.entries", {})
   local services = morf.signal("eva.startup.services", {})
   local installed = morf.signal("eva.startup.installed", {})
+  local timers = morf.signal("eva.startup.timers", {})
+  -- "loading", "ready", or "none" where there is no user session of systemd.
+  model.scheduled = morf.signal("eva.startup.scheduled", "loading")
   local fake = require("lib.services.host").fake() and require("lib.services.host_fake")
 
   local function refresh()
@@ -65,6 +68,10 @@ function M.startup(active)
   end
   model.on_show(function()
     refresh()
+    autostart.timers(function(rows)
+      timers:set(rows or {})
+      model.scheduled:set(rows and "ready" or "none")
+    end)
     local rows = {}
     for id, entry in pairs(defaults.entries()) do
       rows[#rows + 1] = { key = id, id = id, name = entry.name or id, exec = entry.exec, icon = entry.icon, words = id }
@@ -88,7 +95,63 @@ function M.startup(active)
   function model.set_service(row, on)
     return model.action(function(done) autostart.set_service(row.unit, on, done) return true end, refresh)
   end
+  function model.add_command(name, command)
+    return model.action(function(done) autostart.add_command(name, command, done) return true end, refresh)
+  end
+  function model.timers() return timers:get() end
+  model.when = autostart.when
   return model
+end
+
+-- --------------------------------------------------------- the command line --
+
+local function line(row)
+  return ("%-3s %-24s %s"):format(row.enabled and "on" or "off", (row.id:gsub("%.desktop$", "")), row.name)
+end
+
+-- The entry `name` means, by its file or its name.
+local function find(name)
+  local wanted = tostring(name or ""):lower():gsub("%.desktop$", "")
+  for _, row in ipairs(autostart.entries()) do
+    if row.id:lower():gsub("%.desktop$", "") == wanted or row.name:lower() == wanted then return row end
+  end
+end
+
+--- `eva-startup ARGS`: `list`, `enable NAME`, `disable NAME`, `remove NAME` and
+--- `timers`. `done(text, why)`.
+function M.job(args, done)
+  local how = args[1]
+  local function act(row, change)
+    if not row then return done(nil, "nothing called " .. tostring(args[2])) end
+    change(row, function(ok, why)
+      if not ok then return done(nil, why) end
+      done(line(find(args[2]) or row))
+    end)
+  end
+  if how == "list" then
+    local lines = {}
+    for _, row in ipairs(autostart.entries()) do lines[#lines + 1] = line(row) end
+    done(#lines > 0 and table.concat(lines, "\n") or "nothing starts with the session")
+  elseif how == "enable" or how == "disable" then
+    act(find(args[2]), function(row, finish) autostart.set_enabled(row, how == "enable", finish) end)
+  elseif how == "remove" then
+    local row = find(args[2])
+    if row and (not row.own or row.system) then return done(nil, row.name .. " belongs to the system: disable it") end
+    act(row, function(target, finish)
+      autostart.remove(target, function(ok, why) if ok then done("removed") else finish(nil, why) end end)
+    end)
+  elseif how == "timers" then
+    autostart.timers(function(rows, why)
+      if not rows then return done(nil, why) end
+      local lines = {}
+      for _, row in ipairs(rows) do
+        lines[#lines + 1] = ("%-20s %s%s"):format(autostart.when(row.next), row.name, row.alarm and (" (" .. row.alarm .. ")") or "")
+      end
+      done(#lines > 0 and table.concat(lines, "\n") or "no timers")
+    end)
+  else
+    done(nil, "unknown command: " .. tostring(how))
+  end
 end
 
 return M

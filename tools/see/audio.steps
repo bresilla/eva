@@ -1,33 +1,14 @@
-# eva-audio on the sealed session, against the stand-in for morf.audio: the
-# shell's own sound pages in a window, recording streams with their routing,
-# input channels, the equalizer and its audiogram.
-unset EVA_DRY_RUN
+# The mixer that was eva-audio, in the Settings window, against the stand-in
+# for morf.audio: what plays, what records with its routing, the input's
+# channels, the equalizer, its audiogram and the sound server's restart.
 export EVA_FAKE_AUDIO=1
 
-note sh apps/audio/cli list
-note sh apps/audio/cli next
+note sh apps/bin/eva-audio list
+note sh apps/bin/eva-audio next
 
-BOOT=4 start app audio
-shot output
-appipc mute output 31 > /dev/null
-appipc route output 30 12 > /dev/null
-pause 0.4
-shot routed
-appipc tab input > /dev/null
-pause 0.8
-appipc channel input 2 0.3 > /dev/null
-pause 0.4
-shot input
-appipc route input 40 21 > /dev/null
-appipc mute input 40 > /dev/null
-pause 0.4
-note appipc state
-appipc tab equalizer > /dev/null
-pause 0.8
-appipc equalizer on > /dev/null
-appipc band 3 6 > /dev/null
-pause 1.2
-shot equalizer
-appipc editor open > /dev/null
-pause 0.6
-shot audiogram
+start shell
+ipc settings sound; pause 1.4; shot output
+ipc settings microphone; pause 1.2; shot input
+ipc settings sound/equalizer; pause 1.2; shot equalizer
+ipc settings sound/equalizer/audiogram; pause 1; shot audiogram
+ipc settings sound/more; pause 1.2; shot more

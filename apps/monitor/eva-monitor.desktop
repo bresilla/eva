@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Monitor
-Comment=Processes, resources and sensors
-Exec=eva-monitor
-Icon=utilities-system-monitor
-Terminal=false
-Categories=System;Monitor;
-StartupWMClass=eva.monitor

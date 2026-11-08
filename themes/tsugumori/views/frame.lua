@@ -12,12 +12,14 @@ function V.insets(bar)
     right = theme.BORDER + bar.right, bottom = theme.BORDER + bar.bottom }
 end
 
-local PITCH, MAJOR = 8, 10        -- ruler: a tick every PITCH px, every MAJORth long
+local PITCH, MAJOR = 8, 10        -- side rulers: a tick every PITCH px, every MAJORth long
 local EDGE_PAD = 4                -- keep ticks clear of the opening ends
+local STEP, LONG = 10, 100        -- top and bottom: a tick every STEP px, a long one every LONG
 
 -- A ruler along one edge of the opening: ticks rise out of the band from
--- the opening's lip, continuing evenly behind the pills.
--- `edge` is top/bottom/left/right.
+-- the opening's lip, continuing evenly behind the pills. Along the top and
+-- bottom a long tick stands every hundred screen pixels, a middle one every
+-- fifty and a short one every ten. `edge` is top/bottom/left/right.
 local function ruler(model, edge)
   local B, L = theme.BORDER, theme.LEFT
   local function size() local _, _, w, h = model.desk() return w, h end
@@ -26,22 +28,29 @@ local function ruler(model, edge)
     local w, h = size()
     local a0, a1 = horizontal and L + EDGE_PAD or B + EDGE_PAD,
       horizontal and w - B - EDGE_PAD or h - B - EDGE_PAD
-    local origin, every = a0, MAJOR
-    if not horizontal then
-      local rail = require("rail").geometry()
-      -- Three evenly spaced workspaces between consecutive major ticks.
-      origin = rail.top - rail.gap / 2
-      every = 3 * (rail.item + rail.gap) / PITCH
-    end
     local out = {}
+    if horizontal then
+      for at = math.ceil(a0 / STEP) * STEP, a1, STEP do
+        local long = at % LONG == 0
+        if long == major then
+          local s = long and 7 or (at % 50 == 0 and 4 or 2)
+          local p = at + .5
+          if edge == "top" then out[#out + 1] = ("M%g %g V%g "):format(p, B, B - s)
+          else out[#out + 1] = ("M%g %g V%g "):format(p, h - B, h - B + s) end
+        end
+      end
+      return #out > 0 and table.concat(out) or "M0 0"
+    end
+    local rail = require("rail").geometry()
+    -- Three evenly spaced workspaces between consecutive major ticks.
+    local origin = rail.top - rail.gap / 2
+    local every = 3 * (rail.item + rail.gap) / PITCH
     for k = math.ceil((a0 - origin) / PITCH), math.floor((a1 - origin) / PITCH) do
       local at = origin + k * PITCH
       if (k % every == 0) == major then
         local s = major and 5 or 2
         local p = math.floor(at) + .5
-        if edge == "top" then out[#out + 1] = ("M%g %g V%g "):format(p, B, B - s)
-        elseif edge == "bottom" then out[#out + 1] = ("M%g %g V%g "):format(p, h - B, h - B + s)
-        elseif edge == "left" then out[#out + 1] = ("M%g %g H%g "):format(L, p, L - s)
+        if edge == "left" then out[#out + 1] = ("M%g %g H%g "):format(L, p, L - s)
         else out[#out + 1] = ("M%g %g H%g "):format(w - B, p, w - B + s) end
       end
     end

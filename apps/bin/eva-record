@@ -2,7 +2,8 @@
 # eva-record: a recording of the screen, by the capture tool's recorder, with or
 # without the shell.
 #
-#   eva-record                                       the panel
+#   eva-record                                       the Tools window, on Screenshot;
+#                                                    with no shell, the panel
 #   eva-record region|window|monitor [--audio KIND] [--fps N]
 #   eva-record stop                                  ends it and saves the file
 #   eva-record pause|resume                          holds it, and takes it up again

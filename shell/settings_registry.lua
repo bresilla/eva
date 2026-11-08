@@ -1,6 +1,6 @@
 -- Every Settings page, once: its route, name, icon, the words it is found by,
 -- and the category the home listing files it under. Plain data, no nodes and
--- no signals, so anything may read it.
+-- no signals, so anything may read it; shell/page_registry.lua makes the book.
 --
 --   local registry = require("settings_registry")
 --   registry.list()             -- { { key, name, icon, keywords } }, every page
@@ -68,7 +68,8 @@ M.PAGES = {
   { key = "sound/more", name = "More sound settings", icon = "tune", parent = "sound",
     keywords = "theme devices codec profile",
     items = { { "Sound theme", "event sounds alert" }, { "Preferred devices", "default output rules priority" },
-      { "Bluetooth codec", "ldac aptx aac sbc profile" }, { "Card profile", "surround stereo hdmi" } } },
+      { "Bluetooth codec", "ldac aptx aac sbc profile" }, { "Card profile", "surround stereo hdmi" },
+      { "Restart the sound server", "pipewire wireplumber pulse restart fix no sound" } } },
   { key = "sound/equalizer", name = "Equalizer", icon = "equalizer", parent = "sound",
     keywords = "eq bass treble presets tone" },
   { key = "sound/equalizer/audiogram", name = "Audiogram", icon = "hearing", parent = "sound/equalizer",
@@ -81,8 +82,10 @@ M.PAGES = {
   { key = "input", name = "Keyboard", icon = "keyboard", category = "device", summary = "Layouts, switching, repeat",
     keywords = "layout language repeat delay rate numlock xkb compose caps",
     items = { { "Keyboard layouts", "add language qwerty dvorak azerty" }, { "Switch layout key", "alt shift super space" },
-      { "Key repeat", "rate delay speed" },
-      { "Keyboard shortcuts", "keybind keybinding rebind hotkey chord combination conflict binding" } } },
+      { "Key repeat", "rate delay speed" } } },
+  { key = "input/shortcuts", name = "Keyboard shortcuts", icon = "keyboard_keys", parent = "input",
+    summary = "Every key bound, and a new chord for any",
+    keywords = "keybind keybinding keybindings rebind hotkey chord combination conflict binding keys eva-keys" },
   { key = "input/pointer", name = "Mouse and touchpad", icon = "mouse", parent = "input", category = "device",
     summary = "Speed, tap to click, cursor",
     keywords = "mouse touchpad trackpad pointer cursor scroll natural tap click sensitivity acceleration left handed",
@@ -119,6 +122,10 @@ M.PAGES = {
     keywords = "appearance dark light mode colour color" },
   { key = "theme/lule", name = "Lule", icon = "colors", parent = "theme",
     keywords = "wallpaper colours font palette" },
+  { key = "theme/fonts", name = "Fonts", icon = "font_download", parent = "theme", category = "look",
+    summary = "Every family, previewed, and the shell's",
+    keywords = "font family typeface typography monospace preview weight size sample installed",
+    items = { { "The shell's font", "ui interface typeface set change" }, { "Monospace fonts", "mono code terminal" } } },
   { key = "nightlight", name = "Night light", icon = "nightlight", category = "look", summary = "Warmer colours",
     keywords = "blue light temperature warm evening hyprsunset" },
   { key = "filters", name = "Colour filters", icon = "filter_b_and_w", category = "look", summary = "Grey, inverted, dim, reading",
@@ -184,6 +191,9 @@ M.PAGES = {
   { key = "lock/fingerprint", name = "Fingerprints", icon = "fingerprint", parent = "lock",
     keywords = "enrol enroll finger reader fprintd add remove sensor unlock",
     items = { { "Add a fingerprint", "enrol enroll finger sensor" }, { "Remove a fingerprint", "delete finger" } } },
+  { key = "lock/pattern", name = "Pattern", icon = "pattern", parent = "lock",
+    keywords = "patty pattern draw grid keypad pin digits unlock login greeter",
+    items = { { "Set a pattern", "draw new change grid keypad digits" }, { "Clear the pattern", "remove forget delete" } } },
   { key = "focus", name = "Focus", icon = "tune", category = "shell", summary = "Modes, do not disturb, ring, keep awake",
     keywords = "dnd do not disturb silent vibrate awake caffeine work sleep schedule mode" },
   { key = "focus/mode", name = "Mode", icon = "tune", parent = "focus", keywords = "schedule allowed apps people" },
@@ -194,8 +204,11 @@ M.PAGES = {
 
   { key = "apps", name = "Default apps", icon = "apps", category = "apps", summary = "What opens what",
     keywords = "browser mail music video pdf editor terminal file manager mime type association" },
-  { key = "startup", name = "Startup apps", icon = "rocket_launch", category = "apps", summary = "Apps and user services",
-    keywords = "autostart login boot systemd service background" },
+  { key = "startup", name = "Startup apps", icon = "rocket_launch", category = "apps",
+    summary = "Apps, commands, user services and timers",
+    keywords = "autostart login boot systemd service background",
+    items = { { "Start a command with the session", "own script run login" },
+      { "Scheduled jobs", "timers systemd cron when next" } } },
   { key = "notes", name = "Notes", icon = "sticky_note_2", category = "apps", summary = "Quick notes, in a folder",
     keywords = "jot write markdown text" },
   { key = "software", name = "Software", icon = "deployed_code", category = "apps", summary = "Install, remove, hidden apps",
@@ -208,6 +221,11 @@ M.PAGES = {
       { "Bedtime", "grey grayscale sleep wind down night" }, { "Forget screen time", "clear history delete usage" } } },
   { key = "screen_time/app", name = "App", icon = "apps", parent = "screen_time", keywords = "daily limit allowed downtime",
     items = { { "App limit", "daily minutes timer" }, { "Allowed during downtime", "exception always" } } },
+  { key = "breaks", name = "Breaks", icon = "self_improvement", category = "apps",
+    summary = "Reminders to rest your eyes, and the day",
+    keywords = "break reminder rest eyes look away 20 20 20 stand up stretch posture pause eva-breaks",
+    items = { { "Rest your eyes", "look away twenty seconds" }, { "Get up", "stand stretch walk" },
+      { "Pause the reminders", "hold off minutes" } } },
 
   { key = "datetime", name = "Date and time", icon = "schedule", category = "system", summary = "Timezone and clock",
     keywords = "timezone ntp clock 24 hour automatic time zone" },
@@ -221,97 +239,19 @@ M.PAGES = {
   { key = "firewall", name = "Firewall", icon = "security", category = "system", summary = "Incoming connections",
     keywords = "ufw firewalld ports block" },
   { key = "updates", name = "Updates", icon = "system_update", category = "system", summary = "System and firmware",
-    keywords = "upgrade update firmware fwupd nixos rebuild" },
+    keywords = "upgrade update firmware fwupd nixos rebuild",
+    items = { { "Rebuild the system", "nixos-rebuild switch flake log" }, { "Flake inputs", "lock age behind nixpkgs" },
+      { "Package updates", "pacman apt dnf flatpak checkupdates waiting" } } },
   { key = "backups", name = "Backups", icon = "backup", category = "system", summary = "Snapshots, and a file back",
     keywords = "backup snapshot snapper btrbk restic btrfs restore undo recover",
     items = { { "Make a snapshot", "backup now create" }, { "Restore a file", "recover deleted old version undo" } } },
   { key = "backups/more", name = "Backup settings", icon = "tune", parent = "backups",
     keywords = "snapper config restic repository password folders tool" },
   { key = "about", name = "About", icon = "info", category = "system", summary = "This machine and its versions",
-    keywords = "hardware version hostname computer name cpu memory gpu kernel system information" },
+    keywords = "hardware version hostname computer name cpu memory gpu kernel system information",
+    items = { { "Every fact of this machine", "usb portals session failed units uptime firmware board nix generation" },
+      { "Copy the facts", "bug report paste clipboard" } } },
 }
 
--- A page for each category, under All settings.
-for _, category in ipairs(M.CATEGORIES) do
-  category.key = M.HOME .. "/" .. category.id
-  M.PAGES[#M.PAGES + 1] = { key = category.key, name = category.name, icon = category.icon, parent = M.HOME }
-end
-
-M.BY_KEY = {}
-for _, page in ipairs(M.PAGES) do M.BY_KEY[page.key] = page end
-
---- The category's pages, in order.
-function M.category(id)
-  local out = {}
-  for _, page in ipairs(M.PAGES) do
-    if page.category == id then out[#out + 1] = page end
-  end
-  return out
-end
-
-local function row(page)
-  local words = { page.keywords or "" }
-  for _, item in ipairs(page.items or {}) do words[#words + 1] = item[1]:lower() .. " " .. (item[2] or "") end
-  return { key = page.key, name = page.name, icon = page.icon, keywords = table.concat(words, " ") }
-end
-
---- Every page as `{ key, name, icon, keywords }`.
-function M.list()
-  local out = {}
-  for _, page in ipairs(M.PAGES) do
-    if page.key ~= M.HOME then out[#out + 1] = row(page) end
-  end
-  return out
-end
-
---- Every page and every setting a page holds, each `{ key, name, icon,
---- keywords, page }`: `page` names the page a setting is on, nil for a page.
-function M.entries()
-  local out = {}
-  for _, page in ipairs(M.PAGES) do
-    if page.key ~= M.HOME then
-      out[#out + 1] = row(page)
-      for _, item in ipairs(page.items or {}) do
-        out[#out + 1] = { key = page.key, name = item[1], icon = page.icon, keywords = item[2] or "", page = page.name,
-          present = item.present }
-      end
-    end
-  end
-  return out
-end
-
---- How well `entry` answers the lowered `words`: higher is better, 0 is not
---- at all. Every word must match.
-local function score(entry, words)
-  local name, keywords = entry.name:lower(), entry.keywords:lower()
-  local total = 0
-  for _, word in ipairs(words) do
-    if name:sub(1, #word) == word then total = total + 8
-    elseif name:find(" " .. word, 1, true) then total = total + 6
-    elseif name:find(word, 1, true) then total = total + 4
-    elseif keywords:find(word, 1, true) then total = total + 2
-    else return 0 end
-  end
-  return total + (entry.page and 0 or 1)
-end
-
---- The entries matching `query`, best first.
-function M.search(query)
-  local words = {}
-  for word in tostring(query or ""):lower():gmatch("%S+") do words[#words + 1] = word end
-  if #words == 0 then return {} end
-  local found = {}
-  for index, entry in ipairs(M.entries()) do
-    local value = score(entry, words)
-    if value > 0 then found[#found + 1] = { entry = entry, score = value, index = index } end
-  end
-  table.sort(found, function(a, b)
-    if a.score ~= b.score then return a.score > b.score end
-    return a.index < b.index
-  end)
-  local out = {}
-  for index, hit in ipairs(found) do out[index] = hit.entry end
-  return out
-end
-
-return M
+-- A page for each category under All settings, and the lists and the search.
+return require("page_registry").new(M)

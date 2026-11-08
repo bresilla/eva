@@ -2,8 +2,9 @@
 # eva: the shell from a command line, the front door for keybindings.
 #
 #   eva VERB [ARGS]         a verb of the running shell
-#   eva open TARGET         a deep link: settings/power, sidebar/notifications,
-#                           bottom/drop, launcher/timer, or a tool such as displays
+#   eva open TARGET         a deep link: settings/power, tools/clock, tools,
+#                           sidebar/notifications, bottom/drop, launcher/timer, or
+#                           a tool such as monitor
 #   eva dmenu [-p PROMPT]   the lines of stdin to choose from in the launcher; the
 #                           choice on stdout, or exit 1 with none
 #   eva commands [--json]   the verbs, with what each one takes
@@ -21,8 +22,11 @@ dashboard|toggle, open or close|The dashboard
 session|toggle, open or close|The session menu
 sidebar|HOW [TAB]|The right panel: settings or notifications
 utilities|toggle, open or close|The quick settings
-settings|[PAGE]|A page of Settings
+settings|[PAGE], close or state|The quick settings, or the Settings window on PAGE
 settings-search|[WORDS]|Every Settings page, or those matching WORDS
+tools|[TOOL [ARGS]], close or state|The Tools window, on TOOL's page
+tool|TOOL VERB [ARGS]|A verb of a tool's page, in Tools or Settings
+tools-search|[WORDS]|Every tool, or those matching WORDS
 power-key|-|What Settings chose for the power button
 leftbar|HOW [TAB]|The left panel: tasks or calendar
 tasks|toggle, open or close|The tasks
@@ -32,7 +36,7 @@ screenshot|region, window or screen [quick]|Take a screenshot
 record|region, window or screen|Start or stop a recording
 bottom|HOW [TAB]|The bottom workspace: assistant or drop
 assistant|toggle, open or close|The assistant
-lule|toggle, open or close|The colour tool's panel
+lule|toggle, open, close or state|The colour tool's page, in the Settings window
 osd|volume, brightness, mic or another kind|Show the on-screen display
 notify|SUMMARY [BODY URGENCY APP ICON IMAGE]|Post a notification
 notifications|open, close, toggle, state, status, list, invoke, reply, dismiss, clear, clear-app, clear-silent, undo, snooze, mute, unmute|The page, and notifications from a key
@@ -87,7 +91,7 @@ commands_json() {
 
 tools() {
   for folder in "$apps"/*/; do
-    if [ -f "$folder/app.lua" ]; then basename "$folder"; fi
+    if [ -f "$folder/app.lua" ] || [ -f "$folder/cli" ]; then basename "$folder"; fi
   done
   echo record
   echo standby
@@ -118,19 +122,25 @@ open_target() {
   case "$1" in
     launcher/*) need_shell; eva_ipc launcher mode "${1#launcher/}" ;;
     settings/*) need_shell; eva_ipc settings "${1#settings/}" ;;
+    tools/*) need_shell; eva_ipc tools "${1#tools/}" ;;
     sidebar/*) need_shell; eva_ipc sidebar open "${1#sidebar/}" ;;
     leftbar/*) need_shell; eva_ipc leftbar open "${1#leftbar/}" ;;
     bottom/*) need_shell; eva_ipc bottom open "${1#bottom/}" ;;
     */*) eva_say "no such target: $1"; exit 1 ;;
     settings) need_shell; eva_ipc settings ;;
-    capture) exec sh "$apps/screenshot/cli" ;;
+    tools) need_shell; eva_ipc tools home ;;
+    capture) exec sh "$apps/screenshot/cli" panel ;;
     record) exec sh "$apps/bin/eva-record" ;;
     launcher | dashboard | session | utilities | lule | tasks | calendar | assistant)
       need_shell
       eva_ipc "$1" open
       ;;
     *)
+      # A tool: its command alone, its page in Tools where it has one.
+      if [ -f "$apps/$1/cli" ]; then exec sh "$apps/$1/cli"; fi
       if [ -f "$apps/$1/app.lua" ]; then exec sh "$apps/launch" "$1"; fi
+      # A tool folded into Settings: its page there.
+      if [ -f "$apps/bin/eva-$1" ]; then exec sh "$apps/bin/eva-$1"; fi
       eva_say "no such target: $1"
       exit 1
       ;;

@@ -108,7 +108,7 @@ function M.new(ctx)
   end
   function model.open_settings()
     if not model.on() then return end
-    require("utilities").detail:set("")
+    require("utilities").in_panel.request("")
     require("pages").open("settings")
   end
   function model.open_notifications()
@@ -241,13 +241,10 @@ function M.new(ctx)
   end
   --- The privacy list opened: the view fills this in.
   function model.show_privacy() if model.open_privacy then model.open_privacy() end end
-  --- The Bar page, in the settings.
+  --- The Bar page, in the Settings window.
   function model.open_bar_page()
     if not model.on() then return end
     require("utilities").request("bar")
-    local sidebar=require("sidebar")
-    sidebar.select("settings")
-    sidebar.drawer.set(true)
   end
 
   -- ------------------------------------------------------------- the board --

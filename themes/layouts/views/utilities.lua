@@ -21,6 +21,9 @@ function V.theme_page(model,w,h)
       P.row {id="settings-theme-lule",width=inner,icon="palette",title="Lule",
         subtitle="Wallpaper, colours, the shell's theme and font",trailing=P.chevron(),
         on_clicked=function() model.request("theme/lule") end},
+      P.row {id="settings-theme-fonts",width=inner,icon="font_download",title="Fonts",
+        subtitle="Every family, previewed, and the shell's",trailing=P.chevron(),
+        on_clicked=function() model.request("theme/fonts") end},
     },
   }
 end
@@ -130,7 +133,9 @@ function V.eva_page(model,w,h)
 end
 
 function V.build(model,w,h)
-local M={TOGGLES=model.TOGGLES,DETAILS=model.DETAILS,detail=model.detail,RADIUS=V.RADIUS}
+-- The panel's own pages and their navigation, apart from the Settings window's.
+local Q=model.in_panel
+local M={TOGGLES=model.TOGGLES,DETAILS=Q.DETAILS,detail=Q.detail,RADIUS=V.RADIUS}
 -- A side panel's cards are 408 wide; a sheet's (a phone's quick settings)
 -- take its width.
 local CARD_W,GAP=w,P.GAP
@@ -237,10 +242,12 @@ local stack = ui.Item { width = CARD_W, height = M.height,
   above(session_card, 1), above(slider_card, 2), above(capture_button, 3), above(all_settings, 4), tiles_slot }
 
 
---- The Settings page of the right panel: the cards, top down, and the
---- detail pages (Network, Bluetooth, Sound) beside them, which slide in
+--- The Settings page of the right panel: the cards, top down, and the quick
+--- controls' own pages (Network, Bluetooth, Sound) beside them, which slide in
 --- over them as a tile's ">" opens one. The panel's frame draws the head:
---- "Settings", or a detail's name with the way back (`M.head`).
+--- "Settings", or a page's name with the way back and More settings, its whole
+--- page in the Settings window (`M.head`). Anything else the cards lead to
+--- opens in that window.
 local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
 -- How far in from a detail's left edge a swipe back may start.
 local BACK_EDGE = theme.space.xxl + theme.space.s
@@ -256,7 +263,7 @@ function M.page(w, h)
   local stack = {}
   local names = {}
   -- How to read each detail's height, once it is built.
-  local measured = morf.signal("eva.settings.measured", 0)
+  local measured = morf.signal("eva.settings.quick.measured", 0)
   local readers = {}
   function M.detail_height(key)
     measured:get()
@@ -266,7 +273,7 @@ function M.page(w, h)
   end
   -- Going back under a finger: how far the page has been pulled, the page it
   -- goes back to, and whether that is another detail or the overview.
-  local pull_x = model.peek
+  local pull_x = Q.peek
   local function pull() return pull_x:get() end
   local function peek() return math.min(1, pull() / math.max(1, w)) end
   local function parent_of(key)
@@ -282,14 +289,14 @@ function M.page(w, h)
   for _, d in ipairs(M.DETAILS) do
     names[d.key] = d.name
     -- Each detail is built the first time it opens, and kept.
-    local wanted = morf.signal("eva.settings.built." .. d.key, M.detail:get() == d.key)
-    morf.effect("eva.settings.build." .. d.key, function()
+    local wanted = morf.signal("eva.settings.quick.built." .. d.key, M.detail:get() == d.key)
+    morf.effect("eva.settings.quick.build." .. d.key, function()
       if M.detail:get() == d.key and not wanted:get() then wanted:set(true) end
     end)
     -- Pulled back from a page, the page above it shows beneath, a touch small.
     local function peeked() return peek_key()==d.key end
     stack[#stack + 1] = ui.Item {
-      id = "settings-detail-" .. d.key,
+      id = "quick-detail-" .. d.key,
       width = w, height = h,
       visible = function() return M.detail:get() == d.key or peeked() end,
       opacity=function() return M.detail:get()==d.key and 1 or peeked() and .4+.6*peek() or 0 end,
@@ -303,7 +310,7 @@ function M.page(w, h)
         anchors = { fill = true }, keep = true,
         active = function() return wanted:get() end,
         source = function()
-          local node, _, read = P.measure(function() return model.page_content(d.key, w, h) end)
+          local node, _, read = P.measure(function() return Q.page_content(d.key, w, h) end)
           readers[d.key] = read
           measured:set(measured:get() + 1)
           return node
@@ -328,38 +335,35 @@ function M.page(w, h)
     end,
     kit.icon(function() return editing() and "check" or "edit" end, 22, kit.ink("hi"), { anchors = { center_in = true } }) }
   kit.hover(pencil, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
+  -- More settings: the page on show, whole, in the Settings window.
+  local more = P.button { id = "quick-more", label = "More settings", icon = "open_in_new",
+    visible = function() return M.detail:get() ~= "" end, on_clicked = Q.more }
   M.head = {
     title = function()
       if M.detail:get() == "" and editing() then return "Edit tiles" end
       return names[M.detail:get()] or "Settings"
     end,
     subtitle = function()
-      if M.detail:get() ~= "" then return model.breadcrumb() end
+      if M.detail:get() ~= "" then return Q.breadcrumb() end
       return editing() and "Drag to arrange" or ""
     end,
-    back = model.back, back_id = "settings-back",
+    back = Q.back, back_id = "quick-back",
     can_back = function() return M.detail:get() ~= "" end,
     keep = function() return true end,
-    actions = { pencil },
+    actions = { pencil, more },
     -- Read in afresh as the overview or a detail comes on show.
     active = function()
       local key = M.detail:get()
-      return require("presentation").active(key == "" and "settings.overview" or "settings." .. key)()
+      return require("presentation").active(key == "" and "settings.overview" or "quick." .. key)()
     end,
   }
   local detail = ui.Item {
-    id = "settings-detail", width = w, height = h,
+    id = "quick-detail", width = w, height = h,
     table.unpack(stack),
   }
   -- The last detail shown stays drawn while it slides away. The pages are
   -- a Navigation stack: with focus inside, Alt+Left and the back button pop.
-  -- The panels board keeps Alt with the arrows for its tiles.
-  local shortcuts = model.navigation.shortcuts()
-  local pop = shortcuts["alt+Left"]
-  shortcuts["alt+Left"] = function()
-    if M.detail:get() == "panels" then return false end
-    return pop()
-  end
+  local shortcuts = Q.navigation.shortcuts()
   local row = ui.Row { gap = 24, main, detail }
   -- Under a finger the row is the finger's; on its own it eases there.
   ui.claims(row, { motion = SWITCH,
@@ -393,7 +397,7 @@ function M.page(w, h)
       pull_x:set(0)
       if done then
         require("haptics").fire("commit")
-        model.back()
+        Q.back()
       end
     end
   end
@@ -402,11 +406,11 @@ end
 
 
 local node=M.page(w,h)
-morf.effect("material.settings.present",function() model.present(model.detail:get()) end)
+morf.effect("material.settings.present",function() Q.present(Q.detail:get()) end)
 local running={}
 morf.effect("material.settings.shown",function()
   for _, handle in ipairs(running) do handle:stop() end
-  running=kit.bud(cards,model.opened:get())
+  running=kit.bud(cards,model.quick:get())
 end,{owner=node})
 return {node=node,height=M.height,head=M.head,laid_out=M.laid_out,detail_height=M.detail_height}
 end

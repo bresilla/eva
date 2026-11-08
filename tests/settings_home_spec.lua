@@ -14,13 +14,37 @@ local function load(style, size)
   test.settle(900)
 end
 
+local function open() return test.ipc("settings", "state").open end
+
 for _, style in ipairs { "material", "tsugumori" } do
-  test.it(style .. ": the panel leads to All settings, and Back returns where it came from", function()
+  test.it(style .. ": the panel's All settings opens the window beside its way round", function()
     load(style)
     test.click("utilities-all-settings") test.settle(900)
+    test.truthy(open(), "All settings opened no window")
+    test.falsy(test.find { id = "drawer-sidebar", visible = true }, "the panel stayed under the window")
+    test.truthy(test.find { id = "settings-index", visible = true }, "no index of every page beside the way round")
+    test.truthy(test.find { id = "settings-nav-system", visible = true }, "no System category")
+    test.falsy(test.find { id = "settings-nav-page-bluetooth", visible = true }, "a shut category shows its pages")
+    test.click("settings-nav-connections") test.settle(900)
+    test.truthy(test.find { id = "settings-category-page-connections", visible = true }, "a category opens its page")
+    test.click("settings-nav-page-bluetooth") test.settle(900)
+    test.truthy(test.find { id = "bluetooth-scroll", visible = true })
+    test.falsy(test.find { id = "settings-back", visible = true }, "a page beside the way round has a way back")
+    -- A page one level into another goes back to it.
+    test.ipc("settings", "bar/tray") test.settle(900)
+    test.truthy(test.find { id = "settings-nav-page-bar", visible = true }, "the way round did not open on Eva")
+    test.click("settings-back") test.settle(900)
+    test.eq(test.ipc("settings", "state").page, "bar", "Back from a nested page goes to its parent")
+    test.key("Escape") test.settle(900)
+    test.falsy(open(), "Escape left the window open")
+    test.eq(#test.logs("error"), 0)
+  end)
+
+  test.it(style .. ": on a phone Back walks the pages, one at a time, to All settings", function()
+    load(style, { 412, 915 })
+    test.click("utilities-all-settings") test.settle(900)
     test.truthy(test.find { id = "settings-home", visible = true })
-    test.truthy(test.find { id = "settings-category-system", visible = true }, "no System category")
-    test.falsy(test.find { id = "settings-open-bluetooth", visible = true }, "the pages are not filed under categories")
+    test.falsy(test.find { id = "settings-navigation", visible = true }, "a phone has no way round beside the page")
     test.click("settings-category-connections") test.settle(900)
     test.click("settings-open-bluetooth") test.settle(900)
     test.truthy(test.find { id = "bluetooth-scroll", visible = true })
@@ -28,21 +52,22 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(test.find { id = "settings-category-page-connections", visible = true }, "Back from a page goes to its category")
     test.click("settings-back") test.settle(900)
     test.truthy(test.find { id = "settings-home", visible = true }, "Back from a category goes home")
-    test.click("settings-back") test.settle(900)
-    test.truthy(test.find { id = "utilities-all-settings", visible = true }, "Back from home goes to the panel")
-    -- A page a tile opens still goes back to the panel.
+    test.falsy(test.find { id = "settings-back", visible = true }, "home has a way back")
+    -- A page a tile opens goes back home.
     test.ipc("settings", "bluetooth") test.settle(900)
     test.click("settings-back") test.settle(900)
-    test.truthy(test.find { id = "utilities-all-settings", visible = true }, "A deep link goes back to the panel")
+    test.truthy(test.find { id = "settings-home", visible = true }, "A deep link goes back home")
+    test.click("settings-close") test.settle(900)
+    test.falsy(open(), "the close control left it open")
     test.eq(#test.logs("error"), 0)
   end)
 
   test.it(style .. ": Back returns to the place in a list, and a list opened anew starts at its top", function()
-    load(style, { 1280, 500 })
+    load(style, { 412, 600 })
     test.ipc("settings", "home") test.settle(900)
     test.click("settings-category-device") test.settle(900)
     local top = test.get("settings-open-input").y
-    test.wheel(0, 200, { x = 1100, y = 300 }) test.settle(2000)
+    test.wheel(0, 200, { x = 200, y = 300 }) test.settle(2000)
     local scrolled = test.get("settings-open-input").y
     test.truthy(scrolled < top - 40, "the list did not scroll")
     test.click("settings-open-input") test.settle(900)
@@ -54,31 +79,29 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.eq(#test.logs("error"), 0)
   end)
 
-  test.it(style .. ": search finds a page and a setting, Enter opens it, and a shut panel forgets it", function()
+  test.it(style .. ": search finds a page and a setting, Enter opens it, and a shut window forgets it", function()
     load(style)
     test.ipc("settings", "home") test.settle(900)
     test.type("repeat") test.settle(300)
     test.truthy(test.find { text = "Key repeat", visible = true }, "a setting is found by its name")
-    test.falsy(test.find { id = "settings-category-connections", visible = true })
-    -- Escape shuts the panel, as it does from any field in one.
-    test.key("Escape") test.settle(900)
-    test.ipc("utilities", "open") test.settle(900)
+    test.falsy(test.find { id = "settings-nav-connections", visible = true })
+    test.ipc("settings", "close") test.settle(900)
     test.ipc("settings", "home") test.settle(900)
-    test.truthy(test.find { id = "settings-category-connections", visible = true }, "the search was forgotten")
+    test.truthy(test.find { id = "settings-nav-connections", visible = true }, "the search was forgotten")
     test.type("firewall") test.settle(300)
     test.key("Return") test.settle(900)
     test.truthy(test.find { id = "firewall-scroll", visible = true }, "Enter opens the first result")
-    test.click("settings-back") test.settle(900)
-    test.truthy(test.find { id = "settings-home", visible = true })
+    test.truthy(test.find { id = "settings-nav-page-firewall", visible = true }, "the way round does not mark it")
   end)
 
-  test.it(style .. ": on a phone the sheet holds the same home", function()
+  test.it(style .. ": on a phone the window holds the same home, the whole screen", function()
     load(style, { 412, 915 })
     test.ipc("settings", "home") test.settle(900)
     test.truthy(test.find { id = "settings-home", visible = true })
     test.truthy(test.find { id = "settings-search", visible = true })
-    local box = test.get("settings-home")
+    local box, window = test.get("settings-home"), test.get("settings-window")
     test.truthy(box.x >= 0 and box.x + box.width <= 412, "the home leaves the phone's width")
+    test.eq({ window.x, window.y, window.width, window.height }, { 0, 0, 412, 915 }, "the window does not fill the phone")
   end)
 end
 
@@ -193,11 +216,11 @@ for _, style in ipairs { "material", "tsugumori" } do
   end)
 end
 
-test.it("Settings reaches eva-info and eva-update, now that they exist", function()
+test.it("Settings holds what eva-info and eva-update showed", function()
   test.load("../shell/init.lua", { size = { 300, 200 }, env = { EVA_DRY_RUN = "1" }, source = HOST .. [[
     morf.ipc.tools = function()
       local about = require("about_model")
-      return { info = about.about().can_info(), update = about.updates().available() }
+      return { info = about.about().info ~= nil, update = about.updates().check ~= nil }
     end
   ]] })
   test.advance(100)

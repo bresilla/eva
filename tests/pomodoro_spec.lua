@@ -21,13 +21,15 @@ end
 
 local function environment(state, at, extra)
   local env = { XDG_STATE_HOME = state, EVA_DRY_RUN = "1", EVA_NOW = tostring(at), EVA_ALARM_ENGINE = "local",
-    EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule" }
+    EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_TEST_TOOL = "pomodoro",
+    EVA_STYLE = "material", EVA_TEST_PAGE = "408x620" }
   for key, value in pairs(extra or {}) do env[key] = value end
   return env
 end
 
 local function open(state, at, extra)
-  test.load("../apps/pomodoro/app.lua", { env = environment(state, at, extra) })
+  test.load("../shell/init.lua", { env = environment(state, at, extra),
+    source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
   test.settle(300)
 end
 

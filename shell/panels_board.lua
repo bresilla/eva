@@ -103,17 +103,8 @@ function M.new(on_page)
   end
 
   -- The settled sets build the shell again in place, what is open staying
-  -- open; if Settings moved, it reopens where it now is.
-  local moved = require("themes.session").keep("eva.panels.reopen", false)
+  -- open: the Settings window, where the page is, among it.
   local function apply()
-    local holder = pages.holder("settings")
-    for _, name in ipairs { "sidebar", "leftbar", "bottom" } do
-      local panel = package.loaded[name]
-      if panel and panel ~= holder and panel.drawer.open:get() and panel.panel.showing("settings") then
-        panel.drawer.set(false)
-        moved:set(true)
-      end
-    end
     -- The rebuild reads the file: nothing may still be on its way there.
     config.flush()
     require("themes.session").hold()
@@ -125,14 +116,6 @@ function M.new(on_page)
       morf.time.timer(1, apply, false)
     end
   end)
-
-  --- Opens Settings in its new panel, after a reload that moved it.
-  function board.settle()
-    if not moved:get() then return end
-    moved:set(false)
-    -- After the build: a drawer's motion wants its panel laid out.
-    morf.time.timer(1, function() pages.open("settings") end, false)
-  end
 
   return board
 end

@@ -14,6 +14,7 @@ local SOURCE=[[
   morf.ipc.layout=function()
     return {reserved=morf.surface.reserve,inset=require("themes.keyboard").inset:get(),
       dashboard=require("dashboard").drawer.open:get(),sidebar=require("sidebar").drawer.open:get(),
+      settings=require("utilities").opened:get(),
       keyboard=require("keyboard").active(),focus=morf.surface.keyboard_focus}
   end
   morf.ipc.numbers=function(value) require("keyboard").keys.numbers:set(value=="yes") end
@@ -104,12 +105,12 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("lule-folder") test.type("draft")
     test.eq(test.ipc("draft"),"draft")
     pair(1651,-140)
-    test.truthy(state().sidebar) test.truthy(state().keyboard)
-    test.eq(state().focus,"on_demand")
+    test.truthy(state().settings) test.truthy(state().keyboard)
+    test.eq(state().focus,"exclusive")
     test.type("x") test.eq(test.ipc("draft"),"draftx")
     test.ipc("keyboard","close") test.advance(700)
     test.type("y") test.eq(test.ipc("draft"),"draftxy")
-    test.truthy(state().sidebar)
+    test.truthy(state().settings)
     test.eq(test.logs("error"),{})
   end)
   test.it(style.." tapping keyboard keys does not dismiss panels or steal their text focus",function()
@@ -120,11 +121,11 @@ for _,style in ipairs {"material","tsugumori"} do
     local q=test.get("eva.osk.key.full.letters.q")
     test.touch("down",0,q.x+10,q.y+10) test.touch("up",0,q.x+10,q.y+10)
     test.advance(200)
-    test.truthy(state().sidebar,"keyboard tap dismissed settings")
+    test.truthy(state().settings,"keyboard tap dismissed settings")
     test.truthy(state().keyboard)
     test.eq(#test.ipc("keys"),1)
     test.type("x") test.eq(test.ipc("draft"),"draftx")
-    test.ipc("sidebar","close") test.ipc("terminal") test.advance(900)
+    test.ipc("settings","close") test.ipc("terminal") test.advance(900)
     q=test.get("eva.osk.key.full.letters.q")
     test.touch("down",0,q.x+10,q.y+10) test.touch("up",0,q.x+10,q.y+10)
     test.advance(200)

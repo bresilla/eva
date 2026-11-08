@@ -21,12 +21,12 @@ end
 --- colour, else the secondary container), `tile` (a raised tile when not
 --- chosen, else bare until hovered), `group` (choices with one name are a
 --- segmented choice: one chosen, the arrows walk them -- a kit Press
---- `segment` in an exclusive group), and children.
+--- `segment` in an exclusive group), `enter` and `exit`, and children.
 function R.choice(spec)
   local on = spec.on or function() return false end
   local props = { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = spec.height,
     anchors = spec.anchors, visible = spec.visible, cursor = "pointer", on_clicked = spec.on_clicked,
-    enter = spec.enter }
+    enter = spec.enter, exit = spec.exit }
   for _, child in ipairs(spec) do props[#props + 1] = child end
   local area
   if spec.group then
@@ -38,11 +38,16 @@ function R.choice(spec)
   local ground = kit.state_surface { area = area, on = on, z = -1,
     height = type(spec.height) == "number" and spec.height or nil,
     tone = spec.tone == "primary" and "primary" or "secondary" }
-  ui.reparent(ground, area)
-  -- A row in a list is bare until hovered or chosen.
-  if not spec.tile then
-    ground.opacity = function() return (on() or area.hovered or area.pressed) and 1 or 0 end
+  if spec.tile then
+    ui.reparent(ground, area)
+    return area
   end
+  -- A row in a list is bare until hovered or chosen, its ground easing in.
+  local wash = ui.Item { anchors = { fill = true }, z = -1,
+    opacity = function() return (on() or area.hovered or area.pressed) and 1 or 0 end,
+    behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard } } }
+  ui.reparent(ground, wash)
+  ui.reparent(wash, area)
   return area
 end
 

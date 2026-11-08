@@ -104,8 +104,7 @@ function V.build(M)
     return math.floor(h * 0.16)
   end
   -- As much of the list as the output has room for; the rest scrolls.
-  local function view_height()
-    if not M.opened:get() then return EMPTY end
+  local function open_height()
     local _, _, _, desk_h = require("bar").desk()
     desk_h = desk_h or 1080
     local tall = gridded() or responsive.sheets()
@@ -114,6 +113,13 @@ function V.build(M)
     if pane_over() then return math.max(ROW, room) end
     if pane_beside() then return math.max(ROW, math.min(room, math.max(PANE_H, list_height()))) end
     return math.max(ROW, math.min(list_height(), room))
+  end
+  -- Shut, it keeps the height it had, so it leaves whole.
+  local shut_height = EMPTY
+  local function view_height()
+    if not M.opened:get() then return shut_height end
+    shut_height = open_height()
+    return shut_height
   end
   local function body_height() return wide() and CAROUSEL or view_height() end
   local TOP = PAD + HEAD + SEARCH + PAD
@@ -338,15 +344,26 @@ function V.build(M)
       end
     end
 
+    -- Each row built, with the key of the entry it shows now.
+    local built = setmetatable({}, { __mode = "k" })
+    local function tracked(entry, node, update)
+      local key = entry.key
+      built[node] = function() return key end
+      if not update then return node end
+      return node, function(next_entry, ...)
+        key = next_entry.key
+        return update(next_entry, ...)
+      end
+    end
     -- The selection changes no row's binding by itself; the rows that show
     -- hints read it through their revision, so they follow it here.
     local function delegate(entry)
-      if entry.kind == "header" then return header(entry) end
-      if entry.kind == "hero" then return hero(entry) end
+      if entry.kind == "header" then return tracked(entry, header(entry)) end
+      if entry.kind == "hero" then return tracked(entry, hero(entry)) end
       if entry.kind == "tiles" then
-        return grid_view.row(M, entry, COLUMNS, { index_of = index_of, cell = CELL, carrier = carrier })
+        return tracked(entry, grid_view.row(M, entry, COLUMNS, { index_of = index_of, cell = CELL, carrier = carrier }))
       end
-      return plain_row(entry)
+      return tracked(entry, plain_row(entry))
     end
 
     -- -------------------------------------------------------------- carousel --
@@ -434,10 +451,15 @@ function V.build(M)
 
     -- ---------------------------------------------------------------- results --
 
+    -- It rises into place as the last result goes, and fades as one comes.
+    local function none() return M.count:get() == 0 end
     local empty = ui.Column {
       id = "launcher-empty",
       anchors = { center_in = true }, gap = 4, align = "center",
-      visible = function() return M.count:get() == 0 end,
+      opacity = function() return none() and 1 or 0 end,
+      translate_y = function() return none() and 0 or 6 end,
+      behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard },
+        translate_y = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel } },
       kit.icon("search_off", 30, function() return C.onSurfaceVariant end),
       kit.text { text = "Nothing matches", font_size = theme.size.normal, font_weight = 500,
         color = function() return C.onSurface end },
@@ -492,7 +514,36 @@ function V.build(M)
       local y = scroll:get()
       list.height = view_height()
       list.width = gridded() and TILES or INNER
-      morf.sync_view(list, y)
+      -- Pulled past the top, the rows themselves run on down.
+      morf.sync_view(list, math.max(0, y))
+      list.translate_y = math.max(0, -y)
+    end, { owner = list })
+
+    -- Each opening brings the rows in sight in again, top first, once the
+    -- drawer has revealed them (`theme.motion.rows`); shutting lands them.
+    local revealed = require("presentation").active("launcher.revealed")
+    local was_revealed, entering = false, {}
+    morf.effect("eva.launcher.rows.reveal", function()
+      local now = revealed()
+      if now == was_revealed then return end
+      was_revealed = now
+      for _, handle in ipairs(entering) do handle:finish() end
+      entering = {}
+      if not now or wide() or not theme.motion.rows then return end
+      local top, bottom, shown = scroll:get(), scroll:get() + view_height(), {}
+      for node, key in pairs(built) do
+        local live, visible = pcall(function() return node.visible end)
+        if not live then built[node] = nil end
+        local i = live and visible ~= false and index_of(key())
+        if i then
+          local y, h = entry_span(i)
+          if y + h > top and y < bottom then shown[#shown + 1] = { i = i, node = node } end
+        end
+      end
+      table.sort(shown, function(a, b) return a.i < b.i end)
+      local nodes = {}
+      for k, row in ipairs(shown) do nodes[k] = row.node end
+      entering = theme.motion.rows(nodes)
     end, { owner = list })
 
     -- The selection: one box in a distance field riding an item that springs
@@ -623,12 +674,13 @@ function V.build(M)
     chips.y = TOP
     chips.visible = gridded
 
-    -- Quick look: beside the list where there is room, over it where not.
+    -- Quick look: beside the list where there is room, over it where not,
+    -- coming and going as the theme brings a dialog in place.
     local function pane_width() return pane_room() and PANE - PAD or INNER end
     local pane = preview_view.build(M, pane_width, view_height)
     pane.x = function() return pane_room() and WIDTH or PAD end
     pane.y = TOP
-    pane.visible = previewing
+    theme.motion.appear(pane, previewing, { id = "launcher-preview" })
 
 
     -- ----------------------------------------------------------------- legend --
@@ -757,11 +809,17 @@ function V.build(M)
       on_key_released = M.release,
     }
     require("themes.kit.text_touch").attach(field)
+    -- It grows in with the first letter typed and out with the last.
+    local function has_query() return M.query:get() ~= "" end
     local clear = kit.action {
       id = "launcher-clear",
       width = 32, height = 32, cursor = "pointer",
       anchors = { right = true, right_margin = 8, vertical_center = true },
-      visible = function() return M.query:get() ~= "" end,
+      enabled = has_query,
+      opacity = function() return has_query() and 1 or 0 end,
+      scale = function() return has_query() and 1 or 0.6 end,
+      behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard },
+        scale = theme.spring.fast },
       on_clicked = function() field.text = "" M.query:set("") field.focus = true end,
       kit.icon("close", 18, function() return C.onSurfaceVariant end, { anchors = { center_in = true } }),
     }
@@ -856,10 +914,11 @@ function V.build(M)
       anchors = { top = true, horizontal_center = true, top_margin = top_margin() },
       behavior = { width = theme.spring.spatial, height = theme.spring.spatial },
     } or {
-      -- On a desk it keeps clear of the side panels (shell/panel_room.lua).
+      -- On a desk it keeps clear of the side panels (shell/panel_room.lua),
+      -- asked again as it opens, and opens and shuts where it stands.
       anchors = { top = true, top_margin = top_margin() },
       x = function()
-        if not M.opened:get() then return 0 end
+        M.opened:get()
         return (require("panel_room").span(width()))
       end,
       behavior = { x = theme.spring.spatial, width = theme.spring.spatial, height = theme.spring.spatial },

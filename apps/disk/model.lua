@@ -4,8 +4,8 @@
 local morf = require("morf")
 local sysinfo = require("lib.services.sysinfo")
 local performance = require("performance_model")
-local sys = require("common.sys")
-local treemap = require("treemap")
+local sys = require("apps.common.sys")
+local treemap = require("apps.disk.treemap")
 
 local M = {
   tab = morf.signal("disk.tab", 1),

@@ -126,35 +126,15 @@ def warp(x, y):
     print("CURSOR", (x, y), hyprctl("cursorpos"))
 
 
-def tool_open(name, pattern):
-    hyprctl("eval", f'hl.dispatch(hl.dsp.exec_cmd("{name}"))')
-    machine.wait_until_succeeds(f"pgrep -u alice -f '{pattern}'", timeout=60)
-    machine.sleep(6)
-    pid = machine.succeed(f"pgrep -n -u alice -f '{pattern}'").strip()
-    return f"wayland-1-app-{pid}"
+def keys_page(*words):
+    # A verb of Settings' Keyboard shortcuts page, through the shell.
+    return ask("tool", "keys", *words)
 
 
-def tool(instance, *words):
-    quoted = " ".join(shlex.quote(word) for word in words)
-    out = machine.execute(session(f"morf -i {instance} ipc call {quoted}"))[1].strip()
-    print(f"TOOL {quoted} => {out[:300]}")
-    try:
-        reply = json.loads(out)
-        value = (reply.get("result") or [None])[0] if reply.get("ok") else None
-        return json.loads(value) if isinstance(value, str) and value[:1] in "[{" else value
-    except ValueError:
-        return None
-
-
-def tool_focus():
-    # A press in the tool's window, which gives it the keys back as a row would.
-    row = next((c for c in clients() if c["title"] == "Keys" or "keys" in c["class"].lower()), None)
-    print("TOOL WINDOW", row and (row["class"], row["title"], row["at"]))
-    if row:
-        pointer(row["at"][0] + 200, row["at"][1] + 70)
-        machine.sleep(1)
-        machine.succeed("YDOTOOL_SOCKET=/tmp/ydotool ydotool click 0xC0")
-        machine.sleep(1)
+def keys_focus():
+    # The Settings window on the page, which takes the keys as a row would.
+    ask("settings", "input/shortcuts")
+    machine.sleep(2)
 
 
 def bound():
@@ -163,41 +143,43 @@ def bound():
 
 def keys_section():
     with subtest("keybind editor"):
-        keys = tool_open("eva-keys", "apps/keys")
-        check("eva-keys answers", eventually(lambda: (tool(keys, "state") or {}).get("rows")), keys)
+        hyprctl("eval", 'hl.dispatch(hl.dsp.exec_cmd("eva-keys"))')
+        check("eva-keys opens Settings on Keyboard shortcuts",
+              eventually(lambda: (ask("settings", "state") or {}).get("page") == "input/shortcuts"), str(ask("settings", "state")))
+        check("the page answers", eventually(lambda: (keys_page("state") or {}).get("rows")))
         verb = "verb:window_menu toggle"
 
-        check("a row can listen", tool(keys, "record", verb) in (True, "true"))
+        check("a row can listen", keys_page("record", verb) in (True, "true"))
         machine.sleep(2)
         check("recording holds the compositor's keys back", hyprctl("submap").strip() == "eva-keys-record", hyprctl("submap"))
         machine.send_key("meta_l-y")
         machine.sleep(2)
-        check("the real chord reaches the window, and ends the recording", (tool(keys, "state") or {}).get("recording") == "", str(tool(keys, "state")))
+        check("the real chord reaches the window, and ends the recording", (keys_page("state") or {}).get("recording") == "", str(keys_page("state")))
         check("the compositor's keys are back", hyprctl("submap").strip() == "default", hyprctl("submap"))
         moved = eventually(lambda: (64, "Y") in bound())
         check("the new chord is bound", moved, str(sorted(bound()))[:400])
         check("the old chord is gone", (64, "W") not in bound())
         check("it keeps its words", bound().get((64, "Y"), {}).get("description") == "Open the window menu")
 
-        tool(keys, "reload")
+        keys_page("reload")
         machine.sleep(2)
-        tool(keys, "record", "verb:snap picker")
-        machine.sleep(2)
-        machine.send_key("meta_l-j")
-        machine.sleep(2)
-        check("a second row hears its chord too", (tool(keys, "state") or {}).get("recording") == "", str(tool(keys, "state")))
-        tool(keys, "reset", "verb:snap picker")
-        machine.sleep(3)
-        tool(keys, "reload")
-        machine.sleep(2)
-        tool(keys, "record", "verb:snap picker")
+        keys_page("record", "verb:snap picker")
         machine.sleep(2)
         machine.send_key("meta_l-j")
         machine.sleep(2)
-        check("a row still hears after a reload", (tool(keys, "state") or {}).get("recording") == "", str(tool(keys, "state")))
-        tool(keys, "reset", "verb:snap picker")
+        check("a second row hears its chord too", (keys_page("state") or {}).get("recording") == "", str(keys_page("state")))
+        keys_page("reset", "verb:snap picker")
         machine.sleep(3)
-        tool(keys, "reload")
+        keys_page("reload")
+        machine.sleep(2)
+        keys_page("record", "verb:snap picker")
+        machine.sleep(2)
+        machine.send_key("meta_l-j")
+        machine.sleep(2)
+        check("a row still hears after a reload", (keys_page("state") or {}).get("recording") == "", str(keys_page("state")))
+        keys_page("reset", "verb:snap picker")
+        machine.sleep(3)
+        keys_page("reload")
         machine.sleep(2)
 
         hyprctl("reload")
@@ -206,16 +188,16 @@ def keys_section():
 
         foreign = next(((k, b) for k, b in bound().items() if b.get("dispatcher") == "__lua" and k == (64, "Q")), None)
         check("Hyprland's own default is there to move", foreign is not None, str(sorted(bound()))[:300])
-        tool(keys, "reload")
+        keys_page("reload")
         machine.sleep(2)
-        row = tool(keys, "row", "SUPER + Q") or {}
+        row = keys_page("row", "SUPER + Q") or {}
         check("its row is editable", row.get("editable") is True, str(row))
-        tool_focus()
-        tool(keys, "record", row.get("id", ""))
+        keys_focus()
+        keys_page("record", row.get("id", ""))
         machine.sleep(2)
         machine.send_key("meta_l-u")
         machine.sleep(2)
-        print("AFTER", tool(keys, "state"), hyprctl("submap"))
+        print("AFTER", keys_page("state"), hyprctl("submap"))
         check("a key of the configuration moves too", eventually(lambda: (64, "U") in bound() and (64, "Q") not in bound()), str(sorted(bound()))[:300])
         machine.execute("rm -f /tmp/fired")
         check("the moved key still has its action", bound().get((64, "U"), {}).get("dispatcher") == "__lua")
@@ -223,17 +205,17 @@ def keys_section():
         machine.sleep(4)
         check("and stays moved after a reload", (64, "U") in bound() and (64, "Q") not in bound(), str(sorted(bound()))[:300])
 
-        tool(keys, "reload")
+        keys_page("reload")
         machine.sleep(2)
-        tool_focus()
-        tool(keys, "record", "verb:kill_mode")
+        keys_focus()
+        keys_page("record", "verb:kill_mode")
         machine.sleep(2)
         machine.send_key("meta_l-tab")
         machine.sleep(2)
-        state = tool(keys, "state") or {}
+        state = keys_page("state") or {}
         check("a taken chord waits and names its owner", "already does" in str(state.get("pending")), str(state))
         check("Super+Tab did not open the overview while listening", ask("overview", "state") is False, str(ask("overview", "state")))
-        tool(keys, "stop")
+        keys_page("stop")
         machine.sleep(2)
 
         machine.send_key("meta_l-w")
@@ -246,10 +228,10 @@ def keys_section():
         machine.sleep(2)
         print("MENU SHUT", ask("window_menu", "state"))
 
-        tool(keys, "reset", verb)
-        tool(keys, "reset", row.get("id", ""))
+        keys_page("reset", verb)
+        keys_page("reset", row.get("id", ""))
         check("reset gives the default back", eventually(lambda: (64, "W") in bound() and (64, "Y") not in bound() and (64, "Q") in bound()), str(sorted(bound()))[:300])
-        machine.execute("pkill -u alice -f apps/keys")
+        ask("settings", "close")
 
 
 def rules_section():

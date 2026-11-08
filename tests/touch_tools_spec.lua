@@ -1,28 +1,19 @@
--- A tool under a finger, in both themes: tabs that page by swipe, a swipe in from
--- the window's left edge to leave, and a swipe in from an overlay's edge.
+-- A tool under a finger, in both themes: a page's tabs that page by swipe, as
+-- the Tools window holds them, and a swipe in from an overlay's edge.
 
 local test = morf.test
 
 local SOURCE = [[
   local ui = require("morf.ui")
-  local frame = require("common.frame")
-  local controls = require("common.controls")
-  local closed, back_allowed, backed, overlays = 0, false, 0, 0
-  frame.open { id = "probe", title = "Probe", width = 640, height = 560,
-    on_close = function() closed = closed + 1 end,
-    back = function()
-      if back_allowed then backed = backed + 1 return true end
-      return false
-    end,
-    build = function(w, h)
-      local node, tab = controls.pages { id = "probe", width = w, height = h, tabs = {
-        { key = "one", name = "One", icon = "alarm", build = function() return ui.Item {} end },
-        { key = "two", name = "Two", icon = "timer", build = function() return ui.Item {} end },
-      } }
-      morf.ipc.tool_state = function() return { tab = tab:get(), closed = closed, backed = backed, overlays = overlays } end
-      morf.ipc.allow_back = function() back_allowed = true end
-      return node
-    end }
+  local frame = require("apps.common.frame")
+  local controls = require("apps.common.controls")
+  local overlays = 0
+  local node, tab = controls.pages { id = "probe", width = 608, height = 500, tabs = {
+    { key = "one", name = "One", icon = "alarm", build = function() return ui.Item {} end },
+    { key = "two", name = "Two", icon = "timer", build = function() return ui.Item {} end },
+  } }
+  ui.Item { x = 16, y = 16, width = 608, height = 500, node }
+  morf.ipc.tool_state = function() return { tab = tab:get(), overlays = overlays } end
   frame.overlay { id = "probe-over", keyboard = "none", close = function() overlays = overlays + 1 end,
     root = ui.Item { id = "probe-over-root", anchors = { fill = true },
       ui.MouseArea { id = "probe-over-area", anchors = { fill = true } } } }
@@ -33,20 +24,14 @@ local function load(style)
   morf.fs.mkdir(state)
   local appearance = state .. "/appearance.json"
   morf.fs.write(appearance, morf.json.encode { theme = style, font = "" })
-  test.load("../apps/keys/app.lua", { source = SOURCE, env = { EVA_DRY_RUN = "1", XDG_STATE_HOME = state,
-    EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_APPEARANCE = appearance } })
+  test.load("../shell/init.lua", { source = SOURCE, size = { 640, 560 }, env = { EVA_DRY_RUN = "1",
+    XDG_STATE_HOME = state, EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule",
+    EVA_APPEARANCE = appearance, EVA_STYLE = style } })
   test.settle(600)
 end
 
--- The tool's window, the surface after the primary.
-local function window()
-  for _, surface in ipairs(test.surfaces()) do
-    if surface.label ~= "primary" then return surface.label end
-  end
-end
-
 local function drag(x, y, dx, dy)
-  local on = { surface = window() }
+  local on = { surface = "primary" }
   test.touch("down", 0, x, y, on) test.advance(16)
   for i = 1, 12 do test.touch("move", 0, x + dx * i / 12, y + dy * i / 12, on) test.advance(16) end
   test.touch("up", 0, x + dx, y + dy, on) test.advance(900)
@@ -63,14 +48,6 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.eq(test.ipc("tool_state").tab, 2, "past the last it stays")
     drag(x, y, 240, 0)
     test.eq(test.ipc("tool_state").tab, 1)
-    test.eq(test.logs("error"), {})
-  end)
-  test.it(style .. " a swipe in from the left edge goes back a level, or closes the tool", function()
-    load(style)
-    test.ipc("allow_back")
-    drag(6, 300, 300, 0)
-    test.eq(test.ipc("tool_state").backed, 1)
-    test.eq(test.ipc("tool_state").closed, 0)
     test.eq(test.logs("error"), {})
   end)
   test.it(style .. " a swipe in from an overlay's edge is a finger's way out", function()

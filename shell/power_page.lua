@@ -1,7 +1,8 @@
 -- View selected by the visual theme; services and models stay shared.
 local M={}
-function M.page(w,h)
-  local model=require("power_model").new(require("presentation").active("settings.power"),
+--- The Power page; `active` (fn): whether its host has it on show.
+function M.page(w,h,active)
+  local model=require("power_model").new(active or require("presentation").active("settings.power"),
     function() require("dashboard_state").show("battery") end)
   return require("themes").view("power_page").build(require("power_extras_model").extend(model),w,h)
 end

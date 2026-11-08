@@ -1,0 +1,20 @@
+#!/bin/sh
+# eva-displays: the monitors' arrangement is the Settings window's Displays
+# page; `--auto` applies the profile saved for what is connected, with no
+# window and no shell (shell/displays_model.lua, as a job).
+#
+#   eva-displays          the Settings window, on Displays
+#   eva-displays --auto   the saved profile for these monitors, applied
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '') eva_settings displays ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  --auto) eva_job displays --auto ;;
+  *)
+    eva_say "no such option: $1"
+    exit 1
+    ;;
+esac

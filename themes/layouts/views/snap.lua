@@ -72,14 +72,12 @@ function V.build(model)
   local picker = kit.card { id = "snap-picker", width = picker_w, height = S.xxl + S.s + 2 * row_h + S.m + S.l,
     anchors = { center_in = true },
     accessible_role = "dialog", accessible_name = "Snap layouts",
-    visible = function() return model.picking:get() end,
-    opacity = function() return model.picking:get() and 1 or 0 end,
-    scale = function() return model.picking:get() and 1 or .94 end,
-    behavior = { opacity = fade, scale = spatial },
-    ui.MouseArea { anchors = { fill = true } },
+    ui.MouseArea { anchors = { fill = true }, visible = function() return model.picking:get() end },
     kit.text { x = S.l, y = S.m, text = "Snap this window", font_size = theme.size.normal, color = kit.ink("hi") },
     ui.Grid(grid) }
   grid = nil
+  -- It comes and goes as the theme brings a dialog in place, drawn until gone.
+  local picker_drawn = theme.motion.appear(picker, function() return model.picking:get() end, { id = "snap-picker" })
 
   -- ----------------------------------------------------------- the offers --
   local function slot(address) return model.offer_slots:get()[address] or { x = 0, y = 0, width = 0, height = 0 } end
@@ -124,7 +122,7 @@ function V.build(model)
     visible = function() return model.picking:get() end, on_clicked = function() model.end_pick() end }
 
   local root = ui.Item { id = "snap", anchors = { fill = true },
-    visible = function() return model.dragging:get() or model.picking:get() or model.assisting:get() end,
+    visible = function() return model.dragging:get() or picker_drawn() or model.assisting:get() end,
     field, marker, assist, picker_catcher, picker, keys }
   return { node = root, shown = function(open) keys.focus = open end }
 end

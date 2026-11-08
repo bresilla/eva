@@ -1,4 +1,4 @@
-# eva-colorpick on this private sway: the window, the frozen screen with its
+# eva-colorpick on this private sway: its page, the frozen screen with its
 # magnifier, a colour taken, the formats, and a real Escape letting go.
 unset EVA_DRY_RUN
 state() { appipc state | tr -d ' \n' | cut -c1-220; }
@@ -10,6 +10,8 @@ held() {
 }
 
 start app colorpick
+shot page
+start app colorpick --pick
 shot window
 
 appipc freeze > /dev/null

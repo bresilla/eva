@@ -2,7 +2,7 @@
 -- only a press or a command line reaches; what is typed or pasted stays here. No
 -- text is kept on disk: the file holds the choices. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 local engines = require("lib.services.translate")
 
 local M = {

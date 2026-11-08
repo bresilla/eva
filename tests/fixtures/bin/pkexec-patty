@@ -1,0 +1,13 @@
+#!/bin/sh
+# Stands in for pkexec in front of patty: keeps its arguments and its stdin
+# beside the patty folder, and runs nothing. pkexec.code there is its status.
+dir=${EVA_PATTY_DIR:-$XDG_CACHE_HOME/pattern-page}
+mkdir -p "$dir"
+printf '%s\n' "$*" > "$dir/pkexec.argv"
+cat > "$dir/pkexec.stdin"
+code=$(cat "$dir/pkexec.code" 2>/dev/null || echo 0)
+if [ "$code" != 0 ]; then
+  echo "patty: the two patterns differ; nothing saved" >&2
+  exit "$code"
+fi
+echo "patty: saved"

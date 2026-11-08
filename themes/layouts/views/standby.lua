@@ -158,8 +158,12 @@ function V.build(model)
         return { translate_x = { from = -S.s, to = S.s, duration = 90000, easing = "in_out_sine", alternate = true } }
       end,
       clock_view(), widget_view, world_view, alarm_view } }
-  local swipe = require("themes.swipe_dismiss").new { id = "standby", node = views, ways = { left = true, right = true },
-    stays = true, distance = SWIPE, on_dismiss = function(way) model.step(way == "left" and 1 or -1) end }
+  local swipe
+  swipe = require("themes.swipe_dismiss").new { id = "standby", node = views, ways = { left = true, right = true },
+    distance = SWIPE, on_dismiss = function(way)
+      model.step(way == "left" and 1 or -1)
+      swipe.arrive(way)
+    end }
   local moved = false
   local root = ui.Rect { id = "standby", anchors = { fill = true }, color = "#000000",
     views,

@@ -3,7 +3,8 @@
 # pointer. Elsewhere a lens over the frozen screen that follows the pointer, the
 # wheel or a pinch setting its factor; a second launch shuts it.
 #
-#   eva-zoom                the small window, with a slider for touch
+#   eva-zoom                the Tools window, on Zoom, a slider for touch; with
+#                           no shell, the lens
 #   eva-zoom in | out       one step
 #   eva-zoom reset          back to 1 (ends a lens)
 #   eva-zoom N              the factor, from 1 to 10
@@ -13,7 +14,7 @@ set -eu
 apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
-# The lens, in the window when it is open, else by itself.
+# The lens: the running one hears the step, else a new one starts with it.
 lens() {
   pid=$(cat "${XDG_RUNTIME_DIR:-/tmp}/eva/zoom.window" 2> /dev/null || true)
   display=$(basename -- "${WAYLAND_DISPLAY:-wayland-0}")
@@ -24,7 +25,9 @@ lens() {
 }
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" zoom ;;
+  '')
+    if eva_shell_up; then eva_tools zoom; else lens lens; fi
+    ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
   lens) lens lens ;;
   get)

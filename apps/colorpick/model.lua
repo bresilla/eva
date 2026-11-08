@@ -2,8 +2,8 @@
 -- pointer, the recent colours. No nodes.
 local morf = require("morf")
 local config = require("config")
-local formats = require("formats")
-local frozen = require("common.freeze").new("colorpick")
+local formats = require("apps.colorpick.formats")
+local frozen = require("apps.common.freeze").new("colorpick")
 
 local M = {
   picture = frozen.picture,

@@ -1,5 +1,5 @@
 -- eva-clock: the words it takes, the store, the two ways of ringing, the bar's
--- indicator reading it, the window, and the command line. A ring through the
+-- indicator reading it, its page in Tools, and the command line. A ring through the
 -- shell's notifications server for real is tools/see/clock.steps'.
 --
 --     morf test --no-dbus tests/clock_spec.lua
@@ -365,15 +365,16 @@ test.it("services.alarm is what the bar's indicator reads", function()
   test.contains(test.ipc("indicators"), "alarm")
 end)
 
--- ---------------------------------------------------------------- the window --
+-- ------------------------------------------------------------------ the page --
 
 local function window(style, name)
   local state = fresh(name)
   local appearance = state .. "/appearance.json"
   morf.fs.write(appearance, morf.json.encode { theme = style, font = "" })
-  test.load("../apps/clock/app.lua", { env = { XDG_STATE_HOME = state, EVA_DRY_RUN = "1", EVA_NOW = tostring(MONDAY),
-    EVA_ALARM_ENGINE = "local", EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule",
-    EVA_APPEARANCE = appearance } })
+  test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua"),
+    env = { XDG_STATE_HOME = state, EVA_DRY_RUN = "1", EVA_NOW = tostring(MONDAY), EVA_TEST_TOOL = "clock",
+      EVA_ALARM_ENGINE = "local", EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule",
+      EVA_APPEARANCE = appearance, EVA_STYLE = style } })
   test.settle(400)
 end
 

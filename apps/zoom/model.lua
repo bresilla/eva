@@ -1,10 +1,10 @@
 -- eva-zoom's state and actions: Hyprland's cursor zoom where the keyword exists,
 -- and a lens over the frozen screen everywhere. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 local pointer = require("lib.shell.pointer")
 local hypr = require("lib.util.hypr")
-local frozen = require("common.freeze").new("zoom")
+local frozen = require("apps.common.freeze").new("zoom")
 
 local M = {
   picture = frozen.picture,

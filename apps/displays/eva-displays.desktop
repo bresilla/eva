@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Displays
-Comment=Arrange monitors and save profiles
-Exec=eva-displays
-Icon=preferences-desktop-display
-Terminal=false
-Categories=Settings;HardwareSettings;
-StartupWMClass=eva.displays

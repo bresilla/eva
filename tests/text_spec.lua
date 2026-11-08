@@ -12,7 +12,7 @@ local BIN = ROOT .. "tests/fixtures/bin"
 local PIECES = [[
   local morf = require("morf")
   require("morf.ui").Item { width = 1, height = 1 }
-  local transforms = require("transforms")
+  local transforms = require("apps.text.transforms")
   local codec = require("lib.shell.launcher.codec")
   local password = require("lib.shell.launcher.password")
   local latest = {}
@@ -77,14 +77,14 @@ local function environment(state, style, extra)
   local appearance = state .. "/appearance.json"
   morf.fs.write(appearance, morf.json.encode { theme = style or "material", font = "" })
   local env = { XDG_STATE_HOME = state, EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule",
-    EVA_APPEARANCE = appearance, EVA_DRY_RUN = "1" }
+    EVA_APPEARANCE = appearance, EVA_DRY_RUN = "1", EVA_TEST_TOOL = "text", EVA_TEST_PAGE = "648x700" }
   for key, value in pairs(extra or {}) do env[key] = value end
   return env
 end
 
 local function pieces()
   test.clear_stubs()
-  test.load("../apps/text/app.lua", { source = PIECES, env = environment(fresh("pieces")) })
+  test.load("../shell/init.lua", { source = PIECES, env = environment(fresh("pieces")) })
 end
 
 local function run(id, text) return test.ipc("run", id, text).answer end
@@ -294,11 +294,14 @@ test.it("has no word twice, and only plain ones", function()
   end
 end)
 
--- ---------------------------------------------------------------- the window --
+-- ------------------------------------------------------------------ the page --
+
+-- The page alone, as the Tools window shows it.
+local PAGE = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua")
 
 local function window(style, extra)
   test.clear_stubs()
-  test.load("../apps/text/app.lua", { env = environment(fresh("window"), style, extra) })
+  test.load("../shell/init.lua", { env = environment(fresh("window"), style, extra), source = PAGE })
   test.settle(300)
 end
 
@@ -331,7 +334,7 @@ end)
 
 test.it("offers every transform on a machine with no programs", function()
   test.clear_stubs()
-  test.load("../apps/text/app.lua", { env = environment(fresh("nomd5"), nil, { PATH = "/nonexistent" }) })
+  test.load("../shell/init.lua", { env = environment(fresh("nomd5"), nil, { PATH = "/nonexistent" }), source = PAGE })
   test.settle(200)
   test.truthy(test.find { id = "text-do-md5-box" })
   test.truthy(test.find { id = "text-do-sha256-box" })

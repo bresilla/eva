@@ -48,7 +48,8 @@ function M.build(model, w, h)
         return kit.text { text = text, width = inner - 64, elide = "right", visible = text ~= "",
           font_size = require("themes.layouts.parts").SIZE.body, color = color or kit.ink("lo") }
       end
-      return ui.Item { id = "task-row-" .. row.uuid, width = inner, height = P.ROW_H + 12, enter = kit.enter(),
+      return ui.Item { id = "task-row-" .. row.uuid, width = inner, height = P.ROW_H + 12,
+        enter = kit.enter(), exit = kit.leave(),
         kit.action { id = "task-edit-" .. row.uuid, x = 50, width = inner - 50, height = P.ROW_H + 12, cursor = "pointer",
           on_clicked = function() model.edit(row.uuid) end,
           ui.Column { anchors = { vertical_center = true }, gap = 2,

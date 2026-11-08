@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Record
-Comment=Record a region, a window or a monitor
-Exec=eva-record
-Icon=media-record
-Terminal=false
-Categories=Utility;AudioVideo;Recorder;

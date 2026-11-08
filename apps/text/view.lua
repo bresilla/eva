@@ -5,9 +5,9 @@ local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
-local controls = require("common.controls")
-local transforms = require("transforms")
-local model = require("model")
+local controls = require("apps.common.controls")
+local transforms = require("apps.text.transforms")
+local model = require("apps.text.model")
 local S = theme.space
 
 local M = {}

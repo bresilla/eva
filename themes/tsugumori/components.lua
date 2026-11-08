@@ -14,8 +14,10 @@ local get, clamp01 = common.get, common.clamp01
 return function(theme)
   local M = {}
   local C = theme.color
-  local feedback = require("themes.tsugumori.interaction")(theme)
+  local feedback, _, keyed = require("themes.tsugumori.interaction")(theme)
   local stripes = require("themes.tsugumori.stripes")
+  local registry = require("themes.tsugumori.marks")
+  local digits = require("themes.tsugumori.digits")
   local hud_parts
   local function hud() hud_parts = hud_parts or require("themes.tsugumori.hud")(theme, M) return hud_parts end
   local CH, MARK = theme.CHAMFER or 8, theme.MARK or 10
@@ -126,7 +128,43 @@ return function(theme)
     props.font_size = props.font_size or theme.size.normal
     if props.font_weight and props.axes == nil then props.axes = { wght = props.font_weight } end
     if props.color == nil then props.color = function() return C.onSurface end end
-    return ui.Text(props)
+    local node = ui.Text(props)
+    if type(props.text) == "function" and type(props.font_size) == "number" and props.font_size >= 17.5 then
+      M.decoding(node, props.text)
+    end
+    return node
+  end
+
+  --- Marks `node` (a Text bound to `source`) as a reading a boot pass
+  --- decodes: its digits run through others and settle from the left, and
+  --- the binding comes back. Returns `node`.
+  function M.decoding(node, source)
+    registry.values[node] = function(delay)
+      local ok, now = pcall(function() return tostring(get(source) or "") end)
+      if not ok or not now:find("%d") then return nil end
+      local _, n = now:gsub("%d", "")
+      local STEPS, k, handle = 7, -1, nil
+      local function show(text) pcall(function() node.text = text end) end
+      local function settle() handle = nil show(source) end
+      local function scrambled()
+        local i = 0
+        return (now:gsub("%d", function(d)
+          i = i + 1
+          if i <= math.floor(k * n / STEPS) then return d end
+          return tostring((tonumber(d) + i * 3 + k * 7 + 1) % 10)
+        end))
+      end
+      local function step()
+        k = k + 1
+        if k >= STEPS then settle() return end
+        show(scrambled())
+        handle = morf.animation.play { { pause = k == 0 and math.max(1, delay) or 42 },
+          on_finished = function(reason) if reason == "completed" then step() end end }
+      end
+      step()
+      return function() if handle then handle:stop() settle() end end
+    end
+    return node
   end
 
   --- A Material Symbols icon by its ligature name; `props.fill` (a boolean
@@ -231,11 +269,35 @@ return function(theme)
   end
 
   --- A large reading: mono digits with the unit raised beside them.
+  --- A changed reading glitches once: a short jitter and flicker, at most
+  --- every few seconds, never on its first value.
+  local function glitch(node, value)
+    local last, running, ready = nil, nil, true
+    morf.effect("tsugumori.readout.glitch", function()
+      local now = tostring(get(value) or "")
+      if last == nil or now == last then last = now return end
+      last = now
+      if not ready or require("themes.session").restoring then return end
+      ready = false
+      morf.time.timer(5000, function() ready = true end, false)
+      if running then running:stop() end
+      running = morf.animation.play { { parallel = {
+        { node = node, property = "translate_x", duration = 180, keyframes = { { at = 0, value = 0 },
+          { at = .15, value = 2 }, { at = .3, value = -1.5 }, { at = .45, value = 1 }, { at = .6, value = 0 },
+          { at = 1, value = 0 } } },
+        { node = node, property = "opacity", duration = 180, keyframes = { { at = 0, value = 1 },
+          { at = .1, value = .35 }, { at = .25, value = 1 }, { at = .4, value = .55 }, { at = .6, value = 1 },
+          { at = 1, value = 1 } } },
+      } }, on_finished = function() running = nil end }
+    end, { owner = node })
+    return node
+  end
+
   function M.readout(spec)
     local size = spec.size or theme.typography.hero
     local row = { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, gap = 4, align = "start",
-      M.text { text = spec.value, font_size = size, font_weight = 400,
-        color = spec.color or M.ink("accent"), height = math.ceil(size * 1.2) },
+      glitch(M.text { text = spec.value, font_size = size, font_weight = 400,
+        color = spec.color or M.ink("accent"), height = math.ceil(size * 1.2) }, spec.value),
     }
     if spec.unit then
       row[#row + 1] = M.label { text = spec.unit, font_size = math.max(9, math.floor(size * .38)),
@@ -247,18 +309,65 @@ return function(theme)
   -- No codes inside menus and panels; the frame prints its own.
   function M.code() return "" end
 
-  --- A caption row across `width`: a registration pip, the caps text, a
-  --- hairline under the row and the note at its right.
+  -- Section captions (one built just after its card) are numbered in the
+  -- order their cards were built, from one again on each page: each burst
+  -- of building, and each collected tab.
+  local captions = { index = 0, cards = 0, seen = 0, burst = nil }
+  local function next_index(eligible)
+    if captions.seen == captions.cards then return nil end
+    captions.seen = captions.cards
+    if not eligible then return nil end
+    if not captions.burst then
+      captions.index = 0
+      captions.burst = morf.time.timer(1, function() captions.burst = nil end, false)
+    end
+    captions.index = captions.index + 1
+    return captions.index
+  end
+  --- The lead under the index plate and, `striped`, a block of `/` stripes
+  --- 4..12 high ending a little short of `vw`.
+  local function hazard_d(vw, striped)
+    local out = { "M0 14 H20 V16 H0 Z " }
+    if striped and vw > 120 then
+      for k = 0, 4 do
+        local x = vw - 46 + k * 7
+        out[#out + 1] = ("M%g 12 H%g L%g 4 H%g Z "):format(x, x + 3, x + 7, x + 4)
+      end
+    end
+    return table.concat(out)
+  end
+  --- A caption row across `width`: an index plate (a section caption's
+  --- number, else a registration pip), the caps text, a rule under the row
+  --- out to its end tick, a block of hazard stripes at its right end, and
+  --- the note there instead when it has one.
   function M.caption(spec)
     local w = spec.width
-    return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = 16,
-      ui.Rect { y = 5, width = 5, height = 5, color = spec.color or M.ink("accent") },
-      M.label { text = spec.text, x = 11, y = 0, height = 14, color = spec.color or M.ink("accent"),
-        width = function() return math.max(0, get(w) - 90) end, elide = "right" },
+    -- Without a note, L.caption lays the row 140 wider than it shows.
+    local room = spec.note == nil and 140 or 0
+    local function vw() return math.max(0, get(w) - room) end
+    local index = next_index(type(spec.note) ~= "function")
+    local ink = spec.color or M.ink("accent")
+    local plate = index and ui.Rect { y = 1, width = 20, height = 12, color = function() return get(ink):alpha(.6) end,
+      M.text { width = 20, height = 12, text = ("%02d"):format(index), font_size = 9, font_weight = 600,
+        horizontal_alignment = "center", vertical_alignment = "center", color = function() return C.onPrimary end } }
+      or ui.Rect { y = 5, width = 5, height = 5, color = ink }
+    local lead = index and 26 or 11
+    local striped = spec.note == nil or spec.note == ""
+    local rule = ui.Path { width = vw, height = 16, view_box = function() return { 0, 0, vw(), 16 } end,
+      transform_origin_x = 0,
+      d = function() local r = vw() return ("M0 15.5 H%g M%g 9 V16 M%g 9 V16"):format(r, r - .5, r - 1.5) end,
+      fill_color = "transparent", stroke_width = 1, stroke_color = function() return C.primary:alpha(.3) end }
+    local hazard = ui.Path { width = vw, height = 16, view_box = function() return { 0, 0, vw(), 16 } end,
+      d = function() return hazard_d(vw(), striped) end, fill_color = function() return get(ink):alpha(.4) end }
+    local node = ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = 16,
+      rule, hazard, plate,
+      M.label { text = spec.text, x = lead, y = 0, height = 14, color = ink, elide = "right",
+        width = function() return math.max(0, striped and vw() - lead - 52 or get(w) - 90 - lead + 11) end },
       spec.note and M.label { text = spec.note, anchors = { right = true }, y = 0, height = 14,
         horizontal_alignment = "right" } or nil,
-      ui.Rect { y = 15, width = w, height = 1, color = M.stroke("quiet") },
     }
+    registry.captions[node] = { plate = plate, rule = rule, hazard = hazard }
+    return node
   end
 
   --- Label / value lines, each over a faint hairline.
@@ -294,20 +403,94 @@ return function(theme)
   --- background is a square layer of a distance field someone else builds:
   --- `list` gets `{ node, radius, color, shape }` for each.
   local collector
-  function M.collect(list) collector = list end
+  function M.collect(list)
+    collector = list
+    if list then captions.index = 0 end
+  end
+  -- Card chrome: a hairline outline, four corner brackets, and a tick ruler
+  -- on the foot, a serial strip under the top edge and an index notch at the
+  -- middle of each side. Every path is one node whose data changes only when
+  -- the card is resized.
+  local LEG = 12
+  --- The box as one loop from its bottom-right corner, so its half-way
+  --- point is the top-left one.
+  local function loop_d(w, h) return ("M%g %g H.5 V.5 H%g Z"):format(w - .5, h - .5, w - .5) end
+  local SERIAL = {}
+  for k = 0, 7 do
+    local xs, x, seed = {}, 0, k * 7 + 3
+    while x < 24 do
+      seed = (seed * 37 + 11) % 97
+      xs[#xs + 1] = x
+      if seed % 3 == 0 then x = x + 1 xs[#xs + 1] = x end
+      x = x + 2 + seed % 2
+    end
+    SERIAL[k] = xs
+  end
+  local serial_count = 0
+  local function ticks_on(w, h, serial)
+    local out = {}
+    if w >= 120 and h >= 28 then
+      local x0 = w - 22 - 48
+      for k = 0, 12 do
+        out[#out + 1] = ("M%g %g V%g "):format(x0 + k * 4 + .5, h - 2, h - 2 - (k % 4 == 0 and 6 or 3))
+      end
+    end
+    if w >= 120 then
+      for _, x in ipairs(serial) do out[#out + 1] = ("M%g 4 V8 "):format(w - 48 + x + .5) end
+    end
+    if h >= 24 then
+      local mid = math.floor(h / 2)
+      out[#out + 1] = ("M0 %g H7 M0 %g H7 M%g %g H%g M%g %g H%g "):format(mid - .5, mid + .5, w - 7, mid - .5, w,
+        w - 7, mid + .5, w)
+    end
+    return #out > 0 and table.concat(out) or "M0 0"
+  end
+  --- A path laid over its parent whose data `build(w, h)` follows its size.
+  local function sized(props, build)
+    props.anchors = props.anchors or { fill = true }
+    local node = ui.Path(props)
+    node.d = function()
+      local w, h = node.layout_width or 0, node.layout_height or 0
+      if w < 6 or h < 6 then return "M0 0" end
+      return build(w, h)
+    end
+    return node
+  end
+  --- The ruler, serial strip and notches onto `props`.
+  local function ticks(props)
+    serial_count = serial_count + 1
+    local serial = SERIAL[serial_count % 8]
+    props[#props + 1] = sized({ fill_color = "transparent", stroke_width = 1,
+      stroke_color = function() return C.primary:alpha(.3) end }, function(w, h) return ticks_on(w, h, serial) end)
+  end
+  --- The chrome onto a card's children after what it holds: the outline,
+  --- the ticks and the four brackets. Returns the registry entry.
+  local function card_chrome(props)
+    local entry = {}
+    entry.outline = sized({ fill_color = "transparent", stroke_width = 1, stroke_join = "miter",
+      stroke_color = function() return C.primary end, opacity = registry.OUTLINE }, loop_d)
+    props[#props + 1] = entry.outline
+    ticks(props)
+    local corners, marks = hud().marked { length = LEG, color = hud().line("hot") }
+    props[#props + 1] = corners
+    entry.marks = marks
+    return entry
+  end
   function M.card(props)
-    props.radius = 0
+    captions.cards = captions.cards + 1
     props.radius = M.round(theme.ROUNDING)
     if props.color == nil then props.color = function() return C.surfaceContainer end end
-    props[#props + 1] = ui.Rect {
-      anchors = { fill = true }, color = "transparent", border_width = 1,
-      border_color = function() return hud().line("faint")() end,
-    }
-    props[#props + 1] = hud().corners { length = 12, color = hud().line("hot") }
-    if not collector then return ui.Rect(props) end
+    if not collector then
+      local entry = card_chrome(props)
+      local node = ui.Rect(props)
+      registry.cards[node] = entry
+      return node
+    end
     local color = props.color
+    local chrome = card_chrome(props)
     props.radius, props.color = nil, nil
     local node = ui.Item(props)
+    registry.cards[node] = chrome
     local entry = { node = node, radius = 0, color = color }
     entry.shape = ui.SdfShape {
       shape = "box", radius = 0, track = node,
@@ -332,10 +515,10 @@ return function(theme)
   function M.panel(spec)
     local w, h = spec.width, spec.height
     local wn, hn = get(w), get(h)
-    local sized = type(wn) == "number" and type(hn) == "number" and type(w) ~= "function" and type(h) ~= "function"
+    local fixed = type(wn) == "number" and type(hn) == "number" and type(w) ~= "function" and type(h) ~= "function"
     local fill = function() return C.surfaceContainer:alpha(spec.fill or .6) end
     local node = { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h, clip = spec.clip }
-    if sized then
+    if fixed then
       node[#node + 1] = ui.Path { width = w, height = h, view_box = { 0, 0, w, h }, d = frame_d(w, h, CH, .5),
         fill_color = fill, stroke_color = spec.mark or M.stroke("idle", spec.color), stroke_width = 1,
         stroke_join = "miter" }
@@ -345,6 +528,7 @@ return function(theme)
         border_color = spec.mark or M.stroke("idle", spec.color) }
       node[#node + 1] = anchored_marks(MARK, M.stroke("mark", spec.color))
     end
+    ticks(node)
     if spec.header and type(wn) == "number" then
       node[#node + 1] = M.header { x = 12, y = 8, width = wn - 24, key = spec.id or spec.title,
         title = spec.title, status = spec.status, color = spec.color }
@@ -389,15 +573,71 @@ return function(theme)
     }
   end
 
-  --- Tsugumori decorations: registration `corners` (any box),
-  --- `brackets` (a sized box), warning `tape` and a hairline `grid`. Ticks, scales and
-  --- hatching are not part of this style.
+  --- Instrument ticks along `length`: `count` of them, every `major`th long,
+  --- `size` deep, rising from the foot (`flip`: hanging from the top) or,
+  --- `vertical`, standing out from the left (`flip`: from the right).
+  local function ticks_d(len, size, count, major, vertical, flip)
+    local out = {}
+    count = math.max(2, math.floor(count or 12))
+    for k = 0, count do
+      local at = math.floor(k * (len - 1) / count) + .5
+      local deep = (major and major > 0 and k % major == 0) and size or math.max(1, math.floor(size * .5))
+      if vertical then
+        local x0 = flip and size or 0
+        out[#out + 1] = ("M%g %g H%g "):format(x0, at, flip and size - deep or deep)
+      else
+        local y0 = flip and 0 or size
+        out[#out + 1] = ("M%g %g V%g "):format(at, y0, flip and deep or size - deep)
+      end
+    end
+    return table.concat(out)
+  end
+
+  --- Tsugumori decorations: registration `corners` (any box), `brackets`
+  --- (a sized box), warning `tape`, a hairline `grid`, instrument `ticks`
+  --- and a graduated `scale` beside a meter. Hatching is not part of this style.
   function M.decor(name, spec)
     spec = spec or {}
+    if name == "ticks" and type(spec.length) == "number" then
+      local size, len = spec.size or 6, spec.length
+      local w, h = len, size
+      if spec.vertical then w, h = size, len end
+      return ui.Path { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
+        view_box = { 0, 0, w, h }, d = ticks_d(len, size, spec.count, spec.major, spec.vertical, spec.flip),
+        fill_color = "transparent", stroke_width = 1, stroke_color = spec.color or M.stroke("idle") }
+    elseif name == "scale" and type(spec.height) == "number" then
+      -- The ticks face the meter they stand beside, on a hairline spine;
+      -- the long ones, brighter, carry their share of the run (100 at the
+      -- top) in segment digits on the side away from it.
+      local size, h = spec.size or 8, spec.height
+      local w = size + 22
+      local count, major = spec.count or 20, spec.major or 5
+      local spine = spec.flip and .5 or w - .5
+      local minor, long = { ("M%g 0 V%g "):format(spine, h) }, {}
+      for k = 0, count do
+        local at = math.floor(k * (h - 1) / count) + .5
+        local big = major > 0 and k % major == 0
+        local deep = big and size or math.floor(size * .45)
+        local out = big and long or minor
+        if spec.flip then out[#out + 1] = ("M0 %g H%g "):format(at, deep)
+        else out[#out + 1] = ("M%g %g H%g "):format(w - deep, at, w) end
+        if big and not spec.flip then
+          local text = tostring(math.floor(100 * (count - k) / count + .5))
+          local y = math.max(0, math.min(h - 5, math.floor(at - 2.5)))
+          digits.put(long, text, w - size - 3 - digits.width(text), y)
+        end
+      end
+      return ui.Item { id = spec.id, x = spec.x, y = spec.y, width = w, height = h,
+        ui.Path { width = w, height = h, view_box = { 0, 0, w, h }, d = table.concat(minor),
+          fill_color = "transparent", stroke_width = 1, stroke_color = spec.color or M.stroke("idle") },
+        ui.Path { width = w, height = h, view_box = { 0, 0, w, h }, d = table.concat(long),
+          fill_color = "transparent", stroke_width = 1, stroke_color = M.stroke("hot") } }
+    end
     if name == "corners" or name == "brackets" then
-      -- Four bright L-brackets on the box's corners.
-      local node = hud().corners { length = spec.length or 10, color = spec.color or hud().line("hot"),
+      -- Four bright L-brackets on the box's corners; a boot pass flies them in.
+      local node, marks = hud().marked { length = spec.length or 10, color = spec.color or hud().line("hot"),
         inset = spec.inset, opacity = spec.opacity, id = spec.id }
+      registry.cards[node] = { marks = marks }
       if type(spec.width) == "number" and type(spec.height) == "number" then
         return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = spec.height, node }
       end
@@ -427,8 +667,8 @@ return function(theme)
   --- focus, so a search field keeps typing. Returns `area`.
   function M.focusable(area)
     area.focus_policy = "tab"
-    ui.reparent(hud().corners { length = 6, weight = 2, color = function() return C.primary end,
-      visible = function() return area.visual_focus end }, area)
+    ui.reparent(hud().reticle({ length = 10, weight = 2, color = function() return C.primary end },
+      function() return area.visual_focus end), area)
     return area
   end
 
@@ -443,8 +683,8 @@ return function(theme)
         color = function() return C.primary:alpha(t.down and .16 or t.hovered and .1 or .05) end,
         border_width = 1, border_color = function() return C.primary:alpha(.35) end },
       hud().corners { length = 8, color = function() return C.primary:alpha(t.hovered and 1 or .5) end },
-      hud().corners { length = 10, weight = 2, color = function() return C.primary end,
-        visible = function() return t.visual_focus end },
+      hud().reticle({ length = 10, weight = 2, color = function() return C.primary end },
+        function() return t.visual_focus end),
     }
     return { background = plate }
   end
@@ -455,7 +695,9 @@ return function(theme)
     for _,key in ipairs {"enter","exit"} do
       if type(props[key])=="table" then props[key].scale=nil end
     end
-    return feedback(require("themes.kit.widgets").area(props), props.id)
+    -- An on-screen keyboard's key keeps its plain feedback.
+    local plain = keyed(props.id) and { plain_feedback = true } or nil
+    return feedback(require("themes.kit.widgets").area(props, plain), props.id)
   end
   function M.tabbed(spec) return require("themes.tsugumori.tabbed")(theme, M, spec) end
   -- Tsugumori outlines: straight-edged, eight vertices each (repeated
@@ -600,6 +842,31 @@ return function(theme)
         end
       end
     end, { owner = node })
+    -- A boot pass rolls each digit in from below, one after the other, out
+    -- of another that rolls away.
+    registry.values[node] = function(delay)
+      local tracks = {}
+      for i = 1, n do
+        local slot, st = slots[i], state[i]
+        if st.shown ~= "" then
+          if st.running then st.running:stop() st.running = nil end
+          local at = delay + (i - 1) * 60
+          slot.current.y, slot.old.y, slot.old.opacity = size, 0, 1
+          slot.old.text = tostring((tonumber(st.shown) or 0) * 3 % 10 + 1):sub(-1)
+          tracks[#tracks + 1] = { node = slot.current, property = "y", from = size, to = 0, delay = at,
+            duration = 280, easing = "out_back" }
+          tracks[#tracks + 1] = { node = slot.old, property = "y", from = 0, to = -size, delay = at, duration = 280,
+            easing = "out_cubic" }
+          tracks[#tracks + 1] = { node = slot.old, property = "opacity", from = 1, to = 0, delay = at, duration = 280 }
+        end
+      end
+      if #tracks == 0 then return nil end
+      local handle = morf.animation.play { { parallel = tracks } }
+      return function()
+        handle:stop()
+        for i = 1, n do pcall(function() slots[i].current.y, slots[i].old.opacity = 0, 0 end) end
+      end
+    end
     return node
   end
 
@@ -944,8 +1211,7 @@ return function(theme)
     end
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
       line { stroke_color = spec.track and function() return get(spec.track) end or M.stroke("quiet", color) },
-      line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end,
-        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = spec.motion or settle() } },
+      meters.stepped(line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end }, lit, n),
     }
   end
 
@@ -986,8 +1252,7 @@ return function(theme)
     end
     return ui.Item { id = spec.id, x = spec.x, y = spec.y, anchors = spec.anchors, width = w, height = h,
       line { stroke_color = M.stroke("quiet", color) },
-      line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end,
-        trim_end = function() return math.max(.0001, lit()) end, behavior = { trim_end = spec.motion or settle() } },
+      meters.stepped(line { stroke_color = color, opacity = function() return lit() > 0 and 1 or 0 end }, lit, n),
     }
   end
 
@@ -1331,11 +1596,35 @@ return function(theme)
     for _, node in ipairs(nodes) do entries[#entries + 1] = { node = node } end
     return theme.motion.entries(entries, coming, opts)
   end
-  --- How a list's row comes in, as a node's `enter`: a short, hard step in
-  --- from the side, a beat after the row above (`index`, from 1).
+  -- A decode: two hard flickers on the way in, then a settle. Straight
+  -- segments but the last, which eases out.
+  local DECODE = (function()
+    local out, px, py = {}, 0, 0
+    local points = { { .16, .7 }, { .26, .3 }, { .42, .88 }, { .52, .66 }, { 1, 1 } }
+    for i, p in ipairs(points) do
+      local x, y = p[1], p[2]
+      if i == #points then
+        for _, v in ipairs { px + (x - px) * .2, y, px + (x - px) * .55, y, x, y } do out[#out + 1] = v end
+      else
+        for _, v in ipairs { px + (x - px) / 3, py + (y - py) / 3, px + 2 * (x - px) / 3, py + 2 * (y - py) / 3, x, y } do
+          out[#out + 1] = v
+        end
+      end
+      px, py = x, y
+    end
+    return { spline = out }
+  end)()
+  --- How a list's row comes in, as a node's `enter`: a short step in from
+  --- the side that decodes in two flickers, a beat after the row above
+  --- (`index`, from 1).
   function M.enter(index)
-    return { opacity = 0, translate_x = -8, duration = theme.duration.small, easing = theme.ease.standard,
+    return { opacity = 0, translate_x = -8, duration = theme.duration.small, easing = DECODE,
       delay = math.min((index or 1) - 1, 8) * theme.stagger.step }
+  end
+  --- How a list's row goes, as a node's `exit`: the decode run out, two
+  --- flickers and a step back to the side it came from.
+  function M.leave()
+    return { opacity = 0, translate_x = -8, duration = theme.duration.small, easing = DECODE }
   end
   --- Makes `node` ride out with drawer `d`: tied to the panel's far edge on
   --- every frame (ui.follow), pushed `distance()` px at the end.

@@ -1,6 +1,6 @@
 -- eva-zoom: Hyprland's cursor zoom through a stubbed hyprctl, read back, the Lua
 -- configuration's way, the words of the command line; the lens over a frozen
--- picture, its factor, its field, a finger, and how it ends; the small window.
+-- picture, its factor, its field, a finger, and how it ends; its page in Tools.
 -- A real freeze on a real sway is tools/see/zoom.steps'. Hyprland itself never
 -- runs here: `hyprctl` is a stub in every test.
 --
@@ -16,6 +16,14 @@ local function env(extra)
   local full = { EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule" }
   for key, value in pairs(extra or {}) do full[key] = value end
   return full
+end
+
+-- Its page alone, as the Tools window shows it.
+local function page(extra)
+  local full = env(extra)
+  full.EVA_TEST_TOOL, full.EVA_TEST_PAGE = "zoom", "428x300"
+  test.load("../shell/init.lua", { env = full, size = { 460, 360 },
+    source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
 end
 
 local function option(value) return { code = 0, stdout = ('{"option":"cursor:zoom_factor","float":%s,"set":true}'):format(value) } end
@@ -39,7 +47,7 @@ end
 test.it("takes a word of the command line to a factor", function()
   test.clear_stubs()
   test.load("../apps/zoom/app.lua", { source = [[
-    local model = require("model")
+    local model = require("apps.zoom.model")
     morf.ipc.word = function(word, now) return model.word(word, tonumber(now)) end
   ]] .. morf.fs.read(ROOT .. "apps/zoom/app.lua"), env = env() })
   test.eq(test.ipc("word", "in", "2"), 2.5)
@@ -95,7 +103,7 @@ local function lens(extra, size)
   local full = env { EVA_ZOOM_LENS = "lens", XDG_STATE_HOME = morf.env("XDG_STATE_HOME") .. "/zoom-" .. morf.time.now_ms() }
   for key, value in pairs(extra or {}) do full[key] = value end
   test.load("../apps/zoom/app.lua", { env = full, size = size or { 1280, 800 }, source = ([[
-    require("model").picture:set { path = %q, width = 1280, height = 800 }
+    require("apps.zoom.model").picture:set { path = %q, width = 1280, height = 800 }
   ]]):format(PICTURE) .. morf.fs.read(ROOT .. "apps/zoom/app.lua") })
   test.settle(1500)
 end
@@ -176,9 +184,9 @@ test.it("has buttons for a finger", function()
   test.truthy(bar.x >= 0 and bar.x + bar.width <= 412)
 end)
 
-test.it("the window's slider sets the lens elsewhere", function()
+test.it("the page's slider sets the lens elsewhere", function()
   test.clear_stubs()
-  test.load("../apps/zoom/app.lua", { env = env { XDG_STATE_HOME = morf.env("XDG_STATE_HOME") .. "/zoom-w" }, size = { 460, 360 } })
+  page { XDG_STATE_HOME = morf.env("XDG_STATE_HOME") .. "/zoom-w" }
   test.settle(1000)
   test.truthy(test.find { id = "zoom-slider" })
   test.click { id = "zoom-window-in" }
@@ -190,10 +198,10 @@ test.it("the window's slider sets the lens elsewhere", function()
   test.eq(#test.logs("error"), 0)
 end)
 
-test.it("the window's slider sets the keyword on Hyprland", function()
+test.it("the page's slider sets the keyword on Hyprland", function()
   test.clear_stubs()
   test.stub_run("hyprctl", option(3))
-  test.load("../apps/zoom/app.lua", { env = env { HYPRLAND_INSTANCE_SIGNATURE = "stub" }, size = { 460, 360 } })
+  page { HYPRLAND_INSTANCE_SIGNATURE = "stub" }
   test.advance(100)
   test.eq(state().cursor, 3)
   test.ipc("set", "3")

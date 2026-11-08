@@ -1,71 +1,30 @@
-# eva-displays on two sealed outputs, acting on this private sway only. The
-# tool's socket stands in for the pointer; tests/displays_spec.lua presses.
-unset EVA_DRY_RUN
+# The arrangement that was eva-displays, on Settings' Displays page, over two
+# sealed outputs: the canvas, a monitor moved, applied with its countdown,
+# kept, and a profile saved. The shell's `displays` verb stands in for the
+# pointer; tests/displays_spec.lua presses. Dry: nothing reaches the outputs.
 layout() { swaymsg -p -t get_outputs | grep -E '^Output|Position|Scale|Transform' | tr -s ' ' | tr '\n' ' '; echo; }
 swaymsg create_output > /dev/null
 pause 0.3
-start app displays
+start shell
 note echo "start: $(layout)"
-shot rest
+ipc settings displays; pause 1.6; shot rest
 
 # HEADLESS-2 under HEADLESS-1: snapped from a little off.
-appipc select HEADLESS-2 > /dev/null
-appipc place HEADLESS-2 30 1100 > /dev/null
-pause 0.4
+ipc displays select HEADLESS-2 > /dev/null
+ipc displays place HEADLESS-2 30 940 > /dev/null
+pause 0.6
 shot moved
-note echo "draft: $(appipc state | grep -o 'dirty[^,]*')"
+note echo "draft: $(ipc displays state | grep -o 'dirty[^,]*')"
 
-# Apply, and go back.
-appipc apply > /dev/null
+ipc displays apply > /dev/null
 pause 0.8
 shot countdown
-note echo "applied: $(layout)"
-appipc revert > /dev/null
-pause 0.8
-note echo "reverted: $(layout)"
-
-# Apply again and keep: the file a reload reads.
-appipc place HEADLESS-2 30 1100 > /dev/null
-appipc apply > /dev/null
-pause 0.8
-appipc keep > /dev/null
-pause 0.4
+ipc displays keep > /dev/null
+ipc displays save-profile Desk > /dev/null
+pause 0.6
 shot kept
-note echo "kept: $(layout)"
-note cat "$XDG_STATE_HOME/eva/displays/outputs.sway"
-swaymsg reload > /dev/null
-pause 0.8
-note echo "after reload: $(layout)"
 
-# A name on each monitor, with no shell to draw it.
-appipc identify > /dev/null
-pause 2.4
-shot identify
-pause 2.5
-stop
-
-# The same through the shell's verb.
-start shell
-ipc displays-identify > /dev/null
+# A name on each monitor.
+ipc displays identify > /dev/null
 pause 1
-shot identify-shell
-
-# A third monitor arriving brings the profile saved for those three: the shell
-# puts it above the others.
-monitor() {
-  printf '{"identity":"port:%s","enabled":true,"x":%s,"y":%s,"width":1920,"height":1080,"refresh":60,"scale":1,"transform":0,"vrr":false,"mirror":""}' "$1" "$2" "$3"
-}
-{
-  printf '{"profiles":[{"name":"dock","auto":true,"key":"port:HEADLESS-1#1,port:HEADLESS-2#1,port:HEADLESS-3#1","outputs":['
-  monitor HEADLESS-1 0 1080
-  printf ','
-  monitor HEADLESS-2 0 2160
-  printf ','
-  monitor HEADLESS-3 0 0
-  printf ']}]}\n'
-} > "$XDG_STATE_HOME/eva/displays/profiles.json"
-note echo "before hotplug: $(layout)"
-swaymsg create_output > /dev/null
-pause 2.5
-note echo "after hotplug: $(layout)"
-note echo "persisted: $(grep -c HEADLESS "$XDG_STATE_HOME/eva/displays/outputs.sway") outputs"
+shot identify

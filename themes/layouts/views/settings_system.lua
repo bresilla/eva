@@ -224,6 +224,29 @@ function M.firewall_page(model, w, h)
   }
 end
 
+--- Every fact the machine gives (info_model.lua), a card to each kind, built
+--- again as more of them come in. The versions are the summary's already.
+local FACT_H = 28
+local function details(model, w)
+  local inner = P.inner(w)
+  local info = model.info
+  local cards = morf.list_model({})
+  morf.effect("eva.about.details", function()
+    local revision = info.revision:get()
+    local rows = {}
+    for _, section in ipairs(info.sections(info.facts:get())) do
+      if section.key ~= "versions" then rows[#rows + 1] = { id = section.key .. "@" .. revision, section = section } end
+    end
+    cards:replace(rows, "id")
+  end)
+  return ui.Repeater { as = "column", gap = P.GAP, width = w, model = cards, delegate = function(row)
+    local section, facts = row.section, {}
+    for index, fact in ipairs(section.rows) do facts[index] = { fact[1], fact[2] } end
+    return P.section { id = "about-detail-" .. section.key, width = w, title = section.title,
+      kit.facts(facts, inner, FACT_H, math.min(math.floor(inner * 0.42), 180)) }
+  end }
+end
+
 function M.about_page(model, w, h)
   local inner = P.inner(w)
   local name = morf.signal("eva.about.name", "")
@@ -248,15 +271,74 @@ function M.about_page(model, w, h)
         visible = function() return not model.hostname_declared() end,
         on_clicked = function() model.set_hostname(name:get()) end },
     },
-    P.section { id = "about-more", width = w, title = "More", visible = model.can_info,
-      F.link { id = "about-info", width = inner, icon = "memory", title = "System information",
-        subtitle = "Every sensor and device, in eva-info", go = model.open_info },
-    },
+    details(model, w),
   }
 end
 
+local LINE_H, LOG_H = 24, 280
+
+--- A line of the rebuild's log, in the mono face.
+local function log_row(_, s)
+  local index = s.index()
+  local node = kit.text {
+    id = "update-line-" .. index, width = function() return s.width() end, height = LINE_H, elide = "right",
+    vertical_alignment = "center", font_size = P.SUB, font_family = theme.mono, color = kit.ink("hi"),
+    text = function() local row = s.row() return row and row.text or "" end,
+  }
+  return node, function() end
+end
+
+--- Updates: what runs now; on NixOS the flake's inputs by age and a rebuild
+--- with its log, elsewhere what each package manager has waiting.
 function M.updates_page(model, w, h)
   local inner = P.inner(w)
+  local U = model.check
+  local function nixos() return U.nixos:get() end
+  local function found() return U.flake:get() ~= "" and #U.inputs:get() > 0 end
+  local function running() return U.state:get() == "running" end
+  local inputs = F.list(inner, "update-input-", function() return #U.inputs:get() end, function(index, width)
+    local function input() return U.inputs:get()[index] or {} end
+    local function tone()
+      local i = input()
+      if not i.modified or i.modified <= 0 then return kit.ink("lo")() end
+      local days = U.days(i.modified)
+      if days >= U.OLD then return kit.signal("alert")() end
+      if days >= U.STALE then return kit.signal("warn")() end
+      return kit.ink("hi")()
+    end
+    return P.row { id = "update-input-row-" .. index, width = width, icon = "deployed_code", on = function() return false end,
+      title = function() return input().name or "" end,
+      subtitle = function()
+        local i = input()
+        if not i.name then return "" end
+        local date = i.modified > 0 and morf.time.format("%-d %b %Y", i.modified) or ""
+        return ("%s %s %s"):format(i.source, i.rev, date)
+      end,
+      trailing = kit.text { id = "update-input-age-" .. index, width = 96, horizontal_alignment = "right",
+        font_size = theme.size.normal, color = tone,
+        text = function() local i = input() return i.modified and U.age(i.modified) or "" end } }
+  end, nil, 48)
+  local managers = F.list(inner, "update-manager-", function() return #U.managers:get() end, function(index, width)
+    local function manager() return U.managers:get()[index] or {} end
+    return P.row { id = "update-manager-row-" .. index, width = width, icon = "inventory_2", on = function() return false end,
+      title = function()
+        local m = manager()
+        if not m.name then return "" end
+        return ("%s: %d %s"):format(m.name, m.count, m.count == 1 and "update" or "updates")
+      end,
+      subtitle = function()
+        local m = manager()
+        if not m.name then return "" end
+        return m.count == 0 and "Up to date" or table.concat(m.packages, ", ")
+      end }
+  end, nil, 6)
+  local log, handle = kit.widgets.virtual_list { id = "update-log", width = inner, height = LOG_H, rows = U.rows,
+    row_height = LINE_H, delegate = log_row }
+  -- The newest line stays in sight.
+  morf.effect("update.tail", function()
+    U.lines:get()
+    handle.scroll_by(1e9)
+  end)
   return P.page { id = "updates-scroll", width = w, height = h, active = model.active,
     P.section { id = "updates-versions", width = w, title = "Running now",
       F.fact { id = "updates-eva", width = inner, icon = "dashboard_customize", title = "eva",
@@ -264,34 +346,44 @@ function M.updates_page(model, w, h)
       F.fact { id = "updates-morf", width = inner, icon = "memory", title = "morf", subtitle = model.version },
     },
     P.section { id = "updates-do", width = w, title = "Updates",
-      F.link { id = "updates-open", width = inner, icon = "system_update", title = "Check for updates",
-        subtitle = "System, apps and firmware, in eva-update", go = model.open, visible = model.available },
-      F.note(inner, "eva-update is not installed here.", { id = "updates-missing",
-        visible = function() return not model.available() end }),
-      F.note(inner, "This system is updated by rebuilding its configuration: nixos-rebuild switch.",
-        { id = "updates-nixos", visible = model.nixos }),
-      F.status("updates-status", inner, model),
+      kit.text { id = "update-note", width = inner, elide = "right", font_size = theme.size.small, color = kit.ink("lo"),
+        text = function()
+          if U.message:get() ~= "" then return U.message:get() end
+          if U.checking:get() > 0 then return "Asking the package managers" end
+          local count = U.pending()
+          return count == 0 and "Nothing waits" or (count .. " waiting")
+        end },
+      P.buttons { width = inner,
+        { id = "update-check", label = "Check again", icon = "refresh", enabled = function() return U.checking:get() == 0 end,
+          on_clicked = function() U.start() end },
+        { id = "update-rebuild", label = "Rebuild", icon = "build", tone = "primary",
+          visible = function() return nixos() and U.flake:get() ~= "" and not running() end,
+          on_clicked = function() U.rebuild() end },
+        { id = "update-cancel", label = "Stop", icon = "stop", visible = running, on_clicked = function() U.cancel() end },
+      },
     },
+    P.section { id = "update-flake", width = w, title = "Flake inputs", visible = function() return nixos() and found() end,
+      kit.text { id = "update-flake-path", width = inner, elide = "left", font_size = P.SUB, color = kit.ink("lo"),
+        text = function() return U.flake:get() end },
+      inputs },
+    P.empty { id = "update-no-flake", icon = "lock", title = "No flake.lock", width = w,
+      text = "Name one with EVA_UPDATE_FLAKE, or the setting update.flake, or keep it at /etc/nixos.",
+      visible = function() return nixos() and not found() end },
+    P.section { id = "update-managers", width = w, title = "Packages",
+      visible = function() return #U.managers:get() > 0 end, managers },
+    P.empty { id = "update-none", icon = "system_update", title = "Nothing to ask", width = w,
+      text = "This machine has no package manager eva knows.",
+      visible = function() return not nixos() and U.checking:get() == 0 and #U.managers:get() == 0 end },
+    P.section { id = "update-log-section", width = w, title = "Rebuild",
+      visible = function() return U.lines:get() > 0 or running() end, log },
   }
 end
 
 function M.displays_page(model, w, h)
   local inner = P.inner(w)
-  local outputs = F.list(inner, "displays-row-", function() return #model.outputs() end, function(index, width)
-    local function row() return model.outputs()[index] or {} end
-    return P.row { id = "displays-output-" .. index, width = width, icon = "monitor",
-      on = function() return row().enabled ~= false end,
-      title = function() local r = row() return r.description ~= "" and r.description or r.name or "" end,
-      subtitle = function() return row().name and ((row().name) .. " · " .. model.summary(row())) or "" end }
-  end, "No displays reported", 8)
+  local arrange = require("themes").view("displays_page")
   return P.page { id = "displays-scroll", width = w, height = h, active = model.active,
-    P.section { id = "displays-list", width = w, title = "Connected", outputs,
-      P.button { id = "displays-open", icon = "open_in_new", label = "Arrange displays", width = inner, tone = "primary",
-        visible = model.can_open, on_clicked = model.open },
-      F.note(inner, "Resolution, arrangement, scale, rotation, mirroring and profiles are all in eva-displays.",
-        { id = "displays-note" }),
-      F.status("displays-status", inner, model),
-    },
+    arrange.arrangement(model.arrange, w), arrange.monitor(model.arrange, w), arrange.profiles(model.arrange, w),
     P.section { id = "displays-ddc", width = w, title = "External screens",
       F.toggle { id = "displays-ddc-on", width = inner, icon = "brightness_medium", title = "Brightness over the cable",
         subtitle = "The brightness slider and keys reach the screen they are on, by DDC/CI",

@@ -1,6 +1,6 @@
--- The About, Updates and Displays pages. Displays reads what
--- lib/shell/displays reads and hands every change to eva-displays; nothing
--- here arranges a monitor.
+-- The About, Updates and Displays pages. About sums the machine up and lists
+-- every fact of it (info_model.lua); Updates checks what waits
+-- (system_updates.lua); Displays arranges the monitors (displays_model.lua).
 local morf = require("morf")
 local about = require("lib.services.about")
 local timedate = require("lib.services.timedate")
@@ -8,15 +8,6 @@ local host = require("lib.services.host")
 local page_model = require("page_model")
 
 local M = {}
-
---- Opens a tool of apps/, or says it is not installed.
-local function opener(model, tool, name)
-  return function()
-    if host.open_tool(tool) then return true end
-    model.say(name .. " is not installed here", true)
-    return false
-  end
-end
 
 function M.about(active)
   local model = page_model.new("about", active)
@@ -45,13 +36,16 @@ function M.about(active)
   function model.hostname() return hostname:get() end
   function model.hostname_declared() return timedate.hostname_declared() end
   model.nixos = host.nixos
+  -- Every fact, the summary's and the cards' below it, for a paste.
+  model.info = require("info_model")
+  model.on_show(function() model.info.gather() end)
   function model.copy()
-    local ok = pcall(morf.clipboard.set, about.as_text(rows:get()))
+    local text = about.as_text(rows:get()) .. "\n\n" .. model.info.text()
+    if host.held("copy the facts") then model.say("Would copy it all (dry run)") return true end
+    local ok = pcall(morf.clipboard.set, text)
     model.say(ok and "Copied" or "Could not reach the clipboard", not ok)
     return ok
   end
-  function model.can_info() return host.tool("info") ~= nil end
-  model.open_info = opener(model, "info", "eva-info")
   function model.set_hostname(name)
     local valid, why = timedate.valid_hostname(name)
     if not valid then model.say(why, true) return false end
@@ -60,38 +54,32 @@ function M.about(active)
   return model
 end
 
+--- Updates: the versions running, and what waits (system_updates.lua), asked
+--- again as the page comes on show.
 function M.updates(active)
   local model = page_model.new("updates", active)
   function model.version() return morf.version or "" end
   function model.eva() return about.eva_version() or "" end
   model.nixos = host.nixos
-  function model.available() return host.tool("update") ~= nil end
-  model.open = opener(model, "update", "eva-update")
+  model.check = require("system_updates")
+  model.on_show(function()
+    if model.check.state:get() ~= "running" then model.check.start() end
+  end)
   return model
 end
 
---- Displays: the outputs, read-only, and the way to eva-displays.
+--- Displays: the monitors' arrangement (displays_model.lua), read again as the
+--- page comes on show, and screens' brightness over the cable.
 function M.displays(active)
   local model = page_model.new("displays", active)
-  local lib = require("lib.shell.displays")
-  local outputs = morf.signal("eva.displays.page", {})
-  local fake = host.fake() and require("lib.services.host_fake")
-
+  model.arrange = require("displays_model")
   model.on_show(function()
-    if fake then return outputs:set(fake.outputs()) end
-    lib.read(function(found) outputs:set(found or {}) end)
+    model.arrange.refresh()
+    model.arrange.load_profiles()
   end)
-  function model.outputs() return outputs:get() end
   model.ddc = require("ddc_model")
   function model.ddc_on() return require("config").get("displays.ddc") ~= false end
   function model.set_ddc(on) require("config").set("displays.ddc", on == true) end
-  function model.can_open() return host.tool("displays") ~= nil end
-  model.open = opener(model, "displays", "eva-displays")
-  function model.summary(row)
-    if row.enabled == false then return "Off" end
-    return ("%d×%d at %.0f Hz · %d%%"):format(row.width or 0, row.height or 0, row.refresh or 0,
-      math.floor((row.scale or 1) * 100 + 0.5))
-  end
   return model
 end
 

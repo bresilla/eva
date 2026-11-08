@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Draw on screen
-Comment=Strokes and words over everything, for a presentation
-Exec=eva-draw
-Icon=applications-graphics
-Terminal=false
-Categories=Utility;Graphics;Presentation;
-StartupWMClass=eva.draw

@@ -53,37 +53,39 @@ local HOST=[[
   local model=require("utilities")
   local kit=require("kit")
   local page_content=model.page_content
-  model.page_content=function(key,w,h)
-    if key=="focus" then return page_content(key,w,h) end
+  model.page_content=function(key,w,h,...)
+    if key=="focus" then return page_content(key,w,h,...) end
     return ui.Item {id="fixture-detail-"..key,width=w,height=h,
       kit.heading {id="fixture-title-"..key,text=key,width=w,scope="settings."..key},
       kit.pill {id="fixture-detail-action-"..key,width=120,label="Test action",
-        y=function() return h()-40 end,on_clicked=function() record("detail",key) end}}
+        y=function() return (type(h)=="function" and h() or h)-40 end,on_clicked=function() record("detail",key) end}}
   end
   -- Also lets the preserved pre-extraction module render the same fixture.
   for _,d in ipairs(model.DETAILS) do d.build=function(w,h) return model.page_content(d.key,w,h) end end
   local function open(on)
     shown:set(on)
     require("presentation").set("sidebar.settings",on)
-    if not model.opened then model.shown(on) end
   end
-  package.loaded.sidebar={drawer={set=open}}
+  package.loaded.sidebar={drawer={set=open,open=shown},panel={showing=function(key) return key=="settings" end}}
+  require("pages").publish("sidebar",package.loaded.sidebar)
   package.loaded.capture={drawer={set=function(on) record("capture",on) end}}
   ui.Item {width=W,height=H,
     ui.Rect {anchors={fill=true},color=function() return require("theme").color.surface end},
     ui.Item {x=12,y=12,width=W-24,height=H-24,visible=function() return shown:get() end,
-      -- (In the panel's frame, as the panel builds it: the title and the way back are the frame's.)
+      -- (In the panel's frame, as the panel builds it: the title is the frame's.)
       require("themes.layouts.page").frame {id="page-settings",width=W-24,height=function() return H-24 end,
-        title="Settings",title_id="settings-title",build=model.page}}}
+        title="Settings",title_id="settings-title",build=model.page}},
+    ui.Item {anchors={fill=true},require("settings_window").node}}
   morf.ipc.open=function(on) open(on=="yes") end
-  morf.ipc.select=function(key)
-    if model.request then return model.request(key) end
-    model.detail:set(key) return true
-  end
+  morf.ipc.close_window=function() model.close() end
+  -- A page over the panel's tiles, and one in the Settings window.
+  morf.ipc.select=function(key) return model.in_panel.request(key) end
+  morf.ipc.window_page=function(key) return model.request(key) end
   morf.ipc.update=function() data.volume=.83 data.wifi=true update() end
   morf.ipc.state=function()
     return {calls=calls,reads=reads,awake=model.awake:get(),dnd=require("notifs").dnd:get(),
-      open=shown:get(),requested=model.detail:get(),displayed=(model.displayed or model.detail):get(),
+      open=shown:get(),window=model.opened:get(),page=model.detail:get(),
+      requested=model.in_panel.detail:get(),displayed=model.in_panel.displayed:get(),
       overview=require("presentation").active("settings.overview")(),volume=data.volume,brightness=data.brightness}
   end
   morf.ipc.clear_calls=function() calls={} end
@@ -142,7 +144,9 @@ for _,style in ipairs {"material","tsugumori"} do
     test.truthy(test.ipc("state").awake)
     test.click("utilities-toggle-dnd") test.advance(100)
     test.truthy(test.ipc("state").dnd)
-    test.click("settings-back") test.advance(2500)
+    test.truthy(test.ipc("state").open,"Focus left the panel")
+    test.falsy(test.ipc("state").window,"Focus opened the Settings window")
+    test.click("quick-back") test.advance(2500)
     local slider=test.get("utilities-volume-track")
     test.click(slider.x+slider.width*.75,slider.y+slider.height/2) test.advance(100)
     test.near(test.ipc("state").volume,.75,.06)
@@ -154,8 +158,9 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("utilities-more-bluetooth") test.advance(2500)
     test.eq(test.ipc("state").displayed,"bluetooth")
     test.truthy(test.get("fixture-detail-bluetooth").visible)
+    test.truthy(test.find{id="quick-more",visible=true},"the page has no More settings")
     shot(style.."-settings-detail")
-    test.click("settings-back") test.advance(2500)
+    test.click("quick-back") test.advance(2500)
     test.click("utilities-capture") test.advance(100)
     test.eq(called("capture"),true)
     test.falsy(test.ipc("state").open)
@@ -218,7 +223,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.falsy(test.ipc("state").awake) test.falsy(test.ipc("state").dnd)
     test.click("utilities-toggle-awake") test.click("utilities-toggle-dnd") test.advance(100)
     test.truthy(test.ipc("state").awake) test.truthy(test.ipc("state").dnd)
-    test.click("settings-back") test.advance(2500)
+    test.click("quick-back") test.advance(2500)
     test.truthy(test.find{text="Awake · Silent · DND",visible=true})
     test.truthy(test.ipc("select","tor")) test.advance(2500)
     test.eq(test.ipc("state").displayed,"tunnel")
@@ -303,12 +308,12 @@ test.it("Tsugumori compact Settings reveals scrolled titles and reaches the last
   test.click("utilities-toggle-focus") test.advance(2500)
   test.click("utilities-toggle-dnd") test.advance(100)
   test.truthy(test.ipc("state").dnd)
-  test.click("settings-back") test.advance(2500)
+  test.click("quick-back") test.advance(2500)
   shot("settings-compact-attention")
   test.ipc("color","#45aa86") test.advance(100)
   shot("settings-compact-palette")
   test.ipc("select","sound") test.advance(2500)
-  local detail=test.get("settings-detail-sound")
+  local detail=test.get("quick-detail-sound")
   test.wheel(0,2000,{x=detail.x+80,y=detail.y+100}) test.advance(200)
   test.click("fixture-detail-action-sound")
   test.eq(called("detail"),"sound")

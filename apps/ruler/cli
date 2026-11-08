@@ -2,7 +2,9 @@
 # eva-ruler: an on-screen pixel ruler, over a frozen picture of the screen. A
 # second launch shuts it, as Escape does.
 #
-#   eva-ruler                 spacing: the gaps both ways round the pointer
+#   eva-ruler                 the Tools window, on Screen ruler; with no shell,
+#                             spacing
+#   eva-ruler spacing         the gaps both ways round the pointer
 #   eva-ruler horizontal      across only
 #   eva-ruler vertical        down only
 #   eva-ruler bounds          drag a box
@@ -18,7 +20,9 @@ apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
 . "$apps/common/cli.sh"
 
 case "${1:-}" in
-  '') exec sh "$apps/launch" ruler ;;
+  '')
+    if eva_shell_up; then eva_tools ruler; else exec sh "$apps/launch" ruler; fi
+    ;;
   -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
   spacing | horizontal | vertical | bounds) EVA_RULER_MODE=$1 exec sh "$apps/launch" ruler ;;
   *)

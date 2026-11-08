@@ -1,6 +1,7 @@
 #!/bin/sh
 # Every spec under tests/ through `morf test`, in parallel shards, with HOME,
-# the XDG folders and the buses kept away from the person's own.
+# the XDG folders, the buses and the shared scale file kept away from the
+# person's own.
 #
 #   tools/test.sh [SPEC ...]
 #
@@ -31,7 +32,8 @@ for shard in "$scratch"/shard.*; do
     mkdir -p "$own/home" "$own/state" "$own/cache" "$own/config" "$own/run"
     chmod 700 "$own/run"
     HOME="$own/home" XDG_STATE_HOME="$own/state" XDG_CACHE_HOME="$own/cache" \
-    XDG_CONFIG_HOME="$own/config" XDG_RUNTIME_DIR="$own/run" \
+    XDG_CONFIG_HOME="$own/config" XDG_RUNTIME_DIR="$own/run" EVA_SCALE_FILE="$own/scale.json" \
+    EVA_PATTY_DIR="$own/patty" \
     DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent \
     DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \
       "$morf" test --no-dbus $(cat "$shard") > "$shard.tap" 2>&1 || true

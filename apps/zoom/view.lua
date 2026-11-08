@@ -8,8 +8,8 @@ local theme = require("theme")
 local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local pill = require("themes.layouts.tool_pill")
-local frame = require("common.frame")
-local model = require("model")
+local frame = require("apps.common.frame")
+local model = require("apps.zoom.model")
 local C, S = theme.color, theme.space
 
 local M = {}

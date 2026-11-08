@@ -48,17 +48,21 @@ function V.build(model, desk)
     return "schedule"
   end
 
+  -- Its resting line and its opened face cross over as the box springs between
+  -- them; only the face on show takes a press.
+  local fade = { duration = theme.duration.small, easing = theme.ease.standard }
   local rest = ui.Row { anchors = { center_in = true }, gap = S.xs, align = "center",
+    opacity = function() return opened() and 0 or 1 end, behavior = { opacity = fade },
     kit.icon(icon, 18, kit.ink("accent")),
     line { id = "island-words", text = words, width = REST_W - S.xxl - S.l, elide = "right" } }
-  rest.visible = function() return not opened() end
 
   local function step(id, glyph, action)
     return kit.action { id = id, accessible_name = id, width = S.TARGET, height = S.TARGET, cursor = "pointer",
-      on_clicked = function() media.control(action) end,
+      enabled = opened, on_clicked = function() media.control(action) end,
       kit.icon(glyph, 24, kit.ink("hi"), { anchors = { center_in = true }, fill = true }) }
   end
-  local wide = ui.Item { anchors = { fill = true, margins = S.s }, visible = opened,
+  local wide = ui.Item { anchors = { fill = true, margins = S.s },
+    opacity = function() return opened() and 1 or 0 end, behavior = { opacity = fade },
     ui.Column { anchors = { vertical_center = true }, gap = S.xxs,
       line { id = "island-title", text = words, font_size = theme.size.normal, font_weight = 600,
         width = OPEN_W - S.TARGET * 3 - S.xl, elide = "right" },

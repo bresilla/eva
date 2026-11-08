@@ -41,6 +41,7 @@ local step_session = ctx.step_session
 local choose = ctx.choose
 local clear = ctx.clear
 local key = ctx.key
+local pattern = ctx.pattern
 local main = ctx.main or function() return true end
 local OUTPUT=ctx.output_name or ""
 -- -------------------------------------------------------------- geometry --
@@ -61,6 +62,8 @@ local kb=require("themes.auth_keyboard").new {
   prefix="greet",output=OUTPUT,width=W,height=H,border=BORDER,embedded_width=FIELD_W,
   main=main,keyboard_attached=ctx.keyboard_attached,busy=busy,stage=stage,pull=pull,
   claim=function() if ctx.claim then ctx.claim() end end,open_sheet=open_sheet,clear=clear,escape=escape,action=skin.action,
+  hidden=function() return pattern.shown()~=nil end,
+  on_show=function() if pattern.shown() then ctx.use_method("password") end end,
   look=(skin.keyboard_look or function(v) return v end) {
     panel=function() return C.surfaceContainer end,
     key=function() return C.surfaceContainerHighest end,key_dim=function() return C.surfaceContainerHigh end,
@@ -368,6 +371,18 @@ local field=require("themes.auth_form").password {
   typed=typed,shake=shake,bad=bad,busy=busy,max_dots=MAX_DOTS,
   submit=submit,focus=function() kb.show() end,
 }
+local patterns=require("themes.layouts.auth.pattern")
+local entry=patterns.entry(view,{prefix="greet",width=FIELD_W,field=field,field_h=FIELD_H,entry=pattern,
+  grid=math.min(FIELD_W,PORTRAIT and s(640) or s(340)),cell_h=PORTRAIT and s(104) or s(58),skin=skin,
+  busy=busy,bad=bad,shake=shake,typed=typed,max_dots=MAX_DOTS,submit=submit,
+  send=function(event)
+    if event.text then type_text(event.text)
+    elseif event.key=="backspace" then backspace()
+    elseif event.key=="enter" then submit() end
+  end,
+  on_start=function() if ctx.claim then ctx.claim() end ctx.pattern_start() end,on_done=ctx.drawn})
+local METHOD_W=s(200)
+local method=patterns.switch(view,{prefix="greet",entry=pattern,width=METHOD_W,on_clicked=ctx.use_method})
 
 -- The session to start: a chip; a click (or F2) moves to the next.
 local keyboard = ctx.keyboard
@@ -414,13 +429,13 @@ form=require("themes.auth_form").sheet {
   text=text,heading=ctx.heading,avatar=sheet_avatar,name=function() local p=person() return p.label ~= "" and p.label or p.name end,
   active=function() return main() and stage:get()=="sheet" end,
   visible=function() return main() and (stage:get()=="sheet" or stage:get()=="leaving") end,
-  entry_height=FIELD_H,
-  entry=field,
+  entry_height=entry.height,
+  entry=entry.node,
   message=text {id="greet-message",width=FIELD_W,height=s(24),elide="right",font_size=s(14),
     text=function()
       local value=message:get()
-      if busy:get() and value=="" then return "Checking password…" end
-      if value=="" and keyboard and keyboard.caps() then return "Caps Lock is on" end
+      if busy:get() and value=="" then return pattern.shown() and "Checking pattern…" or "Checking password…" end
+      if value=="" and keyboard and keyboard.caps() and not pattern.shown() then return "Caps Lock is on" end
       return value
     end,
     color=function()
@@ -428,6 +443,7 @@ form=require("themes.auth_form").sheet {
       return keyboard and keyboard.caps() and message:get()=="" and C.tertiary or C.onSurfaceVariant
     end},
   session=chips,
+  method={node=method,width=METHOD_W,visible=pattern.taken},
 }
 local sheet=form.node
 formed:set(formed:get()+1)

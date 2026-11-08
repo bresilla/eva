@@ -1,16 +1,16 @@
--- eva-keys: the compositor's bindings and the shell's as one list, spelled and
--- searched. hyprctl is stubbed.
+-- Keyboard shortcuts, eva-keys' list: the compositor's bindings and the shell's
+-- as one list, spelled and searched. hyprctl is stubbed.
 --
 --     morf test --no-dbus tests/keys_spec.lua
 
 local test = morf.test
 
 local ROOT = morf.fs.join(morf.env("PWD"), "")
-local ENV = { EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule" }
+local ENV = { EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule", EVA_TEST_TOOL = "keys" }
 
 local function tool(result)
   test.stub_run("hyprctl", result)
-  test.load("../apps/keys/app.lua", { env = ENV })
+  test.load("../shell/init.lua", { env = ENV, source = morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua") })
   test.settle(300)
 end
 

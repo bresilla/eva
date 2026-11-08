@@ -1,6 +1,7 @@
--- eva-awake: it speaks only to the shell's `awake` verb, and shows what comes
--- back. The verb itself is tests/tool_verbs_spec.lua's; the tile, the bar and
--- the real verb together are tools/see/awake.steps'.
+-- Keep awake for a time: the Focus page's dial, presets and words on the
+-- shell's own keep awake, and `eva-awake`, a job that speaks only to the
+-- shell's `awake` verb. The verb itself is tests/tool_verbs_spec.lua's; the
+-- tile, the bar and the real verb together are tools/see/awake.steps'.
 --
 --     morf test --no-dbus tests/awake_spec.lua
 
@@ -8,6 +9,7 @@ local test = morf.test
 
 local ROOT = morf.fs.join(morf.env("PWD"), "")
 local BIN = ROOT .. "tests/fixtures/bin"
+local JOB = "../apps/common/job/app.lua"
 -- Monday 2 November 2026, 10:00 UTC.
 local MONDAY = 1793613600
 
@@ -18,6 +20,82 @@ local function fresh()
   morf.fs.mkdir(state)
   return state
 end
+
+-- ------------------------------------------------------------- the page --
+
+local SOURCE = [[
+  require("init")
+  morf.ipc.q_awake = function()
+    local idle = require("idle_model")
+    local stop = idle.awake_until()
+    return { on = idle.awake:get(), left = stop > 0 and stop - morf.time.now() or 0 }
+  end
+]]
+
+local function page(style)
+  test.clear_stubs()
+  test.stub_run("task", { code = 0, stdout = "[]" })
+  local state = fresh()
+  test.load("../shell/init.lua", { size = { 1600, 1000 }, source = SOURCE, env = { EVA_STYLE = style, EVA_DRY_RUN = "1",
+    XDG_STATE_HOME = state, EVA_SETTINGS = state .. "/eva.json", HOME = morf.env("XDG_CACHE_HOME"), EVA_WALLPAPER = "" } })
+  test.settle(1000)
+  test.ipc("settings", "focus") test.settle(1500)
+  return state
+end
+
+-- The Settings window's page wheeled until `id` stands in it.
+local function reach(id)
+  for _ = 1, 40 do
+    local node, pane = test.find { id = id, visible = true }, test.get("settings-detail")
+    if node and node.y > pane.y and node.y + node.height < pane.y + pane.height then return id end
+    test.wheel(0, 120, { x = pane.x + pane.width / 2, y = pane.y + pane.height / 2 }) test.advance(200)
+  end
+  return id
+end
+
+for _, style in ipairs { "material", "tsugumori" } do
+  test.it("a preset keeps the session awake, and the dial shows it, in " .. style, function()
+    page(style)
+    test.eq(test.get("awake-left").text, "Off")
+    test.click(reach("awake-preset-60")) test.settle(200)
+    local now = test.ipc("q_awake")
+    test.truthy(now.on)
+    test.near(now.left, 3600, 5)
+    test.contains(test.get("awake-until").text, "Until ")
+    test.eq(#test.logs("error"), 0)
+  end)
+end
+
+test.it("takes the time however it is said", function()
+  page("material")
+  test.click(reach("awake-words")) test.type("45 min") test.settle(100)
+  test.truthy(test.find { id = "awake-hint", visible = true }, "the words were not read back")
+  test.key("Return") test.settle(200)
+  test.near(test.ipc("q_awake").left, 45 * 60, 5)
+end)
+
+test.it("says what it needs when the words make no time", function()
+  page("material")
+  test.click(reach("awake-words")) test.type("whenever") test.settle(50)
+  test.click(reach("awake-words-go")) test.settle(100)
+  test.contains(test.get("awake-hint").text, "Say a time")
+  test.falsy(test.ipc("q_awake").on)
+end)
+
+test.it("follows the Interruptions' switch, one state with the tile", function()
+  page("material")
+  test.click(reach("utilities-toggle-awake")) test.settle(200)
+  test.truthy(test.ipc("q_awake").on)
+  test.eq(test.get("awake-left").text, "On")
+  test.click(reach("utilities-toggle-awake")) test.settle(200)
+  test.eq(test.get("awake-left").text, "Off")
+end)
+
+test.it("never holds an inhibitor of its own", function()
+  test.eq(morf.fs.read(ROOT .. "shell/awake_model.lua"):find("idle.inhibit", 1, true), nil)
+end)
+
+-- --------------------------------------------------------------------- jobs --
 
 -- The shell's answer, as `morf ipc call` gives it.
 local function answer(on, stop)
@@ -32,123 +110,6 @@ local function verbs()
   return out
 end
 
-local function window(style, reply, env)
-  test.clear_stubs()
-  test.stub_run("env", reply or answer(false, 0))
-  local state = fresh()
-  local appearance = state .. "/appearance.json"
-  morf.fs.write(appearance, morf.json.encode { theme = style, font = "" })
-  local full = { XDG_STATE_HOME = state, EVA_NOW = tostring(MONDAY), EVA_SETTINGS = "/nonexistent/eva.json",
-    LULE_A = "/nonexistent/lule", EVA_APPEARANCE = appearance }
-  for key, value in pairs(env or {}) do full[key] = value end
-  test.load("../apps/awake/app.lua", { env = full })
-  test.settle(400)
-end
-
-for _, style in ipairs { "material", "tsugumori" } do
-  test.it("shows the time left the shell holds, in " .. style, function()
-    window(style, answer(true, MONDAY + 1800))
-    test.truthy(test.ipc("state").on)
-    test.eq(test.get("awake-left").text, "30:00")
-    test.contains(test.get("awake-until").text, "Until ")
-    test.eq(#test.logs("error"), 0)
-  end)
-
-  test.it("a preset asks the shell, in " .. style, function()
-    window(style, answer(true, MONDAY + 3600))
-    test.clear_stubs()
-    test.stub_run("env", answer(true, MONDAY + 3600))
-    test.click("awake-preset-60")
-    test.settle(200)
-    test.contains(table.concat(verbs(), "\n"), "call awake on 60")
-    test.eq(test.ipc("state").left, 3600)
-    test.near(test.ipc("state").fraction, 1, 0.01)
-  end)
-end
-
-test.it("never holds an inhibitor of its own", function()
-  local source = morf.fs.read(ROOT .. "apps/awake/model.lua") .. morf.fs.read(ROOT .. "apps/awake/app.lua")
-  test.eq(source:find("idle.inhibit", 1, true), nil)
-end)
-
-test.it("takes the time however it is said", function()
-  window("material")
-  test.stub_run("env", answer(true, MONDAY + 60))
-  for _, case in ipairs {
-    { "30m", 30 }, { "45 min", 45 }, { "1h", 60 }, { "2 hours", 120 }, { "1h30", 90 }, { "half an hour", 30 },
-  } do
-    test.truthy(test.ipc("say", case[1]), case[1])
-    test.settle(50)
-    local all = verbs()
-    test.contains(all[#all], "call awake on " .. case[2], case[1])
-  end
-end)
-
-test.it("a time of day counts from now", function()
-  window("material")
-  test.stub_run("env", answer(true, MONDAY + 60))
-  test.truthy(test.ipc("say", "until 23:59"))
-  test.settle(50)
-  local all = verbs()
-  local minutes = tonumber(all[#all]:match("awake on ([%d%.]+)"))
-  test.truthy(minutes > 0 and minutes <= 1440)
-end)
-
-test.it("says what it needs when the words make no time", function()
-  window("material")
-  test.falsy(test.ipc("say", "whenever"))
-  test.contains(test.ipc("state").message, "Say a time")
-end)
-
-test.it("reads the time it gave from where it left it", function()
-  local state = fresh()
-  morf.fs.write(state .. "/eva/awake/run.json", morf.json.encode { stop = MONDAY + 900, seconds = 1800 }, { parents = true })
-  window("material", answer(true, MONDAY + 900), { XDG_STATE_HOME = state })
-  test.near(test.ipc("state").fraction, 0.5, 0.01)
-end)
-
-test.it("follows the tile while it is open", function()
-  window("material", answer(true, 0))
-  test.truthy(test.ipc("state").on)
-  test.eq(test.get("awake-left").text, "On")
-  test.clear_stubs()
-  test.stub_run("env", answer(false, 0))
-  test.advance(2100)
-  test.settle(100)
-  test.falsy(test.ipc("state").on)
-  test.eq(test.get("awake-left").text, "Off")
-end)
-
-test.it("says so plainly when the shell is not running", function()
-  window("material", { code = 1 })
-  test.falsy(test.ipc("state").up)
-  test.eq(test.get("awake-left").text, "The shell is not running")
-  test.click("awake-preset-30")
-  test.settle(100)
-  test.eq(#verbs(), 1)
-end)
-
-test.it("comes back when the shell does", function()
-  window("material", { code = 1 })
-  test.clear_stubs()
-  test.stub_run("env", answer(true, 0))
-  test.advance(2100)
-  test.settle(100)
-  test.truthy(test.ipc("state").up)
-end)
-
-test.it("holds back under a dry run", function()
-  window("material", nil, { EVA_DRY_RUN = "1" })
-  local before = #verbs()
-  test.click("awake-off")
-  test.ipc("keep", "30")
-  test.settle(100)
-  test.eq(#verbs(), before)
-  test.truthy(test.ipc("state").up)
-end)
-
--- --------------------------------------------------------------------- jobs --
-
 local function job(args, reply, env)
   test.clear_stubs()
   if reply then test.stub_run("env", reply) end
@@ -156,7 +117,9 @@ local function job(args, reply, env)
   local out = state .. "/answer"
   local full = { EVA_JOB_OUT = out, XDG_STATE_HOME = state, EVA_NOW = tostring(MONDAY) }
   for key, value in pairs(env or {}) do full[key] = value end
-  test.load("../apps/awake/app.lua", { args = args, env = full })
+  local words = { "awake" }
+  for _, word in ipairs(args) do words[#words + 1] = word end
+  test.load(JOB, { args = words, env = full })
   test.settle(200)
   return out
 end
@@ -173,6 +136,15 @@ end)
 test.it("30m is thirty minutes of the shell's", function()
   job({ "30m" }, answer(true, MONDAY + 1800))
   test.contains(verbs()[1], "call awake on 30")
+end)
+
+test.it("words are minutes however they are said", function()
+  for _, case in ipairs { { "45 min", 45 }, { "2 hours", 120 }, { "1h30", 90 } } do
+    local words = {}
+    for word in case[1]:gmatch("%S+") do words[#words + 1] = word end
+    job(words, answer(true, MONDAY + 60))
+    test.contains(verbs()[1], "call awake on " .. case[2], case[1])
+  end
 end)
 
 test.it("off lets go", function()
@@ -218,12 +190,15 @@ test.it("--pid leaves a time put on it since", function()
   test.contains(all[#all], "awake state")
 end)
 
-local function cli(args)
+local function cli(args, env)
   local state = morf.env("XDG_STATE_HOME")
   local log = state .. "/awake-cli-" .. tostring(morf.time.now_ms()) .. ".log"
   morf.fs.write(log, "")
   local argv = { "env", "PATH=" .. BIN .. ":" .. morf.env("PATH"), "MORF=" .. BIN .. "/morf", "STUB_LOG=" .. log,
-    "HOME=" .. state, "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR"), "sh", ROOT .. "apps/awake/cli" }
+    "HOME=" .. state, "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR") }
+  for _, word in ipairs(env or {}) do argv[#argv + 1] = word end
+  argv[#argv + 1] = "sh"
+  argv[#argv + 1] = ROOT .. "apps/bin/eva-awake"
   for _, word in ipairs(args) do argv[#argv + 1] = word end
   test.clear_stubs()
   test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/cli_host.lua") })
@@ -232,8 +207,12 @@ local function cli(args)
   return morf.fs.read(log) or "", test.ipc("result")
 end
 
-test.it("the command line asks the tool's own job", function()
-  test.contains(cli { "--pid", "12" }, "app " .. ROOT .. "apps/awake/app.lua -- --pid 12")
+test.it("the command line runs the shell's own code as a job", function()
+  test.contains(cli { "--pid", "12" }, "app " .. ROOT .. "apps/common/job/app.lua -- awake --pid 12")
+end)
+
+test.it("alone it opens Focus in the Settings window", function()
+  test.contains(cli({}, { "STUB_UP=1" }), "ipc call settings focus")
 end)
 
 test.it("its help is its header", function()

@@ -70,7 +70,8 @@ local SHELL=[[
   package.loaded.launcher={drawer=drawer("launcher")}
   package.loaded.dashboard={drawer=drawer("dashboard")}
   package.loaded.sidebar={drawer=drawer("sidebar"),select=function() end}
-  package.loaded.utilities={detail=morf.signal("clock.fixture.detail","")}
+  local detail=morf.signal("clock.fixture.detail","")
+  package.loaded.utilities={detail=detail,in_panel={detail=detail,request=function(key) detail:set(key) return true end}}
   local bar=require("bar")
   ui.Item {width=1280,height=800,bar.build()}
   morf.ipc.set=function(key,value)

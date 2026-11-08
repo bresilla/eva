@@ -1,6 +1,7 @@
--- eva-update: a flake.lock read and aged, where it is looked for, the package
--- managers' answers, a rebuild's log dry and through a stand-in pkexec, and the
--- window. No spec runs a rebuild: every path here is the canned log or a stand-in.
+-- Updates: a flake.lock read and aged, where it is looked for, the package
+-- managers' answers, a rebuild's log dry and through a stand-in pkexec, on
+-- Settings' Updates page, and `eva-update --check`. No spec runs a rebuild:
+-- every path here is the canned log or a stand-in.
 --
 --     morf test --no-dbus tests/update_spec.lua
 
@@ -55,9 +56,29 @@ local function nixos(path)
   return path
 end
 
-local function tool(extra, source)
-  test.load("../apps/update/app.lua", { env = env(extra), source = source })
+-- The shell on Settings' Updates page, its model at hand.
+local HOST = [[
+  require("init")
+  local model = require("system_updates")
+  morf.ipc.state = function()
+    local log = {}
+    for index = 1, math.min(model.rows:len(), 60) do log[index] = model.rows:get(index).text end
+    return { nixos = model.nixos:get(), flake = model.flake:get(), inputs = model.inputs:get(), managers = model.managers:get(),
+      state = model.state:get(), message = model.message:get(), lines = model.lines:get(), log = log, argv = model.argv(),
+      pending = model.pending() }
+  end
+  morf.ipc.rebuild = function() return model.rebuild() end
+  morf.ipc.cancel = function() return model.cancel() end
+]]
+
+local function tool(extra, source, size)
+  test.stub_run("task", { code = 0, stdout = "[]" })
+  local all = env(extra)
+  all.HOME = morf.env("XDG_CACHE_HOME")
+  test.load("../shell/init.lua", { env = all, source = (source or "") .. HOST, size = size or { 1600, 1000 } })
   test.settle(300)
+  test.ipc("settings", "updates")
+  test.settle(800)
 end
 
 test.it("reads a flake's own inputs, the oldest first", function()
@@ -82,7 +103,7 @@ test.it("says how old each input is, in words", function()
   test.eq(test.get({ id = "update-input-age-1" }).text, "6 months")
   test.eq(test.get({ id = "update-input-age-2" }).text, "40 days")
   test.eq(test.get({ id = "update-input-age-3" }).text, "Today")
-  test.contains(test.get({ id = "update-input-source-1" }).text, "github:NixOS/nixpkgs abcdef1")
+  test.contains(test.get({ id = "update-input-row-1-subtitle" }).text, "github:NixOS/nixpkgs abcdef1")
 end)
 
 test.it("takes the lock from the variable, the system, then the setting", function()
@@ -107,7 +128,7 @@ test.it("takes the lock from the variable, the system, then the setting", functi
       if key == "update.flake" then return %q end
       return real(key)
     end
-  ]]):format(kept) .. morf.fs.read(ROOT .. "apps/update/app.lua")
+  ]]):format(kept)
   tool({ EVA_UPDATE_ROOT = set, EVA_UPDATE_FLAKE = false }, source)
   test.eq(test.ipc("state").flake, kept .. "/flake.lock")
 end)
@@ -169,7 +190,7 @@ test.it("plays a canned log when dry, and builds nothing", function()
   tool { EVA_UPDATE_ROOT = root, EVA_UPDATE_FLAKE = lock(root) }
   test.truthy(test.ipc("rebuild"))
   test.eq(test.ipc("state").state, "running")
-  test.eq(test.ipc("state").tab, "log")
+  test.truthy(test.find { id = "update-log-section", visible = true }, "the log did not show on the page")
   test.falsy(test.ipc("rebuild"), "a second one is refused")
   test.advance(1000)
   test.settle(100)
@@ -221,13 +242,13 @@ test.it("keeps its log bounded", function()
   quiet_managers()
   local source = [[
     local morf = require("morf")
-    local model = require("model")
+    local model = require("system_updates")
     model.LIMIT = 40
     morf.ipc.flood = function(count)
       for index = 1, tonumber(count) do model.feed("line " .. index) end
       return true
     end
-  ]] .. morf.fs.read(ROOT .. "apps/update/app.lua")
+  ]]
   tool({ EVA_UPDATE_ROOT = root, EVA_UPDATE_FLAKE = lock(root) }, source)
   test.ipc("flood", 500)
   test.advance(300)
@@ -240,9 +261,7 @@ for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. " fits a phone", function()
     local root = nixos(folder("phone"))
     quiet_managers()
-    tool { EVA_UPDATE_ROOT = root, EVA_UPDATE_FLAKE = lock(root), EVA_STYLE = style }
-    test.resize_window("toplevel:Updates", 380, 800)
-    test.settle(300)
+    tool({ EVA_UPDATE_ROOT = root, EVA_UPDATE_FLAKE = lock(root), EVA_STYLE = style }, nil, { 380, 800 })
     local button = test.get { id = "update-rebuild" }
     test.truthy(button.x + button.width <= 380, "the button runs off the side")
     test.truthy(button.y + button.height <= 800, "the button runs off the foot")
@@ -255,12 +274,15 @@ end
 
 -- ---------------------------------------------------------- the command line --
 
-local function cli(args)
+local function cli(args, up)
   local state = morf.env("XDG_STATE_HOME")
   local log = state .. "/update-cli-" .. tostring(morf.time.now_ms()) .. ".log"
   morf.fs.write(log, "")
   local argv = { "env", "PATH=" .. BIN .. ":" .. morf.env("PATH"), "MORF=" .. BIN .. "/morf", "STUB_LOG=" .. log,
-    "HOME=" .. state, "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR"), "sh", ROOT .. "apps/update/cli" }
+    "HOME=" .. state, "XDG_RUNTIME_DIR=" .. morf.env("XDG_RUNTIME_DIR") }
+  if up then argv[#argv + 1] = "STUB_UP=1" end
+  argv[#argv + 1] = "sh"
+  argv[#argv + 1] = ROOT .. "apps/bin/eva-update"
   for _, word in ipairs(args) do argv[#argv + 1] = word end
   test.load("../shell/init.lua", { source = morf.fs.read(ROOT .. "tests/fixtures/cli_host.lua") })
   test.ipc("run", table.unpack(argv))
@@ -268,18 +290,22 @@ local function cli(args)
   return morf.fs.read(log) or "", result
 end
 
-test.it("asks its own code for the count, with no window", function()
-  test.contains(cli { "--check" }, "update/app.lua -- --check")
+test.it("asks the shell's own code for the count, with no window", function()
+  test.contains(cli { "--check" }, "apps/common/job/app.lua -- update --check")
 end)
 
-test.it("counts with no window, into the file it is told", function()
+test.it("alone it opens Updates in the Settings window", function()
+  test.contains(cli({}, true), "ipc call settings updates")
+end)
+
+test.it("counts with no window, as a job", function()
   local root = nixos(folder("count"))
   local out = root .. "/count"
   quiet_managers()
-  test.load("../apps/update/app.lua", { env = env { EVA_UPDATE_ROOT = root, EVA_UPDATE_FLAKE = lock(root), EVA_UPDATE_OUT = out },
-    args = { "--check" } })
+  test.load("../apps/common/job/app.lua", { env = env { EVA_UPDATE_ROOT = root, EVA_UPDATE_FLAKE = lock(root), EVA_JOB_OUT = out },
+    args = { "update", "--check" } })
   test.settle(300)
-  test.eq(morf.fs.read(out), "2\n")
+  test.eq(morf.fs.read(out), "0\n2\n")
 end)
 
 test.it("prints its help and refuses what it does not know", function()

@@ -104,27 +104,35 @@ end
 
 --- A card's body in the sender's markup, its `text` plain for what reads it.
 --- `n`, `raw` (fn of the notification: what to show, its body without one),
---- then a Text's props.
+--- `live` (fn: whether it is the body on show; one that is not keeps no links,
+--- so a press goes through it), then a Text's props.
 function N.body(spec)
-  local of, pick = spec.n, spec.raw or function(x) return x.body end
+  local of, pick, live = spec.n, spec.raw or function(x) return x.body end, spec.live
   local function raw() local x = of() return x and pick(x) or "" end
   local props = {}
   for key, value in pairs(spec) do
-    if key ~= "n" and key ~= "raw" then props[key] = value end
+    if key ~= "n" and key ~= "raw" and key ~= "live" then props[key] = value end
   end
   props.text = function() return text_of.plain(raw()) end
-  props.markup = function() return text_of.markup(raw()) end
+  props.markup = function()
+    if live and not live() then return (text_of.plain(raw()):gsub("&", "&amp;"):gsub("<", "&lt;")) end
+    return text_of.markup(raw())
+  end
   props.on_link = text_of.open_link
   props.link_color = props.link_color or kit.ink("accent")
   return kit.text(props)
 end
+
+-- Each part below the body takes `glide`, the motion it moves to a new `y` on
+-- as the body above it opens or shuts.
+local function glide(spec) return spec.glide and { y = spec.glide } or nil end
 
 --- A picture at full width: `id`, `y` (fn), `width`, `n`, `shown` (fn).
 function N.preview(spec)
   local function source() local x = spec.n() return x and text_of.image_of(x) or "" end
   local image = ui.Image { anchors = { fill = true }, fill_mode = "preserve_aspect_fit", source = source }
   return ui.Item { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = N.PREVIEW_H - theme.space.s,
-    visible = spec.shown, clip = true,
+    visible = spec.shown, clip = true, behavior = glide(spec),
     mask = ui.Sdf { anchors = { fill = true },
       ui.SdfShape { shape = "box", anchors = { fill = true }, radius = L.control_round(N.PREVIEW_H) } },
     kit.surface { anchors = { fill = true }, color = function() return C.surfaceContainerHighest end },
@@ -155,14 +163,15 @@ function N.buttons(spec)
   local second = row(SLOTS + 1)
   second.visible = function() return #list() > SLOTS end
   return ui.Column { id = spec.id, x = spec.x, y = spec.y, width = spec.width, gap = theme.space.xs, visible = spec.shown,
-    row(1), second }
+    behavior = glide(spec), row(1), second }
 end
 
 --- A media card's controls: `id`, `x`, `y`, `n`, `model`, `shown`.
 function N.transport(spec)
   local SIZE = P.BUTTON_H
   local function list() local x = spec.n() return x and text_of.transport(x) or {} end
-  local row = { id = spec.id, x = spec.x, y = spec.y, gap = theme.space.s, align = "center", visible = spec.shown }
+  local row = { id = spec.id, x = spec.x, y = spec.y, gap = theme.space.s, align = "center", visible = spec.shown,
+    behavior = glide(spec) }
   for slot = 1, 4 do
     local button = L.icon_button { id = spec.id .. "-" .. slot, width = SIZE, height = SIZE,
       icon = function() local item = list()[slot] return item and item.icon or "play_arrow" end,
@@ -192,7 +201,8 @@ function N.chips(spec)
       end }
   end
   local row = P.buttons(items)
-  return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = P.BUTTON_H, visible = spec.shown, row }
+  return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = P.BUTTON_H, visible = spec.shown,
+    behavior = glide(spec), row }
 end
 
 --- The reply field: `id`, `x`, `y`, `width`, `n`, `model`, `shown`.
@@ -221,6 +231,7 @@ function N.reply(spec)
     if input.text ~= words then input.text = words end
   end, { owner = node })
   return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = P.BUTTON_H, visible = spec.shown,
+    behavior = glide(spec),
     kit.surface { width = spec.width - SEND - theme.space.s, height = P.BUTTON_H, radius = kit.round(10),
       color = function() return C.surfaceContainerHighest end, node },
     L.icon_button { id = spec.id .. "-send", x = spec.width - SEND, width = SEND, height = SEND, icon = "send",
@@ -275,7 +286,8 @@ function N.tools(spec)
       on_clicked = function() local item = slots()[slot] if item then item[2]() end end }
   end
   local row = P.buttons(items)
-  return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = P.BUTTON_H, visible = spec.shown, row }
+  return ui.Item { x = spec.x, y = spec.y, width = spec.width, height = P.BUTTON_H, visible = spec.shown,
+    behavior = glide(spec), row }
 end
 
 return N

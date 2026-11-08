@@ -1,0 +1,22 @@
+#!/bin/sh
+# eva-colorpick: a colour off the screen, through a magnifier, in hex, rgb, hsl
+# or oklch, with the recent colours.
+#
+#   eva-colorpick           the Tools window, on Colour picker; with no shell, a pick
+#   eva-colorpick --pick    the frozen screen alone: one click copies a colour and
+#                           ends, for a key
+set -eu
+apps=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+. "$apps/common/cli.sh"
+
+case "${1:-}" in
+  '')
+    if eva_shell_up; then eva_tools colorpick; else exec sh "$apps/launch" colorpick --pick; fi
+    ;;
+  --pick) exec sh "$apps/launch" colorpick --pick ;;
+  -h | --help | help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0" ;;
+  *)
+    eva_say "eva-colorpick: no option $1"
+    exit 2
+    ;;
+esac

@@ -1,10 +1,11 @@
 -- eva-zoom: a magnifier. With a word (in, out, reset, a number) it steps
--- Hyprland's cursor zoom and ends; asked for the lens it is a lens alone; else the
--- small window with its slider.
+-- Hyprland's cursor zoom and ends; asked for the lens (EVA_ZOOM_LENS) it is a
+-- lens alone over the frozen screen. The slider is a page of the Tools window
+-- (page.lua).
 local morf = require("morf")
 local frame = require("common.frame")
-local model = require("model")
-local view = require("view")
+local model = require("apps.zoom.model")
+local view = require("apps.zoom.view")
 
 model.load()
 
@@ -23,27 +24,14 @@ if word then
   return
 end
 
-local asked = morf.env("EVA_ZOOM_LENS")
-if asked and asked ~= "" then
-  local function done()
-    model.close()
-    morf.quit()
-  end
-  frame.quiet(true)
-  view.overlay(done)
-  frame.on_second(function() done() return true end)
-  morf.ipc.lens = function(step) return model.lens_word(step, done) end
-  if asked == "lens" then model.open() else model.lens_word(asked, done) end
-  return
+local function done()
+  model.close()
+  morf.quit()
 end
-
-local function shut() model.close() end
-morf.ipc.lens = function(step) return model.lens_word(step, shut) end
-view.overlay(shut)
-if model.native() then model.read() end
-
-frame.open {
-  id = "zoom", title = "Zoom", width = 460, height = 360, minimum_height = 320,
-  on_close = shut,
-  build = function(w, h) return view.build(w, h, model.open) end,
-}
+local asked = morf.env("EVA_ZOOM_LENS")
+if not asked or asked == "" then asked = "lens" end
+frame.quiet(true)
+view.overlay(done)
+frame.on_second(function() done() return true end)
+morf.ipc.lens = function(step) return model.lens_word(step, done) end
+if asked == "lens" then model.open() else model.lens_word(asked, done) end

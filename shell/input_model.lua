@@ -223,8 +223,8 @@ function M.new(key, active)
     for _, row in ipairs(model.devices()) do if row.kind == "mouse" then return true end end
     return not available()
   end
-  function model.can_keys() return host.tool("keys") ~= nil end
-  function model.open_keys() return host.open_tool("keys") end
+  function model.can_keys() return true end
+  function model.open_keys() return model.request("input/shortcuts", "input") end
   model.selected = morf.signal("eva.input." .. key .. ".selected", "")
   function model.device_value(name, field, otherwise)
     local values = read_map("devices")[name] or {}

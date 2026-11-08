@@ -102,6 +102,49 @@ function V.build(model)
     behavior = { x = hard, y = hard } },
     function() return center(model.active()) end), root)
 
+  -- A switch sends a bright segment along the opening's lip from the old
+  -- slot to the new, its head leading a glowing tail, and it fades there.
+  local SEG = 44
+  local along = B and "x" or "y"
+  local function streak(alpha, inset, thick)
+    local props = { gradient = function()
+      return { angle = B and 90 or 180, stops = { C.primary:alpha(0), C.primary:alpha(alpha) } } end }
+    if B then props.y, props.height, props.width = inset, thick, SEG
+    else props.x, props.width, props.height = inset, thick, SEG end
+    return ui.Rect(props)
+  end
+  local trace = ui.Item { id = "rail-trace", opacity = 0, visible = false,
+    streak(.4, 0, 8), streak(1, B and 3 or 2, 3) }
+  if B then
+    trace.y, trace.height, trace.width = function() return model.edge() - theme.BORDER - 3 end, 8, SEG
+  else
+    trace.x, trace.width, trace.height = theme.LEFT - 5, 8, SEG
+  end
+  ui.reparent(trace, root)
+  local tracing
+  local function untrace()
+    if tracing then tracing:stop() tracing = nil end
+    trace.visible, trace.opacity = false, 0
+  end
+  local function trace_to(from, to)
+    untrace()
+    if from == to then return end
+    local a, b = center(from), center(to)
+    local ahead = b > a
+    -- Flipped about its middle on the way back: the head leads.
+    trace[B and "scale_x" or "scale_y"] = ahead and 1 or -1
+    local function lead(at) return ahead and at - SEG or at end
+    trace[along], trace.visible = lead(a), true
+    tracing = morf.animation.play { { parallel = {
+      { node = trace, property = along, from = lead(a), to = lead(b), duration = 320, easing = "out_cubic" },
+      { node = trace, property = "opacity", duration = 560, keyframes = {
+        { at = 0, value = 0 }, { at = .08, value = 1 }, { at = .55, value = 1 }, { at = .64, value = .45 },
+        { at = .72, value = 1 }, { at = 1, value = 0 } } },
+    } }, on_finished = function(reason)
+      if reason == "completed" then tracing = nil trace.visible = false end
+    end }
+  end
+
   -- -------------------------------------------------------------- card --
   local digits = kit.text { id = "rail-value", x = 12, y = 26, height = 36, font_size = 32,
     font_family = theme.font, font_weight = 300, morph = true,
@@ -170,12 +213,15 @@ function V.build(model)
   end
 
   local motion, hide
+  -- The card boots as it stands out: its outline traces in, a scan crosses it.
+  local boot = require("themes.tsugumori.boot")(theme).new(card, "rail-card",
+    { brackets = false, register = false, z = 10 })
   local function cancel()
     if hide then hide:cancel() hide = nil end
     if motion then motion:stop() motion = nil end
   end
   local function close(immediate)
-    cancel() shown:set(false)
+    cancel() shown:set(false) boot.stop(not immediate)
     if immediate then
       card.visible, card.opacity, shape.opacity = false, 0, 0
       card[slide] = hidden()
@@ -188,7 +234,9 @@ function V.build(model)
     } }, on_finished = function(reason) if reason == "completed" then card.visible = false end end }
   end
   local function pop()
+    local fresh = not card.visible
     cancel() shown:set(true) card.visible = true
+    if fresh then boot.play(80) end
     motion = morf.animation.play { { parallel = {
       { node = card, property = slide, to = out(), duration = 340, easing = "out_expo" },
       { node = card, property = "opacity", to = 1, duration = 180 },
@@ -202,9 +250,13 @@ function V.build(model)
   local last = model.active()
   morf.effect("tsugumori.rail.follow", function()
     local id, on = model.active(), model.enabled()
-    local changed = id ~= last
+    local changed, before = id ~= last, last
     last = id
-    if not on then close(true) elseif changed then pop() end
+    if not on then close(true) untrace()
+    elseif changed then
+      pop()
+      if not require("themes.session").restoring then trace_to(before, id) end
+    end
   end, { owner = root })
   return { node = root, shape = shape }
 end

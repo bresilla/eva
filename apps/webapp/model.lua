@@ -2,7 +2,7 @@
 -- Chromium-family browser's app window, and an icon from the site or a letter
 -- tile. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 local desktop = require("lib.util.desktop")
 local remote = require("lib.util.remote")
 local unicase = require("lib.util.unicase")

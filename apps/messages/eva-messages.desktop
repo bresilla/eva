@@ -2,9 +2,9 @@
 Type=Application
 Name=Messages
 Comment=Text messages, as threads
-Exec=eva-messages
+Exec=eva-messages %u
 Icon=mail-message-new
 Terminal=false
+NoDisplay=true
 Categories=Utility;Telephony;
 MimeType=x-scheme-handler/sms;
-StartupWMClass=eva.messages

@@ -14,6 +14,11 @@ return function(theme, M, hud)
   local function get(v) if type(v) == "function" then return v() end return v end
   local function clamp01(v) return math.max(0, math.min(1, v)) end
   local quick = { duration = 140, easing = "out_cubic" }
+  -- Three hard beats: a fill that registers in steps rather than gliding.
+  local STEPPED = { duration = 150, easing = { spline = {
+    0.11, 0, 0.22, 0, 0.33, 0, 0.333, 0.34, 0.336, 0.34, 0.34, 0.34,
+    0.45, 0.34, 0.56, 0.34, 0.66, 0.34, 0.663, 0.67, 0.666, 0.67, 0.67, 0.67,
+    0.78, 0.67, 0.89, 1, 1, 1 } } }
   local MARK = "M0 0 H7 V1.5 H1.5 V7 H0 Z"
 
   -- Decoration made the first time the pointer, a press or the keyboard
@@ -27,57 +32,25 @@ return function(theme, M, hud)
   -- brackets. Built the first time the control is reached (a lazy slot);
   -- the target's input box never moves. `id` names the pieces
   -- (`<id>-wash`, `<id>-glint`, `<id>-mark-1`).
-  local function feedback(t, id)
+  local _, pieces, keyed = require("themes.tsugumori.interaction")(theme)
+  local function feedback(t, id, plain)
     return lazy(t, function()
       id = id or "tsugumori-control"
       local holder = ui.Item { anchors = { fill = true }, z = 40 }
-      local wash = ui.Rect { id = id .. "-wash", anchors = { fill = true },
-        color = function() return C.primary end, opacity = 0,
-        behavior = { opacity = { duration = 140, easing = "out_cubic" } } }
-      local glint = ui.Path { id = id .. "-glint", x = -36, width = 28,
-        height = function() return math.max(1, t.height) end,
-        view_box = { 0, 0, 28, 100 }, d = "M20 0 H28 L8 100 H0 Z",
-        fill_color = function() return C.primary end, opacity = 0 }
-      ui.reparent(wash, holder)
-      ui.reparent(ui.Item { id = id .. "-glint-clip", anchors = { fill = true }, clip = true, glint }, holder)
-      local marks = {}
-      for i, corner in ipairs { { left = true, top = true }, { right = true, bottom = true } } do
-        marks[i] = ui.Path { id = id .. "-mark-" .. i, anchors = corner, width = 7, height = 7,
-          view_box = { 0, 0, 7, 7 }, d = MARK, rotation = i == 1 and 0 or 180,
-          fill_color = function() return C.primary end, opacity = 0,
-          behavior = { translate_x = { duration = 340, easing = "out_cubic" },
-            translate_y = { duration = 340, easing = "out_cubic" }, opacity = { duration = 180 } } }
-        ui.reparent(marks[i], holder)
+      local react = pieces(holder, id, function() return t.width, t.height end, nil, plain)
+      local focus = { length = plain and 6 or 10, weight = 2, color = function() return C.primary end }
+      local function focused() return t.visual_focus end
+      if plain then
+        focus.visible = focused
+        ui.reparent(hud().corners(focus), holder)
+      else
+        ui.reparent(hud().reticle(focus, focused), holder)
       end
-      ui.reparent(hud().corners { length = 6, weight = 2, color = function() return C.primary end,
-        visible = function() return t.visual_focus end }, holder)
-      local hovered, pressed, running = false, false, nil
-      morf.effect(id .. ".feedback", function()
-        local over, down = t.hovered, t.down
-        local fire = (over and not hovered) or (down and not pressed)
-        hovered, pressed = over, down
-        wash.opacity = down and 0.18 or over and 0.055 or 0
-        for i, mark in ipairs(marks) do
-          local shift = (over and not down) and (i == 1 and -3 or 3) or 0
-          mark.translate_x, mark.translate_y = shift, shift
-          mark.opacity = over and 1 or 0
-        end
-        if not over and not down then
-          if running then running:stop() running = nil end
-          glint.opacity = 0
-        elseif fire then
-          if running then running:stop() end
-          running = morf.animation.play { { parallel = {
-            { node = glint, property = "x", from = -36, to = t.width + 36, duration = 330, easing = "out_cubic" },
-            { node = glint, property = "opacity", duration = 330, keyframes = {
-              { at = 0, value = 0 }, { at = .13, value = .33 }, { at = .65, value = .27 }, { at = 1, value = 0 },
-            } },
-          } }, on_finished = function() running = nil end }
-        end
-      end, { owner = holder })
+      morf.effect(id .. ".feedback", function() react(t.hovered, t.down) end, { owner = holder })
       return holder
     end)
   end
+  S.feedback = feedback
 
   -- A tick ruler along `len`: a short tick every 8 px, a long one every 5th.
   local function ruler(x, y, len, size, color)
@@ -150,11 +123,12 @@ return function(theme, M, hud)
     return {
       background = ui.Rect { anchors = { fill = true }, radius = 0, border_width = 1,
         color = function() return C.surfaceContainerHighest end,
-        border_color = function() return t.checked and stroke(C, "focus") or stroke(C, "idle") end },
+        border_color = function() return t.checked and stroke(C, "focus") or stroke(C, "idle") end,
+        behavior = { border_color = quick } },
       indicator = ui.Rect { id = spec.id and spec.id .. "-thumb", y = 5,
         x = function() return (t.checked ~= (t.mirrored == true)) and 28 or 5 end, width = 19, height = 22,
         color = function() return t.checked and C.primary or C.outline end,
-        behavior = { x = theme.spring.press } },
+        behavior = { x = theme.spring.press, color = quick } },
       badge = feedback(t, spec.id),
     }
   end
@@ -183,10 +157,15 @@ return function(theme, M, hud)
   local function checkbox(t)
     return {
       background = ui.Rect { anchors = { fill = true, margins = 3 }, color = "transparent", border_width = 1,
-        border_color = function() return (t.checked or t.partial) and C.primary or stroke(C, "idle") end },
+        border_color = function() return (t.checked or t.partial) and C.primary or stroke(C, "idle") end,
+        behavior = { border_color = quick } },
+      -- The block registers from its left edge in three beats, and back.
       indicator = ui.Item { anchors = { fill = true, margins = 6 }, clip = true,
-        visible = function() return t.checked or t.partial end,
-        ui.Rect { anchors = { fill = true }, color = function() return C.primary:alpha(t.partial and .5 or 1) end } },
+        transform_origin_x = 0,
+        scale_x = function() return (t.checked or t.partial) and 1 or 0 end,
+        behavior = { scale_x = STEPPED },
+        ui.Rect { anchors = { fill = true }, color = function() return C.primary:alpha(t.partial and .5 or 1) end,
+          behavior = { color = quick } } },
       badge = feedback(t),
     }
   end
@@ -195,7 +174,8 @@ return function(theme, M, hud)
   local function radio(t)
     return {
       background = ui.Rect { anchors = { fill = true, margins = 3 }, color = "transparent", border_width = 1,
-        border_color = function() return t.checked and C.primary or stroke(C, "idle") end },
+        border_color = function() return t.checked and C.primary or stroke(C, "idle") end,
+        behavior = { border_color = quick } },
       indicator = ui.Rect { anchors = { center_in = true }, color = function() return C.primary end,
         width = function() return t.checked and 8 or 0 end, height = function() return t.checked and 8 or 0 end,
         behavior = { width = quick, height = quick } },
@@ -219,19 +199,23 @@ return function(theme, M, hud)
         text = function() return unicase.upper(tostring(get(spec.label) or "")) end,color = function() return C.onSurface end },
       indicator = (spec.widget ~= "menu_item") and ui.Rect { anchors = { right = true, right_margin = 12,
         vertical_center = true }, width = 8, height = 8, color = function() return C.primary end,
-        visible = function() return t.checked end } or nil,
+        transform_origin_x = 0, scale_x = function() return t.checked and 1 or 0 end,
+        behavior = { scale_x = STEPPED } } or nil,
       badge = feedback(t, spec.id),
     }
   end
 
-  function S.Press(t, spec)
+  function S.Press(t, spec, node)
     local widget = spec.widget
     if widget == "menu_item" or widget == "check_menu_item" or widget == "radio_menu_item" then
       return menu_item(t, spec)
     end
     -- A layout's own area draws itself: the wash, the marks and the
     -- keyboard's brackets here.
-    if widget == "area" or widget == "segment" then return { badge = feedback(t, spec.id) } end
+    if widget == "area" or widget == "segment" then
+      -- An on-screen keyboard's key keeps its plain feedback.
+      return { badge = feedback(t, spec.id, spec.plain_feedback or keyed(node and node.id)) }
+    end
     if require("lib.kit.archetypes.press").has(spec, "flat") then return S.flat(t, spec) end
     if widget == "switch" then return switch(t, spec)
     elseif widget == "icon" then return icon(t, spec)
@@ -567,8 +551,8 @@ return function(theme, M, hud)
             visible = not spec.icons_only },
           ui.Item { id = name .. "-label", x = 34, y = 12, height = 18, clip = true,
             width = text_w, visible = function() return not spec.icons_only and text_w() > 0 end, strip },
-          hud().corners { length = 6, weight = 2, color = function() return C.primary end,
-            visible = function() return t.visual_focus and selected() end },
+          hud().reticle({ length = 6, weight = 2, color = function() return C.primary end },
+            function() return t.visual_focus and selected() end),
         }
         -- Registration marks on the chosen tab's diagonal.
         for k, corner in ipairs { { left = true, top = true }, { right = true, bottom = true } } do
@@ -747,6 +731,7 @@ return function(theme, M, hud)
     end
   end
 
+  S.feedback = nil
   require("themes.kit.widgets").fade(S,0.45)
 
   return S

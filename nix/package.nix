@@ -35,7 +35,8 @@ in
 #                 library of the morf it is built against and the faces it
 #                 draws with
 #   share/fonts   the whole families of those faces, for the system's fonts
-#   share/applications  a desktop entry for each tool a person opens
+#   share/applications  Settings and Tools, and the hidden entries a link, a
+#                 portal or a session needs
 #   bin           eva-keyring, the bridge for GNOME Keyring prompts; eva, the
 #                 command line; eva-<tool>, each tool of apps/ and apps/bin
 #   nixos         the NixOS module, importable without eva's flake
@@ -101,16 +102,16 @@ runCommandCC "eva-${version}"
     mkdir -p "$out/share/applications"
     for folder in "$tree"/apps/*/; do
       tool=$(basename "$folder")
-      [ -f "$folder/app.lua" ] || continue
+      for entry in "$folder"/*.desktop; do
+        if [ -e "$entry" ]; then cp "$entry" "$out/share/applications/"; fi
+      done
+      [ -f "$folder/app.lua" ] || [ -f "$folder/cli" ] || continue
       printf '{ "theme": "tsugumori", "font": "" }\n' > "$folder/appearance-default.json"
       if [ -f "$folder/cli" ]; then
         launcher "eva-$tool" "$folder/cli"
       else
         launcher "eva-$tool" "$tree/apps/launch $tool"
       fi
-      for entry in "$folder"/*.desktop; do
-        if [ -e "$entry" ]; then cp "$entry" "$out/share/applications/"; fi
-      done
     done
     for command in "$tree"/apps/bin/*; do
       launcher "$(basename "$command")" "$command"

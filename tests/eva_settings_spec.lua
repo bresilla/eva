@@ -11,6 +11,16 @@ local SOURCE=[[
 local W,H=1600,1000
 local function load(style) test.load("../shell/init.lua",{source=SOURCE,size={W,H},env={EVA_STYLE=style}}) test.advance(200) end
 local function state() return test.ipc("eva_state") end
+-- The Settings window's page wheeled until `id` stands in it.
+local function reach(id)
+  for _=1,40 do
+    local node,pane=test.find {id=id,visible=true},test.get("settings-detail")
+    if node and node.y>pane.y and node.y+node.height<pane.y+pane.height then return id end
+    local up=node and node.y<=pane.y
+    test.wheel(0,up and -120 or 120,{x=pane.x+pane.width/2,y=pane.y+pane.height/2}) test.advance(200)
+  end
+  return id
+end
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." the Eva tile holds the bar and how the panels open",function()
     load(style)
@@ -21,9 +31,9 @@ for _,style in ipairs {"material","tsugumori"} do
     end
     test.click("utilities-toggle-eva") test.advance(2500)
     test.eq(state().detail,"eva")
-    test.click("utilities-toggle-edge-hover") test.advance(100)
+    test.click(reach("utilities-toggle-edge-hover")) test.advance(100)
     test.eq(state().hover,{false,false,false,false})
-    test.click("settings-eva-bar") test.advance(2500)
+    test.click(reach("settings-eva-bar")) test.advance(2500)
     test.eq(state().detail,"bar")
     test.click("settings-back") test.advance(2500)
     test.eq(state().detail,"eva")
@@ -33,7 +43,7 @@ end
 test.it("with hovering off a press at the edge opens its panel, and hovering there does not",function()
   load("material")
   test.ipc("settings","eva") test.advance(2500)
-  test.click("utilities-toggle-edge-hover") test.advance(100)
+  test.click(reach("utilities-toggle-edge-hover")) test.advance(100)
   test.eq(state().hover,{false,false,false,false})
   test.click(100,100) test.settle(900)
   test.falsy(state().sidebar)
@@ -44,7 +54,7 @@ test.it("with hovering off a press at the edge opens its panel, and hovering the
   test.click(100,100) test.settle(900)
   test.falsy(state().sidebar)
   test.ipc("settings","eva") test.advance(2500)
-  test.click("utilities-toggle-edge-hover") test.advance(100)
+  test.click(reach("utilities-toggle-edge-hover")) test.advance(100)
   test.click(100,100) test.settle(900)
   test.move(W-2,H/2) test.advance(900)
   test.truthy(state().sidebar,"hovering again did not open it")

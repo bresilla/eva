@@ -26,9 +26,10 @@ return function(theme, host, id)
   end
   local cover = ui.Rect {
     id = id .. "-curtain", z = 100, clip = true,
-    x = 0,
+    x = 0, y = 0,
     width = host.width,
-    anchors = { top = true, bottom = true },
+    -- The panel's whole box, the size it grows to included, from its first frame.
+    height = function() return math.max(1, host.layout_height or 0, host.height_target or 0) end,
     visible = false,
     color = function() return C.primary end,
     -- Ignore presses on covered controls, including during interrupted exits.
@@ -52,5 +53,5 @@ return function(theme, host, id)
     ui.reparent(corner, cover)
   end
   ui.reparent(cover, host)
-  return cover
+  return cover, unit
 end

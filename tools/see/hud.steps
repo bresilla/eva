@@ -1,0 +1,33 @@
+# Tsugumori's HUD chrome on every surface it themes, each at rest and, where
+# a pass plays as it opens, caught partway.
+#
+#   tools/see.sh hud
+#   SCREEN=868x1932 TOUCH=1 tools/see.sh hud
+#   MODE=light tools/see.sh hud
+export EVA_FAKE_OSD=1
+start shell
+shot rest
+ipc sidebar open settings; pause 0.5; shot quick-settings-boot
+pause 1; shot quick-settings
+ipc sidebar open notifications; pause 1.2; shot notifications-page
+ipc close; pause 0.6
+ipc dashboard open; pause 0.45; shot dashboard-boot
+pause 1.2; shot dashboard
+ipc dashboard open performance; pause 1.4; shot dashboard-perf
+ipc close; pause 0.6
+ipc leftbar open; pause 1.4; shot leftbar
+ipc close; pause 0.6
+ipc bottom open; pause 1.4; shot bottom
+ipc close; pause 0.6
+ipc launcher open; pause 1.2; shot launcher
+ipc close; pause 0.6
+ipc session open; pause 0.5; shot session-boot
+pause 1; shot session
+ipc close; pause 0.6
+ipc settings sound; pause 1.6; shot settings-sound
+ipc close; pause 0.6
+ipc osd volume; pause 0.25; shot osd-lock
+pause 0.6; shot osd
+pause 4
+ipc notify "Uplink" "Telemetry relay is back in range" normal Relay; pause 0.3; shot notification-lock
+pause 1; shot notification

@@ -3,7 +3,7 @@
 -- makes stays out of the signals with it: `revision` says only that there is a new
 -- one. No nodes.
 local morf = require("morf")
-local sys = require("common.sys")
+local sys = require("apps.common.sys")
 local config = require("config")
 local qr = require("lib.util.qr")
 

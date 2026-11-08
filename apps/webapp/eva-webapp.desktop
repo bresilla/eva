@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Web apps
-Comment=Turn a site into an app
-Exec=eva-webapp
-Icon=applications-internet
-Terminal=false
-Categories=Network;Utility;
-StartupWMClass=eva.webapp

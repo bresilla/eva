@@ -27,7 +27,8 @@ local function environment(state, style, programs, extra)
   local appearance = state .. "/appearance.json"
   morf.fs.write(appearance, morf.json.encode { theme = style or "material", font = "" })
   local env = { XDG_STATE_HOME = state, EVA_SETTINGS = "/nonexistent/eva.json", LULE_A = "/nonexistent/lule",
-    EVA_APPEARANCE = appearance, EVA_DRY_RUN = "0", PATH = with_programs(state, programs or {}), LANG = "fr_FR.UTF-8" }
+    EVA_APPEARANCE = appearance, EVA_DRY_RUN = "0", PATH = with_programs(state, programs or {}), LANG = "fr_FR.UTF-8",
+    EVA_TEST_TOOL = "translate", EVA_TEST_PAGE = "608x700" }
   for key, value in pairs(extra or {}) do env[key] = value end
   return env
 end
@@ -53,24 +54,7 @@ local function host(web)
       return { words = words, why = why }
     end
     morf.ipc.mymemory = function(words) return engines.read_mymemory { responseStatus = 200, responseData = { translatedText = words } } end
-    local frame = require("common.frame")
-    local model = require("model")
-    local view = require("view")
-    model.load()
-    frame.open { id = "translate", title = "Translate", width = 640, height = 760, build = function(w, h) return view.build(w, h) end }
-    morf.ipc.state = function()
-      local engine = model.current()
-      return { input = model.input:get(), output = model.output:get(), source = model.source:get(), target = model.target:get(),
-        engine = engine and engine.id or "", privacy = model.privacy(), message = model.message:get(),
-        detected = model.detected:get() }
-    end
-    morf.ipc.input = function(...) model.input:set(table.concat({ ... }, " ")) return true end
-    morf.ipc.engine = function(id) model.set_engine(id) return true end
-    morf.ipc.source = function(code) model.set_source(code) return true end
-    morf.ipc.target = function(code) model.set_target(code) return true end
-    morf.ipc.go = function() return model.translate() end
-    morf.ipc.swap = function() model.swap() return true end
-  ]]):format(web)
+  ]]):format(web) .. morf.fs.read(ROOT .. "tests/fixtures/tool_page.lua")
 end
 
 local GOOD = '{"responseStatus":200,"responseData":{"translatedText":"guten Tag &amp; so","detectedLanguage":"en"},"quotaFinished":false}'
@@ -80,7 +64,7 @@ local function window(options)
   test.clear_stubs()
   if options.argos then test.stub_run("argos-translate", options.argos) end
   local state = fresh("host")
-  test.load("../apps/translate/app.lua", { source = host(options.web or GOOD),
+  test.load("../shell/init.lua", { source = host(options.web or GOOD),
     env = environment(state, options.style, options.programs) })
   test.settle(200)
   return state
@@ -91,8 +75,8 @@ test.it("the engine's chooser holds its whole name in either theme", function()
     window { style = style }
     local room = test.get("translate-engine").width
     local state = fresh("measure")
-    test.load("../apps/translate/app.lua", { env = environment(state, style), source = [[
-      local kit = require("common.frame") and require("kit")
+    test.load("../shell/init.lua", { env = environment(state, style), source = [[
+      local kit = require("kit")
       require("morf.ui").Item { width = 600, height = 100,
         kit.text { id = "natural", text = "MyMemory · online", font_size = require("theme").size.normal } }
     ]] })
@@ -166,7 +150,7 @@ end)
 test.it("runs Argos with the splitter that needs no network, the text on stdin", function()
   local state = fresh("argos")
   test.clear_stubs()
-  test.load("../apps/translate/app.lua", { env = environment(state, nil, { "argos-translate" }), source = [[
+  test.load("../shell/init.lua", { env = environment(state, nil, { "argos-translate" }), source = [[
     local morf = require("morf")
     local fed = {}
     morf.process.run = function(argv, options, done)
@@ -174,7 +158,7 @@ test.it("runs Argos with the splitter that needs no network, the text on stdin",
       done { ok = true, stdout = "Hallo\n", stderr = "" }
     end
     require("morf.ui").Item { width = 1, height = 1 }
-    local model = require("model")
+    local model = require("apps.translate.model")
     model.load()
     morf.ipc.go = function()
       model.input:set("private words")
@@ -212,12 +196,12 @@ end)
 test.it("keeps the engine chosen, and leaves it when it is gone", function()
   local state = window { programs = { "argos-translate", "trans" } }
   test.ipc("engine", "mymemory")
-  test.load("../apps/translate/app.lua", { source = host(GOOD), env = environment(state, nil, { "argos-translate" }) })
+  test.load("../shell/init.lua", { source = host(GOOD), env = environment(state, nil, { "argos-translate" }) })
   test.settle(100)
   test.eq(test.ipc("state").engine, "mymemory")
   test.ipc("engine", "trans")
   morf.fs.remove(state .. "/bin/trans")
-  test.load("../apps/translate/app.lua", { source = host(GOOD), env = environment(state, nil, { "argos-translate" }) })
+  test.load("../shell/init.lua", { source = host(GOOD), env = environment(state, nil, { "argos-translate" }) })
   test.settle(100)
   test.eq(test.ipc("state").engine, "argos", "translate-shell went: the first there is")
 end)
@@ -246,7 +230,7 @@ end)
 test.it("sends text to a program on stdin, never on its command line", function()
   local state = fresh("stdin")
   test.clear_stubs()
-  test.load("../apps/translate/app.lua", { env = environment(state, nil, { "trans" }), source = [[
+  test.load("../shell/init.lua", { env = environment(state, nil, { "trans" }), source = [[
     local morf = require("morf")
     local fed = {}
     morf.process.run = function(argv, options, done)
@@ -254,7 +238,7 @@ test.it("sends text to a program on stdin, never on its command line", function(
       done { ok = true, stdout = "Hallo\n", stderr = "" }
     end
     require("morf.ui").Item { width = 1, height = 1 }
-    local model = require("model")
+    local model = require("apps.translate.model")
     model.load()
     morf.ipc.go = function(text)
       model.input:set(text)

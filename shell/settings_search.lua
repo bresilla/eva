@@ -44,10 +44,11 @@ M.CONTROLS = {
   { "On-screen display position", "osd", "corner where", "picture_in_picture" },
 }
 
+-- A page where it lives: a quick control's in its panel, any other in the
+-- Settings window.
 local function opener(key)
   return function()
-    if not require("utilities").request(key) then return "keep" end
-    require("pages").open("settings")
+    if not require("utilities").reach(key) then return "keep" end
     return "close"
   end
 end

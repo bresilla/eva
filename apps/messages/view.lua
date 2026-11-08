@@ -1,11 +1,11 @@
--- eva-messages' window: the conversations, one of them open, and a line to write.
+-- eva-messages' page in Tools: the conversations, one of them open, and a line to write.
 local morf = require("morf")
 local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local L = require("themes.layouts.parts")
 local P = require("themes.layouts.page")
-local model = require("model")
+local model = require("apps.messages.model")
 local C, S = theme.color, theme.space
 
 local M = {}

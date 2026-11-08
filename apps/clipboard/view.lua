@@ -1,11 +1,11 @@
--- eva-clipboard's window: a search field over the history, each entry copied by
+-- eva-clipboard's page in Tools: a search field over the history, each entry copied by
 -- a press, with a pin and a delete at its end.
 local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local L = require("themes.layouts.parts")
 local P = require("themes.layouts.page")
-local model = require("model")
+local model = require("apps.clipboard.model")
 local S = theme.space
 
 local M = {}
