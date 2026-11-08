@@ -221,12 +221,12 @@ function M.mobile_icon(modem, airplane)
   local s = modem.state
   if s.locked then return "signal_cellular_connected_no_internet_0_bar" end
   if not s.registered then return "signal_cellular_off" end
+  -- Upright bars, as Android's status bar has them: they sit on the line of
+  -- the icons beside them, where the corner triangles sat low.
   local q = s.signal or 0
-  if q > 80 then return "signal_cellular_4_bar" end
-  if q > 55 then return "signal_cellular_3_bar" end
-  if q > 30 then return "signal_cellular_2_bar" end
-  if q > 10 then return "signal_cellular_1_bar" end
-  return "signal_cellular_0_bar"
+  if q > 66 then return "signal_cellular_alt" end
+  if q > 33 then return "signal_cellular_alt_2_bar" end
+  return "signal_cellular_alt_1_bar"
 end
 
 return M
