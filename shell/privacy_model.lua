@@ -96,10 +96,12 @@ end
 -- The sound server's recording streams, the shell's own monitors aside, and the
 -- sound server's own: a loopback module records for itself, not for an app.
 local SERVER = { pipewire = true, wireplumber = true }
--- Its loopbacks carry no program at all: no binary and no name.
+-- Its loopbacks carry no program: no binary, and no name or the module's own
+-- default, loopback-<pid>-<id>.
 local function own(row)
-  local binary = row.binary or ""
-  return SERVER[binary] or (binary == "" and (row.app_name or "") == "")
+  local binary, name = row.binary or "", row.app_name or ""
+  if SERVER[binary] or SERVER[name] then return true end
+  return binary == "" and (name == "" or name:match("^loopback%-%d+%-%d+$") ~= nil)
 end
 local function microphone()
   local out = {}
