@@ -108,6 +108,28 @@ local function say(words, wrong)
 end
 local clear = password.clear
 
+-- The pattern patty takes for this account, where it has one.
+local patty = require("lib.shell.auth.patty")
+local pattern = require("models.pattern_entry").new { name = "lock", user = function() return me.name end, fails = true }
+pattern.read()
+local trace = pattern.trace
+-- Whether the answer being checked came from the grid or the keypad, and the
+-- red a wrong pattern stays drawn in.
+local via_pattern, wrong_drawn = false, nil
+local function fresh()
+  if wrong_drawn then wrong_drawn:cancel() wrong_drawn = nil trace.clear() end
+  if bad:get() then say("") end
+end
+local function wrong_pattern()
+  local locked = pattern.locked:get()
+  if locked > 0 then
+    return ("Pattern locked for %d min — use your password"):format(patty.minutes(locked))
+  end
+  local left = pattern.left:get()
+  if left < 0 then return "Wrong pattern" end
+  return left == 1 and "Wrong pattern. 1 try left" or ("Wrong pattern. %d tries left"):format(left)
+end
+
 -- What the lock keeps while it stands. A phone has no window after an idle lock.
 local phone_screen = require("themes.phone_wake")
 local keyboard = require("models.keyboard_state").new("lock")
@@ -149,13 +171,26 @@ local handlers = {
   tries = prefs.reader_tries,
   on_busy = function(b) busy:set(b) end,
   on_info = function(words, wrong) if not busy:get() then say(words, wrong) end end,
+  on_hint = function(words, wrong) say(words, wrong) end,
+  on_prompt = function(words)
+    pattern.use("password")
+    clear()
+    say(words, false)
+  end,
   on_failed = function(why)
     grace.revoke("wrong password")
     tries.failed()
-    say(why ~= "" and why or "Wrong password", true)
+    local drawn = via_pattern
+    via_pattern = false
+    pattern.failed()
+    if drawn then say(wrong_pattern(), true) else say(why ~= "" and why or "Wrong password", true) end
     clear()
     shake:set(1)
     morf.time.timer(70, function() shake:set(0) end, false)
+    if trace.count() > 0 then
+      if wrong_drawn then wrong_drawn:cancel() end
+      wrong_drawn = morf.time.timer(900, function() wrong_drawn = nil trace.clear() end, false)
+    end
   end,
   on_open = lift,
 }
@@ -181,7 +216,8 @@ local function poke()
   if idle then idle:cancel() end
   idle = morf.time.timer(15000, function()
     idle = nil
-    if stage:get() == "sheet" and typed:get() == 0 and not busy:get() then
+    if stage:get() == "sheet" and typed:get() == 0 and trace.count() == 0 and not busy:get() then
+      if door.cancel then door:cancel() end
       stage:set("rest")
       waiting = nil
       say("")
@@ -191,6 +227,7 @@ end
 
 local function open_sheet()
   if stage:get() ~= "rest" then return end
+  pattern.open()
   stage:set("sheet")
   pull:set(0)
   poke()
@@ -205,13 +242,41 @@ end
 
 local function submit()
   if busy:get() or stage:get() ~= "sheet" then return end
-  if not tries.allowed() then return end
-  if password.empty() then
-    say("Type your password", false)
+  if not tries.allowed() then trace.clear() return end
+  local kind = pattern.shown()
+  if kind == "grid" then
+    local digits = trace.digits()
+    if not patty.valid(digits) then
+      trace.clear()
+      say(digits == "" and "Draw your pattern" or "Connect at least 4 dots", false)
+      return
+    end
+    password.clear()
+    password.add(digits)
+  elseif password.empty() then
+    say(kind == "keypad" and "Type your pattern" or "Type your password", false)
     return
   end
+  via_pattern = kind ~= nil
   say("")
   door:submit(password.take())
+end
+
+-- What the keyboard types while the pattern shows: digits that fit it go on
+-- it, and the first that does not moves all of it to the password field.
+local function to_password(t)
+  if pattern.shown() == "grid" then
+    local digits = trace.digits()
+    password.clear()
+    password.add(digits)
+  end
+  pattern.use("password")
+  return password.add(t)
+end
+local function drawn()
+  if busy:get() or stage:get() ~= "sheet" then trace.clear() return end
+  poke()
+  submit()
 end
 
 -- The emergency card, over the lock. It opens nothing.
@@ -230,17 +295,31 @@ local function open_card()
 end
 
 local function type_text(t)
-  if not password.add(t) then return end
-  if bad:get() then say("") end
-  poke()
+  fresh()
+  local kind, digit = pattern.shown(), t:match("^%d$") and tonumber(t)
+  local taken
+  if kind == "grid" and digit then taken = trace.join(digit) or to_password(t)
+  elseif kind == "keypad" and digit then taken = password.add(t)
+  elseif kind then taken = to_password(t)
+  else taken = password.add(t) end
+  if taken then poke() end
 end
 local function backspace()
-  password.erase()
+  if pattern.shown() == "grid" then trace.erase() else password.erase() end
+  poke()
+end
+local function use_method(method)
+  if busy:get() then return end
+  clear()
+  say("")
+  pattern.use(method)
   poke()
 end
 local function escape()
   if card_open:get() then close_card() return end
+  if trace.count() > 0 then fresh() trace.clear() say("") return end
   if password.empty() then
+    if door.cancel then door:cancel() end
     -- Looked at in a window, it holds nothing: Escape at rest is the way
     -- out, in case the door will not open.
     if stage:get() == "rest" and not HELD then morf.quit() return end
@@ -385,6 +464,7 @@ local context = {
   FONT = FONT,
   ICONS = ICONS,
   key = key,
+  pattern = pattern, drawn = drawn, use_method = use_method, pattern_start = fresh,
 }
 
 local function build(width, height, name)
@@ -486,6 +566,23 @@ if not HELD then
   morf.ipc.card = function(how)
     if how == "open" then open_card() else close_card() end
     return card_open:get()
+  end
+  -- For pictures: a stroke half drawn, a wrong pattern come back, either way in.
+  morf.ipc.pattern = function(how)
+    if how == "demo" then
+      trace.clear()
+      for _, n in ipairs { 1, 2, 3, 5 } do trace.join(n) end
+      trace.finger:set({ .3, .85 })
+    elseif how == "fail" and PREVIEW then
+      trace.clear()
+      for _, n in ipairs { 7, 4, 1, 2, 3 } do trace.join(n) end
+      via_pattern = true
+      handlers.on_failed("")
+    elseif how == "password" or how == "pattern" then
+      use_method(how)
+    end
+    return { method = pattern.method:get(), kind = pattern.kind:get(), shown = pattern.shown() or "",
+      left = pattern.left:get(), locked = pattern.locked:get(), drawn = trace.count() }
   end
 end
 

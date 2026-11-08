@@ -33,6 +33,7 @@ local ICONS = ctx.ICONS
 local key = ctx.key
 local parts = ctx.parts
 local prefs = parts.prefs
+local pattern = ctx.pattern
 return function(W, H, NAME)
   local desktop = ctx.desktop.for_output(NAME)
   -- In a window there is one screen, and it is the one.
@@ -72,6 +73,8 @@ return function(W, H, NAME)
     main=main,keyboard_attached=ctx.keyboard_attached,busy=busy,stage=stage,pull=pull,
     claim=function() main_output:set(NAME) end,open_sheet=open_sheet,clear=clear,escape=escape,action=skin.action,
     on_hide=dismiss,on_tap=parts.on_tap,
+    hidden=function() return pattern.shown()~=nil end,
+    on_show=function() if pattern.shown() then ctx.use_method("password") end end,
     look=(skin.keyboard_look or function(v) return v end) {
       panel=function() return C.surfaceContainer end,
       key=function() return C.surfaceContainerHighest end,key_dim=function() return C.surfaceContainerHigh end,
@@ -466,13 +469,24 @@ return function(W, H, NAME)
     },
   }
 
-  -- The sheet's line: what PAM says, then the wait, then the Caps Lock warning.
+  -- The sheet's line: what PAM says, then the wait, patty's lockout or tries
+  -- left, then the Caps Lock warning.
+  local patty = require("lib.shell.auth.patty")
+  local function locked_out() return pattern.kind:get() ~= "" and pattern.locked:get() > 0 end
   local function sheet_line()
     local value = message:get()
-    if busy:get() and value == "" then return "Checking password…" end
+    if busy:get() and value == "" then return pattern.shown() and "Checking pattern…" or "Checking password…" end
     if value ~= "" then return value end
     local wait = parts.tries.waiting()
     if wait > 0 then return ("Too many tries. Wait %d s"):format(wait) end
+    if locked_out() then
+      return ("Pattern locked for %d min — use your password"):format(patty.minutes(pattern.locked:get()))
+    end
+    if pattern.shown() then
+      local left = pattern.left:get()
+      if left >= 0 and left < patty.TRIES then return left == 1 and "1 try left" or (left .. " tries left") end
+      return ""
+    end
     if parts.keyboard.caps() then return "Caps Lock is on" end
     local failed = parts.tries.count()
     if failed > 0 then return failed == 1 and "1 failed attempt" or (failed .. " failed attempts") end
@@ -484,6 +498,13 @@ return function(W, H, NAME)
     typed=typed,shake=shake,bad=bad,busy=busy,max_dots=MAX_DOTS,
     submit=submit,focus=function() kb.show(prefs.keypad=="digits" and "numbers" or nil) end,
   }
+  local patterns=require("themes.layouts.auth.pattern")
+  local entry=patterns.entry(view,{prefix="lock",width=FIELD_W,field=field,field_h=FIELD_H,entry=pattern,
+    grid=math.min(FIELD_W,UPRIGHT and s(640) or s(340)),cell_h=UPRIGHT and s(104) or s(58),skin=skin,
+    busy=busy,bad=bad,shake=shake,typed=typed,max_dots=MAX_DOTS,submit=submit,send=send,
+    on_start=function() main_output:set(NAME) ctx.pattern_start() end,on_done=ctx.drawn})
+  local METHOD_W=s(200)
+  local method=patterns.switch(view,{prefix="lock",entry=pattern,width=METHOD_W,on_clicked=ctx.use_method})
 
   form=require("themes.auth_form").sheet {
     prefix="lock",output=NAME,ui=ui,s=s,C=C,skin=skin,width=SW,screen_width=W,
@@ -492,14 +513,16 @@ return function(W, H, NAME)
     name=not prefs.name and "Locked" or me.label ~= "" and me.label or me.name,
     active=function() return main() and stage:get()=="sheet" end,
     visible=function() return main() and (stage:get()=="sheet" or stage:get()=="opening") end,
-    entry_height=FIELD_H,
-    entry=field,
+    entry_height=entry.height,
+    entry=entry.node,
     message=text {id="lock-message",width=FIELD_W,height=s(24),elide="right",font_size=s(14),
       text=sheet_line,
       color=function()
         if bad:get() or parts.tries.waiting()>0 then return C.error end
-        return parts.keyboard.caps() and message:get()=="" and C.tertiary or C.onSurfaceVariant
+        if message:get()=="" and locked_out() then return C.error end
+        return parts.keyboard.caps() and message:get()=="" and not pattern.shown() and C.tertiary or C.onSurfaceVariant
       end},
+    method={node=method,width=METHOD_W,visible=pattern.taken},
     session=#parts.keyboard.list()>1 and button.chip(view,{id="lock-layout",icon="keyboard",name="Keyboard layout",
       text=parts.keyboard.current,on_clicked=parts.keyboard.step}) or nil,
   }

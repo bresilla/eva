@@ -21,9 +21,9 @@ function M.password(ctx)
       border_width=function() return ctx.bad:get() and s(2) or 0 end,
       border_color=function() return C.error end},
     ui.MouseArea {id=ctx.prefix.."-keyboard-focus",anchors={fill=true},on_clicked=ctx.focus},
-    ctx.icon(function() return ctx.busy:get() and "hourglass" or "lock" end,s(22),C.onSurfaceVariant,
+    ctx.icon(function() return ctx.busy:get() and "hourglass" or ctx.icon_name or "lock" end,s(22),C.onSurfaceVariant,
       {x=s(18),anchors={vertical_center=true}}),
-    ctx.text {x=s(52),anchors={vertical_center=true},text="Password",font_size=s(16),
+    ctx.text {x=s(52),anchors={vertical_center=true},text=ctx.placeholder or "Password",font_size=s(16),
       color=C.onSurfaceVariant,visible=function() return ctx.typed:get()==0 end},
     ui.Row {x=s(52),anchors={vertical_center=true},gap=dot*.45,table.unpack(dots)},
     ui.MouseArea {id=ctx.prefix.."-submit",cursor="pointer",
@@ -50,9 +50,14 @@ function M.sheet(ctx)
       text=ctx.name,font_size=s(20),font_weight=600,active=ctx.active},
   }
   local entry_top=PAD+AV+s(20)
-  local function entry_bottom() return entry_top+ctx.entry_height+s(8)+s(24) end
+  local function entry_height()
+    if type(ctx.entry_height)=="function" then return ctx.entry_height() end
+    return ctx.entry_height
+  end
+  local function method_height() return ctx.method and ctx.method.visible() and s(52) or 0 end
+  local function entry_bottom() return entry_top+entry_height()+s(8)+s(24) end
   local function content_height()
-    return entry_bottom()+(ctx.session and s(52) or 0)+PAD+ctx.keyboard.inline_height()
+    return entry_bottom()+(ctx.session and s(52) or 0)+method_height()+PAD+ctx.keyboard.inline_height()
   end
   local bottom=ctx.border+s(12)+(ctx.footer or 0)
   local function height()
@@ -62,6 +67,10 @@ function M.sheet(ctx)
     header,spacer(s(20)),ctx.entry,spacer(s(8)),ctx.message,
   }
   if ctx.session then nodes[#nodes+1]=spacer(s(12)) nodes[#nodes+1]=ctx.session end
+  if ctx.method then
+    nodes[#nodes+1]=ui.Item {width=inner,height=method_height,visible=ctx.method.visible,
+      ui.Item {anchors={horizontal_center=true,bottom=true},width=ctx.method.width,height=s(40),ctx.method.node}}
+  end
   nodes[#nodes+1]=spacer(PAD)
   if ctx.keyboard.embedded then
     nodes[#nodes+1]=ui.Item {width=inner,height=ctx.keyboard.inline_height,
