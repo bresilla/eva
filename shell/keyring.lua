@@ -159,6 +159,12 @@ morf.effect("eva.keyring.agent",function()
         for _,name in ipairs(names) do if name=="org.gnome.keyring.SystemPrompter" then registered=true end end
         M.registered:set(registered)
         publish("status",{registered=registered})
+        -- A pattern login left the login keyring shut: asked for once, here.
+        if registered then
+          local me=require("lib.services.accounts").me()
+          pcall(require("lib.services.login_keyring").ask_once,
+            {user=me and me.name or "",bus=require("lib.services.host").bus("session")})
+        end
       end,
     })
     if ok and result then agent=result
