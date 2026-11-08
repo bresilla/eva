@@ -1,0 +1,11 @@
+# The right panel's quick controls and their own pages, sliding in over the
+# tiles: Wi-Fi, Bluetooth, Sound with More settings in its head, and the
+# Settings window on Sound once More settings is pressed. The sound server is
+# the stand-in, so Sound has outputs to choose.
+export EVA_FAKE_AUDIO=1
+start shell
+ipc sidebar open settings; pause 1.4; shot overview
+ipc quick network; pause 1.4; shot wifi
+ipc quick bluetooth; pause 1.4; shot bluetooth
+ipc quick sound; pause 1.4; shot sound
+ipc quick more; pause 1.8; shot more-settings
