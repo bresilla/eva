@@ -8,7 +8,7 @@
 --     }
 --
 -- A search field (a kit `search` entry) over the families, a kit list (a
--- Collection: the arrows walk it, typing jumps, Return or a press picks)
+-- Collection: the arrows walk it, typing jumps, Return or a click picks)
 -- whose rows set each family's name in the theme's face and a line in
 -- the family itself, and under them the family the list is on in a
 -- larger sample (`sample = false` leaves it out). The families are

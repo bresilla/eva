@@ -14,7 +14,7 @@
 -- while there is none) and opens a popover of the month around it -- a
 -- kit calendar (themes.kit.composites.calendar): the arrows walk the days
 -- and across months, Page Up and Page Down turn the month, Home and End
--- go to its ends, Return or a press picks and closes. A range picker
+-- go to its ends, Return or a click picks and closes. A range picker
 -- takes two picks, the first its start, and draws the run between.
 -- `inline = true` gives the calendar alone, picking in place; `compact =
 -- true` makes the press an icon (beside a field the date is also typed

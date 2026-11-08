@@ -12,7 +12,7 @@
 -- slider and an alpha slider (kit Ranges: dragged, or stepped by the
 -- arrows once focused); a hex field (a kit entry: Return takes what is
 -- typed, Escape gives it back) beside a sample of the colour; and a
--- `swatch_grid` (a kit Selection: the arrows walk it, a press or Return
+-- `swatch_grid` (a kit Selection: the arrows walk it, a click or Return
 -- takes a swatch). Without `swatches` it offers twelve hues and greys.
 -- `trailing` (a node) goes at the end of the hex row; `popup = true`
 -- makes it a press showing the colour that opens it in a popover. Ids:

@@ -23,8 +23,8 @@
 -- folder is a page of a kit `navigation_view` (a Navigation: going into
 -- a folder pushes it, Back and Alt+Left pop, a breadcrumb or a place goes
 -- straight there), and lists its entries in a kit `file_list` (a
--- Collection: the arrows walk it, typing jumps, a press chooses, Return or
--- a double press opens a folder or accepts a file; BackSpace goes up).
+-- Collection: the arrows walk it, typing jumps, a click chooses, Return or
+-- a double click opens a folder or accepts a file; BackSpace goes up).
 -- Under the files: the name to save as (save), the filter (a combo box)
 -- and Cancel and the accepting press. Folders list first, then files the
 -- filter lets through (none in folder mode). The filesystem is read with
