@@ -48,6 +48,20 @@ does the same for the Lock screen page: it is written to `/etc/eva/lock.json`,
 with the keys of `models/lock_defaults.lua`, and anything left out stays the
 person's.
 
+Where patty (a `pam_exec ... patty check` step before `pam_unix` in `eva-lock`
+and `greetd`) holds a pattern for the account, the lock and the greeter open on
+it: a 3x3 grid to draw on, or a keypad for digits that do not draw, and its
+digits go to PAM as the password would. **Use password** moves to the field,
+which takes the digits too; typing on a keyboard fills the pattern until a key
+does not fit it. The kind is `/var/lib/patty/<user>.kind` (the lock also reads
+`<user>`), and the lock says from `<user>.fails` how many tries are left and
+when patty has locked the pattern; `EVA_PATTY_DIR` names another folder. What
+the stack says on the way, such as pam_u2f's touch cue, shows under the field as
+a hint, and a second question is the person's to answer. Settings, Lock screen,
+Pattern sets one, drawn or typed twice, through `pkexec patty set` with both on
+its stdin, and clears it. A pattern login hands gnome-keyring the digits, so
+the shell asks once, in its keyring dialog, for the login keyring's password.
+
 `seamless.enable`, on by default, hides the way from the greeter to the desktop.
 Two compositors cannot share a frame, so greetd's switch between them always has a
 gap; this makes the gap the wallpaper's colour rather than black and text. One

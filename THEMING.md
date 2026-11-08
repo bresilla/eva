@@ -751,6 +751,12 @@ it does not connect to MPRIS, create weather polling or resolve remote files.
 The controller retains the primary-output and active-stage policies. Greeter
 views receive `ctx.hostname`, read once by their controller.
 
+Both receive `ctx.pattern` (`models/pattern_entry`: patty's kind, the method,
+tries and lockout, the trace being drawn) with `drawn`, `use_method` and
+`pattern_start`, and place it through `themes/layouts/auth/pattern.lua`. A skin
+may give `pattern_look(look)`, the grid's `ring`, `dot`, `lit`, `line` and
+`error` colours and its `round`; Material keeps the shared defaults.
+
 `views.polkit.build(state)` receives `request`, `phase`, `info`, `typed` (a
 capped count), `opened`, and submit/cancel/focus callbacks. It returns a drawer
 description (`content`, `width`, `height`, `edge`, optional `props`) and `shake`.
