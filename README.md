@@ -1252,13 +1252,24 @@ on its page after the shell is built again in place. A password prompt it leads
 to stands in its place until answered; any other panel opening shuts it.
 
 Quick settings, in the right panel, keeps the tiles, the sliders and who is
-signed in. A tile's chevron, a slider's page and **All settings** under them open
-the window, and the panel shuts as it does. `eva open settings/KEY` and
-`morf ipc call settings KEY` open a page directly (`settings home` is All
-settings, `settings close` shuts it and `settings state` says where it stands);
-`morf ipc call settings-search WORDS` searches, and with no words lists every
-page. The launcher, notifications' actions and a page's own links lead to the
-same window.
+signed in. The quick controls' own pages open in the panel itself, sliding in
+over the tiles: Wi-Fi's networks and its password, Bluetooth's devices and
+pairing, Wired, Mobile data, Mesh, Tunnel (Tor too), Hotspot, Sound's outputs and
+each app's volume, Microphone, Power, Focus and its modes, Screen time, Night
+light, Flashlight, Colour filters and Background sounds. A tile's chevron (a
+long press on a small tile) opens one; the arrow in the head, Alt+Left and a
+pull in from the page's left edge go back. **More settings** in the head opens
+the same page in the Settings window, and a row leading deeper (Equalizer, More
+sound settings, a network's details, the proxy) opens there too. The Eva and Bar
+tiles, Displays and **All settings** open the window, and the panel shuts as it
+does. The bar's modules and the launcher open a quick control's page in the
+panel; `morf ipc call quick KEY` does the same (`quick home`, `quick back`,
+`quick more`, `quick close`, and `quick state` says where the panel stands).
+`eva open settings/KEY` and `morf ipc call settings KEY` open a page in the
+window (`settings home` is All settings, `settings close` shuts it and
+`settings state` says where it stands); `morf ipc call settings-search WORDS`
+searches, and with no words lists every page. Notifications' actions and the
+window's own links lead to the window.
 
 `shell/settings_registry.lua` is the one list of pages: `list()` gives `{ key,
 name, icon, keywords }`. A new page is a row there and a builder in
@@ -1266,6 +1277,8 @@ name, icon, keywords }`. A new page is a row there and a builder in
 `shell/settings_forms.lua`, with no view of its own. The window is
 `shell/settings_window.lua`, a `shell/window_host.lua` over the theme's
 `page_window` view, the same host as Tools; one of the two is open at a time.
+The panel's pages are the keys of `shell/quick_details.lua`, on a navigation of
+their own: the panel and the window each build their own copy of a page.
 
 Where a system's configuration holds a value, the page says so and names the
 option. On NixOS that is usually `time.timeZone`, `i18n.defaultLocale`,
