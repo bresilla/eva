@@ -94,7 +94,10 @@ let
   '';
   sessions =
     pkgs.runCommand "hyprland-quiet-sessions"
-      { passthru.providedSessions = hyprland.providedSessions; }
+      {
+        passthru.providedSessions =
+          if plain then lib.remove "hyprland-uwsm" hyprland.providedSessions else hyprland.providedSessions;
+      }
       ''
         mkdir -p "$out/share"
         cp -R ${hyprland}/share/wayland-sessions "$out/share/"
