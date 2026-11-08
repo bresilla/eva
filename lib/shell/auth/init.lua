@@ -6,6 +6,8 @@
 --     user = "trim",
 --     on_busy = function(busy) end,         -- a verdict is being waited on
 --     on_info = function(text, bad) end,    -- what the stack says ("touch the reader")
+--     on_hint = function(text, bad) end,    -- the lock: what the password's stack says
+--     on_prompt = function(text) end,       -- a second question; the next submit answers it
 --     on_failed = function(why) end,        -- a wrong answer
 --     on_verified = function(start) end,    -- the greeter: the password was right;
 --                                           -- call `start` to start the session
@@ -37,6 +39,7 @@ local function handlers(options)
   return {
     busy = options.on_busy or noop,
     info = options.on_info or noop,
+    hint = options.on_hint or options.on_info or noop,
     prompt = options.on_prompt or noop,
     failed = options.on_failed or noop,
     open = options.on_open or noop,
@@ -108,20 +111,67 @@ function auth.lock(options)
   return door
 end
 
+-- The password stack, in a conversation: its first question gets the password,
+-- what it says on the way ("Please touch the device.") goes to `on_hint`, and a
+-- later question goes to the person, whose next submit answers it.
 function Lock:submit(password)
-  if self.working or self.done or not self.user then return end
+  if self.done or not self.user then return end
+  if self.asking then
+    local session = self.asking
+    self.asking, self.working = nil, true
+    self.on.busy(true)
+    if not session:respond(password or "") then self:verdict(session, false, "No question to answer") end
+    return
+  end
+  if self.working then return end
   self.working = true
   self.on.busy(true)
-  morf.pam.authenticate(self.password_service, self.user, password or "", function(ok, why)
-    self.working = false
-    self.on.busy(false)
-    if self.done then return end
-    if ok then
-      self:finish()
-    else
-      self.on.failed(why or "Wrong password")
+  local ok, session = pcall(morf.pam.session, self.password_service, self.user)
+  if not ok or not session then
+    morf.pam.authenticate(self.password_service, self.user, password or "", function(right, why)
+      self.working = false
+      self.on.busy(false)
+      if self.done then return end
+      if right then self:finish() else self.on.failed(why or "Wrong password") end
+    end)
+    return
+  end
+  local answer = password or ""
+  self.talking = session
+  session:on_message(function(m)
+    if self.talking ~= session then return end
+    if m.kind == "prompt" and answer then
+      local given = answer
+      answer = nil
+      session:respond(given)
+    elseif m.kind == "prompt" then
+      self.asking, self.working = session, false
+      self.on.busy(false)
+      self.on.prompt(m.text ~= "" and m.text or "Answer needed")
+    elseif m.kind == "info" or m.kind == "error" then
+      self.on.hint(m.text, m.kind == "error")
+    elseif m.kind == "finished" then
+      answer = nil
+      self:verdict(session, m.ok, m.error)
     end
   end)
+end
+
+function Lock:verdict(session, ok, why)
+  if self.talking == session then self.talking = nil end
+  if self.asking == session then self.asking = nil end
+  self.working = false
+  self.on.busy(false)
+  if self.done then return end
+  if ok then self:finish() else self.on.failed(why or "Wrong password") end
+end
+
+--- Gives up a question the stack is waiting on.
+function Lock:cancel()
+  local session = self.asking or self.talking
+  if not session or self.working then return end
+  self.asking, self.talking = nil, nil
+  pcall(function() session:cancel() end)
 end
 
 -- The readers' stacks, each heard for as long as it is wanted and the door
