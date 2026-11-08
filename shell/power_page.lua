@@ -1,7 +1,6 @@
 -- View selected by the visual theme; services and models stay shared.
 local M={}
---- The Power page; `active` (fn) is whether its host has it on show, the
---- Settings window's by default.
+--- The Power page; `active` (fn): whether its host has it on show.
 function M.page(w,h,active)
   local model=require("power_model").new(active or require("presentation").active("settings.power"),
     function() require("dashboard_state").show("battery") end)

@@ -14,8 +14,7 @@ local function shared(kind)
   return instances[kind]
 end
 M.model=shared
--- The radio's page as one host builds it: the shared model, and `shown`
--- (fn), whether this host has the page on show, for what takes the keys.
+-- The radio's page for one host; `shown` (fn): whether that host has it on show.
 local function page(kind,w,h,shown)
   return view.build(setmetatable({shown=shown},{__index=shared(kind)}),w,h)
 end

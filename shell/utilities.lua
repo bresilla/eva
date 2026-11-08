@@ -132,9 +132,8 @@ function M.page(w,h)
   return visual.node,visual.head
 end
 function M.height() return built:get() and visual.height and visual.height() or 0 end
---- How tall the page wants to stand, head included, for a sheet that fits
---- its content: the quick controls' cards or the page on show over them, nil
---- until they are measured.
+--- How tall the page stands, head included, for a sheet that fits it: the
+--- cards or the page on show over them, nil until measured.
 function M.fit()
   if not built:get() or not visual.laid_out() then return nil end
   local P=require("themes.layouts.page")
@@ -143,8 +142,7 @@ function M.fit()
   if key~="" then body=visual.detail_height(key) end
   return body and P.header_height(visual.head)+P.GAP+body or nil
 end
---- The quick controls on show, or put away: shut, the panel is back on its
---- cards and tiles being arranged stop.
+--- The quick controls on show, or put away: shut, back on the cards, tiles still.
 function M.shown(open)
   M.quick:set(open)
   if not open then

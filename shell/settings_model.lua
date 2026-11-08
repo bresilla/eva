@@ -597,8 +597,7 @@ function M.request(key,from)
 end
 --- Opens All settings.
 function M.open_home() return M.request(M.registry.HOME) end
---- Opens page `key` where it lives: a quick control's in the panel over its
---- cards, any other in the Settings window.
+--- Opens page `key` where it lives: a quick control's in its panel, else the window.
 function M.reach(key,from)
   if M.in_panel.holds(key) then return M.in_panel.open(key) end
   return M.request(key,from)

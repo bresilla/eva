@@ -636,11 +636,9 @@ ipc.tablet = function(how, value)
   elseif how ~= nil and how ~= "state" then error("`" .. tostring(how) .. "`: on, off, pin on|off, auto or state") end
   return posture.state()
 end
--- `quick edit` or `quick done`: the quick settings' tiles being arranged.
--- `quick PAGE`: their panel open on one of the quick controls' own pages
--- (network, bluetooth, sound, focus), `quick home` on the tiles, `quick back`
--- one page back, `quick more` the page on show in the Settings window, `quick
--- close` shut; each of these and `quick state` say where the panel stands.
+-- `quick edit|done`: the tiles arranged. `quick PAGE|home|back|more|close|state`:
+-- the panel on a quick control's page, on its tiles, a page back, that page in
+-- the Settings window, shut; each says where the panel stands.
 ipc.quick = function(how)
   if not here() then return nil end
   local settings = require("utilities")

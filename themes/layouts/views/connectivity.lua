@@ -143,7 +143,7 @@ local function network_prompt(model, w)
     { id = "network-share", icon = "qr_code_2", label = "Share", on_clicked = function() model.share_shown:set(true) end,
       visible = function() return row().known == true or row().secure ~= true end } }
   answer.visible, manage.visible, more.visible = asking, mode("manage"), mode("manage")
-  -- The keys go to the page on show, where another host builds it too.
+  -- The fields take the keys only where the page is on show.
   local function here() return model.shown == nil or model.shown() end
   morf.effect("eva.network.prompt.focus", function()
     local m = model.mode()
