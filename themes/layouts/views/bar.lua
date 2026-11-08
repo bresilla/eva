@@ -165,7 +165,7 @@ function V.build(model)
   end
   local function fixed(vertical)
     local r = reading()
-    local size = vertical and ICONS_H or 2 * BATTERY + S.xs
+    local size = vertical and ICONS_H or 2 * BATTERY + 2 * S.xs
     if r.network_icon ~= "" then size = size + SLOT end
     if r.mobile_icon ~= "" then size = size + SLOT + ((r.technology ~= "" and not vertical) and TECH or 0) end
     return size
@@ -214,7 +214,9 @@ function V.build(model)
       id = "bar-mobile" .. v, height = ICONS_H,
       width = function() return reading().mobile_icon ~= "" and mobile_w() or 0 end,
       visible = function() return reading().mobile_icon ~= "" end,
-      kit.icon(function() return reading().mobile_icon end, GLYPH, ink, { y = 2, x = 2, fill = true }),
+      -- Where every other icon sits in its slot: inset as the glyph, centred.
+      kit.icon(function() return reading().mobile_icon end, GLYPH, ink,
+        { x = (SLOT - GLYPH) / 2, anchors = { vertical_center = true }, fill = true }),
       kit.text { x = SLOT, anchors = { vertical_center = true }, visible = tech_shown,
         font_size = theme.size.small - 2, font_weight = 700,
         text = function() return reading().technology .. (reading().roaming and " R" or "") end },
@@ -226,9 +228,11 @@ function V.build(model)
     }
     local size = vertical and 14 or BATTERY
     nodes[#nodes + 1] = ui.Item {
-      id = "bar-battery-slot" .. v, width = 2 * size + S.xs, height = ICONS_H,
+      -- The room before it an icon's slot has around its glyph; the percentage
+      -- stays close after it.
+      id = "bar-battery-slot" .. v, width = 2 * size + 2 * S.xs, height = ICONS_H,
       visible = function() return reading().battery.present end,
-      kit.battery { id = "bar-battery" .. v, anchors = { center_in = true }, size = size,
+      kit.battery { id = "bar-battery" .. v, x = S.xs, anchors = { vertical_center = true }, size = size,
         status = function() return reading().battery end },
     }
     if not vertical then
