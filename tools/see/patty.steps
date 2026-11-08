@@ -1,0 +1,37 @@
+# patty's pattern on the lock, the greeter and the Settings page, from
+# stand-in files in the sandbox's patty folder.
+BOOT=8
+me=${USER:-eva}
+mkdir -p "$EVA_PATTY_DIR"
+kind() { printf '%s\n' "$1" > "$EVA_PATTY_DIR/$me.kind"; }
+fails() { printf '%s %s\n' "$1" "$2" > "$EVA_PATTY_DIR/$me.fails"; }
+
+kind grid; fails 0 0
+start lock
+ipc stage sheet > /dev/null; pause 1.5; shot lock-grid
+ipc pattern demo > /dev/null; pause 0.8; shot lock-grid-drawing
+ipc pattern password > /dev/null; pause 1; shot lock-password
+ipc pattern pattern > /dev/null; pause 1
+fails 3 0
+ipc pattern fail > /dev/null; pause 0.25; shot lock-wrong
+pause 1.4; shot lock-tries
+stop
+fails 0 $(( $(date +%s) + 280 ))
+start lock
+ipc stage sheet > /dev/null; pause 1.5; shot lock-locked
+stop
+kind keypad; fails 0 0
+start lock
+ipc stage sheet > /dev/null; pause 1; text 251; pause 0.6; shot lock-keypad
+stop
+
+kind grid
+start greet
+ipc stage sheet > /dev/null; pause 1.5; shot greet-grid
+ipc pattern demo > /dev/null; pause 0.8; shot greet-grid-drawing
+stop
+
+fails 2 0
+start shell
+drawn
+ipc settings lock/pattern > /dev/null; pause 2; shot settings-pattern
