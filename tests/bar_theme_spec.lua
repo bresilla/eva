@@ -46,7 +46,7 @@ local HOST=[[
   local select_tab=function(key) tab:set(key) end
   package.loaded.sidebar={drawer=drawer("sidebar"),select=select_tab,panel={select=select_tab}}
   local detail=morf.signal("bar.fixture.detail","network")
-  package.loaded.utilities={detail=detail}
+  package.loaded.utilities={detail=detail,in_panel={detail=detail,request=function(key) detail:set(key) return true end}}
   local model
   local ok,models=pcall(require,"bar_model")
   if ok then local create=models.new models.new=function(...) model=create(...) return model end end
@@ -105,7 +105,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.click("bar-window-0xb") test.eq(state().calls,{{"focuswindow","address:0xb"}})
     test.click("bar-logo") test.truthy(state().launcher)
     test.click("bar-clock") test.truthy(state().dashboard)
-    test.click("bar-status") test.truthy(state().sidebar) test.eq(state().detail,"network")
+    test.click("bar-status") test.truthy(state().sidebar) test.eq(state().detail,"")
     test.ipc("show","off") test.advance(600)
     test.falsy(test.get("bar").visible)
     test.eq(state().desk,{0,0,1280,800})

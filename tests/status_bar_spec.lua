@@ -63,7 +63,8 @@ local HOST=[[
   local tab=morf.signal("status.fixture.tab","")
   local select_tab=function(key) tab:set(key) end
   package.loaded.sidebar={drawer=drawer("sidebar"),select=select_tab,panel={select=select_tab}}
-  package.loaded.utilities={detail=morf.signal("status.fixture.detail","")}
+  local detail=morf.signal("status.fixture.detail","")
+  package.loaded.utilities={detail=detail,in_panel={detail=detail,request=function(key) detail:set(key) return true end}}
   local model
   local models=require("bar_model")
   local create=models.new

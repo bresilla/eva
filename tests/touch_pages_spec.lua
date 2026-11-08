@@ -23,7 +23,7 @@ local SOURCE = [[
     local open = {}
     for _, d in ipairs(require("drawer").all) do open[d.name] = d.open:get() end
     return { open = open, detail = utilities.detail:get(), editing = utilities.tiles.editing:get(),
-      settings = utilities.opened:get(),
+      settings = utilities.opened:get(), quick = utilities.in_panel.detail:get(),
       month = require("planner").month_offset:get(), haptic = require("haptics").last:get() }
   end
   morf.ipc.q_page = function(key)
@@ -37,6 +37,7 @@ local SOURCE = [[
     panel.drawer.set(true)
   end
   morf.ipc.q_detail = function(key) utilities.request(key) end
+  morf.ipc.q_quick = function(key) utilities.in_panel.open(key) end
   morf.ipc.q_offset = function(id)
     local view = assert(views[id], id)
     return { offset = view.flick.content_y or 0,
@@ -128,6 +129,50 @@ for _, form in ipairs(touch.FORMS) do
       touch.drag(box.x + 6, box.y + box.height / 2, box.width * .2, 0, { slow = true })
       test.eq(test.ipc("q_state").detail, "bar/tray", "it stayed")
       test.near(test.get("settings-detail-bar/tray").x, box.x, 1)
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a swipe in from a quick control's page goes back to the tiles with a peek", function()
+      touch.load(form, style, SOURCE)
+      open("settings")
+      test.ipc("q_quick", "network") test.advance(900)
+      test.eq(test.ipc("q_state").quick, "network")
+      local box = test.get("quick-detail")
+      local x, y = box.x + 6, box.y + box.height / 2
+      local back_edge = test.get("quick-detail")
+      touch.drag(x, y, box.width * .6, 0, { hold = true })
+      test.truthy(test.get("quick-detail").x > back_edge.x + box.width * .4, "it follows the finger")
+      test.truthy(test.get("utilities").visible, "the tiles behind peek in")
+      touch.lift(x + box.width * .6, y, 700)
+      test.eq(test.ipc("q_state").quick, "", "it went back")
+      test.truthy(test.ipc("q_state").open.sidebar, "the panel stays")
+      test.falsy(test.ipc("q_state").settings, "the Settings window opened")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a page one in from a quick page goes back to it, which peeks in", function()
+      touch.load(form, style, SOURCE)
+      open("settings")
+      test.ipc("q_quick", "focus/mode") test.advance(900)
+      local box = test.get("quick-detail-focus/mode")
+      local x, y = box.x + 6, box.y + box.height / 2
+      touch.drag(x, y, box.width * .6, 0, { hold = true })
+      test.truthy(test.get("quick-detail-focus/mode").x > box.x + box.width * .4, "it follows the finger")
+      test.truthy(test.get("quick-detail-focus").visible, "the page behind peeks in")
+      touch.lift(x + box.width * .6, y, 700)
+      test.eq(test.ipc("q_state").quick, "focus", "it went back")
+      test.truthy(test.ipc("q_state").open.sidebar, "the panel stays")
+      test.eq(test.logs("error"), {})
+    end)
+
+    test.it(tag .. ": a short pull from a quick page's edge springs it back", function()
+      touch.load(form, style, SOURCE)
+      open("settings")
+      test.ipc("q_quick", "bluetooth") test.advance(900)
+      local box = test.get("quick-detail")
+      touch.drag(box.x + 6, box.y + box.height / 2, box.width * .2, 0, { slow = true })
+      test.eq(test.ipc("q_state").quick, "bluetooth", "it stayed")
+      test.near(test.get("quick-detail").x, box.x, 1)
       test.eq(test.logs("error"), {})
     end)
 
