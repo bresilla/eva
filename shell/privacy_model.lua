@@ -96,6 +96,11 @@ end
 -- The sound server's recording streams, the shell's own monitors aside, and the
 -- sound server's own: a loopback module records for itself, not for an app.
 local SERVER = { pipewire = true, wireplumber = true }
+-- Its loopbacks carry no program at all: no binary and no name.
+local function own(row)
+  local binary = row.binary or ""
+  return SERVER[binary] or (binary == "" and (row.app_name or "") == "")
+end
 local function microphone()
   local out = {}
   pcall(function()
@@ -103,7 +108,7 @@ local function microphone()
     if not (audio and audio.available() and audio.streams) then return end
     for i = 1, audio.streams:len() do
       local row = audio.streams:get(i)
-      if row.direction == "record" and not (row.app_id or ""):match("^morf%.") and not SERVER[row.binary or ""] then
+      if row.direction == "record" and not (row.app_id or ""):match("^morf%.") and not own(row) then
         out[#out + 1] = { app = row.app_name ~= "" and row.app_name or row.binary or "An app", pid = row.pid, id = row.id,
           via = "pipewire" }
       end
