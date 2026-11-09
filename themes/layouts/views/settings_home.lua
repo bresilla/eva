@@ -155,7 +155,8 @@ function M.place(key, registry)
   end
 end
 
-local NAV_ROW = 40
+-- A row of the way round: a pointer's target, a finger's on a touchscreen.
+local function nav_row() return require("responsive").touch() and S.TOUCH or S.TARGET end
 
 --- Whether this machine has any of `category`'s pages.
 function M.has(model, category)
@@ -177,6 +178,7 @@ end
 --- holding the page on show marked. `model`: `detail` (the route), `request`,
 --- `page_present`, `searching` (fn: the search takes focus while it holds).
 function M.navigation(model, w, h)
+  local row_h = nav_row()
   local registry, name, hint = book(model)
   local query = morf.signal("eva." .. name .. ".nav.query", "")
   local function route() return model.detail:get() end
@@ -206,7 +208,7 @@ function M.navigation(model, w, h)
   for _, category in ipairs(registry.CATEGORIES) do
     local function chosen() return place(route()) == category.id end
     local ink = rows.ink(chosen)
-    list[#list + 1] = rows.choice { id = name .. "-nav-" .. category.id, width = rw, height = NAV_ROW, on = chosen,
+    list[#list + 1] = rows.choice { id = name .. "-nav-" .. category.id, width = rw, height = row_h, on = chosen,
       group = name .. "-nav", visible = function() return M.has(model, category) end,
       on_clicked = function() M.go(model, category) end,
       kit.icon(category.icon, 20, ink, { x = S.m, anchors = { vertical_center = true } }),
@@ -223,7 +225,7 @@ function M.navigation(model, w, h)
     local y = 0
     for _, category in ipairs(registry.CATEGORIES) do
       if category.id == id then return y end
-      if M.has(model, category) then y = y + NAV_ROW + S.xxs end
+      if M.has(model, category) then y = y + row_h + S.xxs end
     end
   end
   morf.effect("eva." .. name .. ".nav.reveal", function()
@@ -234,7 +236,7 @@ function M.navigation(model, w, h)
       local view = flick.layout_height or body_h()
       if not y or view <= 0 then return end
       if y < at then flick.content_y = y
-      elseif y + NAV_ROW > at + view then flick.content_y = y + NAV_ROW - view end
+      elseif y + row_h > at + view then flick.content_y = y + row_h - view end
     end, false)
   end)
   -- (A turn later: a panel stepping aside hands focus back as it shuts.)
