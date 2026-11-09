@@ -87,13 +87,16 @@ function M.register(model)
   local page_names = {}
   local listed = {}
   for _, entry in ipairs(require("settings_registry").list()) do listed[entry.key] = entry end
+  local registry = require("settings_registry")
   for _, page in ipairs(model.DETAILS) do
     page_names[page.key] = page.name
-    local entry = listed[page.key] or {}
-    index.register { id = "setting:" .. page.key, name = page.name, tag = "Setting",
-      keywords = (M.KEYWORDS[page.key] or "") .. " " .. (entry.keywords or ""),
-      description = "Settings", material = entry.icon or "settings", kind = "menu", run = opener(page.key),
-      present = function() return model.page_fits(page.key) end }
+    if not (registry.BY_KEY[page.key] or {}).alias then
+      local entry = listed[page.key] or {}
+      index.register { id = "setting:" .. page.key, name = page.name, tag = "Setting",
+        keywords = (M.KEYWORDS[page.key] or "") .. " " .. (entry.keywords or ""),
+        description = "Settings", material = entry.icon or "settings", kind = "menu", run = opener(page.key),
+        present = function() return model.page_fits(page.key) end }
+    end
   end
   for _, control in ipairs(M.CONTROLS) do
     if page_names[control[2]] then

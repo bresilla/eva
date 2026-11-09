@@ -193,7 +193,8 @@ M.SHELL = [==[
     local index = require("lib.shell.launcher.search_index")
     local missing = {}
     for _, page in ipairs(model.DETAILS) do
-      if not index.get("setting:" .. page.key) then missing[#missing + 1] = "page " .. page.key end
+      local alias = (require("settings_registry").BY_KEY[page.key] or {}).alias
+      if not index.get("setting:" .. (alias or page.key)) then missing[#missing + 1] = "page " .. page.key end
     end
     for _, tile in ipairs(model.TOGGLES) do
       if not index.get("tile:" .. tile.id) then missing[#missing + 1] = "tile " .. tile.id end

@@ -45,10 +45,15 @@ function M.new(book)
       first[page.category] = first[page.category] or page.key
     end
   end
+  -- A category of one page stands for that page: its route is an alias of it
+  -- (`ALIASES`), and search finds the page alone.
+  book.ALIASES = {}
   for _, category in ipairs(book.CATEGORIES) do
     category.key = book.HOME .. "/" .. category.id
     category.only = count[category.id] == 1 and first[category.id] or nil
-    book.PAGES[#book.PAGES + 1] = { key = category.key, name = category.name, icon = category.icon, parent = book.HOME }
+    book.PAGES[#book.PAGES + 1] = { key = category.key, name = category.name, icon = category.icon, parent = book.HOME,
+      alias = category.only }
+    if category.only then book.ALIASES[category.key] = category.only end
   end
   local by_id = {}
   for _, category in ipairs(book.CATEGORIES) do by_id[category.id] = category end
@@ -85,7 +90,7 @@ function M.new(book)
   function book.list()
     local out = {}
     for _, page in ipairs(book.PAGES) do
-      if page.key ~= book.HOME then out[#out + 1] = row(page) end
+      if page.key ~= book.HOME and not page.alias then out[#out + 1] = row(page) end
     end
     return out
   end
@@ -95,7 +100,7 @@ function M.new(book)
   function book.entries()
     local out = {}
     for _, page in ipairs(book.PAGES) do
-      if page.key ~= book.HOME then
+      if page.key ~= book.HOME and not page.alias then
         out[#out + 1] = row(page)
         for _, item in ipairs(page.items or {}) do
           out[#out + 1] = { key = page.key, name = item[1], icon = page.icon, keywords = item[2] or "", page = page.name,

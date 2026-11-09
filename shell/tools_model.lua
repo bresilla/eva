@@ -23,7 +23,7 @@ M.DETAILS = {}
 for index, page in ipairs(M.registry.PAGES) do
   M.DETAILS[index] = { key = page.key, name = page.name, parent = page.parent }
 end
-M.navigation = require("lib.shell.settings.pages").new(M.DETAILS, M.detail, nil, "Tools")
+M.navigation = require("lib.shell.settings.pages").new(M.DETAILS, M.detail, M.registry.ALIASES, "Tools")
 M.navigation.on_back = function() require("themes.layouts.page").hold_place() end
 function M.breadcrumb() return M.registry.trail(M.navigation.path(M.detail:get())) end
 

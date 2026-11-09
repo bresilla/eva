@@ -124,3 +124,30 @@ test.it("every page of the registry has a builder, and every page a registry row
   test.advance(100)
   test.eq(test.ipc("check"), {})
 end)
+
+test.it("a category of one page is that page: found once, and its route opens it", function()
+  test.load("../shell/init.lua", { size = { 1600, 1000 }, env = { EVA_DRY_RUN = "1", EVA_FAKE_SYSTEM = "1" }, source = [[
+    local ui = require("morf.ui")
+    ui.Item { width = 10, height = 10 }
+    morf.ipc.found = function(words)
+      local names = {}
+      for _, hit in ipairs(require("settings_registry").search(words)) do
+        if not hit.page then names[#names + 1] = hit.name end
+      end
+      return names
+    end
+    morf.ipc.route = function(key)
+      local settings = require("utilities")
+      settings.request(key)
+      return settings.detail:get()
+    end
+  ]] })
+  test.advance(100)
+  for _, name in ipairs { "Power", "Sound", "Displays", "Accessibility" } do
+    local found = 0
+    for _, hit in ipairs(test.ipc("found", name:lower())) do if hit == name then found = found + 1 end end
+    test.eq(found, 1, name .. " is found more than once")
+  end
+  test.eq(test.ipc("route", "home/sound"), "sound", "a category of one page did not open it")
+  test.eq(test.ipc("route", "home/device"), "home/device", "a category of many lost its list")
+end)
