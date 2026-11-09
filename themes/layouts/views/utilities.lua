@@ -6,7 +6,40 @@ local kit=require("kit")
 local P=require("themes.layouts.page")
 local C=theme.color
 local V={WIDTH=430,RADIUS=15}
---- The Theme page: dark or light, and Lule one page in.
+--- The motion choices: a style, a speed and how far shapes give, each a row
+--- of buttons, held still while Reduce motion is on.
+local function motion_section(model,w)
+  local inner=P.inner(w)
+  local reduced=model.reduce_motion
+  local function steps(id,key,list)
+    local row={id=id,width=inner}
+    for _,entry in ipairs(list) do
+      row[#row+1]={id=id.."-"..tostring(entry[1]),label=entry[2],group=id,
+        enabled=function() return not reduced() end,
+        selected=function() return require("config").get(key)==entry[1] end,
+        on_clicked=function() require("config").set(key,entry[1]) end}
+    end
+    return row
+  end
+  local styles={width=inner}
+  for _,style in ipairs(model.MOTIONS) do
+    styles[#styles+1]={id="settings-motion-"..style[1],icon=style[2],label=style[3],group="settings-motion",
+      enabled=function() return not reduced() end,
+      selected=function() return model.motion_style()==style[1] end,
+      on_clicked=function() model.set_motion_style(style[1]) end}
+  end
+  return P.section {id="settings-eva-motion",width=w,title="Motion",
+    P.buttons(styles),
+    P.buttons(steps("settings-speed","appearance.speed",{{.75,"Unhurried"},{1,"Usual"},{1.5,"Quick"}})),
+    P.buttons(steps("settings-deform","appearance.deform",{{0,"Rigid"},{1,"Fluid"},{2,"Liquid"}})),
+    P.row {id="settings-motion-reduced",width=inner,icon="animation",title="Reduce motion is on",
+      subtitle="Turned off in Accessibility",visible=reduced,trailing=P.chevron(),
+      on_clicked=function() model.request("accessibility") end},
+  }
+end
+
+--- The Appearance page: dark or light, Lule and Fonts one page in, and how
+--- things move.
 function V.theme_page(model,w,h)
   local mode=require("themes.color_mode")
   local function dark() return require("appearance_model").mode()~="light" end
@@ -25,6 +58,7 @@ function V.theme_page(model,w,h)
         subtitle="Every family, previewed, and the shell's",trailing=P.chevron(),
         on_clicked=function() model.request("theme/fonts") end},
     },
+    motion_section(model,w),
   }
 end
 
@@ -35,99 +69,39 @@ function V.eva_link(key,inner,model)
     trailing=P.chevron(),on_clicked=function() model.request(key) end}
 end
 
---- The Eva page: the shell's own parts -- the bar, one page in -- and how
---- its panels open.
+--- The Desktop page: the shell's own parts, each a page in, and what shows
+--- over the windows.
 function V.eva_page(model,w,h)
   local inner=P.inner(w)
   local bar=model.CONTROLS.bar
   local hover=model.edge_hover
-  local reduced=model.reduce_motion
-  local styles={width=inner}
-  local function steps(id,key,list)
-    local row={id=id,width=inner}
-    for _,entry in ipairs(list) do
-      row[#row+1]={id=id.."-"..tostring(entry[1]),label=entry[2],group=id,
-        enabled=function() return not reduced() end,
-        selected=function() return require("config").get(key)==entry[1] end,
-        on_clicked=function() require("config").set(key,entry[1]) end}
-    end
-    return row
-  end
-  for _,style in ipairs(model.MOTIONS) do
-    styles[#styles+1]={id="settings-motion-"..style[1],icon=style[2],label=style[3],group="settings-motion",
-      enabled=function() return not reduced() end,
-      selected=function() return model.motion_style()==style[1] end,
-      on_clicked=function() model.set_motion_style(style[1]) end}
+  local function switch(id,key,icon,title,subtitle)
+    local function on() return require("config").get(key)==true end
+    return P.row {id="settings-eva-"..id,width=inner,icon=icon,title=title,subtitle=subtitle,on=on,
+      trailing=P.switch {id="utilities-toggle-"..id,name=title,on=on,
+        on_toggled=function(now) require("config").set(key,now==true) end}}
   end
   return P.page {id="settings-eva-scroll",width=w,height=h,
     P.section {id="settings-eva",width=w,title="Shell",
       P.row {id="settings-eva-bar",width=inner,icon="toolbar",title="Bar",
         subtitle=function() local s=bar.status() return s=="Off" and "Off" or "On the "..s:lower().." edge" end,
         trailing=P.chevron(),on_clicked=function() model.request("bar") end},
-      P.row {id="settings-eva-osd",width=inner,icon="picture_in_picture",title="On-screen displays",
-        subtitle="Where each one appears, and for how long",
-        trailing=P.chevron(),on_clicked=function() model.request("osd") end},
-      P.row {id="settings-eva-island",width=inner,icon="music_note",title="Island",
-        subtitle="A pill out of the top of the frame, for music and the time",
-        on=function() return require("island").enabled() end,
-        trailing=P.switch {id="utilities-toggle-island",name="Island",on=function() return require("island").enabled() end,
-          on_toggled=function(on) require("config").set("island.enabled",on==true) end}},
-      P.row {id="settings-eva-standby",width=inner,icon="bedtime",title="StandBy",
-        subtitle="A phone on charge, turned sideways, becomes a clock",
-        on=function() return require("config").get("desktop.standby") end,
-        trailing=P.switch {id="utilities-toggle-standby",name="StandBy",on=function() return require("config").get("desktop.standby") end,
-          on_toggled=function(on) require("config").set("desktop.standby",on==true) end}},
-      P.row {id="settings-eva-notifications",width=inner,icon="notifications",title="Notifications",
-        subtitle="Sounds, popups, history and each app's rules",
-        trailing=P.chevron(),on_clicked=function() model.request("notifications") end},
-      P.row {id="settings-eva-keyboard",width=inner,icon="keyboard",title="On-screen keyboard",
-        subtitle="When it comes up",
-        trailing=P.chevron(),on_clicked=function() model.request("keyboard") end},
-      P.row {id="settings-eva-windows",width=inner,icon="select_window",title="Windows",
-        subtitle="Hot corners, the switcher and snapping",
-        trailing=P.chevron(),on_clicked=function() model.request("windows") end},
-    },
-    P.section {id="settings-eva-panels",width=w,title="Panels",
-      P.row {id="settings-eva-arrange",width=inner,icon="dashboard_customize",title="Arrange panels",
+      P.row {id="settings-eva-arrange",width=inner,icon="dock_to_right",title="Panels",
         subtitle="Which panel holds which page",
         trailing=P.chevron(),on_clicked=function() model.request("panels") end},
-      P.row {id="settings-eva-hover",width=inner,icon="near_me",title="Open on hover",on=hover,
+      P.row {id="settings-eva-hover",width=inner,icon="near_me",title="Open panels on hover",on=hover,
         subtitle=function() return hover() and "Reaching an edge opens its panel" or "A press at an edge opens its panel" end,
         trailing=P.switch {id="utilities-toggle-edge-hover",name="Open panels on hover",on=hover,
           on_toggled=model.set_edge_hover}},
+      V.eva_link("rail",inner,model),
+      V.eva_link("launcher",inner,model),
+      V.eva_link("windows",inner,model),
     },
-    P.section {id="settings-eva-motion",width=w,title="Motion",
-      P.buttons(styles),
-      P.buttons(steps("settings-speed","appearance.speed",{{.75,"Unhurried"},{1,"Usual"},{1.5,"Quick"}})),
-      P.buttons(steps("settings-deform","appearance.deform",{{0,"Rigid"},{1,"Fluid"},{2,"Liquid"}})),
-      P.row {id="settings-eva-reduce",width=inner,icon="animation",title="Reduce motion",on=reduced,
-        subtitle=function() return reduced() and "Everything lands at once" or "Things travel on springs" end,
-        trailing=P.switch {id="utilities-toggle-reduce-motion",name="Reduce motion",on=reduced,
-          on_toggled=model.set_reduce_motion}},
-    },
-    P.section {id="settings-eva-more",width=w,title="More",
-      V.eva_link("launcher",inner,model),V.eva_link("rail",inner,model),
-      V.eva_link("capture",inner,model),V.eva_link("weather",inner,model),
-      V.eva_link("commands",inner,model),
-      P.row {id="settings-eva-welcome",width=inner,icon="waving_hand",title="Welcome",
-        subtitle="The short tour again",
-        trailing=P.chevron(),on_clicked=function() model.request("welcome") end},
-    },
-    P.section {id="settings-eva-services",width=w,title="Services",
-      P.row {id="settings-eva-assistant",width=inner,icon="auto_awesome",title="Assistant",
-        subtitle=function() return require("assistant_model").summary() end,
-        trailing=P.chevron(),on_clicked=function() model.request("assistant") end},
-      P.row {id="settings-eva-calendars",width=inner,icon="calendar_month",title="Calendars",
-        subtitle=function() return require("calendar_sources").summary() end,
-        trailing=P.chevron(),on_clicked=function() model.request("calendars") end},
-    },
-    P.section {id="settings-eva-lock-section",width=w,title="Lock and sleep",
-      P.row {id="settings-eva-lock",width=inner,icon="lock",title="Lock screen",
-        subtitle="What it shows, and how it opens",
-        trailing=P.chevron(),on_clicked=function() model.request("lock") end},
-      P.row {id="settings-eva-idle",width=inner,icon="bedtime",title="Idle and sleep",
-        subtitle="When the screen locks, dims and sleeps",
-        trailing=P.chevron(),on_clicked=function() model.request("idle") end},
+    P.section {id="settings-eva-over",width=w,title="Over the windows",
+      V.eva_link("osd",inner,model),
+      V.eva_link("capture",inner,model),
+      switch("island","island.enabled","music_note","Island","A pill out of the top of the frame, for music and the time"),
+      switch("standby","desktop.standby","bedtime","StandBy","A phone on charge, turned sideways, becomes a clock"),
     },
   }
 end

@@ -50,7 +50,7 @@ local function state() return test.ipc("motion_state") end
 
 local function eva_page()
   test.ipc("utilities", "open") test.settle(900)
-  test.click("utilities-toggle-eva") test.advance(2500)
+  test.ipc("settings", "theme") test.advance(2500)
   -- The Motion section, wheeled into the Settings window's page.
   for _ = 1, 40 do
     local node, pane = test.get("settings-motion-playful"), test.get("settings-detail")
@@ -150,11 +150,9 @@ for _, style in ipairs { "material", "tsugumori" } do
 
     test.it("reloads in place when Reduce motion changes", function()
       load(style)
-      eva_page()
-      local node, page = test.get("utilities-toggle-reduce-motion"), test.get("settings-eva-scroll")
-      test.wheel(0, node.y - page.y - 40, { x = page.x + page.width - 2, y = page.y + 30 })
-      test.advance(300)
-      test.click("utilities-toggle-reduce-motion")
+      test.ipc("utilities", "open") test.settle(900)
+      test.ipc("settings", "accessibility") test.advance(2500)
+      test.click("access-reduce-switch")
       test.advance(400)
       test.truthy(state().reduced)
       test.eq(state().reloads, 1)
