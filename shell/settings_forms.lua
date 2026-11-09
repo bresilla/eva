@@ -63,7 +63,7 @@ M.PAGES = {
     } },
     { title = "What a search reaches", fields = {
       { key = "launcher.sources", kind = "list", title = "Sources", icon = "manage_search",
-        note = "apps settings windows system actions app_actions places modes snippets recent bookmarks files" },
+        note = "The kinds of result, in their order", hint = "apps settings windows system actions places files" },
       { key = "launcher.search_files", kind = "bool", title = "Search files", icon = "folder_open" },
       { key = "launcher.exclude", kind = "list", title = "Folders left out", icon = "folder_off" },
       { key = "launcher.projects", kind = "list", title = "Project folders", icon = "folder_code" },

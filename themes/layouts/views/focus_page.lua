@@ -100,7 +100,7 @@ function V.build(model, w, h)
       subtitle = function()
         if control.id == "awake" then return on() and control.status() or "The screen stays on" end
         if control.id == "ringer" then return "Notification sounds and vibration" end
-        return on() and "Notifications stay in history" or "Show notification popups"
+        return on() and "Popups held back, kept in history" or "Holds back notification popups"
       end }
     if carded then awake_switch = row else section[#section + 1] = row end
   end

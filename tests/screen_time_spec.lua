@@ -233,7 +233,7 @@ for _, style in ipairs { "material", "tsugumori" } do
       test.ipc("settings", "screen_time") test.settle(900)
       test.truthy(test.find { id = "screen-time-honest", visible = true })
       test.matches(test.get("screen-time-honest-subtitle").text, "cannot stop an app")
-      test.matches(test.get("screen-time-local-subtitle").text, "Nothing leaves it")
+      test.matches(test.get("screen-time-local-subtitle").text, "nothing leaves it")
       test.matches(test.get("screen-time-downtime-from-label").text, "Starts")
       test.matches(test.get("screen-time-app-1-title").text, "kitty")
       test.click("screen-time-app-1-press") test.settle(900)

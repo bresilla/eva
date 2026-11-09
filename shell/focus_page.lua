@@ -31,7 +31,7 @@ function M.model(settings)
       return ends > 0 and "On until " .. require("morf").time.format("%H:%M", ends) or "On"
     end
     local schedule = focus.schedule_text(mode)
-    return schedule == "Off" and "Tap the switch to start" or schedule
+    return schedule == "Off" and "No schedule" or schedule
   end
   function model.open(id)
     settings.focus_mode:set(id)

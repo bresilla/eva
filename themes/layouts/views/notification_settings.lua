@@ -122,7 +122,7 @@ function V.build(model, w, h)
       visible = function() return row() ~= nil end,
       title = function() local r = row() return r and r.rule.match or "" end,
       subtitle = function() local r = row() return r and model.describe(r.rule) or "" end,
-      trailing = P.button { id = "notif-match-remove-" .. slot, label = "Remove",
+      trailing = P.button { id = "notif-match-remove-" .. slot, label = "Remove", icon = "delete",
         on_clicked = function() local r = row() if r then model.remove_rule(r.index) end end } }
   end
   content_rows[#content_rows + 1] = field(inner, "notif-pattern", "Text to match", function(value) pattern:set(value) end)
@@ -149,9 +149,10 @@ function V.app(model, w, h)
     return toggle(w, "notif-rule-" .. id, icon, name, subtitle, get(field), set(field))
   end
   local head = P.section { id = "notif-rule-head", width = w,
-    P.row { id = "notif-rule-app", width = inner, icon = "apps", title = model.name,
+    P.row { id = "notif-rule-app", width = inner, icon = "apps",
+      title = function() local name = model.name() return (name and name ~= "") and name or "No app chosen" end,
       subtitle = function() return model.muted() and "Muted" or "Allowed" end,
-      trailing = P.button { id = "notif-rule-reset", label = "Reset", on_clicked = model.reset } } }
+      trailing = P.button { id = "notif-rule-reset", label = "Reset", icon = "restart_alt", on_clicked = model.reset } } }
 
   local mute_row = { width = inner }
   for _, preset in ipairs { { 3600, "1 h" }, { 28800, "8 h" }, { 0, "Forever" } } do
