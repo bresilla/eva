@@ -69,7 +69,7 @@ function M.new(active,open_battery)
       words=words..(b.status=="Discharging" and (", "..left.." left")
         or ((target<100 and (", %d%% in "):format(target) or ", full in ")..left))
     end
-    if b.power and b.power>.05 then words=words..("  ·  %.1f W"):format(b.power) end
+    if b.power and b.power>.05 and not model.charging() then words=words..("  ·  %.1f W"):format(b.power) end
     return words
   end
   model.FACTS={

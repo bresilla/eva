@@ -14,7 +14,7 @@ local ROWS = 12
 -- A time of day to type, under what it is.
 local function time_field(model, id, key, title, inner)
   return ui.Column { id = id, width = inner, gap = theme.space.xs,
-    kit.subtitle { id = id .. "-label", width = inner, font_size = theme.size.small, color = kit.ink("lo"), text = title },
+    kit.subtitle { id = id .. "-label", width = inner, font_size = P.SUB, color = kit.ink("lo"), text = title },
     F.text { id = id .. "-field", width = inner, title = title, value = function() return config.get(key) end,
       set = function(text) model.set_time(key, text) end } }
 end

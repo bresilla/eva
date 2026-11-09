@@ -132,6 +132,13 @@ local function pointer_page(model, w, h)
   }
 end
 
+-- A device's kind, in words; a touchpad is a mouse by name.
+local KINDS = { mouse = "Mouse", keyboard = "Keyboard", tablet = "Pen tablet", touch = "Touchscreen" }
+local function kind_words(row)
+  if row.kind == "mouse" and tostring(row.name or ""):find("touchpad", 1, true) then return "Touchpad" end
+  return KINDS[row.kind] or ""
+end
+
 local function devices_page(model, w, h)
   local inner = P.inner(w)
   local function chosen() return model.selected:get() end
@@ -139,7 +146,7 @@ local function devices_page(model, w, h)
   local list = F.list(inner, "device-row-", function() return #model.devices() end, function(index, width)
     local function row() return model.devices()[index] or {} end
     return P.row { id = "device-" .. index, width = width, icon = function() return row().icon or "devices" end,
-      title = function() return row().name or "" end, subtitle = function() return row().kind or "" end,
+      title = function() return row().name or "" end, subtitle = function() return kind_words(row()) end,
       on = function() return row().key == chosen() end,
       on_clicked = function() model.selected:set(row().key or "") end }
   end, "No input devices reported", 16)

@@ -212,7 +212,7 @@ for _,style in ipairs {"material","tsugumori"} do
       if kind=="bluetooth" then test.truthy(test.find{text="Desk keyboard",visible=true}) end
       test.ipc("change","offline") test.advance(100)
       test.eq(#test.ipc("state").rows,0)
-      test.truthy(test.find{text=kind=="network" and "No network manager" or "No Bluetooth adapter",visible=true})
+      test.truthy(test.find{text=kind=="network" and "No network service" or "No Bluetooth adapter",visible=true})
       test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
     end
   end)

@@ -84,7 +84,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(test.ipc("state").profile,"performance")
     test.click("power-open-battery") test.eq(test.ipc("state").handoffs,1)
     test.ipc("change","charging") test.advance(100)
-    test.truthy(test.find {text="Charging, 80% in 1h 00m  ·  12.4 W"})
+    test.truthy(test.find {text="Charging, 80% in 1h 00m"})
     test.ipc("change","missing") test.advance(100)
     test.eq(test.get("power-percent").text,"Mains power")
     test.truthy(test.find {text="No battery"})
@@ -145,13 +145,15 @@ for _,page in ipairs {"power","bar"} do
     shot(page.."-compact-top")
     local viewport=test.get(page.."-scroll")
     test.wheel(0,3000,{x=viewport.x+viewport.width-2,y=viewport.y+220}) test.advance(400)
-    local id=page=="power" and "power-open-battery" or "bar-note"
+    local id=page=="power" and "power-open-battery" or "bar-detail-bar-updates-flake"
     local last=test.get(id)
     test.truthy(last.y>=viewport.y and last.y+last.height<=viewport.y+viewport.height)
     shot(page.."-compact-bottom")
     if page=="bar" then
       test.wheel(0,-3000,{x=viewport.x+viewport.width-2,y=viewport.y+220}) test.advance(400)
       id="bar-titles-off"
+      local control=test.get(id)
+      test.wheel(0,control.y-200,{x=viewport.x+viewport.width-2,y=viewport.y+220}) test.advance(400)
     end
     test.click(id)
     if page=="power" then test.eq(test.ipc("state").handoffs,1) else test.eq(test.ipc("state").titles,"off") end

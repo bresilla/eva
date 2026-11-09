@@ -37,6 +37,7 @@ function M.build_windows(model, w, h)
           label = function() return model.corners.guard_name(key) end,
           on_clicked = function() if model.active() then model.corners.next_guard(key) end end } }
     end
+    corners[#corners + 1] = F.note(P.inner(w), "A corner's button says which key must be held for it to work.")
     sections[#sections + 1] = P.section(corners)
     sections[#sections + 1] = choices(w, { group = "windows-scope", title = "Alt+Tab shows windows from",
       items = model.scopes, now = model.get("windows.switcher.scope"), pick = model.set("windows.switcher.scope") })
@@ -68,10 +69,6 @@ function M.build_windows(model, w, h)
     sections[#sections + 1] = choices(w, { group = "windows-scrub", title = "The bottom edge walks",
       items = model.scrubs, now = model.get("windows.scrub"), pick = model.set("windows.scrub") })
   end
-  if not model.touch then
-    sections[#sections + 1] = kit.subtitle { width = w, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
-      text = "A corner's button says which key must be held for it to work." }
-  end
   return P.page(sections)
 end
 
@@ -98,10 +95,10 @@ function M.build_rules(model, w, h)
   return P.page { id = "rules-scroll", width = w, height = h, active = model.active,
     P.section { id = "rules-list", caption_id = "rules-list-caption", width = w, title = "Rules",
       F.list(inner, "rules-row-", function() return #rules.list() end, rule_row, "No rules yet", 24),
-      P.button { id = "rules-add", label = "Add a rule", icon = "add", on_clicked = function() rules.edit({}) end } },
+      P.button { id = "rules-add", width = inner, label = "Add a rule", icon = "add", on_clicked = function() rules.edit({}) end },
+      F.note(inner, "A rule acts on a window as it opens. Opacity, blur and dimming reach windows already open.") },
     P.section { id = "rules-running", caption_id = "rules-running-caption", width = w, title = "From a running window",
-      F.list(inner, "rules-window-", function() return #model.running() end, running_row, "No windows are open", 12) },
-    F.note(w, "A rule acts on a window as it opens. Opacity, blur and dimming reach windows already open.") }
+      F.list(inner, "rules-window-", function() return #model.running() end, running_row, "No windows are open", 12) } }
 end
 
 function M.build_rule(model, w, h)
@@ -175,17 +172,17 @@ function M.build_layouts(model, w, h)
   end
   return P.page { id = "layouts-scroll", width = w, height = h, active = model.active,
     P.section { id = "layouts-save", caption_id = "layouts-save-caption", width = w, title = "Save what is open", box,
-      P.button { id = "layouts-save-now", label = "Save", tone = "primary", on_clicked = function() model.save(handle.text) end },
+      P.button { id = "layouts-save-now", width = inner, label = "Save", tone = "primary", on_clicked = function() model.save(handle.text) end },
       F.note(inner, function() return model.message:get() end, { id = "layouts-message",
         visible = function() return model.message:get() ~= "" end }) },
     P.section { id = "layouts-list", caption_id = "layouts-list-caption", width = w, title = "Saved",
       F.list(inner, "layouts-saved-", function() return #layouts.list() end, row, "Nothing saved yet", 16),
       F.note(inner, function() return layouts.report_text() end, { id = "layouts-report",
-        visible = function() return layouts.report_text() ~= "" end }) },
-    F.note(w, "The switch restores a layout after each login. Floating windows return to their exact place, "
-      .. "tiled ones to their workspace. A window that is closed is started again, but what was in it is not: tabs, "
-      .. "documents and terminal sessions start fresh. An app with no desktop entry cannot be started, and one that "
-      .. "keeps to a single window comes back as one.") }
+        visible = function() return layouts.report_text() ~= "" end }),
+      F.note(inner, "The switch restores a layout after each login. Floating windows return to their exact place, "
+        .. "tiled ones to their workspace. A window that is closed is started again, but what was in it is not: tabs, "
+        .. "documents and terminal sessions start fresh. An app with no desktop entry cannot be started, and one that "
+        .. "keeps to a single window comes back as one.") } }
 end
 
 return M

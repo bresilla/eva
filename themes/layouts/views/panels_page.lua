@@ -171,7 +171,7 @@ function V.build(model, w, h)
   local reset = ui.Item { x = P.PAD, width = inner, height = P.BUTTON_H,
     y = function() return plan:get().height end,
     behavior = { y = TRAVEL },
-    P.button { id = "panels-reset", label = "Reset", icon = "restart_alt", on_clicked = board.reset } }
+    P.button { id = "panels-reset", width = inner, label = "Reset", icon = "restart_alt", on_clicked = board.reset } }
 
   local card = kit.card { id = "panels-board", width = w, radius = kit.round(P.RADIUS),
     height = function() return plan:get().height + P.BUTTON_H + P.PAD end,

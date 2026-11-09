@@ -98,6 +98,9 @@ function READ.netbird(done)
   end)
 end
 
+-- Tailscale's own states, as words.
+local STATES = { NeedsLogin = "Needs a login", NeedsMachineAuth = "Waits for the admin", Stopped = "Stopped",
+  Starting = "Starting", NoState = "Not running" }
 function READ.tailscale(done)
   run({ "tailscale", "status", "--json" }, function(r)
     local ok, data = pcall(morf.json.decode, tostring(r.stdout or ""))
@@ -110,7 +113,7 @@ function READ.tailscale(done)
     end
     local ips = type(data.TailscaleIPs) == "table" and data.TailscaleIPs or {}
     done { up = up, address = ips[1] or "",
-      detail = up and ("%d/%d peers online"):format(online, peers) or tostring(data.BackendState or "Stopped") }
+      detail = up and ("%d/%d peers online"):format(online, peers) or (STATES[data.BackendState] or tostring(data.BackendState or "Stopped")) }
   end)
 end
 

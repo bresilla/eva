@@ -27,7 +27,7 @@ local function choices(w, id, title, items, now, pick, per)
   local named = {}
   for i, item in ipairs(items) do named[i] = { item[1], nil, item[2] } end
   return ui.Column { width = P.inner(w), gap = theme.space.xs,
-    kit.subtitle { width = P.inner(w), font_size = theme.size.small, color = kit.ink("lo"), text = title },
+    kit.subtitle { width = P.inner(w), font_size = P.SUB, color = kit.ink("lo"), text = title },
     F.choices { id = id, width = P.inner(w), items = named, per_row = per or #items, now = now, pick = pick } }
 end
 
@@ -162,7 +162,7 @@ function V.app(model, w, h)
     visible = model.muted }
 
   local alerts = P.section { id = "notif-rule-alerts", width = w, title = "Alerts",
-    kit.subtitle { width = inner, font_size = theme.size.small, color = kit.ink("lo"), text = "Mute" },
+    kit.subtitle { width = inner, font_size = P.SUB, color = kit.ink("lo"), text = "Mute" },
     P.buttons(mute_row),
     flag("popup", "web_asset", "Popups", "Off, it goes straight to the history", "popup"),
     flag("history", "history", "Keep in history", "Off, it leaves no trace", "history"),

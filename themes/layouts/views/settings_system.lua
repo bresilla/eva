@@ -348,7 +348,8 @@ function M.updates_page(model, w, h)
     P.section { id = "updates-do", width = w, title = "New versions",
       kit.text { id = "update-note", width = inner, elide = "right", font_size = theme.size.small, color = kit.ink("lo"),
         text = function()
-          if U.message:get() ~= "" then return U.message:get() end
+          -- A missing flake.lock is the card's below, said once.
+          if U.message:get() ~= "" and not (nixos() and not found()) then return U.message:get() end
           if U.checking:get() > 0 then return "Asking the package managers" end
           local count = U.pending()
           return count == 0 and "Nothing waits" or (count .. " waiting")
@@ -397,10 +398,10 @@ function M.displays_page(model, w, h)
         { id = "displays-ddc-note", visible = function() return not model.ddc.allowed() end }),
     },
     P.section { id = "displays-more", width = w, title = "Related",
-      F.link { id = "displays-night", width = inner, icon = "nightlight", title = "Night light",
-        subtitle = "Warmer colours", go = function() model.request("nightlight", "displays") end },
-      F.link { id = "displays-access", width = inner, icon = "accessibility_new", title = "Accessibility",
-        subtitle = "Colour filters and the screen's zoom", go = function() model.request("accessibility", "displays") end },
+      F.page { id = "displays-night", width = inner, key = "nightlight",
+        go = function() model.request("nightlight", "displays") end },
+      F.page { id = "displays-filters", width = inner, key = "filters",
+        go = function() model.request("filters", "displays") end },
     },
   }
 end

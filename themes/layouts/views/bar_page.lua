@@ -14,14 +14,15 @@ local S = theme.space
 local M = {}
 
 --- A section of choices: `id`, `title`, `group`, the choices
---- ({ key, icon, name }), what is chosen now, and how to choose.
+--- ({ key, icon, name }), what is chosen now, how to choose, and a `note`.
 local function choices(w, spec)
   local row = { width = P.inner(w) }
   for _, c in ipairs(spec.items) do
     row[#row + 1] = { id = spec.group .. "-" .. c[1], icon = c[2], label = c[3], group = spec.group,
       selected = function() return spec.now() == c[1] end, on_clicked = function() spec.pick(c[1]) end }
   end
-  return P.section { id = spec.group, caption_id = spec.caption_id, width = w, title = spec.title, P.buttons(row) }
+  return P.section { id = spec.group, caption_id = spec.caption_id, width = w, title = spec.title, P.buttons(row),
+    spec.note and require("themes.layouts.form").note(P.inner(w), spec.note) or nil }
 end
 
 --- A row with a switch: `id`, `icon`, `name`, what it says, how to set it.
@@ -61,17 +62,18 @@ function M.build_tray(model, w, h)
   end
   return P.page { id = "bar-tray-scroll", width = w, height = h, active = model.active,
     P.section { id = "bar-tray-items", width = w,
-      F.list(inner, "tray-item-", function() return #model.tray_items() end, row, "Nothing is in the tray", 24) },
+      F.list(inner, "tray-item-", function() return #model.tray_items() end, row, "Nothing is in the tray", 24),
+      F.note(inner, "Tucked away keeps an item behind the arrow, hidden keeps it off the bar altogether. What does not fit on the bar goes behind the arrow too.") },
     P.section { id = "bar-tray-limit", caption_id = "bar-tray-limit-caption", width = w, title = "On the bar",
       F.slider { id = "bar-tray-limit-slider", width = inner, icon = "more_horiz", name = "Icons at most", from = 1, to = 16, step = 1,
-        value = model.tray_limit, set = model.set_tray_limit, format = function(value) return ("%d"):format(value) end } },
-    F.note(w, "Tucked away keeps an item behind the arrow, hidden keeps it off the bar altogether. What does not fit on the bar goes behind the arrow too.") }
+        value = model.tray_limit, set = model.set_tray_limit, format = function(value) return ("%d"):format(value) end } } }
 end
 
 function M.build(model, w, h)
   local sections = { id = "bar-scroll", width = w, height = h, active = model.active,
     choices(w, { group = "bar-show", caption_id = "bar-heading-show-the-bar", title = "Show the bar",
-      items = model.shows, now = model.mode, pick = model.set_mode }),
+      items = model.shows, now = model.mode, pick = model.set_mode,
+      note = "Auto puts the bar up on a phone or a narrow screen, and keeps it down on a desk." }),
     choices(w, { group = "bar-side", caption_id = "bar-heading-position", title = "Position",
       items = model.sides, now = model.side, pick = model.set_side }),
     P.section { id = "bar-more", width = w,
@@ -119,7 +121,7 @@ function M.build(model, w, h)
       function(value) model.set_detail(row.key, value) end, function() end)
     handle.text = model.detail(row.key)
     details[#details + 1] = ui.Column { width = inner, gap = S.xxs,
-      kit.subtitle { width = inner, font_size = theme.size.small, color = kit.ink("lo"), text = row.title }, box }
+      kit.subtitle { width = inner, font_size = P.SUB, color = kit.ink("lo"), text = row.title }, box }
   end
   sections[#sections + 1] = P.section(details)
   for _, name in ipairs(model.outputs()) do
@@ -127,8 +129,6 @@ function M.build(model, w, h)
     sections[#sections + 1] = choose
     sections[#sections + 1] = P.section { id = "bar-screen-" .. name:gsub("%W", "-") .. "-own", width = w, own }
   end
-  sections[#sections + 1] = kit.subtitle { id = "bar-note", width = w, wrap = true, font_size = theme.size.small, color = kit.ink("lo"),
-    text = "Auto puts the bar up on a phone or a narrow screen, and keeps it down on a desk." }
   return P.page(sections)
 end
 

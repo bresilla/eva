@@ -4,6 +4,7 @@ local ui=require("morf.ui")
 local theme=require("theme")
 local kit=require("kit")
 local P=require("themes.layouts.page")
+local F=require("themes.layouts.form")
 local C=theme.color
 local V={WIDTH=430,RADIUS=15}
 --- The motion choices: a style, a speed and how far shapes give, each a row
@@ -29,8 +30,11 @@ local function motion_section(model,w)
       on_clicked=function() model.set_motion_style(style[1]) end}
   end
   return P.section {id="settings-eva-motion",width=w,title="Motion",
+    F.note(inner,"Character"),
     P.buttons(styles),
+    F.note(inner,"Speed"),
     P.buttons(steps("settings-speed","appearance.speed",{{.75,"Unhurried"},{1,"Usual"},{1.5,"Quick"}})),
+    F.note(inner,"Stretch"),
     P.buttons(steps("settings-deform","appearance.deform",{{0,"Rigid"},{1,"Fluid"},{2,"Liquid"}})),
     P.row {id="settings-motion-reduced",width=inner,icon="animation",title="Reduce motion is on",
       subtitle="Turned off in Accessibility",visible=reduced,trailing=P.chevron(),
@@ -73,7 +77,6 @@ end
 --- over the windows.
 function V.eva_page(model,w,h)
   local inner=P.inner(w)
-  local bar=model.CONTROLS.bar
   local hover=model.edge_hover
   local function switch(id,key,icon,title,subtitle)
     local function on() return require("config").get(key)==true end
@@ -84,10 +87,14 @@ function V.eva_page(model,w,h)
   return P.page {id="settings-eva-scroll",width=w,height=h,
     P.section {id="settings-eva",width=w,title="Shell",
       P.row {id="settings-eva-bar",width=inner,icon="toolbar",title="Bar",
-        subtitle=function() local s=bar.status() return s=="Off" and "Off" or "On the "..s:lower().." edge" end,
+        subtitle=function()
+          local mode,side=require("config").get("edgebar.enabled"),require("bar").side()
+          if mode=="off" then return "Off" end
+          return (mode=="on" and "On the " or "On a narrow screen, on the ")..side.." edge"
+        end,
         trailing=P.chevron(),on_clicked=function() model.request("bar") end},
       P.row {id="settings-eva-arrange",width=inner,icon="dock_to_right",title="Panels",
-        subtitle="Which panel holds which page",
+        subtitle="Which page each panel holds",
         trailing=P.chevron(),on_clicked=function() model.request("panels") end},
       P.row {id="settings-eva-hover",width=inner,icon="near_me",title="Open panels on hover",on=hover,
         subtitle=function() return hover() and "Reaching an edge opens its panel" or "A press at an edge opens its panel" end,

@@ -105,11 +105,11 @@ end
 --- A gesture's page: every action, one chosen, and a command for the last.
 function M.gesture(model, w, h)
   local inner = P.inner(w)
-  local list = { id = "touch-actions", width = w, title = "Does" }
+  local list = { id = "touch-actions", width = w, title = "What it does" }
   for _, action in ipairs(model.ACTIONS) do
     local function picked() return model.action() == action.key end
-    local tick = kit.icon("check", 22, kit.ink("accent"))
-    tick.visible = picked
+    local tick = kit.icon(function() return picked() and "radio_button_checked" or "radio_button_unchecked" end, 22,
+      function() return picked() and kit.ink("accent")() or kit.ink("lo")() end)
     list[#list + 1] = P.row { id = "touch-action-" .. action.key, width = inner, height = 52, icon = action.icon,
       title = action.name, on = picked, trailing = tick, on_clicked = function() model.pick(action.key) end }
   end

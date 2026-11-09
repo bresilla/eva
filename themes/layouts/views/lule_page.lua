@@ -1,5 +1,5 @@
 -- The Lule page, in the page template (themes/layouts/page.lua): a
--- Wallpaper, a Colors and an Appearance section, captions over cards, one
+-- Wallpaper, a Colours and a Style section, captions over cards, one
 -- under the other (wallpaper and colours side by side on a page 1000 wide).
 -- The settings frame draws the title; shell/lule_page.lua scrolls it.
 local morf = require("morf")
@@ -178,7 +178,7 @@ function M.build(state, width)
     { id = "lule-browse", label = "Images", icon = "folder_open", on_clicked = state.browse },
     { id = "lule-shuffle", label = "Shuffle", icon = "shuffle", on_clicked = state.shuffle },
   }
-  local random = { id = "lule-random-apply", label = "Random & apply", icon = "auto_awesome", tone = "primary",
+  local random = { id = "lule-random-apply", label = "Pick one and apply", icon = "auto_awesome", tone = "primary",
     on_clicked = state.random_apply }
   local files = { width = li, gap = ROW, visible = function() return not generating() end, folder_row }
   if SPLIT then
@@ -205,7 +205,7 @@ function M.build(state, width)
       small("Logo size (%)", { width = 112 }), entry("lule-logo-size", state.logo_size, "40", 74) },
     bar(li, {
       { id = "lule-generate", label = "Preview", on_clicked = function() state.generate(false) end },
-      { id = "lule-generate-apply", label = "Generate & apply", tone = "primary", on_clicked = function() state.generate(true) end },
+      { id = "lule-generate-apply", label = "Generate and apply", tone = "primary", on_clicked = function() state.generate(true) end },
     }),
   }
   local source = bar(li, {
@@ -274,7 +274,7 @@ function M.build(state, width)
       on_clicked = function() state.copy(picker_handle.value()) end } }
   local picker = ui.Item { width = ri, height = SW_H, visible = function() return picking:get() end, picker_node }
   swatches.visible = function() return not picking:get() end
-  local colors = P.section { id = "lule-colors", caption_id = "lule-colors-heading", width = right, title = "Colors",
+  local colors = P.section { id = "lule-colors", caption_id = "lule-colors-heading", width = right, title = "Colours",
     bar(ri, {
       { id = "lule-view-swatches", label = "Swatches", group = "lule-view",
         selected = function() return not picking:get() end, on_clicked = function() picking:set(false) end },
@@ -311,7 +311,7 @@ function M.build(state, width)
     label = function() local name = require("themes").font return name and name ~= "" and name or "Theme default" end,
     on_clicked = function() require("themes.fonts").open() end }
   local apply = button { id = "lule-apply", tone = "primary", width = ci,
-    label = function() return busy() and state.busy:get() and "Applying…" or "Apply wallpaper & colors" end,
+    label = function() return busy() and state.busy:get() and "Applying…" or "Apply wallpaper and colours" end,
     on_clicked = state.apply }
   local status = kit.subtitle { id = "lule-status", width = ci, height = 32, wrap = true, font_size = 12,
     text = function() return appearance.message:get() ~= "" and appearance.message:get() or state.message:get() end,

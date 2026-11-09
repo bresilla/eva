@@ -35,6 +35,7 @@ P.PAD = S.l             -- inside a card
 P.ROW_H = 64          -- a row
 P.ROW_GAP = S.s         -- between rows in a card
 P.RADIUS = S.l          -- a card's rounding, where the theme rounds
+P.ICON_ROOM = 132       -- a button's width with room for an icon by its label
 -- A button: a finger's height where one is the main input.
 do
   local ok, responsive = pcall(require, "responsive")
@@ -105,6 +106,11 @@ end
 function P.buttons(spec)
   local items = children(spec)
   local gap = 8
+  -- Too narrow for an icon beside each label: the labels alone.
+  local each = ((tonumber(get(spec.width)) or 0) - gap * (#items - 1)) / math.max(1, #items)
+  if each < P.ICON_ROOM then
+    for _, item in ipairs(items) do if item.label and item.icon then item.icon = nil end end
+  end
   local row = { id = spec.id, gap = gap, align = "center" }
   for i, item in ipairs(items) do
     item.width = function()

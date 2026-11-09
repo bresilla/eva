@@ -7,6 +7,7 @@ local theme = require("theme")
 local kit = require("kit")
 local P = require("themes.layouts.page")
 local F = require("themes.layouts.form")
+local unicase = require("lib.util.unicase")
 local S = theme.space
 
 local M = {}
@@ -132,7 +133,7 @@ function M.printers_page(model, w, h)
       subtitle = function()
         local r = row()
         if (r.reason or "") ~= "" then return r.reason end
-        return r.enabled and (r.state or "") or "Paused"
+        return r.enabled and unicase.capitalise(r.state or "") or "Paused"
       end,
       trailing = ui.Row { gap = S.xs, align = "center",
         P.button { id = "printer-default-" .. index, label = "Default", visible = function() return row().default ~= true end,

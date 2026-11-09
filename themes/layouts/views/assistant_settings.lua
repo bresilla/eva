@@ -131,8 +131,10 @@ function V.page(model, w, h)
   system_input.text = require("config").get("assistant.system") or ""
 
   local history = function() return require("config").get("assistant.history") ~= false end
-  local folder_node, folder_input = widgets.field("assistant-folder", "Conversations folder", "The state folder", inner,
-    function(value) require("config").set("assistant.folder", value) end)
+  local folder_box, folder_input = P.field { id = "assistant-folder", width = inner, placeholder = "The state folder",
+    name = "Conversations folder", on_changed = function(value) require("config").set("assistant.folder", value) end }
+  local folder_node = ui.Column { width = inner, gap = S.xs,
+    require("themes.layouts.form").note(inner, "Conversations folder"), folder_box }
   folder_input.text = require("config").get("assistant.folder") or ""
   local page = P.page { id = "settings-assistant-scroll", width = w, height = h,
     P.section { id = "assistant-provider", width = w, title = "Provider",

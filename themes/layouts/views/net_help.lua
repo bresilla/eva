@@ -42,7 +42,7 @@ function M.page(model, w, h)
     return verdict and verdict.words or ""
   end, { id = "net-steps-verdict", visible = function() return model.verdict:get() ~= false end,
     color = function() local v = model.verdict:get() return v and v.failed and C.error or kit.ink("hi")() end })
-  steps[#steps + 1] = P.button { id = "net-steps-sign-in", width = inner, tone = "primary", label = "Open the sign-in page",
+  steps[#steps + 1] = P.button { id = "net-steps-sign-in", width = inner, tone = "primary", label = "Open the sign-in page", icon = "open_in_new",
     visible = function() local v = model.verdict:get() return v ~= false and v.login ~= nil end, on_clicked = model.open_found }
 
   local function reading(id, icon, title, value)

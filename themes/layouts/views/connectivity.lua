@@ -234,9 +234,8 @@ local function hidden_section(model, w)
     },
     P.row { id = "network-proxy-open", width = inner, icon = "shield", title = "Proxy", subtitle = "For this session's programs",
       trailing = P.chevron(), on_clicked = function() model.request("network/proxy") end },
-    P.row { id = "network-help-open", width = inner, icon = "troubleshoot", title = "Connection help",
-      subtitle = "Troubleshoot, speed test, sign-in pages",
-      trailing = P.chevron(), on_clicked = function() model.request("network/help") end },
+    require("themes.layouts.form").page { id = "network-help-open", width = inner, key = "network/help",
+      go = function() model.request("network/help") end },
   }
 end
 
@@ -266,7 +265,7 @@ local function network_page(model, w, h)
     network_prompt(model, w),
     share_panel(model, w),
     status("network-status", model, w),
-    action(w, { id = "network-rescan", icon = "wifi_find", label = "Rescan networks",
+    action(w, { id = "network-rescan", icon = "wifi_find", label = "Scan for networks",
       on_clicked = function() model.scan() end }),
   }
   return ui.Item { id = "network-page", width = w, height = h, P.page { id = "network-scroll", width = w, height = h,
@@ -274,7 +273,7 @@ local function network_page(model, w, h)
     P.section { id = "wifi", width = w,
       P.row { id = "network-enabled", width = inner, icon = "wifi", on = model.enabled, title = "Wi-Fi",
         subtitle = function()
-          if not available() then return "No network manager" end
+          if not available() then return "No network service" end
           local count = #model.list()
           return ("%d network%s available"):format(count, count == 1 and "" or "s")
         end,
@@ -282,7 +281,7 @@ local function network_page(model, w, h)
     },
     networks,
     hidden_section(model, w),
-    missing(w, "wifi_off", "No network manager", "NetworkManager is not running, so there are no networks to list.",
+    missing(w, "wifi_off", "No network service", "NetworkManager is not running, so there are no networks to list.",
       available),
   } }
 end
@@ -551,7 +550,7 @@ local function mobile_page(model,w,h)
             on_clicked=function() if n().code then model.register(n().code) end end}
         end,"Scan to list the networks nearby",16),
         P.buttons {width=inner,
-          {id="mobile-scan",icon="radar",label=function() return model.scanning:get() and "Scanning…" or "Scan networks" end,
+          {id="mobile-scan",icon="radar",label=function() return model.scanning:get() and "Scanning…" or "Scan for networks" end,
             enabled=function() return not busy() end,on_clicked=model.scan_networks},
           {id="mobile-automatic",label="Automatic",enabled=function() return not busy() end,
             on_clicked=function() model.register(nil) end}},

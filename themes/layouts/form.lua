@@ -30,6 +30,14 @@ function F.link(spec)
     trailing = P.chevron(), on_clicked = spec.go, visible = spec.visible }
 end
 
+--- A row to another Settings page, named, drawn and summed up as the page
+--- itself is: `id`, `width`, `key`, `go`, `visible`; `subtitle` overrides.
+function F.page(spec)
+  local page = require("settings_registry").BY_KEY[spec.key] or {}
+  return F.link { id = spec.id, width = spec.width, icon = page.icon, title = page.name or spec.key,
+    subtitle = spec.subtitle or page.summary, go = spec.go, visible = spec.visible }
+end
+
 --- A line of facts: icon, title and a reading, nothing to press.
 function F.fact(spec)
   return P.row { id = spec.id, width = spec.width, icon = spec.icon, title = spec.title, subtitle = spec.subtitle,

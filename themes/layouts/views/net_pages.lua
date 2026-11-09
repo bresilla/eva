@@ -27,7 +27,7 @@ local function link_row(w, spec)
 end
 
 local function note(w, text, visible)
-  local n = kit.subtitle { width = w, wrap = true, font_size = theme.size.small, text = text,
+  local n = kit.subtitle { width = w, wrap = true, font_size = P.SUB, text = text,
     color = kit.ink("lo") }
   if visible then n.visible = visible end
   return n
@@ -55,17 +55,17 @@ end
 
 function M.build(model,w,h)
   local kind=model.kind
+  local inner=P.inner(w)
   local blocks={}
   if kind=="wired" then
     blocks[#blocks+1]=P.section {id="wired-ports",caption_id="wired-ports-title",width=w,title="Ports",
-      list(model,w,model.network,"No wired ports")}
-    blocks[#blocks+1]=note(w,function() return model.network_available() and model.note or "NetworkManager is not running." end)
+      list(model,w,model.network,"No wired ports"),
+      note(inner,function() return model.network_available() and model.note or "NetworkManager is not running." end)}
     blocks[#blocks+1]=P.section {id="wired-help",width=w,
-      P.row {id="wired-help-open",width=P.inner(w),icon="troubleshoot",title="Connection help",
-        subtitle="Troubleshoot, speed test",trailing=P.chevron(),on_clicked=model.help}}
+      require("themes.layouts.form").page {id="wired-help-open",width=inner,key="network/help",go=model.help}}
   elseif kind=="tor" then
-    blocks[#blocks+1]=P.section {id="tor-services",width=w,title="Tor",list(model,w,model.tor)}
-    blocks[#blocks+1]=note(w,function() return model.available() and model.note or "Tor is not installed." end)
+    blocks[#blocks+1]=P.section {id="tor-services",width=w,title="Tor",list(model,w,model.tor),
+      note(inner,function() return model.available() and model.note or "Tor is not installed." end)}
   else
     if kind=="tunnel" then
       blocks[#blocks+1]=P.section {id="vpn-tunnel-network",caption_id="vpn-tunnel-network-title",width=w,
@@ -81,26 +81,26 @@ function M.build(model,w,h)
         on=function() local r=row() return r~=nil and r.on end,
         detail=function() local r=row() return r and r.detail or "Reading…" end,
         can=function() local r=row() return r~=nil and r.can end,
-        on_word=kind=="mesh" and "Up" or "Connect",off_word=kind=="mesh" and "Down" or "Disconnect",
+        on_word="Connect",off_word="Disconnect",
         toggle=function(on) model.toggle("app:"..id,on) end,
         visible=function() return (model.apps:len()==0 and not model.loaded()) or row()~=nil end,
       })
     end
     -- A finished scan that found none says so, rather than reading on.
-    apps[#apps+1]=P.row {id="vpn-"..kind.."-none",width=P.inner(w),icon="block",on=function() return false end,
+    apps[#apps+1]=P.row {id="vpn-"..kind.."-none",width=inner,icon="info",on=function() return false end,
       title=kind=="mesh" and "No mesh tools" or "No VPN applications",
-      subtitle=kind=="mesh" and "No supported mesh tools are installed." or "No supported VPN applications are installed.",
+      subtitle=kind=="mesh" and "None of the supported mesh tools is installed" or "None of the supported VPN apps is installed",
       visible=function() return model.loaded() and model.apps:len()==0 end}
-    blocks[#blocks+1]=P.section(apps)
-    blocks[#blocks+1]=note(w,function()
+    apps[#apps+1]=note(inner,function()
       if kind=="tunnel" and not model.network_available() then return "NetworkManager is not running." end
       return model.note
     end)
+    blocks[#blocks+1]=P.section(apps)
     if kind=="tunnel" then
       local present=function() return model.tor:len()>0 end
       blocks[#blocks+1]=P.section {id="vpn-tunnel-tor",caption_id="vpn-tunnel-tor-title",width=w,title="Tor",
-        visible=present,list(model,w,model.tor)}
-      blocks[#blocks+1]=note(w,"Tor runs a SOCKS proxy for apps configured to use it. Starting it does not route all system traffic through Tor.",present)
+        visible=present,list(model,w,model.tor),
+        note(inner,"Tor runs a SOCKS proxy for apps configured to use it. Starting it does not route all system traffic through Tor.")}
     end
   end
   local page=P.page {id=(kind=="mesh" or kind=="tunnel") and "vpn-"..kind.."-scroll" or kind.."-scroll",

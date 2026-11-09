@@ -222,7 +222,7 @@ for _,kind in ipairs {"wired","tunnel"} do
     test.near(title.y,0,1)
     test.ipc("change","empty") test.advance(2500)
     shot(kind.."-compact-empty")
-    if kind=="tunnel" then test.truthy(test.find {text="No supported VPN applications are installed.",visible=true}) end
+    if kind=="tunnel" then test.truthy(test.find {text="None of the supported VPN apps is installed",visible=true}) end
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)
   end)
 end

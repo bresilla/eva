@@ -21,7 +21,7 @@ local function toggle(w, id, icon, name, subtitle, on, set)
 end
 
 local function caption(w, text, visible)
-  return kit.subtitle { width = P.inner(w), font_size = theme.size.small, color = kit.ink("lo"), text = text,
+  return kit.subtitle { width = P.inner(w), font_size = P.SUB, color = kit.ink("lo"), text = text,
     visible = visible }
 end
 
@@ -177,8 +177,10 @@ function V.mode(model, w, h)
     return P.row { id = id, width = inner, icon = "schedule", title = name,
       subtitle = function() return tostring(model.get(key)) end,
       trailing = ui.Row { gap = theme.space.xs, align = "center",
-        P.button { id = id .. "-earlier", label = "-30", width = 64, on_clicked = function() model.shift(key, -30) end },
-        P.button { id = id .. "-later", label = "+30", width = 64, on_clicked = function() model.shift(key, 30) end } } }
+        P.button { id = id .. "-earlier", icon = "remove", accessible_name = name .. " 30 min earlier", width = 48,
+          on_clicked = function() model.shift(key, -30) end },
+        P.button { id = id .. "-later", icon = "add", accessible_name = name .. " 30 min later", width = 48,
+          on_clicked = function() model.shift(key, 30) end } } }
   end
   local schedule = P.section { id = "focus-schedule", width = w, title = "Schedule",
     flag("schedule-on", "event", "On a schedule", model.schedule_text, "schedule.on"),

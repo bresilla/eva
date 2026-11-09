@@ -127,7 +127,7 @@ function M.build(model, w, h)
       P.row { id = "osd-percent", width = inner, icon = "percent", title = "Show the percentage", visible = model.level,
         on = model.percent, trailing = P.switch { id = "osd-percent-switch", name = "Show the percentage",
           on = model.percent, on_toggled = model.set_percent } },
-      kit.subtitle { width = inner, font_size = theme.size.small, color = kit.ink("lo"), text = "How long it stays" },
+      kit.subtitle { width = inner, font_size = P.SUB, color = kit.ink("lo"), text = "How long it stays" },
       holds(model, inner),
     },
   }

@@ -31,11 +31,12 @@ function F.choices(spec)
     end
     lines[#lines + 1] = P.buttons(buttons)
   end
-  return ui.Column { id = spec.id, width = spec.width, gap = P.ROW_GAP / 2,
-    P.row { id = spec.id .. "-row", width = spec.width, height = 44, icon = spec.icon, title = spec.title,
-      subtitle = spec.subtitle },
-    ui.Column(lines),
-  }
+  -- With an icon or a line under it, a row heads the choices; else a caption.
+  local head = (spec.icon or spec.subtitle) and P.row { id = spec.id .. "-row", width = spec.width, height = 44,
+    icon = spec.icon, title = spec.title, subtitle = spec.subtitle }
+    or kit.subtitle { id = spec.id .. "-row", width = spec.width, wrap = true, font_size = P.SUB, text = spec.title,
+      color = kit.ink("lo") }
+  return ui.Column { id = spec.id, width = spec.width, gap = P.ROW_GAP / 2, head, ui.Column(lines) }
 end
 
 --- One line for one of a few choices: the title, and at the right a list to
@@ -65,7 +66,7 @@ end
 --- A row with a switch: `id`, `width`, `icon`, `title`, `subtitle`, `on` (fn),
 --- `set` (fn), `enabled` (fn).
 function F.switch(spec)
-  return P.row { id = spec.id, width = spec.width, height = 56, icon = spec.icon, title = spec.title,
+  return P.row { id = spec.id, width = spec.width, icon = spec.icon, title = spec.title,
     subtitle = spec.subtitle, on = spec.on, visible = spec.visible,
     trailing = P.switch { id = spec.id .. "-switch", name = spec.title, on = spec.on, enabled = spec.enabled,
       on_toggled = spec.set } }

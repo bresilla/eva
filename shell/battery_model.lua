@@ -94,18 +94,14 @@ function M.new(ctx)
     if b.status=="Full" then return "Full" end
     return model.state().ac and "Plugged in" or "Not plugged in"
   end
-  --- The rate, the charger and the time left, each where it is known.
+  --- The rate and the charger, each where it is known; the time left is the
+  --- summary's.
   function model.charge_detail()
     local f,b=model.feed(),model.battery()
     local parts={}
     local watts=f.watts or (model.charging() and b.power) or nil
     if watts and watts>.05 then parts[#parts+1]=("%.1f W"):format(watts) end
     if f.kind then parts[#parts+1]=model.charger_name() end
-    local left=model.to_target()
-    if left and left>0 then
-      local target=model.target()
-      parts[#parts+1]=(target<100 and ("%d%% in "):format(target) or "Full in ")..M.duration(left)
-    end
     return table.concat(parts,"  ·  ")
   end
   --- What a weak charger is told, or "".

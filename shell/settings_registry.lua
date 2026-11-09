@@ -46,6 +46,7 @@ M.PAGES = {
   { key = "network/proxy", name = "Proxy", icon = "shield", parent = "network",
     keywords = "proxy socks http pac automatic" },
   { key = "network/help", name = "Connection help", icon = "troubleshoot", parent = "network",
+    summary = "Troubleshoot, speed test, sign-in pages",
     keywords = "troubleshoot diagnose problem not working no internet offline test dns gateway router",
     items = { { "Troubleshoot my connection", "diagnose fix internet link address gateway dns" },
       { "Speed test", "bandwidth download upload latency ping mbps" },

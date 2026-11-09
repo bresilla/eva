@@ -9,7 +9,7 @@ local P=require("themes.layouts.page")
 local C=theme.color
 local M={}
 local function note(text,width)
-  return kit.subtitle {text=text,width=width,wrap=true,font_size=theme.size.small,color=kit.ink("lo")}
+  return kit.subtitle {text=text,width=width,wrap=true,font_size=P.SUB,color=kit.ink("lo")}
 end
 --- A switch on a row of its own.
 local function flag(id,label,subtitle,w,on,set,icon)
@@ -19,7 +19,7 @@ end
 local function number_slider(id,label,w,get,set,low,high,units)
   return ui.Column {width=w,gap=2,
     ui.Item {width=w,height=18,
-      kit.subtitle {text=label,width=w-90,elide="right",font_size=theme.size.small,color=kit.ink("lo")},
+      kit.subtitle {text=label,width=w-90,elide="right",font_size=P.SUB,color=kit.ink("lo")},
       kit.text {text=function()
           if units=="%" then return ("%d%%"):format(math.floor(get()+0.5)) end
           return ("%.1f%s"):format(get(),units or "")

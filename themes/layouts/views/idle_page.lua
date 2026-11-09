@@ -97,7 +97,7 @@ function V.build(model, w, h)
     lock_flag("on_suspend", "bedtime", "Lock on suspend", "Locked before the machine sleeps"),
     lock_flag("on_lid", "laptop", "Lock when the lid closes"),
     lock_flag("at_startup", "login", "Lock at the session's start", "For a machine that logs in by itself"),
-    kit.subtitle { width = inner, font_size = theme.size.small, color = kit.ink("lo"), text = "Commands, words split by spaces" },
+    kit.subtitle { width = inner, font_size = P.SUB, color = kit.ink("lo"), text = "Commands, words split by spaces" },
     F.text { id = "idle-command-before", width = inner, title = "Run before sleep", value = function() return model.command("before_sleep") end,
       set = function(text) model.set_command("before_sleep", text) end },
     F.text { id = "idle-command-after", width = inner, title = "Run after waking", value = function() return model.command("after_sleep") end,
