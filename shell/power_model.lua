@@ -82,7 +82,6 @@ function M.new(active,open_battery)
     {key="mode",name="Charge mode",value=function() return model.battery().charge_mode or "--" end},
     {key="cycles",name="Cycles",value=function() local n=model.battery().cycles return n and tostring(n) or "--" end},
     {key="temperature",name="Temperature",value=function() local n=model.battery().temperature return n and ("%.1f °C"):format(n) or "--" end},
-    {key="charger",name="Charger",value=model.charger_name},
   }
   morf.effect("eva.power.visibility",function() if not active() then model.message:set("") end end)
   -- The charge limit, the module eva-battery runs too.
