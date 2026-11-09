@@ -23,6 +23,13 @@ local function named(width, name, slider, visible)
   return ui.Column { width = width, gap = theme.space.xs, visible = visible, F.note(width, name), slider }
 end
 
+--- `node` dimmed while its feature's switch `on` is off: it still sets
+--- what the feature takes up once on.
+local function waiting(node, on)
+  return ui.Column { opacity = function() return on() and 1 or 0.45 end,
+    behavior = { opacity = { duration = theme.duration.small } }, node }
+end
+
 --- What a switch row says: what it does while off, how it stands while on.
 local function says(status, off)
   return function() local now = status() return now == "Off" and off or now end
@@ -95,13 +102,13 @@ function V.nightlight_page(model, w, h)
         subtitle = function() return on() and "Warmer colours on the screen" or "Colours as they are" end,
         trailing = P.switch { id = "settings-nightlight-switch", name = "Night light", on = on,
           on_toggled = function(now) night.set(now) end } },
-      named(inner, "Warmth", kit.slider { id = "settings-nightlight-temperature", accessible_name = "Temperature", width = inner,
+      waiting(named(inner, "Warmth", kit.slider { id = "settings-nightlight-temperature", accessible_name = "Temperature", width = inner,
         icon = "thermostat", value = position,
         set = function(value) night.set_temperature(night.WARMEST + value * span) end,
         reading = function(value)
           local kelvin = night.WARMEST + value * span
           return ("%d K"):format(math.floor(kelvin / night.STEP + 0.5) * night.STEP)
-        end }),
+        end }), on),
       P.row { id = "settings-nightlight-follow", width = inner, icon = "wb_twilight", on = night.follow,
         title = "Follow the sun", subtitle = "On at sunset, off at sunrise",
         visible = night.placed,
@@ -149,7 +156,7 @@ local KINDS = { protanopia = "Protan", deuteranopia = "Deutan", tritanopia = "Tr
 function V.filters_page(model, w, h)
   local inner = P.inner(w)
   local filters = require("quick_hardware").filters()
-  local list = { id = "settings-filters", width = w, title = "Over the whole screen" }
+  local list = { id = "settings-filters", width = w, title = "The whole screen" }
   for _, item in ipairs(FILTERS) do
     local function on() return filters.on(item.id) end
     list[#list + 1] = P.row { id = "settings-filters-" .. item.id, width = inner, icon = item.icon, on = on, title = item.name,
@@ -192,10 +199,10 @@ function V.sounds_page(model, w, h)
         subtitle = says(sounds.status, "Rain, ocean or noise under everything"),
         trailing = P.switch { id = "settings-sounds-switch", name = "Background sounds", on = on,
           on_toggled = function(now) sounds.set(now) end } },
-      P.buttons(choices),
-      named(inner, "Volume", kit.slider { id = "settings-sounds-level", accessible_name = "Volume", width = inner, icon = "volume_up",
+      waiting(P.buttons(choices), on),
+      waiting(named(inner, "Volume", kit.slider { id = "settings-sounds-level", accessible_name = "Volume", width = inner, icon = "volume_up",
         value = sounds.level, set = function(value) sounds.set_level(value) end, live = false,
-        reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end }),
+        reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end }), on),
     },
   }
 end

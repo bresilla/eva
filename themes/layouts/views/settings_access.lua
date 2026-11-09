@@ -17,7 +17,7 @@ function M.build(model, w, h)
         subtitle = "Everything lands at once", on = model.reduce_motion, set = model.set_reduce_motion },
     },
     P.section { id = "access-screen", width = w, title = "The whole screen", visible = model.compositor,
-      F.link { id = "access-filters", width = inner, icon = "filter_b_and_w", title = "Colour filters",
+      F.link { id = "access-filters", width = inner, icon = "filter", title = "Colour filters",
         subtitle = model.filters_now, go = function() model.request("filters", "accessibility") end },
       F.slider { id = "access-zoom", width = inner, icon = "zoom_in", name = "Screen magnifier", from = 1, to = 6, step = 0.25,
         value = model.zoom, set = model.set_zoom,

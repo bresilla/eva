@@ -10,7 +10,7 @@ local TOR={off="Off",starting="Starting",on="Running",stopping="Stopping",failed
 local NOTES={
   wired="Every wired port NetworkManager looks after: a laptop's own, a dock's, a Thunderbolt link.",
   mesh="ZeroTier's own command needs root to list its networks: it is shown by its link, and switched with zerotier-cli.",
-  tunnel="Proton VPN's app keeps its connections in NetworkManager, above; its command-line client, when installed, is here.",
+  tunnel="Proton VPN's app keeps its connections in NetworkManager, with the other VPNs; its command-line client shows here once installed",
   tor="Starting it runs the system's tor service until it is stopped or the machine restarts; it is never enabled, so every boot is without it. Point a browser or an app at the SOCKS proxy to go through it.",
 }
 function M.is_mesh_link(name) return require("lib.services.vpns").is_mesh_link(name) end

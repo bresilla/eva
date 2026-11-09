@@ -110,7 +110,7 @@ local function canvas(model, w, h)
         kit.text {
           text = function()
             local o = output()
-            return o and ("%dx%d"):format(o.width, o.height) or ""
+            return o and ("%d×%d"):format(o.width, o.height) or ""
           end,
           color = function() return selected() and C.onPrimaryContainer or C.onSurfaceVariant end,
           font_size = theme.size.small,
@@ -154,7 +154,7 @@ end
 local function resolution_items(model)
   local items = {}
   for _, mode in ipairs(model.resolutions(model.output())) do
-    items[#items + 1] = ("%d × %d"):format(mode.width, mode.height)
+    items[#items + 1] = ("%d×%d"):format(mode.width, mode.height)
   end
   return items
 end
@@ -164,12 +164,11 @@ end
 function M.monitor(model, w)
   local inner = P.inner(w)
   local FIELD = 180
+  local ICONS = { ["displays-resolution"] = "aspect_ratio", ["displays-refresh"] = "speed", ["displays-scale"] = "zoom_in",
+    ["displays-rotation"] = "screen_rotation", ["displays-mirror"] = "screen_share" }
   local function row(id, title, control, visible)
-    return ui.Item {
-      id = id, width = inner, height = S.TARGET, visible = visible,
-      kit.text { anchors = { vertical_center = true }, text = title, color = kit.ink("hi"), font_size = theme.size.normal },
-      ui.Item { anchors = { right = true, vertical_center = true }, width = FIELD, height = S.TARGET, control },
-    }
+    return P.row { id = id, width = inner, height = S.TARGET + S.m, icon = ICONS[id], title = title, visible = visible,
+      trailing = ui.Item { width = FIELD, height = S.TARGET, control } }
   end
   local function combo(id, items, current, on_changed)
     return (composites.combo_box {

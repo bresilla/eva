@@ -24,13 +24,17 @@ local function toggle(w, id, icon, name, on, set)
     trailing = P.switch { id = id .. "-switch", name = name, on = on, on_toggled = set } }
 end
 
+-- Each corner drawn as the way it points.
+local CORNER_ICONS = { top_left = "north_west", top_right = "north_east", bottom_left = "south_west", bottom_right = "south_east" }
+
 function M.build_windows(model, w, h)
   local sections = { id = "windows-scroll", width = w, height = h, active = model.active }
   if not model.touch then
     local corners = { id = "windows-corners", caption_id = "windows-corners-caption", width = w, title = "Hot corners" }
     for _, corner in ipairs(model.corners.CORNERS) do
       local key = corner.key
-      corners[#corners + 1] = P.row { id = "windows-corner-" .. key, width = P.inner(w), icon = "crop_free", title = corner.name,
+      corners[#corners + 1] = P.row { id = "windows-corner-" .. key, width = P.inner(w), icon = CORNER_ICONS[key] or "crop_free",
+        on = function() return model.corners.action(key) ~= "none" end, title = corner.name,
         subtitle = function() return model.corners.action_name(key) end,
         on_clicked = function() if model.active() then model.corners.next_action(key) end end,
         trailing = P.button { id = "windows-guard-" .. key, width = 96,

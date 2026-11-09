@@ -22,7 +22,7 @@ function M.build(model, w, h)
 
   -- The battery: its charge large, its state and what that means in time,
   -- and the charge as the theme's fill bar, the charge limit marked on it.
-  local summary = P.section { id = "power-summary", width = w, title = "Charge",
+  local summary = P.section { id = "power-summary", width = w,
     ui.Item { width = inner, height = 96,
       kit.icon(function()
         local b = first()
@@ -110,7 +110,7 @@ function M.build(model, w, h)
       return ("%d%%"):format(math.floor(level / charge.STEP + 0.5) * charge.STEP)
     end }
   limit_slider.visible = function() return by_file() and limit_on() end
-  local charging = P.section { id = "power-charging", caption_id = "power-heading-charging", width = w, title = "Charging",
+  local charging = P.section { id = "power-charging", caption_id = "power-heading-charging", width = w, title = "How it charges",
     visible = model.charging_shown,
     P.row { id = "power-charger", width = inner, icon = model.charger_icon, on = model.charging,
       title = model.charge_title, subtitle = model.charge_detail, trailing = marks },

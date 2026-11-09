@@ -23,6 +23,19 @@ local function rows(prefix, list, inner)
   return ui.Column(out)
 end
 
+-- The steps along the top, one segment each, filled up to the one on show.
+local function progress(model, names, w)
+  local C, GAP = theme.color, theme.space.xs
+  local seg = (get(w) - GAP * (#names - 1)) / math.max(1, #names)
+  local row = { id = "welcome-progress", y = math.floor((RAIL - 4) / 2), gap = GAP }
+  for i in ipairs(names) do
+    row[i] = ui.Rect { width = seg, height = 4, radius = 2,
+      color = function() return i <= model.step:get() and C.primary or C.secondaryContainer end,
+      behavior = { color = { duration = theme.duration.small } } }
+  end
+  return ui.Row(row)
+end
+
 function M.page(model, settings, w, h)
   local inner = P.inner(w)
   local mode = require("themes.color_mode")
@@ -82,15 +95,16 @@ function M.page(model, settings, w, h)
     end
   end
   local stack, nav = widgets.onboarding { id = "welcome-pages", width = w, height = pager_h, mode = "switcher", order = names,
-    pages = pages, current = names[1], chrome = true }
+    pages = pages, current = names[1], chrome = false }
 
   local skip = P.button { id = "welcome-skip", label = "Skip", on_clicked = model.skip, visible = function() return not model.last() end }
   local back = P.button { id = "welcome-back", label = "Back", icon = "arrow_back", on_clicked = model.back, visible = model.can_back }
-  local go = P.button { id = "welcome-next", tone = "primary", icon = "arrow_forward", on_clicked = model.next,
+  local go = P.button { id = "welcome-next", tone = "primary", on_clicked = model.next,
     label = function() return model.last() and "Done" or "Next" end }
   local root = ui.Item { id = "welcome", width = w, height = h,
     stack,
-    ui.Item { y = pager_h, width = w, height = P.BUTTON_H,
+    progress(model, names, w),
+    ui.Item { y = function() return pager_h() + theme.space.s end, width = w, height = P.BUTTON_H,
       ui.Row { gap = theme.space.s, align = "center", back, skip },
       ui.Item { anchors = { right = true }, width = function() return go.width end, height = P.BUTTON_H, go } },
   }

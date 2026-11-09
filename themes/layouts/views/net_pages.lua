@@ -89,7 +89,7 @@ function M.build(model,w,h)
     -- A finished scan that found none says so, rather than reading on.
     apps[#apps+1]=P.row {id="vpn-"..kind.."-none",width=inner,icon="info",on=function() return false end,
       title=kind=="mesh" and "No mesh tools" or "No VPN applications",
-      subtitle=kind=="mesh" and "None of the supported mesh tools is installed" or "None of the supported VPN apps is installed",
+      subtitle=kind=="mesh" and "None of the supported mesh tools are installed" or "None of the supported VPN apps are installed",
       visible=function() return model.loaded() and model.apps:len()==0 end}
     apps[#apps+1]=note(inner,function()
       if kind=="tunnel" and not model.network_available() then return "NetworkManager is not running." end

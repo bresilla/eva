@@ -35,7 +35,7 @@ function V.page(model, w, h)
       local url = text:match("^%a+://")
       local done = url and model.add_url(text) or (not url and model.add_path(text))
       if done then add_input.text = "" end
-    end, nil, theme.size.small)
+    end, nil)
   local leads = { id = "calendar-leads", width = inner }
   for _, minutes in ipairs(LEADS) do
     leads[#leads + 1] = { id = "calendar-lead-" .. minutes, label = minutes .. " min", group = "calendar-lead",
@@ -45,11 +45,10 @@ function V.page(model, w, h)
   local reminders = function() return config.get("calendar.reminders") ~= false end
   local discover = function() return config.get("calendar.discover") ~= false end
   local node = P.page { id = "settings-calendars-scroll", width = w, height = h,
-    keeper,
     P.section { id = "calendar-sources", width = w, title = "Your calendars", note = function() return model.summary() end,
       rows,
       kit.text { id = "calendar-none", width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"),
-        text = "None yet. Add a file or an address below; vdirsyncer's and khal's folders appear by themselves.",
+        text = "Add a file or an address below; vdirsyncer's and khal's folders appear by themselves",
         visible = function() return model.sources:len() == 0 end },
       add_node,
       kit.text { id = "calendar-said", width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"),
@@ -66,6 +65,7 @@ function V.page(model, w, h)
           on_toggled = function(on) config.set("calendar.reminders", on) end } },
       P.buttons(leads),
     },
+    keeper,
   }
   morf.effect("calendars.shown", function()
     local on = require("presentation").active("settings.calendars")()

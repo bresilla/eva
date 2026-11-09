@@ -72,7 +72,8 @@ function M.new(book)
   function book.trail(path)
     local names = {}
     for index = 1, #path - 1 do
-      if path[index].key ~= book.HOME then names[#names + 1] = path[index].name end
+      local name = path[index].name
+      if path[index].key ~= book.HOME and name ~= names[#names] then names[#names + 1] = name end
     end
     return table.concat(names, " / ")
   end

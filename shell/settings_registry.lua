@@ -249,11 +249,11 @@ M.PAGES = {
     items = { { "Large text", "font size bigger" }, { "High contrast", "stronger colours" },
       { "Colour filters", "grayscale invert protanopia deuteranopia tritanopia" }, { "Sticky keys", "modifier latch" },
       { "Mouse keys", "numpad pointer" }, { "Screen magnifier", "zoom" }, { "Reduce motion", "animation" } } },
-  { key = "filters", name = "Colour filters", icon = "filter_b_and_w", parent = "accessibility",
+  { key = "filters", name = "Colour filters", icon = "filter", parent = "accessibility",
     summary = "Grey, inverted, dim, reading", keywords = "grayscale greyscale invert extra dim reading correction" },
 
   -- System
-  { key = "datetime", name = "Date and time", icon = "schedule", category = "system", summary = "Timezone and clock",
+  { key = "datetime", name = "Date and time", icon = "schedule", category = "system", summary = "Time zone and clock",
     keywords = "timezone ntp clock 24 hour automatic time zone" },
   { key = "region", name = "Region and language", icon = "language", category = "system", summary = "Language and formats",
     keywords = "locale language formats" },
