@@ -193,14 +193,14 @@ test.it("Network disappearance clears cached ports and rejects stale connection 
     test.ipc("capture",kind=="wired" and '["/device/2","enp1s0"]' or "nm:personal")
     test.ipc("change","unavailable") test.advance(100)
     test.falsy(test.ipc("choose")) test.eq(test.ipc("state").calls,{})
-    test.truthy(test.find {text="NetworkManager is not running.",visible=true})
+    test.truthy(test.find {text="NetworkManager is not running",visible=true})
     test.eq(#test.logs("error"),0)
   end
 end)
 test.it("Missing network and Tor services retain honest empty states in both themes",function()
   for _,style in ipairs {"material","tsugumori"} do for _,kind in ipairs {"wired","tor"} do
     load(style,kind,nil,nil,true,true) open()
-    local text=kind=="tor" and "Tor is not installed" or "NetworkManager is not running."
+    local text=kind=="tor" and "Tor is not installed" or "NetworkManager is not running"
     test.truthy(test.find {text=text,visible=true},style.." "..kind)
     shot(style.."-missing-"..kind)
     test.eq(#test.logs("error"),0) test.eq(#test.logs("warn"),0)

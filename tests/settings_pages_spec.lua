@@ -29,7 +29,7 @@ local PAGES = {
   { "launcher", "Action prefix" }, { "rail", "Show the rail" }, { "panels", "Drag a page to its panel" }, { "capture", "Upload address" },
   { "keyboard", "Up by itself" }, { "weather", "Imperial units" }, { "commands", "Log out" }, { "apps", "Firefox" },
   { "startup", "Syncthing" }, { "datetime", "Europe/Amsterdam" }, { "region", "en_US.UTF-8" }, { "users", "Kate Nowak" },
-  { "privacy", "Firefox" }, { "firewall", "firewalld · On" }, { "updates", "Running now" }, { "about", "Framework Laptop 13" },
+  { "privacy", "Firefox" }, { "firewall", "Blocks incoming connections · firewalld" }, { "updates", "Running now" }, { "about", "Framework Laptop 13" },
 }
 
 -- Roles a screen reader reads by name.

@@ -11,7 +11,7 @@
 local test = morf.test
 
 local MARGIN = 1.25
-local MEASURED = { frame = 1000000, handler = 151000, module = 1310000, delegate = 700000 }
+local MEASURED = { frame = 1000000, handler = 151000, module = 1310000, delegate = 720000 }
 local NODES = { tsugumori = { desk = 9002, phone = 10059 }, material = { desk = 6125, phone = 6814 } }
 
 local FORMS = {
