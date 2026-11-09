@@ -109,7 +109,7 @@ function M.build(model, active, w, h)
     delegate = function(row)
       return P.row { id = "drop-ask-" .. safe(row.id), width = inner, icon = "contact_page", title = row.name,
         subtitle = "Asks " .. row.says .. " · number " .. row.check,
-        trailing = ui.Row { gap = S.xs,
+        trailing = ui.Row { gap = S.s,
           P.button { id = "drop-ask-yes-" .. safe(row.id), label = "Yes", tone = "primary",
             on_clicked = function() model.decide(row.name, true) end },
           P.button { id = "drop-ask-no-" .. safe(row.id), label = "No", on_clicked = function() model.decide(row.name, false) end } } }

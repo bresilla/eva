@@ -60,7 +60,7 @@ local function line(field, inner, read, write)
   local dirty = function() local now = typed:get() return now ~= nil and now ~= read() end
   return ui.Column { width = inner, gap = P.ROW_GAP / 2,
     P.row { width = inner, height = 44, icon = field.icon, title = field.title, subtitle = field.note,
-      trailing = P.button { id = id .. "-save", label = "Save", accessible_name = "Save " .. field.title,
+      trailing = P.button { id = id .. "-save", label = "Save", tone = "primary", accessible_name = "Save " .. field.title,
         visible = dirty, tone = "primary", on_clicked = save } },
     box,
   }

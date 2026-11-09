@@ -326,7 +326,7 @@ function M.profiles(model, w)
   rows[#rows + 1] = ui.Row {
     gap = S.s, align = "center", box,
     P.button {
-      id = "displays-profile-save", label = "Save", width = SAVE,
+      id = "displays-profile-save", label = "Save", tone = "primary", width = SAVE,
       on_clicked = function() if model.save_profile(name:get()) then name:set("") field.text = "" end end,
     },
   }

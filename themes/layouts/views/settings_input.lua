@@ -25,7 +25,7 @@ local function keyboard_page(model, w, h)
       trailing = ui.Row { gap = theme.space.xs, align = "center",
         P.button { id = "input-layout-up-" .. index, label = "Up", accessible_name = "Move this layout up",
           visible = function() return index > 1 end, on_clicked = function() model.move_layout(index, -1) end },
-        P.button { id = "input-layout-remove-" .. index, label = "Remove", accessible_name = "Remove this layout",
+        P.button { id = "input-layout-remove-" .. index, label = "Remove", icon = "delete", accessible_name = "Remove this layout",
           visible = function() return count() > 1 end, on_clicked = function() model.remove_layout(index) end } } }
   end, "Using the compositor's layout", 6)
   local picker = F.picker { id = "input-add", width = inner, placeholder = "Add a layout", max = 6, searched = true,

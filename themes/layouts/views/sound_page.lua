@@ -249,7 +249,7 @@ local function preferred_section()
       trailing = ui.Row { gap = theme.space.xs, align = "center",
         P.button { id = "sound-prefer-up-" .. model.kind .. "-" .. index, label = "Up", accessible_name = "Move this device up",
           visible = function() return index > 1 end, on_clicked = function() model.raise_preferred(index) end },
-        P.button { id = "sound-prefer-drop-" .. model.kind .. "-" .. index, label = "Remove", accessible_name = "Stop preferring this device",
+        P.button { id = "sound-prefer-drop-" .. model.kind .. "-" .. index, label = "Remove", icon = "delete", accessible_name = "Stop preferring this device",
           on_clicked = function() model.drop_preferred(index) end } } }
   end, "None: the system decides", 6)
   return P.section { id = "sound-preferred-" .. model.kind, width = w, title = "Preferred devices",

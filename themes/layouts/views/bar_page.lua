@@ -55,7 +55,7 @@ function M.build_tray(model, w, h)
     return P.row { id = "tray-row-" .. index, width = width, icon = "apps", title = function() return item().title or "" end,
       subtitle = function() return item().here and "Running now" or "Not running" end,
       on = function() return item().here == true end,
-      trailing = ui.Row { gap = S.xs, align = "center",
+      trailing = ui.Row { gap = S.s, align = "center",
         P.button { id = "tray-row-" .. index .. "-place", width = 120, label = function() return model.tray_place_name(item().place) end,
           on_clicked = function() model.tray_next_place(item().id) end },
         arrow("up", "arrow_upward", "Earlier", -1), arrow("down", "arrow_downward", "Later", 1) } }

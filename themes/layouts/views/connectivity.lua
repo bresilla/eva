@@ -351,7 +351,7 @@ local function device_prompt(model, w)
   local sending = morf.signal("eva.bluetooth.sending", false)
   local more = P.buttons { width = inner,
     { id = "bluetooth-send", icon = "upload_file", label = "Send file", on_clicked = function() sending:set(not sending:get()) end },
-    { id = "bluetooth-rename-device", label = "Rename", on_clicked = function() model.rename_device(dev(), alias:get()) end } }
+    { id = "bluetooth-rename-device", label = "Rename", tone = "primary", on_clicked = function() model.rename_device(dev(), alias:get()) end } }
   return ui.Column { id = "bluetooth-manage-prompt", width = inner, gap = 8,
     visible = function() return model.mode() == "manage" and model.asked() ~= nil end,
     kit.subtitle { id = "bluetooth-manage-title", width = inner, elide = "right", font_size = P.SUB,
@@ -382,7 +382,7 @@ local function adapter_section(model, w)
   morf.effect("eva.bluetooth.adapter.fill", function() input.text = model.adapter_name() end)
   return P.section { id = "bluetooth-adapter", width = w, title = "This computer", visible = model.available,
     box,
-    P.button { id = "bluetooth-adapter-save", label = "Rename", width = inner,
+    P.button { id = "bluetooth-adapter-save", label = "Rename", tone = "primary", width = inner,
       on_clicked = function() model.rename_adapter(name:get()) end },
   }
 end

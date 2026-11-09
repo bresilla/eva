@@ -98,7 +98,7 @@ function M.build(model, w, h)
   sections[#sections + 1] = P.section { id = "touch-reset", width = w,
     P.row { id = "touch-reset-row", width = inner, icon = "restart_alt", title = "As they came",
       subtitle = function() return "Every gesture for this form" end,
-      trailing = P.button { id = "touch-reset-button", label = "Reset", on_clicked = model.reset } } }
+      trailing = P.button { id = "touch-reset-button", label = "Reset", icon = "restart_alt", on_clicked = model.reset } } }
   return P.page(sections)
 end
 
@@ -118,7 +118,7 @@ function M.gesture(model, w, h)
       P.row { id = "touch-gesture-name", width = inner, icon = "swipe", title = model.name,
         subtitle = function() return model.is_default() and "As it came" or "Changed" end },
       P.buttons { id = "touch-gesture-buttons", width = inner,
-        { id = "touch-gesture-reset", label = "Reset", on_clicked = model.reset } } },
+        { id = "touch-gesture-reset", label = "Reset", icon = "restart_alt", on_clicked = model.reset } } },
     P.section(list),
     P.section { id = "touch-command", width = w, title = "Command", visible = model.is_command,
       F.text { id = "touch-command-field", width = inner, title = "Command, as words",

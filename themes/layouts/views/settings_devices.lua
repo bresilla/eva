@@ -50,12 +50,12 @@ function M.storage_page(model, w, h)
           parts[#parts + 1] = r.mounted and r.mount_point or (locked() and "Locked" or "Not mounted")
           return table.concat(parts, " · ")
         end,
-        trailing = ui.Row { gap = S.xs, align = "center",
+        trailing = ui.Row { gap = S.s, align = "center",
           P.button { id = id .. "-unlock-" .. index, label = "Unlock", visible = locked, on_clicked = function() model.ask(row()) end },
           P.button { id = id .. "-mount-" .. index, label = function() return row().mounted and "Unmount" or "Mount" end,
             visible = function() local r = row() return not locked() and not r.system end,
             on_clicked = function() local r = row() if r.mounted then model.unmount(r) else model.mount(r) end end },
-          P.button { id = id .. "-eject-" .. index, label = "Eject", tone = "primary",
+          P.button { id = id .. "-eject-" .. index, label = "Eject", icon = "eject",
             visible = function() return row().can_eject == true end, on_clicked = function() model.eject(row()) end } } }
     end, none, max)
   end
@@ -104,7 +104,7 @@ function M.storage_page(model, w, h)
     },
     P.section { id = "storage-fixed", width = w, title = "Disks", visible = function() return #model.fixed() > 0 end,
       volume_list("storage-disk", model.fixed, 8) },
-    P.section { id = "storage-trash", width = w, title = "Trash",
+    P.section { id = "storage-trash", width = w,
       F.fact { id = "storage-trash-row", width = inner, icon = "delete", title = "Trash", subtitle = trash_words,
         trailing = P.button { id = "storage-empty", label = "Empty", visible = function()
           return model.trash().count > 0 and not confirming() end,
@@ -135,10 +135,10 @@ function M.printers_page(model, w, h)
         if (r.reason or "") ~= "" then return r.reason end
         return r.enabled and unicase.capitalise(r.state or "") or "Paused"
       end,
-      trailing = ui.Row { gap = S.xs, align = "center",
+      trailing = ui.Row { gap = S.s, align = "center",
         P.button { id = "printer-default-" .. index, label = "Default", visible = function() return row().default ~= true end,
           on_clicked = function() model.set_default(row()) end },
-        P.button { id = "printer-remove-" .. index, label = "Remove", on_clicked = function() model.remove(row()) end } } }
+        P.button { id = "printer-remove-" .. index, label = "Remove", icon = "delete", on_clicked = function() model.remove(row()) end } } }
   end, "No printers added", 8)
   local jobs = F.list(inner, "printer-job-", function() return #model.jobs() end, function(index, width)
     local function job() return model.jobs()[index] or {} end
