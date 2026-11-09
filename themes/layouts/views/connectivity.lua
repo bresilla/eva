@@ -51,6 +51,15 @@ local function action(w, spec)
   return P.buttons { width = P.inner(w), spec }
 end
 
+--- The Bluetooth program the action opens, by name: blueman-manager is
+--- "Blueman".
+local function program()
+  local argv = require("config").get("bar.bluetooth_settings")
+  local base = (type(argv) == "table" and tostring(argv[1] or "") or ""):match("([^/]+)$") or ""
+  base = base:gsub("%-manager$", ""):gsub("^%l", string.upper)
+  return base ~= "" and base or "the Bluetooth program"
+end
+
 --- What a page without its service says, in place of its lists.
 local function missing(w, icon, title, text, available)
   local node = P.empty { width = w, icon = icon, title = title, text = text }
@@ -402,7 +411,7 @@ local function bluetooth_page(model, w, h)
     pairing_prompt(model, w),
     device_prompt(model, w),
     status("bluetooth-status", model, w),
-    action(w, { id = "bluetooth-settings", icon = "settings", label = "Open settings",
+    action(w, { id = "bluetooth-settings", icon = "open_in_new", label = "Open " .. program(),
       on_clicked = function() model.open_settings() end }),
   }
   return ui.Item { id = "bluetooth-page", width = w, height = h, P.page { id = "bluetooth-scroll", width = w, height = h,
