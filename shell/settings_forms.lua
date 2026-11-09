@@ -37,7 +37,7 @@ M.PAGES = {
     { title = "Which tool", fields = {
       { key = "backups.tool", kind = "choice", title = "Use", per_row = 2, items = {
         { "", "auto_mode", "First found" }, { "snapper", "backup", "Snapper" }, { "btrbk", "backup", "btrbk" }, { "restic", "backup", "restic" } } },
-      { key = "backups.snapper_config", kind = "text", title = "Snapper config", icon = "settings",
+      { key = "backups.snapper_config", kind = "text", title = "Snapper config", icon = "settings", hint = "root",
         note = "The config to show: root, home, or one of your own" },
     } },
     { title = "restic", note = "The password stays in its file, and only the file's path reaches restic.", fields = {
@@ -69,9 +69,9 @@ M.PAGES = {
       { key = "launcher.projects", kind = "list", title = "Project folders", icon = "folder_code" },
     } },
     { title = "Actions", fields = {
-      { key = "launcher.action_prefix", kind = "text", title = "Action prefix", icon = "keyboard_command_key",
+      { key = "launcher.action_prefix", kind = "text", title = "Action prefix", icon = "keyboard_command_key", hint = ">",
         note = "Typed first, it turns the launcher to actions" },
-      { key = "launcher.terminal", kind = "words", title = "Terminal", icon = "terminal", note = "Empty uses $TERMINAL" },
+      { key = "launcher.terminal", kind = "words", title = "Terminal", icon = "terminal", hint = "foot", note = "Empty uses $TERMINAL" },
       { key = "launcher.expansion", kind = "bool", title = "Expand snippets anywhere", icon = "short_text" },
       { key = "launcher.plugins", kind = "bool", title = "Load plugins", icon = "extension",
         note = "From ~/.config/eva/plugin" },
@@ -81,13 +81,13 @@ M.PAGES = {
         fields = { "bang", "name", "url" }, note = "bang, name, address with %s, one after another" },
       { key = "launcher.quicklinks", kind = "records", title = "Quick links", icon = "link",
         fields = { "name", "url" }, note = "name, address with {query}, one after another" },
-      { key = "launcher.translate_to", kind = "text", title = "Translate to", icon = "translate" },
-      { key = "launcher.wiki_language", kind = "text", title = "Wikipedia language", icon = "language" },
+      { key = "launcher.translate_to", kind = "text", title = "Translate to", icon = "translate", hint = "en" },
+      { key = "launcher.wiki_language", kind = "text", title = "Wikipedia language", icon = "language", hint = "en" },
     } },
     { title = "Files", fields = {
       { key = "launcher.menus.appimages", kind = "list", title = "AppImage folders", icon = "deployed_code" },
-      { key = "launcher.menus.bookmarks", kind = "text", title = "Bookmark folder", icon = "bookmark" },
-      { key = "launcher.menus.player", kind = "words", title = "Player", icon = "play_circle" },
+      { key = "launcher.menus.bookmarks", kind = "text", title = "Bookmark folder", icon = "bookmark", hint = "~/Documents/bookmarks" },
+      { key = "launcher.menus.player", kind = "words", title = "Player", icon = "play_circle", hint = "mpv" },
     } },
   } },
   rail = { sections = {
@@ -99,7 +99,7 @@ M.PAGES = {
   } },
   capture = { sections = {
     { title = "Where", fields = {
-      { key = "capture.folder", kind = "text", title = "Folder", icon = "folder", note = "Screenshots and recordings go here" },
+      { key = "capture.folder", kind = "text", title = "Folder", icon = "folder", hint = "~/Pictures/Screenshots", note = "Screenshots and recordings go here" },
       { key = "capture.keybind_file", kind = "text", title = "Keybind file", icon = "description", hint = "~/.config/hypr/keys.conf",
         note = "Where the hotkey is written, empty for none" },
       { key = "capture.hotkey", kind = "text", title = "Hotkey", icon = "keyboard", hint = "Print" },
@@ -121,7 +121,7 @@ M.PAGES = {
       { key = "capture.zoom", kind = "number", title = "Zoom factor", icon = "zoom_in", from = 1, to = 10, step = 0.5 },
     } },
     { title = "Sharing", fields = {
-      { key = "capture.upload_endpoint", kind = "text", title = "Upload address", icon = "cloud_upload",
+      { key = "capture.upload_endpoint", kind = "text", title = "Upload address", icon = "cloud_upload", hint = "https://0x0.st",
         note = "Where More, Upload sends a capture" },
     } },
     { title = "Recordings", fields = {
@@ -184,7 +184,7 @@ M.PAGES = {
   } },
   phone = { sections = {
     { title = "Calls and texts", fields = {
-      { key = "phone.contacts", kind = "text", title = "Contacts folder", icon = "contacts", note = "A folder of vCards" },
+      { key = "phone.contacts", kind = "text", title = "Contacts folder", icon = "contacts", hint = "~/.local/share/contacts", note = "A folder of vCards" },
       { key = "phone.country", kind = "text", title = "Country code", icon = "flag", note = "What a number without one gets", hint = "+31" },
       { key = "phone.silence_unknown", kind = "bool", title = "Silence unknown callers", icon = "phone_disabled",
         note = "Numbers not in your contacts do not ring" },
@@ -193,13 +193,13 @@ M.PAGES = {
     } },
     { title = "Power key", fields = {
       { key = "phone.power_ends_call", kind = "bool", title = "Ends a call", icon = "call_end" },
-      { key = "phone.double_power", kind = "words", title = "Pressed twice", icon = "double_arrow",
-        note = "The command it runs: the camera, say" },
+      { key = "phone.double_power", kind = "words", title = "Pressed twice", icon = "double_arrow", hint = "megapixels",
+        note = "A command to run, such as the camera" },
       { key = "phone.sos", kind = "bool", title = "Five presses for an emergency call", icon = "emergency",
         note = "A countdown, then the call" },
     } },
     { title = "Emergency", fields = {
-      { key = "phone.medical", kind = "text", title = "Medical information", icon = "medical_information",
+      { key = "phone.medical", kind = "text", title = "Medical information", icon = "medical_information", hint = "Blood type, allergies",
         note = "Blood type, allergies, medication: on the lock's emergency pad, for a stranger to read" },
     } },
   } },
