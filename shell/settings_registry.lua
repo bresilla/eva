@@ -187,7 +187,7 @@ M.PAGES = {
     summary = "Sounds, popups, history, each app's rules", keywords = "sound popup history rules mute badge lock previews" },
   { key = "notifications/app", name = "App", icon = "apps", parent = "notifications",
     keywords = "rules mute urgency summary digest scheduled hold" },
-  { key = "focus", name = "Focus", icon = "tune", category = "notifications", summary = "Modes, do not disturb, ring, keep awake",
+  { key = "focus", name = "Focus", icon = "do_not_disturb_on", category = "notifications", summary = "Modes, do not disturb, ring, keep awake",
     keywords = "dnd do not disturb silent vibrate awake caffeine work sleep schedule mode" },
   { key = "focus/mode", name = "Mode", icon = "tune", parent = "focus", keywords = "schedule allowed apps people" },
   { key = "screen_time", name = "Screen time", icon = "hourglass_bottom", category = "notifications",
