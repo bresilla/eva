@@ -85,7 +85,11 @@ end
 function M.page_content(key, w, h)
   local home = require("themes").view("settings_home")
   if key == HOME then
-    if require("responsive").form() == "phone" then return home.build(home_model(key), w, h) end
+    local responsive = require("responsive")
+    local sw, sh = responsive.size()
+    if require("themes").view("page_window").single(sw, sh, responsive.form() == "phone") then
+      return home.build(home_model(key), w, h)
+    end
     return home.index(home_model(key), w, h)
   end
   for _, category in ipairs(M.registry.CATEGORIES) do

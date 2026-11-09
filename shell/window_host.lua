@@ -33,6 +33,9 @@ function M.new(book)
   books[#books + 1] = book
   local name = book.name
   local phone = responsive.form() == "phone"
+  -- One page at a time on a phone, and in a window too narrow for two.
+  local sw, sh = responsive.size()
+  local single = require("themes").view("page_window").single(sw, sh, phone)
   local HOME = book.registry.HOME
   local listing = {}
   for _, category in ipairs(book.registry.CATEGORIES or {}) do listing[category.key] = true end
@@ -65,7 +68,7 @@ function M.new(book)
   end
 
   local ctx = setmetatable({
-    phone = phone, size = responsive.size, top = top(),
+    phone = phone, single = single, size = responsive.size, top = top(),
     covered = function() return covered:get() end,
     elsewhere = elsewhere,
     dismiss = function() book.close() holder:set("") end,
@@ -74,7 +77,7 @@ function M.new(book)
     nested = nested,
     can_back = function()
       local key = book.detail:get()
-      if phone then return key ~= "" and key ~= HOME end
+      if single then return key ~= "" and key ~= HOME end
       return nested()
     end,
     -- The search takes the keys as the home comes on show.

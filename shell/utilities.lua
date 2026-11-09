@@ -78,7 +78,9 @@ end
 builders.home=function(w,h)
   local home=themed("settings_home")
   local model={active=active("home"),request=M.request,page_present=M.page_present}
-  if require("responsive").form()=="phone" then return home.build(model,w,h) end
+  local responsive=require("responsive")
+  local sw,sh=responsive.size()
+  if themed("page_window").single(sw,sh,responsive.form()=="phone") then return home.build(model,w,h) end
   return home.index(model,w,h)
 end
 for _,category in ipairs(require("settings_registry").CATEGORIES) do

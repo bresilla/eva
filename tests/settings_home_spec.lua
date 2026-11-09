@@ -283,3 +283,17 @@ test.it("every setting a person might want is reachable from a page", function()
   test.advance(100)
   test.eq(table.concat(test.ipc("unreached"), " "), "")
 end)
+
+for _, style in ipairs { "material", "tsugumori" } do
+  test.it(style .. ": a window too narrow for two panes shows one page at a time", function()
+    load(style, { 800, 600 })
+    test.ipc("settings", "home") test.settle(900)
+    local window = test.get("settings-window")
+    test.truthy(window.width < 800, "the window filled a desk")
+    test.falsy(test.find { id = "settings-navigation", visible = true }, "two panes in a narrow window")
+    test.truthy(test.find { id = "settings-home", visible = true }, "no home of categories")
+    test.click("settings-category-sound") test.settle(900)
+    test.truthy(test.find { id = "settings-back", visible = true }, "no way back with one page at a time")
+    test.eq(#test.logs("error"), 0)
+  end)
+end

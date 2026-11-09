@@ -13,7 +13,7 @@ local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local C, S = theme.color, theme.space
 
-local V = { SHARE = 0.7, NAV_W = 280, PAGE_MAX = 760, MIN_W = 1040, MIN_H = 700, MARGIN = 48 }
+local V = { SHARE = 0.7, NAV_W = 280, PAGE_MAX = 760, MIN_W = 1040, MIN_H = 700, MARGIN = 48, SINGLE_W = 720 }
 
 -- How pages move: on one spring, a page's width of travel kept short.
 local MOVE, OFF, RISE = theme.spring.spatial, 24, 12
@@ -29,6 +29,13 @@ function V.geometry(sw, sh, phone)
   local w = math.max(math.floor(sw * V.SHARE), math.min(V.MIN_W, sw - 2 * V.MARGIN))
   local h = math.max(math.floor(sh * V.SHARE), math.min(V.MIN_H, sh - 2 * V.MARGIN))
   return math.floor((sw - w) / 2), math.floor((sh - h) / 2), w, h
+end
+
+--- Whether the window on a screen `sw` by `sh` shows one page at a time: on
+--- a phone, and wherever it is narrower than SINGLE_W.
+function V.single(sw, sh, phone)
+  local _, _, w = V.geometry(sw, sh, phone)
+  return phone or w < V.SINGLE_W
 end
 
 --- The pages, one on show at a time, each built the first time it opens and
@@ -188,17 +195,17 @@ end
 
 --- `model`: the window's book (shell/window_host.lua: `name`, the ids' prefix;
 --- `title`; `registry`; the navigation's signals and `page_content`), plus
---- `phone` (one page at a time), `size()` (the screen's) and `top` (what the
---- screen's top keeps for itself). Returns `node`, the `window` a press
---- outside shuts, and `shown(open)`.
+--- `phone` (the whole screen), `single` (one page at a time), `size()` (the
+--- screen's) and `top` (what the screen's top keeps for itself). Returns
+--- `node`, the `window` a press outside shuts, and `shown(open)`.
 function V.build(model)
   local name, title = model.name, model.title
   local sw, sh = model.size()
   local x, y, w, h = V.geometry(sw, sh, model.phone)
   local PAD = S.l
   local top = PAD + (model.phone and model.top or 0)
-  local nav_w = model.phone and 0 or V.NAV_W
-  local pane_x = model.phone and PAD or 2 * PAD + nav_w + 1 + PAD
+  local nav_w = model.single and 0 or V.NAV_W
+  local pane_x = model.single and PAD or 2 * PAD + nav_w + 1 + PAD
   local room = w - pane_x - PAD
   local pane_w = math.min(room, model.page_max or V.PAGE_MAX)
   pane_x = pane_x + math.floor((room - pane_w) / 2)
@@ -229,7 +236,7 @@ function V.build(model)
     local parts = { id = name .. "-window-content", anchors = { fill = true },
       ui.Item { x = pane_x, y = top, width = pane_w, height = head_h, head },
       ui.Item { x = pane_x, y = body_y, width = pane_w, height = body_h, body } }
-    if not model.phone then
+    if not model.single then
       local nav_h = h - 2 * PAD - L.heading_h(L.SIZE.title) - P.GAP
       parts[#parts + 1] = ui.Column { x = PAD, y = PAD, width = nav_w, gap = P.GAP,
         L.heading { id = name .. "-window-title", width = nav_w, text = title, elide = "right",
