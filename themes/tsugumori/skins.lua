@@ -307,7 +307,8 @@ return function(theme, M, hud)
     local left = spec.icon and (isz + 12) or 3
     local function span() return math.max(1,W()-(spec.label~=false and 50 or 3)-left) end
     local band = compact and math.max(6, math.floor(H * .42)) or math.floor(H * .42)
-    local by = compact and 4 + math.floor((H - band) / 2) or 4 + math.floor(H * .18)
+    local TOP = math.max(4, math.floor(((get(spec.height) or (H + 8)) - H) / 2))
+    local by = compact and TOP + math.floor((H - band) / 2) or TOP + math.floor(H * .18)
     local function value() return clamp01(t.visual_position) end
     local function engaged() return t.hovered or t.down end
     local follow = { duration = 90, easing = "out_cubic" }
@@ -455,18 +456,7 @@ return function(theme, M, hud)
   --- A scrolled view: the hairline scroll bar (a kit Range) on its right.
   function S.Scroll(t, spec)
     if require("responsive").sheets() then return require("themes.phone_scrollbar")(t,spec,theme) end
-    local flick = spec.flick
-    local function room() return math.max(0, t.content_height - t.viewport_height) end
-    return {
-      scroll_bar_y = require("themes.kit.widgets").scroll_bar { width = 8, orientation = "vertical", inverted = true,
-        accessible_name = "Scroll position",
-        anchors = { right = true, top = true, bottom = true, right_margin = 1, top_margin = 2, bottom_margin = 2 },
-        visible = function() return t.bar_y end,
-        value = function() return t.position_y end,
-        size = function() return t.size_y end,
-        handle_size = function() return math.max(24, t.size_y * t.viewport_height) end,
-        on_moved = function(v) if flick then flick.content_y = v * room() end end },
-    }
+    return { scroll_bar_y = require("themes.desk_scrollbar")(t, spec, { width = 8, margin = 1, ends = 2 }) }
   end
 
   -- -------------------------------------------------------- selections --

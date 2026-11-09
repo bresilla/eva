@@ -40,6 +40,7 @@ return function(theme, M)
         behavior = { radius = theme.spring.press, scale = theme.spring.press,
           color = { duration = theme.duration.small } } },
       content=require("lib.kit.archetypes.press").caption {width=spec.width,height=h,gap=8,
+        left=not spec.label and 0 or nil,right=not spec.label and 0 or nil,
         before=spec.icon and {M.icon(spec.icon,18,ink)} or {},
         measure=M.text {text=spec.label or "",font_size=theme.size.normal,opacity=0},
         label_visible=function() local s=get(spec.label) return s~=nil and s~=false and s~="" end,
@@ -266,6 +267,7 @@ return function(theme, M)
   --- `width`, `height` (44, the track's), `icon`, `label` (false hides it).
   local function slider(t, spec)
     local H = spec.bar_height or 44
+    local TOP = math.max(4, math.floor(((get(spec.height) or (H + 8)) - H) / 2))
     local function W() return math.max(1,get(spec.width) or t.width) end
     local reading_width=spec.reading and 64 or 48
     local function label_width() return math.min(reading_width,math.max(1,W()-H-28)) end
@@ -283,11 +285,11 @@ return function(theme, M)
     -- sliver with squeezed corners. Both halves keep one centre line.
     local function rest_height() return math.min(H,rest_width()) end
     local function filled_height() return math.min(H,filled_width()) end
-    local function rest_y() return 4+(H-rest_height())/2 end
-    local function filled_y() return 4+(H-filled_height())/2 end
+    local function rest_y() return TOP+(H-rest_height())/2 end
+    local function filled_y() return TOP+(H-filled_height())/2 end
     local function handle_x() return hx()-grip()/2 end
     local slots = {
-      track = ui.Item { id=spec.id and spec.id.."-track",x = 2, y = 4,
+      track = ui.Item { id=spec.id and spec.id.."-track",x = 2, y = TOP,
         width = function() return math.max(1,rail_width() - 4) end, height = H },
       background = ui.Rect { y = rest_y(), height = rest_height(),
         x = rest_x(), width = rest_width(),
@@ -297,7 +299,7 @@ return function(theme, M)
         width = filled_width(),
         radius = H / 2, visible=function() return filled_width()>.5 end,
         color = function() return C().primary end },
-      handle = ui.Rect { id = spec.id and spec.id .. "-handle", y = 0, height = H + 8, radius = 2,
+      handle = ui.Rect { id = spec.id and spec.id .. "-handle", y = TOP - 4, height = H + 8, radius = 2,
         x = handle_x(), width = grip,
         scale_x = function() return (t.down or t.dragging) and theme.give.handle or 1 end,
         behavior = { scale_x = theme.spring.press },
@@ -318,7 +320,7 @@ return function(theme, M)
       end
       slots.ticks = M.icon(spec.icon, size, function()
         return inside() and C().onPrimary or C().onSurfaceVariant
-      end, { id=spec.id and spec.id.."-icon",y = 4 + (H - size) / 2,width=size,height=size,
+      end, { id=spec.id and spec.id.."-icon",y = TOP + (H - size) / 2,width=size,height=size,
         visible=function() return inside() or icon_x()+size<=rail_width()-8 end,
         x = icon_x() })
       targets[#targets+1]={node=slots.ticks,values={x=icon_x}}
@@ -331,7 +333,7 @@ return function(theme, M)
         return W()-14-label_width()
       end
       slots.value_label = M.text { id = spec.id and spec.id .. "-value", width = label_width, horizontal_alignment = "right",
-        y = 4 + (H - 20) / 2, height = 20,
+        y = TOP + (H - 20) / 2, height = 20,
         x = label_x(),
         -- `reading(position)`: what it says instead of its percent.
         text = function()
@@ -478,18 +480,7 @@ return function(theme, M)
   --- while there is somewhere to scroll.
   function S.Scroll(t, spec)
     if require("responsive").sheets() then return require("themes.phone_scrollbar")(t,spec,theme) end
-    local flick = spec.flick
-    local function room() return math.max(0, t.content_height - t.viewport_height) end
-    return {
-      scroll_bar_y = require("themes.kit.widgets").scroll_bar { width = 10, orientation = "vertical", inverted = true,
-        accessible_name = "Scroll position",
-        anchors = { right = true, top = true, bottom = true, right_margin = 2, top_margin = 4, bottom_margin = 4 },
-        visible = function() return t.bar_y end,
-        value = function() return t.position_y end,
-        size = function() return t.size_y end,
-        handle_size = function() return math.max(24, t.size_y * t.viewport_height) end,
-        on_moved = function(v) if flick then flick.content_y = v * room() end end },
-    }
+    return { scroll_bar_y = require("themes.desk_scrollbar")(t, spec, { width = 10, margin = 2, ends = 4 }) }
   end
 
   -- -------------------------------------------------------- selections --

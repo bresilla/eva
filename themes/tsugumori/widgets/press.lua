@@ -104,8 +104,10 @@ return function(S, theme, M, hud)
     if o.post then after[#after+1]=o.post end
     local measure=M.menu_label {text=function() return unicase.upper(tostring(get(text) or "")) end,
       font_size=o.size or FS,height=18,opacity=0}
+    local bare=not (text and text~="")
     return require("lib.kit.archetypes.press").caption {width=spec.width,height=function() return H(t) end,
-      gap=o.gap or 8,left=o.start,right=o.end_space,align=o.start and "start" or nil,
+      gap=o.gap or 8,left=o.start or (bare and 0 or nil),right=o.end_space or (bare and 0 or nil),
+      align=o.start and "start" or nil,
       before=before,after=after,measure=measure,
       label_visible=function() local s=get(text) return s~=nil and s~="" end,
       label=text and text~="" and function(w) return caption(t,text,ink,o.size,w) end or nil}

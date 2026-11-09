@@ -672,7 +672,7 @@ end
 function M.caption(spec)
   local w = spec.width
   return ui.Item { id = spec.id, x = spec.x, y = spec.y, width = w, height = 14,
-    ui.Rect { y = 3, width = 8, height = 8, radius = 4, color = spec.color or M.signal("accent") },
+    ui.Rect { y = 2, width = 8, height = 8, radius = 4, color = spec.color or M.signal("accent") },
     M.label { x = 14, y = -2, height = 18, text = spec.text, size = theme.size.small - 1,
       color = M.ink("hi"), width = w - 140, elide = "right" },
     spec.note and M.label { anchors = { right = true }, y = -2, height = 18, text = spec.note,

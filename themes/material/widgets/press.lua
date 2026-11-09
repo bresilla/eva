@@ -86,8 +86,9 @@ return function(S, theme, M)
     if lead then before[#before+1]=M.icon(lead,glyph,o.lead_ink or ink,{fill=o.lead_fill}) end
     if o.trail then after[#after+1]=M.icon(o.trail,o.trail_size or 18,o.trail_ink or ink) end
     if o.post then after[#after+1]=o.post end
+    local side=not has_label and 0 or nil
     return require("lib.kit.archetypes.press").caption {width=spec.width,height=function() return H(t) end,
-      gap=gap,measure=measure,before=before,after=after,
+      gap=gap,left=side,right=side,measure=measure,before=before,after=after,
       label_visible=function() local s=get(label) return s~=nil and s~="" end,
       label=has_label and function(w)
         return M.text {text=label,width=w,elide="right",font_size=o.size or theme.size.normal,
