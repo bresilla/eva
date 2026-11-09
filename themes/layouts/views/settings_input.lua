@@ -150,7 +150,7 @@ local function devices_page(model, w, h)
     P.section { id = "devices-list", width = w, title = "Devices", list },
     P.section { id = "devices-one", width = w, title = "This device", visible = picked,
       F.fact { id = "devices-name", width = inner, icon = "tune", title = chosen, subtitle = "Overrides the general settings" },
-      F.toggle { id = "devices-enabled", width = inner, icon = "power_settings_new", title = "Enabled",
+      F.toggle { id = "devices-enabled", width = inner, icon = "power_settings_new", title = "Use this device",
         on = value("enabled", true), set = store("enabled") },
       F.slider { id = "devices-speed", width = inner, icon = "speed", name = "Speed", from = -1, to = 1, step = 0.05,
         value = value("sensitivity", 0), set = store("sensitivity"), format = function(v) return ("%+.2f"):format(v) end },

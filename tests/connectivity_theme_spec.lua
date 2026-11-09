@@ -247,13 +247,19 @@ for _,kind in ipairs {"network","bluetooth"} do
     test.wheel(0,30000,{x=view.x+view.width-2,y=200}) test.advance(200)
     local label=kind=="network" and "Last network" or "ZZZ final device"
     local last_row=test.get(test.ipc("entry",label))
+    -- Below the list there may be a section of its own: step back to the row.
+    for _=1,20 do
+      if last_row.y>=0 then break end
+      test.wheel(0,-40,{x=view.x+view.width-2,y=200}) test.advance(120)
+      last_row=test.get(test.ipc("entry",label))
+    end
     test.truthy(last_row.y>=0 and last_row.y+last_row.height<=440,"last row clipped")
     test.ipc("palette") test.advance(2400) shot(kind.."-compact-bottom")
     choose(label)
     test.eq(last().name,kind=="network" and "connect-network" or "connect-device")
     test.ipc("show","no") test.advance(100)
     test.ipc("show","yes") test.advance(200)
-    local heading=kind=="network" and "wifi-title" or "bluetooth-title"
+    local heading=kind=="network" and "network-enabled" or "bluetooth-enabled"
     test.truthy(test.get(heading).y<40,"did not return to radio controls")
     test.advance(2400)
     shot(kind.."-compact-reopened")

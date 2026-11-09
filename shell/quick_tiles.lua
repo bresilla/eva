@@ -193,7 +193,7 @@ function M.list(model, gamemode)
     switch("usbtether", "USB tethering", "usb", hardware("tether")),
     switch("datasaver", "Data Saver", "data_saver_on", hardware("datasaver")),
     switch("autobrightness", "Auto brightness", "brightness_auto", hardware("autobrightness")),
-    filter("grayscale", "Grayscale", "filter_b_and_w"),
+    filter("grayscale", "Greyscale", "filter_b_and_w"),
     filter("invert", "Invert colours", "invert_colors"),
     filter("extradim", "Extra dim", "brightness_low"),
     filter("reading", "Reading mode", "menu_book"),

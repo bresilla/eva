@@ -271,8 +271,8 @@ local function network_page(model, w, h)
   }
   return ui.Item { id = "network-page", width = w, height = h, P.page { id = "network-scroll", width = w, height = h,
     on_refresh = function() model.scan() end,
-    P.section { id = "wifi", caption_id = "wifi-title", width = w, title = "Wi-Fi",
-      P.row { id = "network-enabled", width = inner, icon = "wifi", on = model.enabled, title = "Enabled",
+    P.section { id = "wifi", width = w,
+      P.row { id = "network-enabled", width = inner, icon = "wifi", on = model.enabled, title = "Wi-Fi",
         subtitle = function()
           if not available() then return "No network manager" end
           local count = #model.list()
@@ -416,8 +416,8 @@ local function bluetooth_page(model, w, h)
   }
   return ui.Item { id = "bluetooth-page", width = w, height = h, P.page { id = "bluetooth-scroll", width = w, height = h,
     on_refresh = function() model.scan(true) end,
-    P.section { id = "bluetooth", caption_id = "bluetooth-title", width = w, title = "Bluetooth",
-      P.row { id = "bluetooth-enabled", width = inner, icon = "bluetooth", on = model.enabled, title = "Enabled",
+    P.section { id = "bluetooth", width = w,
+      P.row { id = "bluetooth-enabled", width = inner, icon = "bluetooth", on = model.enabled, title = "Bluetooth",
         subtitle = function()
           if not available() then return "No Bluetooth adapter" end
           local count = #model.list()
@@ -432,6 +432,7 @@ local function bluetooth_page(model, w, h)
     },
     devices,
     adapter_section(model, w),
+    require("themes").view("settings_form").sections("bluetooth", w)[1],
     missing(w, "bluetooth_disabled", "No Bluetooth adapter", "There is no Bluetooth adapter to use.", available),
   } }
 end
@@ -478,8 +479,8 @@ local function mobile_page(model,w,h)
 
   return ui.Item {id="mobile-page",width=w,height=h,
     P.page {id="mobile-scroll",width=w,height=h,active=model.active,
-      P.section {id="mobile-radio",width=w,title="Mobile data",visible=model.available,
-        P.row {id="mobile-enabled",width=inner,icon="signal_cellular_alt",title="Enabled",on=model.enabled,
+      P.section {id="mobile-radio",width=w,visible=model.available,
+        P.row {id="mobile-enabled",width=inner,icon="signal_cellular_alt",title="Mobile data",on=model.enabled,
           subtitle=model.status,
           trailing=P.switch {id="mobile-data",name="Mobile data",on=model.enabled,
             on_toggled=function(on) if model.can_toggle() then model.set_enabled(on) end end}},

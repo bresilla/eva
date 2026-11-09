@@ -45,7 +45,7 @@ function V.theme_page(model,w,h)
   local function dark() return require("appearance_model").mode()~="light" end
   local inner=P.inner(w)
   return P.page {id="settings-theme-scroll",width=w,height=h,
-    P.section {id="settings-theme",width=w,title="Appearance",
+    P.section {id="settings-theme",width=w,
       P.row {id="settings-theme-mode",width=inner,icon=function() return dark() and "dark_mode" or "light_mode" end,
         title="Dark mode",
         subtitle=function() return dark() and "The shell in dark colours" or "The shell in light colours" end,

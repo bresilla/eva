@@ -42,7 +42,7 @@ local function line(field, inner, read, write)
   local id = id_of(field.key)
   local typed = morf.signal("eva.form.typed." .. id, nil)
   local save
-  local box, handle = P.field { id = id, width = inner, placeholder = field.title,
+  local box, handle = P.field { id = id, width = inner, placeholder = field.hint or "", name = field.title,
     on_changed = function(value) typed:set(value) end, on_accepted = function() save() end }
   save = function()
     local value = handle.text

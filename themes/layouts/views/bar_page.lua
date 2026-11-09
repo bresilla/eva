@@ -60,7 +60,7 @@ function M.build_tray(model, w, h)
         arrow("up", "arrow_upward", "Earlier", -1), arrow("down", "arrow_downward", "Later", 1) } }
   end
   return P.page { id = "bar-tray-scroll", width = w, height = h, active = model.active,
-    P.section { id = "bar-tray-items", caption_id = "bar-tray-caption", width = w, title = "Tray items",
+    P.section { id = "bar-tray-items", width = w,
       F.list(inner, "tray-item-", function() return #model.tray_items() end, row, "Nothing is in the tray", 24) },
     P.section { id = "bar-tray-limit", caption_id = "bar-tray-limit-caption", width = w, title = "On the bar",
       F.slider { id = "bar-tray-limit-slider", width = inner, icon = "more_horiz", name = "Icons at most", from = 1, to = 16, step = 1,
@@ -75,7 +75,8 @@ function M.build(model, w, h)
     choices(w, { group = "bar-side", caption_id = "bar-heading-position", title = "Position",
       items = model.sides, now = model.side, pick = model.set_side }),
     P.section { id = "bar-more", width = w,
-      P.row { id = "bar-more-open", width = P.inner(w), icon = "tune", title = "Clock, screen shape",
+      P.row { id = "bar-more-open", width = P.inner(w), icon = "rounded_corner", title = "Screen shape",
+        subtitle = "Rounded corners and a cutout",
         trailing = P.chevron(), on_clicked = function() require("utilities").request("bar/more") end } },
     choices(w, { group = "bar-titles", caption_id = "bar-heading-window-titles", title = "Window titles",
       items = { { "on", "title", "Shown" }, { "off", "apps", "Icons only" } },
@@ -85,7 +86,6 @@ function M.build(model, w, h)
         subtitle = "What folds first, and what never shows",
         trailing = P.chevron(), on_clicked = function() require("utilities").request("bar/fold") end } },
     P.section { id = "bar-clock-settings", caption_id = "bar-heading-clock", width = w, title = "Clock",
-      toggle(w, "bar-clock-twelve", "schedule", "12-hour", model.twelve_hour, model.set_twelve_hour),
       toggle(w, "bar-clock-seconds", "timer", "Seconds", model.seconds, model.set_seconds),
     },
     P.section { id = "bar-date", caption_id = "bar-heading-date", width = w, title = "Date beside the clock",

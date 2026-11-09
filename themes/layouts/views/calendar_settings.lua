@@ -46,7 +46,7 @@ function V.page(model, w, h)
   local discover = function() return config.get("calendar.discover") ~= false end
   local node = P.page { id = "settings-calendars-scroll", width = w, height = h,
     keeper,
-    P.section { id = "calendar-sources", width = w, title = "Calendars", note = function() return model.summary() end,
+    P.section { id = "calendar-sources", width = w, title = "Your calendars", note = function() return model.summary() end,
       rows,
       kit.text { id = "calendar-none", width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"),
         text = "None yet. Add a file or an address below; vdirsyncer's and khal's folders appear by themselves.",

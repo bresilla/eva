@@ -316,7 +316,7 @@ function M.build(state, width)
   local status = kit.subtitle { id = "lule-status", width = ci, height = 32, wrap = true, font_size = 12,
     text = function() return appearance.message:get() ~= "" and appearance.message:get() or state.message:get() end,
     color = function() return state.failed:get() and C.error or C.onSurfaceVariant end }
-  local controls = P.section { id = "lule-controls", width = w, title = "Appearance",
+  local controls = P.section { id = "lule-controls", width = w, title = "Style",
     group("lule-appearance-title", "Mode", bar(ci, modes)),
     group("lule-method-title", "Palette method", bar(ci, methods)),
     group("lule-theme-title", "Shell theme", bar(ci, styles)),

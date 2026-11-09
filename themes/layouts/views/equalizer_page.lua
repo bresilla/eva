@@ -20,7 +20,10 @@ local function number_slider(id,label,w,get,set,low,high,units)
   return ui.Column {width=w,gap=2,
     ui.Item {width=w,height=18,
       kit.subtitle {text=label,width=w-90,elide="right",font_size=theme.size.small,color=kit.ink("lo")},
-      kit.text {text=function() return ("%.1f%s"):format(get(),units or "") end,font_size=theme.size.small,
+      kit.text {text=function()
+          if units=="%" then return ("%d%%"):format(math.floor(get()+0.5)) end
+          return ("%.1f%s"):format(get(),units or "")
+        end,font_size=theme.size.small,
         width=90,horizontal_alignment="right",anchors={right=true}}},
     kit.slider {id=id,accessible_name=label,width=w,height=22,label=false,value=function() return (get()-low)/(high-low) end,
       set=function(v) set(math.floor((low+v*(high-low))*10+.5)/10) end}}
@@ -52,7 +55,7 @@ function M.build(model,w,h)
   bands[#bands+1]=centred(inner,{id="equalizer-reset",icon="restart_alt",label="Reset tone adjustments",
     on_clicked=model.reset_bands})
   return P.page {id="equalizer-scroll",width=w,height=h,
-    P.section {id="equalizer-controls",width=w,title="Equalizer",
+    P.section {id="equalizer-controls",width=w,
       flag("equalizer-enabled","Equalizer",function()
           local status=model.status:get()
           if model.error:get()~="" then return model.error:get() end

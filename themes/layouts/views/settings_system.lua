@@ -207,7 +207,7 @@ function M.firewall_page(model, w, h)
   local inner = P.inner(w)
   local NAMES = { firewalld = "firewalld", ufw = "ufw", nixos = "NixOS firewall" }
   return P.page { id = "firewall-scroll", width = w, height = h, active = model.active,
-    P.section { id = "firewall-state", width = w, title = "Firewall", visible = model.present,
+    P.section { id = "firewall-state", width = w, visible = model.present,
       F.toggle { id = "firewall-on", width = inner, icon = "security", title = "Block incoming connections",
         subtitle = function() return (NAMES[model.backend()] or "") .. " · " .. (model.on() and "On" or "Off") end,
         on = model.on, enabled = function() return not model.declarative() end, set = model.set },
@@ -345,7 +345,7 @@ function M.updates_page(model, w, h)
         subtitle = function() return model.eva() ~= "" and model.eva() or "Unknown" end },
       F.fact { id = "updates-morf", width = inner, icon = "memory", title = "morf", subtitle = model.version },
     },
-    P.section { id = "updates-do", width = w, title = "Updates",
+    P.section { id = "updates-do", width = w, title = "New versions",
       kit.text { id = "update-note", width = inner, elide = "right", font_size = theme.size.small, color = kit.ink("lo"),
         text = function()
           if U.message:get() ~= "" then return U.message:get() end

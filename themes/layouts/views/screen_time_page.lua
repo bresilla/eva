@@ -56,7 +56,7 @@ function V.build(model, w, h)
   end
 
   return P.page { id = "screen-time-scroll", width = w, height = h,
-    P.section { id = "screen-time-about", width = w, title = "Screen time",
+    P.section { id = "screen-time-about", width = w,
       flag("screen-time-enabled", "wellbeing.enabled", "hourglass_bottom", "Count screen time", "Which app has the focus, while unlocked"),
       P.row { id = "screen-time-local", width = inner, icon = "lock", title = "Stays on this machine",
         subtitle = "Counted here. Nothing leaves it" },

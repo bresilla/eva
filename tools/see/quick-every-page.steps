@@ -1,0 +1,13 @@
+# Every page of the quick panel's own book, opened in the panel over a full
+# stand-in machine, then the cards.
+#
+#   EVA_FAKE_SYSTEM=1 tools/see.sh quick-every-page
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging} EVA_FAKE_MODEM=1 EVA_FAKE_HARDWARE=1 EVA_FAKE_HAPTICS=1
+export EVA_FAKE_STATUS=wifi,bluetooth EVA_FAKE_AUDIO=1
+export EVA_FAKE_NET=$SEE_EVA/tests/fixtures/net
+start shell
+ipc close; pause 1
+ipc utilities open; pause 1.6; shot quick
+for page in $(sed -n 's/^M.KEYS = {\(.*\)/\1/p;/^  "microphone"/p' shell/quick_details.lua | grep -o '"[^"]*"' | tr -d '"'); do
+  ipc quick "$page" > /dev/null; pause 1.4; shot "quick-${page//\//-}"
+done

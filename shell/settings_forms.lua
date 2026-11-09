@@ -41,9 +41,9 @@ M.PAGES = {
         note = "The config to show: root, home, or one of your own" },
     } },
     { title = "restic", note = "The password stays in its file, and only the file's path reaches restic.", fields = {
-      { key = "backups.restic_repository", kind = "text", title = "Repository", icon = "storage",
+      { key = "backups.restic_repository", kind = "text", title = "Repository", icon = "storage", hint = "sftp:host:/backups",
         note = "A folder, or sftp:, s3:, rest: and the like" },
-      { key = "backups.restic_password_file", kind = "text", title = "Password file", icon = "key" },
+      { key = "backups.restic_password_file", kind = "text", title = "Password file", icon = "key", hint = "~/.config/restic/password" },
       { key = "backups.restic_paths", kind = "list", title = "What to back up", icon = "folder" },
     } },
   } },
@@ -91,7 +91,7 @@ M.PAGES = {
     } },
   } },
   rail = { sections = {
-    { title = "Workspace rail", fields = {
+    { fields = {
       { key = "rail.enabled", kind = "bool", title = "Show the rail", icon = "view_week",
         note = "The workspaces down the left edge" },
       { key = "rail.hold", kind = "number", title = "Number stays for", icon = "timer", from = 200, to = 3000, step = 100, unit = " ms" },
@@ -100,9 +100,9 @@ M.PAGES = {
   capture = { sections = {
     { title = "Where", fields = {
       { key = "capture.folder", kind = "text", title = "Folder", icon = "folder", note = "Screenshots and recordings go here" },
-      { key = "capture.keybind_file", kind = "text", title = "Keybind file", icon = "description",
+      { key = "capture.keybind_file", kind = "text", title = "Keybind file", icon = "description", hint = "~/.config/hypr/keys.conf",
         note = "Where the hotkey is written, empty for none" },
-      { key = "capture.hotkey", kind = "text", title = "Hotkey", icon = "keyboard" },
+      { key = "capture.hotkey", kind = "text", title = "Hotkey", icon = "keyboard", hint = "Print" },
     } },
     { title = "After a capture", fields = {
       { key = "capture.editor", kind = "bool", title = "Open the editor", icon = "edit" },
@@ -165,19 +165,19 @@ M.PAGES = {
     } },
   } },
   ["windows/more"] = { sections = {
-    { title = "Scratchpads", fields = {
-      { key = "windows.scratchpads", kind = "records", fields = { "name", "command", "icon" }, title = "Scratchpads",
-        icon = "stacks", note = "name, the command in quotes and an icon, one after another" },
+    { fields = {
+      { key = "windows.scratchpads", kind = "records", fields = { "name", "command", "icon" }, title = "Scratchpads", hint = "term \"foot\" terminal",
+        icon = "stacks", note = "Name, the command in quotes and an icon, one after another" },
     } },
   } },
   ["lock/more"] = { sections = {
-    { title = "Readers", fields = {
+    { fields = {
       { key = "lock.reader_tries", kind = "number", title = "Tries on a reader", icon = "fingerprint", from = 0, to = 10, step = 1,
         note = "Then the password" },
     } },
   } },
   keyboard = { sections = {
-    { title = "Keyboard", fields = {
+    { fields = {
       { key = "keyboard.auto", kind = "bool", title = "Up by itself", icon = "keyboard_alt",
         note = "When a program asks for text and no real keyboard is attached" },
     } },
@@ -185,7 +185,7 @@ M.PAGES = {
   phone = { sections = {
     { title = "Calls and texts", fields = {
       { key = "phone.contacts", kind = "text", title = "Contacts folder", icon = "contacts", note = "A folder of vCards" },
-      { key = "phone.country", kind = "text", title = "Country code", icon = "flag", note = "What a bare number gets: +31" },
+      { key = "phone.country", kind = "text", title = "Country code", icon = "flag", note = "What a number without one gets", hint = "+31" },
       { key = "phone.silence_unknown", kind = "bool", title = "Silence unknown callers", icon = "phone_disabled",
         note = "Numbers not in your contacts do not ring" },
       { key = "phone.delivery_reports", kind = "bool", title = "Delivery reports", icon = "mark_chat_read",
@@ -204,15 +204,15 @@ M.PAGES = {
     } },
   } },
   weather = { sections = {
-    { title = "Weather", fields = {
-      { key = "services.weather_location", kind = "text", title = "Location", icon = "location_on",
+    { fields = {
+      { key = "services.weather_location", kind = "text", title = "Location", icon = "location_on", hint = "Amsterdam",
         note = "A city, or empty to go by this connection's address" },
       { key = "services.imperial", kind = "bool", title = "Imperial units", icon = "straighten" },
     } },
   } },
   commands = { sections = {
     { title = "Updates", fields = {
-      { key = "update.flake", kind = "text", title = "Flake", icon = "account_tree",
+      { key = "update.flake", kind = "text", title = "Flake", icon = "account_tree", hint = "/etc/nixos",
         note = "What the Updates page reads, or its folder; empty finds /etc/nixos's" },
     } },
     { title = "Session", note = "$USER is your name", fields = session_commands {
@@ -231,12 +231,14 @@ M.PAGES = {
     }) },
   } },
   -- The rest of Bar's and Eva's keys, on the pages that hold the others.
-  ["bar/more"] = { sections = {
-    { title = "Clock", fields = {
-      { key = "bar.clock.twelve_hour", kind = "bool", title = "12-hour clock", icon = "schedule" },
-      { key = "bar.bluetooth_settings", kind = "words", title = "Bluetooth program", icon = "bluetooth" },
+  bluetooth = { sections = {
+    { title = "Program", fields = {
+      { key = "bar.bluetooth_settings", kind = "words", title = "Bluetooth program", icon = "open_in_new",
+        note = "What the Open button runs", hint = "blueman-manager" },
     } },
-    { title = "Screen shape", note = "For a screen with rounded corners or a cutout", fields = {
+  } },
+  ["bar/more"] = { sections = {
+    { note = "For a screen with rounded corners or a cutout", fields = {
       { key = "edgebar.corner", kind = "number", title = "Corner reach", icon = "rounded_corner", from = 0, to = 120, step = 4, unit = " px" },
       { key = "edgebar.cutout.x", kind = "number", title = "Cutout left edge", icon = "border_left", from = 0, to = 2000, step = 4, unit = " px" },
       { key = "edgebar.cutout.width", kind = "number", title = "Cutout width", icon = "width", from = 0, to = 600, step = 4, unit = " px" },

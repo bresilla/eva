@@ -206,7 +206,7 @@ function V.mode(model, w, h)
     choices(w, "focus-ring", "Ring mode", model.RING, get("effects.ring"), set("effects.ring")),
   }
   return P.page { id = "focus-mode-scroll", width = w, height = h, active = model.active,
-    P.section { id = "focus-name", width = w, title = "Mode",
+    P.section { id = "focus-name", width = w, title = "Name and icon",
       field(inner, "focus-name-field", "Name", function() return model.get("name") or "" end, set("name")),
       grid,
       P.button { id = "focus-remove", icon = "delete", label = "Remove this mode", visible = model.removable,

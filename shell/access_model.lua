@@ -69,7 +69,7 @@ function M.new(active, settings)
   function model.filter() return get("filter") end
   function model.set_filter(name) config.set("accessibility.filter", name) end
   -- The colour filters on, by name, for the row that leads to them.
-  local NAMES = { grayscale = "Grayscale", invert = "Invert", reading = "Reading", extradim = "Extra dim",
+  local NAMES = { grayscale = "Greyscale", invert = "Invert", reading = "Reading", extradim = "Extra dim",
     correction = "Correction" }
   function model.filters_now()
     local filters = require("quick_hardware").filters()

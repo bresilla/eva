@@ -136,12 +136,13 @@ function P.chevron()
 end
 
 --- A one-line text field `width` wide: `id`, `kind` ("entry", "password",
---- "search"), `placeholder`, `on_changed`, `on_accepted`, `on_escape`.
+--- "search"), `placeholder`, `name` (what a reader calls it), `on_changed`,
+--- `on_accepted`, `on_escape`.
 --- Returns the box to place and the input in it.
 function P.field(spec)
   local inset, w = S.s + S.xxs, get(spec.width)
   local node, handle = kit.text_field(spec.kind or "entry", { id = spec.id, x = inset, y = 3, width = w - 2 * inset,
-    height = 30, font_family = theme.font, font_size = 12, placeholder = spec.placeholder,
+    height = 30, font_family = theme.font, font_size = 12, placeholder = spec.placeholder, accessible_name = spec.name,
     reveal = spec.kind == "password" and false or nil,
     -- A search field's magnifier stands at its left.
     icon = spec.kind == "search" and "search" or nil,

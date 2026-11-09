@@ -10,7 +10,7 @@ local M = {}
 
 function M.defaults_page(model, w, h)
   local inner = P.inner(w)
-  local section = { id = "apps-kinds", width = w, title = "What opens what" }
+  local section = { id = "apps-kinds", width = w }
   for _, kind in ipairs(model.KINDS) do
     local function open() return model.open:get() == kind.id end
     section[#section + 1] = F.link { id = "apps-" .. kind.id, width = inner, icon = kind.icon, title = kind.name,

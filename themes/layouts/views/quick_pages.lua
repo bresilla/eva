@@ -6,6 +6,7 @@ local unicase = require("lib.util.unicase")
 local theme = require("theme")
 local kit = require("kit")
 local P = require("themes.layouts.page")
+local F = require("themes.layouts.form")
 local C = theme.color
 
 local V = {}
@@ -16,6 +17,16 @@ local function field(id, w, placeholder, kind, on_changed, on_accept)
     on_accepted = on_accept }
 end
 V.field = field
+
+--- A slider under its name, shown while `visible` holds.
+local function named(width, name, slider, visible)
+  return ui.Column { width = width, gap = theme.space.xs, visible = visible, F.note(width, name), slider }
+end
+
+--- What a switch row says: what it does while off, how it stands while on.
+local function says(status, off)
+  return function() local now = status() return now == "Off" and off or now end
+end
 
 --- The Hotspot page: on or off, and the network's name and password.
 function V.hotspot_page(model, w, h)
@@ -55,7 +66,7 @@ function V.hotspot_page(model, w, h)
   return P.page { id = "settings-hotspot-scroll", width = w, height = h,
     P.section { id = "settings-hotspot", width = w, title = "Sharing",
       P.row { id = "settings-hotspot-state", width = inner, icon = "wifi_tethering", on = on, title = "Hotspot",
-        subtitle = function() return hotspot.status() end,
+        subtitle = says(hotspot.status, "Shares this connection over Wi-Fi"),
         trailing = P.switch { id = "settings-hotspot-switch", name = "Hotspot", on = on,
           enabled = function() return hotspot.saved() end,
           on_toggled = function(now) hotspot.set(now) end } },
@@ -66,7 +77,7 @@ function V.hotspot_page(model, w, h)
       name_box, pass_box,
       kit.subtitle { id = "settings-hotspot-message", width = inner, wrap = true, font_size = P.SUB, text = say_status,
         visible = function() return say_status() ~= "" end, color = function() return C.error end },
-      P.button { id = "settings-hotspot-save", label = "Save", tone = "primary", on_clicked = save },
+      P.button { id = "settings-hotspot-save", width = inner, label = "Save", tone = "primary", on_clicked = save },
     },
   }
 end
@@ -79,18 +90,18 @@ function V.nightlight_page(model, w, h)
   local function on() return night.on() end
   local function position() return (night.temperature() - night.WARMEST) / span end
   return P.page { id = "settings-nightlight-scroll", width = w, height = h,
-    P.section { id = "settings-nightlight", width = w, title = "Night light",
+    P.section { id = "settings-nightlight", width = w,
       P.row { id = "settings-nightlight-state", width = inner, icon = "nightlight", on = on, title = "Night light",
         subtitle = function() return on() and "Warmer colours on the screen" or "Colours as they are" end,
         trailing = P.switch { id = "settings-nightlight-switch", name = "Night light", on = on,
           on_toggled = function(now) night.set(now) end } },
-      kit.slider { id = "settings-nightlight-temperature", accessible_name = "Temperature", width = inner,
+      named(inner, "Warmth", kit.slider { id = "settings-nightlight-temperature", accessible_name = "Temperature", width = inner,
         icon = "thermostat", value = position,
         set = function(value) night.set_temperature(night.WARMEST + value * span) end,
         reading = function(value)
           local kelvin = night.WARMEST + value * span
           return ("%d K"):format(math.floor(kelvin / night.STEP + 0.5) * night.STEP)
-        end },
+        end }),
       P.row { id = "settings-nightlight-follow", width = inner, icon = "wb_twilight", on = night.follow,
         title = "Follow the sun", subtitle = "On at sunset, off at sunrise",
         visible = night.placed,
@@ -111,12 +122,12 @@ function V.flashlight_page(model, w, h)
     reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end }
   strength.visible = torch.dims
   return P.page { id = "settings-flashlight-scroll", width = w, height = h,
-    P.section { id = "settings-flashlight", width = w, title = "Flashlight",
+    P.section { id = "settings-flashlight", width = w,
       P.row { id = "settings-flashlight-state", width = inner, icon = "flashlight_on", on = on, title = "Flashlight",
-        subtitle = function() return torch.status() end,
+        subtitle = says(torch.status, "The camera's light, as a torch"),
         trailing = P.switch { id = "settings-flashlight-switch", name = "Flashlight", on = on,
           on_toggled = function(now) torch.set(now) end } },
-      strength,
+      named(inner, "Strength", strength, torch.dims),
       kit.subtitle { id = "settings-flashlight-note", width = inner, wrap = true, font_size = P.SUB,
         visible = function() return not torch.dims() end, text = "This light has one strength." },
     },
@@ -124,12 +135,14 @@ function V.flashlight_page(model, w, h)
 end
 
 local FILTERS = {
-  { id = "grayscale", name = "Grayscale", icon = "filter_b_and_w", on = "Colour is gone from the screen" },
-  { id = "invert", name = "Invert colours", icon = "invert_colors", on = "Light is dark and dark is light" },
+  { id = "grayscale", name = "Greyscale", icon = "filter_b_and_w", on = "Takes the colour out of the screen" },
+  { id = "invert", name = "Invert colours", icon = "invert_colors", on = "Light turns dark and dark turns light" },
   { id = "reading", name = "Reading mode", icon = "menu_book", on = "Paper tones, little colour" },
-  { id = "extradim", name = "Extra dim", icon = "brightness_low", on = "Darker than the backlight goes" },
-  { id = "correction", name = "Colour correction", icon = "palette", on = "Colours shifted apart" },
+  { id = "extradim", name = "Extra dim", icon = "brightness_low", on = "Darker than the lowest brightness" },
+  { id = "correction", name = "Colour correction", icon = "palette", on = "Colours moved apart for colour blindness" },
 }
+
+local KINDS = { protanopia = "Protan", deuteranopia = "Deutan", tritanopia = "Tritan" }
 
 --- The Colour filters page: a switch for each, how dim extra dim is, and which
 --- colours the correction is for.
@@ -140,18 +153,19 @@ function V.filters_page(model, w, h)
   for _, item in ipairs(FILTERS) do
     local function on() return filters.on(item.id) end
     list[#list + 1] = P.row { id = "settings-filters-" .. item.id, width = inner, icon = item.icon, on = on, title = item.name,
-      subtitle = function() return on() and item.on or "Off" end,
+      subtitle = item.on,
       trailing = P.switch { id = "settings-filters-" .. item.id .. "-switch", name = item.name, on = on,
         on_toggled = function(now) filters.set(item.id, now) end } }
   end
   local dim = kit.slider { id = "settings-filters-dim", accessible_name = "How much light is left", width = inner,
     icon = "brightness_low", value = filters.dim, set = function(value) filters.set_dim(value) end,
     reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end }
-  dim.visible = function() return filters.on("extradim") end
-  list[#list + 1] = dim
+  local function dimmed() return filters.on("extradim") end
+  dim.visible = dimmed
+  list[#list + 1] = named(inner, "Light left", dim, dimmed)
   local kinds = { id = "settings-filters-kind", width = inner, visible = function() return filters.on("correction") end }
   for _, kind in ipairs(filters.CORRECTIONS) do
-    kinds[#kinds + 1] = { id = "settings-filters-kind-" .. kind, label = unicase.capitalise(kind:sub(1, 5)) .. ".",
+    kinds[#kinds + 1] = { id = "settings-filters-kind-" .. kind, label = KINDS[kind] or unicase.capitalise(kind),
       accessible_name = kind, group = "settings-filters-kind",
       visible = function() return filters.on("correction") end,
       selected = function() return filters.correction() == kind end,
@@ -173,15 +187,15 @@ function V.sounds_page(model, w, h)
       on_clicked = function() sounds.set_kind(kind.id) end }
   end
   return P.page { id = "settings-sounds-scroll", width = w, height = h,
-    P.section { id = "settings-sounds", width = w, title = "Background sounds",
+    P.section { id = "settings-sounds", width = w,
       P.row { id = "settings-sounds-state", width = inner, icon = "waves", on = on, title = "Background sounds",
-        subtitle = function() return sounds.status() end,
+        subtitle = says(sounds.status, "Rain, ocean or noise under everything"),
         trailing = P.switch { id = "settings-sounds-switch", name = "Background sounds", on = on,
           on_toggled = function(now) sounds.set(now) end } },
       P.buttons(choices),
-      kit.slider { id = "settings-sounds-level", accessible_name = "Volume", width = inner, icon = "volume_up",
+      named(inner, "Volume", kit.slider { id = "settings-sounds-level", accessible_name = "Volume", width = inner, icon = "volume_up",
         value = sounds.level, set = function(value) sounds.set_level(value) end, live = false,
-        reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end },
+        reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end }),
     },
   }
 end

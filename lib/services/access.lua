@@ -9,7 +9,7 @@ local input = require("lib.services.input_config")
 
 local M = {}
 
-M.FILTERS = { { "none", "block", "None" }, { "grayscale", "filter_b_and_w", "Grayscale" }, { "invert", "invert_colors", "Invert" },
+M.FILTERS = { { "none", "block", "None" }, { "grayscale", "filter_b_and_w", "Greyscale" }, { "invert", "invert_colors", "Invert" },
   { "protanopia", "palette", "Protanopia" }, { "deuteranopia", "palette", "Deuteranopia" }, { "tritanopia", "palette", "Tritanopia" } }
 
 -- ------------------------------------------------------------- sticky keys --
