@@ -153,7 +153,10 @@ end
 function M.ruled()
   local out = {}
   for _, source in ipairs(SOURCES) do
-    if not M.PRIVATE[source.key] then out[#out + 1] = { key = source.key, label = source.label, tier = source.tier } end
+    if not M.PRIVATE[source.key] then
+      out[#out + 1] = { key = source.key, label = source.label, tier = source.tier,
+        icon = type(source.icon) == "string" and source.icon or (source.key == "ring" and "notifications_active" or "self_improvement") }
+    end
   end
   return out
 end

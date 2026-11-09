@@ -34,7 +34,7 @@ function V.build(status, w, h)
   for i, rule in ipairs(status.RULES) do with_hide[i] = rule end
   with_hide[#with_hide + 1] = status.HIDE
   for _, row in ipairs(status.ruled()) do
-    indicators[#indicators + 1] = F.select { id = "bar-fold-" .. row.key, width = inner, title = row.label, choices = with_hide,
+    indicators[#indicators + 1] = F.select { id = "bar-fold-" .. row.key, width = inner, icon = row.icon, title = row.label, choices = with_hide,
       read = function() return status.rule(row.key) end, set = function(rule) status.set_rule(row.key, rule) end }
   end
 

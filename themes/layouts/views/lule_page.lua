@@ -141,10 +141,11 @@ function M.build(state, width)
   local name_row = ui.Item { width = li, height = 22,
     kit.menu_label { text = function() return basename(state.selected:get()) ~= "" and basename(state.selected:get()) or "Your wallpaper collection" end,
       anchors = { vertical_center = true }, width = li - 90, elide = "middle", font_size = 13, font_weight = 600 },
-    kit.chip { anchors = { right = true, vertical_center = true }, width = 72,
+    kit.subtitle { anchors = { right = true, vertical_center = true }, width = 90, horizontal_alignment = "right",
+      font_size = P.SUB, color = kit.ink("lo"),
       text = function()
         local scheme = state.scheme:get() or {}
-        return state.selected:get() == scheme.wallpaper and "CURRENT" or "PREVIEW"
+        return state.selected:get() == scheme.wallpaper and "In use" or "Preview"
       end },
   }
   local field_node, field

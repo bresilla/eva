@@ -265,7 +265,7 @@ local function network_page(model, w, h)
     network_prompt(model, w),
     share_panel(model, w),
     status("network-status", model, w),
-    action(w, { id = "network-rescan", icon = "wifi_find", label = "Scan for networks",
+    action(w, { id = "network-rescan", icon = "radar", label = "Scan for networks",
       on_clicked = function() model.scan() end }),
   }
   return ui.Item { id = "network-page", width = w, height = h, P.page { id = "network-scroll", width = w, height = h,
@@ -539,7 +539,8 @@ local function mobile_page(model,w,h)
             on_toggled=function(on) save({roaming=on}) end}},
       },
       P.section {id="mobile-network",width=w,title="Network",visible=model.available,
-        kit.subtitle {width=inner,font_size=P.SUB,color=kit.ink("lo"),text="Network mode"},
+        kit.subtitle {width=inner,font_size=P.SUB,color=kit.ink("lo"),text="Network mode",
+          visible=function() return (model.modes())[1]~=nil end},
         P.buttons(mode_buttons),
         list(w,"mobile-operator-",function() return #model.networks:get() end,function(i,rw)
           local function n() return model.networks:get()[i] or {} end
@@ -550,9 +551,10 @@ local function mobile_page(model,w,h)
             on_clicked=function() if n().code then model.register(n().code) end end}
         end,"Scan to list the networks nearby",16),
         P.buttons {width=inner,
-          {id="mobile-scan",icon="radar",label=function() return model.scanning:get() and "Scanning…" or "Scan for networks" end,
+          {id="mobile-scan",icon="radar",label=function() return model.scanning:get() and "Scanning…" or "Scan" end,
+            accessible_name="Scan for networks",
             enabled=function() return not busy() end,on_clicked=model.scan_networks},
-          {id="mobile-automatic",label="Automatic",enabled=function() return not busy() end,
+          {id="mobile-automatic",icon="auto_mode",label="Automatic",enabled=function() return not busy() end,
             on_clicked=function() model.register(nil) end}},
       },
       P.section {id="mobile-sim",width=w,title="SIM",visible=model.available,
