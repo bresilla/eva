@@ -33,7 +33,10 @@ return function(theme)
         return table.concat(out)
       end,
       fill_color = "transparent", stroke_width = 1, stroke_cap = "butt",
-      stroke_color = function() return C.primary:alpha(.34) end }
+      -- Darker than the ground they sit on, in either mode.
+      stroke_color = function()
+        return C.shadow:alpha(require("themes.color_mode").resolve() == "light" and .18 or .55)
+      end }
     ui.reparent(crosses, host)
     return node
   end
