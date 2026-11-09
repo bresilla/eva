@@ -21,7 +21,7 @@ M.CATEGORIES = {
   { id = "power", name = "Power", icon = "battery_full" },
   { id = "look", name = "Appearance", icon = "palette" },
   { id = "shell", name = "Desktop", icon = "dashboard_customize" },
-  { id = "notifications", name = "Notifications and focus", icon = "notifications" },
+  { id = "notifications", name = "Notifications", icon = "notifications" },
   { id = "apps", name = "Apps", icon = "apps" },
   { id = "privacy", name = "Privacy and security", icon = "privacy_tip" },
   { id = "access", name = "Accessibility", icon = "accessibility_new" },

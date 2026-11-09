@@ -3,7 +3,7 @@
 # panel's own page for a tile.
 export EVA_FAKE_AUDIO=1 EVA_FAKE_STATUS=wifi,bluetooth EVA_FAKE_BATTERY=64,charging
 start shell
-ipc settings home; pause 1.4; shot home
+ipc settings home; pause 3; shot home
 ipc settings home/device; pause 1.2; shot devices
 ipc settings bluetooth; pause 1.2; shot bluetooth
 ipc settings sound; pause 1.2; shot sound
