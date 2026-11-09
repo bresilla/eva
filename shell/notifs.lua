@@ -66,7 +66,7 @@ M.pulse = shared("eva.notifications.pulse", 0)
 --- The snooze presets: seconds, and "tomorrow" for the next 8:00.
 M.SNOOZE = { { 900, "15 min" }, { 3600, "1 hour" }, { 10800, "3 hours" }, { "tomorrow", "Tomorrow" } }
 --- The timed mutes offered, in seconds; 0 is until turned back on.
-M.MUTES = { { 3600, "1 hour" }, { 28800, "8 hours" }, { 0, "Forever" } }
+M.MUTES = { { 3600, "1 h" }, { 28800, "8 h" }, { 0, "Forever" } }
 
 local UNDO_MS, DISMISSED_CAP, TICK_MS, COOLDOWN_S, COOLDOWN_N = 8000, 20, 30000, 60, 3
 local FOLD_FROM = 3

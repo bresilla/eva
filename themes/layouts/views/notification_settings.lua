@@ -154,7 +154,7 @@ function V.app(model, w, h)
       trailing = P.button { id = "notif-rule-reset", label = "Reset", on_clicked = model.reset } } }
 
   local mute_row = { width = inner }
-  for _, preset in ipairs { { 3600, "1 hour" }, { 28800, "8 hours" }, { 0, "Forever" } } do
+  for _, preset in ipairs { { 3600, "1 h" }, { 28800, "8 h" }, { 0, "Forever" } } do
     mute_row[#mute_row + 1] = { id = "notif-rule-mute-" .. preset[1], label = preset[2],
       on_clicked = function() model.mute(preset[1]) end }
   end

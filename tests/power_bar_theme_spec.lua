@@ -75,7 +75,7 @@ for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." Power preserves readings, profiles and graph handoff",function()
     load(style,"power") open()
     test.eq(test.get("power-percent").text,"64%")
-    test.truthy(test.find {text="Discharging, 2h 15m left  ·  12.4 W"})
+    test.truthy(test.find {text="Discharging, 2 h 15 min left · 12.4 W"})
     shot(style.."-power")
     -- Profiles can be offered even when UPower has no battery service.
     test.ipc("change","battery-daemon-off")
@@ -84,7 +84,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(test.ipc("state").profile,"performance")
     test.click("power-open-battery") test.eq(test.ipc("state").handoffs,1)
     test.ipc("change","charging") test.advance(100)
-    test.truthy(test.find {text="Charging, 80% in 1h 00m"})
+    test.truthy(test.find {text="Charging, 80% in 1 h"})
     test.ipc("change","missing") test.advance(100)
     test.eq(test.get("power-percent").text,"Mains power")
     test.truthy(test.find {text="No battery"})

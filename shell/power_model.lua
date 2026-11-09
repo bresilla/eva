@@ -3,9 +3,9 @@ local morf=require("morf")
 local services=require("services")
 local M={}
 M.PROFILES={
-  {id="power-saver",icon="energy_savings_leaf",name="Power saver",short="Saver",hint="Longest battery"},
+  {id="power-saver",icon="energy_savings_leaf",name="Power saver",hint="Longest battery"},
   {id="balanced",icon="balance",name="Balanced",hint="The default"},
-  {id="performance",icon="rocket_launch",name="Performance",short="Fast",hint="Fastest, hottest"},
+  {id="performance",icon="rocket_launch",name="Performance",hint="Fastest, hottest"},
 }
 function M.new(active,open_battery)
   local model=require("battery_model").new {opened=active}
@@ -64,12 +64,12 @@ function M.new(active,open_battery)
     local seconds=b.status=="Discharging" and s.time_left or model.to_target()
     local words=b.status or "No battery"
     if seconds and seconds>0 then
-      local left=model.duration(seconds)
+      local left=require("battery_model").spoken(seconds)
       local target=model.target()
       words=words..(b.status=="Discharging" and (", "..left.." left")
         or ((target<100 and (", %d%% in "):format(target) or ", full in ")..left))
     end
-    if b.power and b.power>.05 and not model.charging() then words=words..("  ·  %.1f W"):format(b.power) end
+    if b.power and b.power>.05 and not model.charging() then words=words..(" · %.1f W"):format(b.power) end
     return words
   end
   model.FACTS={

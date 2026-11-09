@@ -7,6 +7,13 @@ function M.duration(seconds)
   local h,m=seconds//3600,(seconds%3600)//60
   return h>0 and ("%dh %02dm"):format(h,m) or ("%dm"):format(m)
 end
+--- The same time as Settings writes it: "2 h 15 min", "43 min".
+function M.spoken(seconds)
+  if not seconds or seconds<=0 then return "--" end
+  local h,m=seconds//3600,(seconds%3600)//60
+  if h==0 then return ("%d min"):format(m) end
+  return m>0 and ("%d h %d min"):format(h,m) or ("%d h"):format(h)
+end
 function M.number(value,format) return value and format:format(value) or "--" end
 -- What a charger's USB protocol is called.
 local PROTOCOLS={PD="USB PD",PD_PPS="USB PD",PD_DRP="USB PD",DCP="USB charger",CDP="USB port",SDP="USB port",C="USB-C"}
@@ -102,7 +109,7 @@ function M.new(ctx)
     local watts=f.watts or (model.charging() and b.power) or nil
     if watts and watts>.05 then parts[#parts+1]=("%.1f W"):format(watts) end
     if f.kind then parts[#parts+1]=model.charger_name() end
-    return table.concat(parts,"  ·  ")
+    return table.concat(parts," · ")
   end
   --- What a weak charger is told, or "".
   function model.charge_hint()

@@ -44,7 +44,7 @@ local function awake_section(w, awake, switch)
   end
   local box, input
   local function keep() if awake.say(awake.draft:get()) then input.text = "" end end
-  box, input = P.field { id = "awake-words", width = inner - KEEP - S.s, placeholder = "45 min, 2 hours, until 18:30",
+  box, input = P.field { id = "awake-words", width = inner - KEEP - S.s, placeholder = "45 min, 2 h, until 18:30",
     on_changed = function(value) awake.draft:set(value) end, on_accepted = keep }
   local words = inner - DIAL - S.l
   return P.section { id = "focus-awake", width = w, title = "Keep awake", switch,
@@ -155,7 +155,7 @@ function V.mode(model, w, h)
 
   local allow = { id = "focus-allow", width = w, title = "What comes through",
     choices(w, "focus-urgency", "Urgency", model.URGENCY, get("allow.urgency"), set("allow.urgency"), 2),
-    flag("calls", "call", "Calls", "A second call in 15 minutes always rings", "allow.calls"),
+    flag("calls", "call", "Calls", "A second call within 15 min always rings", "allow.calls"),
     flag("alarms", "alarm", "Alarms", "Alarm notifications come through", "allow.alarms"),
     caption(w, "People: names in a title, separated by commas"),
     field(inner, "focus-people", "Ada, Grace", function() return model.words("allow.people") end,

@@ -238,7 +238,7 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(test.get("power-charger-title").text,"Fast charging")
     test.contains(test.get("power-charger-subtitle").text,"18.0 W")
     test.contains(test.get("power-charger-subtitle").text,"USB PD")
-    test.contains(test.get("power-summary-line").text,"full in 26m")
+    test.contains(test.get("power-summary-line").text,"full in 26 min")
     test.truthy(test.find {id="power-mark-fast",visible=true})
     test.falsy(test.find {id="power-mark-wireless",visible=true})
     test.eq(#test.logs("error"),0)
