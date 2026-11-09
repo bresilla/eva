@@ -692,7 +692,8 @@ return function(S, theme, M, hud)
       if extra then list[#list + 1] = extra end
       return list
     end
-    local track_props = { anchors = { fill = true }, fill_color = function() return stroke(C, "hover") end }
+    local track_props = { anchors = { fill = true }, fill_color = function() return stroke(C, "hover") end,
+      visible = function() return (t.hold or 800) > 0 end }
     for i, shape in ipairs(frame_shapes()) do track_props[i] = shape end
     local fill_props = { anchors = { fill = true }, fill_color = tone }
     for i, shape in ipairs(frame_shapes(fill)) do fill_props[i] = shape end

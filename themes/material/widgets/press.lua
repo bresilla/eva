@@ -588,6 +588,7 @@ return function(S, theme, M)
     local D = 28
     local dial = ui.Item { width = D, height = D,
       ui.Sdf { anchors = { fill = true }, fill_color = function() return C().onSurfaceVariant:alpha(0.22) end,
+        visible = function() return (t.hold or 800) > 0 end,
         ui.SdfShape { shape = "ring", anchors = { fill = true }, thickness = 3 } },
       ui.Sdf { anchors = { fill = true }, fill_color = tone,
         ui.SdfShape { shape = "ring", anchors = { fill = true }, thickness = 3 }, fill },
