@@ -220,12 +220,12 @@ function P.field(spec)
     reveal = spec.kind == "password" and false or nil,
     -- A search field's magnifier stands at its left; it draws its own ground.
     icon = search and "search" or nil,
-    inset = search and { S.xl + S.l, 0, S.m, 0 } or { S.m, 0, S.m, 0 },
+    inset = search and { S.xl + S.l, 0, S.l, 0 } or { S.l, 0, S.l, 0 },
     color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
     caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
     on_text_changed = spec.on_changed, on_accepted = spec.on_accepted, on_escape = spec.on_escape })
-  return kit.surface { width = w, height = h, radius = kit.round(S.s + S.xxs), visible = spec.visible,
-    color = function() return search and C.surfaceContainerHighest:alpha(0) or C.surfaceContainerHighest end, node }, handle
+  -- The field draws its own ground; the box only holds its place.
+  return ui.Item { width = w, height = h, visible = spec.visible, node }, handle
 end
 
 --- A caption across `w`, held to it: a long note is cut at the card's edge,

@@ -1,12 +1,11 @@
 -- Material 3's look for each TextField widget: filled fields (a tonal
--- well with 4 px top corners and an active indicator that grows from the
--- middle on focus) and outlined ones (a 1 px outline that thickens to 2 px
--- of the primary, cut by a notch the floating label sits in -- one distance
--- field, the notch tracking a node that springs open). Labels float up and
--- shrink by a move and a scale; the error role takes over the indicator,
--- the label and the supporting line while what is typed would not be
--- accepted. The input is the configuration's; what it accepts, the
--- archetype's.
+-- capsule, as the buttons are, ringed in the primary on focus) and outlined
+-- ones (a 1 px outline that thickens to 2 px of the primary, cut by a notch
+-- the floating label sits in -- one distance field, the notch tracking a
+-- node that springs open). Labels float up and shrink by a move and a
+-- scale; the error role takes over the ring, the label and the supporting
+-- line while what is typed would not be accepted. The input is the
+-- configuration's; what it accepts, the archetype's.
 local ui = require("morf.ui")
 local unicase = require("lib.util.unicase")
 
@@ -53,17 +52,13 @@ return function(S, theme, M)
       behavior = { color = quick() } }
   end
 
-  --- A filled field's active indicator: 1 px of onSurfaceVariant, and 2 px
-  --- of the primary (or the error role) grown from the middle on focus.
-  local function indicator(t, spec)
-    return ui.Item { anchors = { left = true, right = true, top = true }, z = 6,
-      height = function() return box(t, spec) end,
-      ui.Rect { anchors = { left = true, right = true, bottom = true }, height = 1,
-        color = function() local c = C() return bad(t) and c.error or c.onSurfaceVariant end },
-      ui.Rect { anchors = { left = true, right = true, bottom = true }, height = 2, transform_origin_x = 0.5,
-        scale_x = function() return (t.focused or bad(t)) and 1 or 0 end,
-        color = function() local c = C() return bad(t) and c.error or c.primary end,
-        behavior = { scale_x = grow(), color = quick() } } }
+  --- A capsule field's ring: 2 px of the primary (or the error role) while
+  --- focused or refused, none otherwise.
+  local function ring(t, spec, radius)
+    return ui.Rect { anchors = { left = true, right = true, top = true }, z = 6, radius = radius,
+      height = function() return box(t, spec) end, color = "transparent",
+      border_width = function() return (t.focused or bad(t)) and 2 or 0 end,
+      border_color = function() local c = C() return bad(t) and c.error or c.primary end }
   end
 
   local SIZE = function() return theme.size.normal end
@@ -157,10 +152,12 @@ return function(S, theme, M)
 
   local LOOK = {}
 
-  --- A filled text field.
+  --- A filled text field, a capsule as the buttons beside it are, ringed in
+  --- the primary (or the error role) on focus.
   function LOOK.entry(t, spec)
     local text = label(t, spec)
-    return { background = filled(t, spec), placeholder = text, error = indicator(t, spec),
+    local function r() return box(t, spec) / 2 end
+    return { background = filled(t, spec, r), placeholder = text, error = ring(t, spec, r),
       counter = supporting(t, spec) or blank() }
   end
 
@@ -189,7 +186,7 @@ return function(S, theme, M)
         color = function()
           local c = C()
           if t.focused then return c.surfaceContainerHighest end
-          return t.hovered and c.surfaceContainerHigh:mix(c.onSurface, 0.08) or c.surfaceContainerHigh
+          return t.hovered and c.surfaceContainerHighest:mix(c.onSurface, 0.08) or c.surfaceContainerHighest
         end,
         shadow_color = function() return C().shadow:alpha(t.focused and 0.3 or 0) end,
         shadow_blur = 8, shadow_offset_y = 2,
