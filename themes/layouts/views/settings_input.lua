@@ -49,8 +49,8 @@ local function keyboard_page(model, w, h)
     P.section { id = "input-typing", width = w, title = "Typing",
       F.slider { id = "input-repeat-rate", width = inner, icon = "speed", name = "Repeat rate", from = 10, to = 60, step = 1,
         value = function() return model.value("repeat_rate", 25) end, set = function(v) model.set("repeat_rate", v) end,
-        format = function(v) return ("%d/s"):format(v) end },
-      F.slider { id = "input-repeat-delay", width = inner, icon = "hourglass_top", name = "Repeat delay", from = 150,
+        format = function(v) return ("%d a second"):format(v) end },
+      F.slider { id = "input-repeat-delay", width = inner, icon = "timer", name = "Repeat delay", from = 150,
         to = 1000, step = 50, value = function() return model.value("repeat_delay", 600) end,
         set = function(v) model.set("repeat_delay", v) end, format = function(v) return ("%d ms"):format(v) end },
       F.toggle { id = "input-numlock", width = inner, icon = "pin", title = "Num Lock at start",
@@ -145,7 +145,10 @@ local function devices_page(model, w, h)
   local function picked() return chosen() ~= "" end
   local list = F.list(inner, "device-row-", function() return #model.devices() end, function(index, width)
     local function row() return model.devices()[index] or {} end
-    return P.row { id = "device-" .. index, width = width, icon = function() return row().icon or "devices" end,
+    return P.row { id = "device-" .. index, width = width, icon = function()
+        if kind_words(row()) == "Touchpad" then return "touchpad_mouse" end
+        return row().icon or "devices"
+      end,
       title = function() return row().name or "" end, subtitle = function() return kind_words(row()) end,
       on = function() return row().key == chosen() end,
       on_clicked = function() model.selected:set(row().key or "") end }

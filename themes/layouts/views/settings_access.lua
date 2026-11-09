@@ -37,7 +37,7 @@ function M.build(model, w, h)
         go = function() model.request("input", "accessibility") end },
       F.link { id = "access-cursor", width = inner, icon = "arrow_selector_tool", title = "Cursor size",
         subtitle = "And how fast it moves", go = function() model.request("input/pointer") end },
-      F.link { id = "access-osk", width = inner, icon = "keyboard_alt", title = "On-screen keyboard",
+      F.link { id = "access-osk", width = inner, icon = "keyboard_onscreen", title = "On-screen keyboard",
         subtitle = "When it comes up", go = function() model.request("keyboard") end },
     },
     F.status("access-status", w, model),

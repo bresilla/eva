@@ -36,7 +36,7 @@ M.PAGES = {
   ["backups/more"] = { sections = {
     { title = "Which tool", fields = {
       { key = "backups.tool", kind = "choice", title = "Use", per_row = 2, items = {
-        { "", "auto_mode", "First found" }, { "snapper", "backup", "Snapper" }, { "btrbk", "backup", "btrbk" }, { "restic", "backup", "restic" } } },
+        { "", "auto_mode", "First found" }, { "snapper", "history", "Snapper" }, { "btrbk", "folder_copy", "btrbk" }, { "restic", "backup", "restic" } } },
       { key = "backups.snapper_config", kind = "text", title = "Snapper config", icon = "settings", hint = "root",
         note = "The config to show: root, home, or one of your own" },
     } },
@@ -178,7 +178,7 @@ M.PAGES = {
   } },
   keyboard = { sections = {
     { fields = {
-      { key = "keyboard.auto", kind = "bool", title = "Up by itself", icon = "keyboard_alt",
+      { key = "keyboard.auto", kind = "bool", title = "Up by itself", icon = "keyboard_onscreen",
         note = "When a program asks for text and no real keyboard is attached" },
     } },
   } },
@@ -233,7 +233,7 @@ M.PAGES = {
   -- The rest of Bar's and Eva's keys, on the pages that hold the others.
   bluetooth = { sections = {
     { title = "Program", fields = {
-      { key = "bar.bluetooth_settings", kind = "words", title = "Bluetooth program", icon = "open_in_new",
+      { key = "bar.bluetooth_settings", kind = "words", title = "Bluetooth program", icon = "terminal",
         note = "What the Open button runs", hint = "blueman-manager" },
     } },
   } },

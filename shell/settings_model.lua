@@ -312,7 +312,7 @@ M.TOGGLES = {
   },
   {
     -- Tunnel VPNs: out to the internet through elsewhere (Mullvad, Proton).
-    id = "tunnel", icon = "vpn_lock", name = "Tunnel", detail = "tunnel",
+    id = "tunnel", icon = "vpn_key", name = "Tunnel", detail = "tunnel",
     on = function() return #M.vpn_names("tunnel") > 0 or services.tor ~= nil and services.tor.on() end,
     set = function() M.reach("tunnel") end,
     status = function()

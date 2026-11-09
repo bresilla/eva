@@ -247,7 +247,7 @@ function M.list(model, gamemode)
     tool(model, "magnifier", "Magnifier", "zoom_in", "zoom", "Open"),
     tool(model, "colorpick", "Colour picker", "colorize", "colorpick", "Open"),
     tool(model, "pomodoro", "Pomodoro", "timelapse", "pomodoro", "Open"),
-    tool(model, "breaks", "Breaks", "self_improvement", "breaks", "Rests from the screen"),
+    tool(model, "breaks", "Breaks", "spa", "breaks", "Rests from the screen"),
     setting("alwayson", "Always on", "nightlight", "lock.always_on.enabled", "lock",
       function() return require("themes.phone_wake").always_on() end),
     setting("highcontrast", "High contrast", "contrast", "appearance.high_contrast", "accessibility"),
@@ -261,7 +261,7 @@ function M.list(model, gamemode)
       end,
     },
     {
-      id = "screentime", icon = "hourglass_bottom", name = "Screen time", detail = "screen_time",
+      id = "screentime", icon = "hourglass", name = "Screen time", detail = "screen_time",
       on = function() return false end,
       set = function() model.reach("screen_time") end,
       status = function()

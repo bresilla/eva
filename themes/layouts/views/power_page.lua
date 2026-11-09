@@ -12,6 +12,9 @@ local F = require("themes.layouts.form")
 
 local M = {}
 
+local FACT_ICONS = { health = "health_and_safety", limit = "battery_saver", mode = "battery_charging_full",
+  cycles = "autorenew", temperature = "thermostat" }
+
 function M.build(model, w, h)
   local first = model.battery
   local inner = P.inner(w)
@@ -33,15 +36,15 @@ function M.build(model, w, h)
         if pct > 50 then return "battery_5_bar" end
         if pct > 20 then return "battery_3_bar" end
         return "battery_alert"
-      end, 40, kit.ink("accent"), { x = 0, y = 8, fill = true }),
+      end, 22, kit.ink("accent"), { x = 0, y = 12 }),
       kit.text {
-        id = "power-percent", x = 52, y = 0, font_size = theme.size.extra, font_weight = 700,
+        id = "power-percent", x = P.ROW_TEXT_X, y = 0, font_size = theme.size.extra, font_weight = 700,
         text = function()
           if not model.present() then return "Mains power" end
           return ("%d%%"):format(math.floor((first().capacity or 0) + 0.5))
         end,
       },
-      kit.subtitle { id = "power-summary-line", x = 52, y = 44, width = inner - 52, elide = "right", color = kit.ink("lo"),
+      kit.subtitle { id = "power-summary-line", x = P.ROW_TEXT_X, y = 44, width = inner - P.ROW_TEXT_X, elide = "right", color = kit.ink("lo"),
         text = model.summary },
       ui.Item {
         y = 80, width = inner, height = 12, visible = model.present,
@@ -152,7 +155,7 @@ function M.build(model, w, h)
   local health = { id = "power-health", caption_id = "power-heading-battery", width = w, title = "Battery",
     visible = model.present }
   for _, entry in ipairs(model.FACTS) do
-    health[#health + 1] = P.row { id = "power-fact-" .. entry.key, width = inner, on = function() return false end,
+    health[#health + 1] = P.row { id = "power-fact-" .. entry.key, width = inner, icon = FACT_ICONS[entry.key],
       title = entry.name, subtitle = entry.value, visible = function()
         if entry.key == "limit" and model.limit_supported and model.limit_supported() then return false end
         return entry.value() ~= "--"

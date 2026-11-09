@@ -16,7 +16,7 @@ M.SWITCHES = { { "grp:alt_shift_toggle", "swap_horiz", "Alt+Shift" }, { "grp:win
 M.CAPS = { { "", "keyboard_capslock", "Caps Lock" }, { "caps:escape", "keyboard", "Escape" }, { "ctrl:nocaps", "keyboard_control_key", "Control" } }
 M.COMPOSE = { { "", "block", "None" }, { "compose:ralt", "keyboard_option_key", "Right Alt" }, { "compose:rctrl", "keyboard_control_key", "Right Ctrl" },
   { "compose:menu", "menu", "Menu" } }
-M.ACCEL = { { "", "tune", "Default" }, { "adaptive", "speed", "Adaptive" }, { "flat", "straighten", "Flat" } }
+M.ACCEL = { { "", "auto_mode", "Default" }, { "adaptive", "trending_up", "Adaptive" }, { "flat", "trending_flat", "Flat" } }
 
 local stand_in
 local function available()

@@ -12,6 +12,11 @@ local S = theme.space
 
 local M = {}
 
+-- Each of About's facts by its key, a gpu's number left off.
+local FACT_ICONS = { host = "badge", model = "laptop_chromebook", cpu = "memory", memory = "memory_alt", gpu = "monitor",
+  disk = "hard_drive", system = "deployed_code", kernel = "terminal", compositor = "select_window", morf = "layers",
+  eva = "dashboard_customize" }
+
 --- What a NixOS configuration keeps, in place of the controls that would fail.
 local function declared(id, inner, visible, option)
   return F.note(inner, "This system's configuration sets this: change " .. option
@@ -258,14 +263,16 @@ function M.about_page(model, w, h)
   morf.effect("eva.about.name.fill", function() input.text = model.hostname() end)
   local facts = F.list(inner, "about-row-", function() return #model.rows() end, function(index, width)
     local function row() return model.rows()[index] or {} end
-    return P.row { id = "about-fact-" .. index, width = width, on = function() return false end,
+    return P.row { id = "about-fact-" .. index, width = width,
+      icon = function() return FACT_ICONS[(row().key or ""):gsub("%d+$", "")] or "info" end,
       title = function() return row().name or "" end, subtitle = function() return row().value or "" end }
   end, nil, 16)
   return P.page { id = "about-scroll", width = w, height = h, active = model.active,
     P.section { id = "about-facts", width = w, title = "This machine", facts,
-      P.row { id = "about-more", width = inner, title = "Every detail",
+      P.row { id = "about-more", width = inner, icon = "list", title = "Every detail",
         subtitle = "System, hardware, graphics and storage", on_clicked = function() more:set(not more:get()) end,
-        trailing = kit.icon(function() return more:get() and "expand_less" or "expand_more" end, 22, kit.ink("lo")) },
+        trailing = ui.Item { width = 22 - 5, height = 22,
+          kit.icon(function() return more:get() and "expand_less" or "expand_more" end, 22, kit.ink("lo")) } },
       P.button { id = "about-copy", icon = "content_copy", label = "Copy all", width = inner, on_clicked = model.copy },
       F.status("about-status", inner, model),
     },
