@@ -369,7 +369,7 @@ M.TOGGLES = {
     end,
     status = function()
       local ok, sink = pcall(function() return morf.audio.available() and morf.audio.default_sink() end)
-      if ok and sink then return ("%d%%"):format(math.floor(sink.volume * 100 + 0.5)) end
+      if ok and sink and sink.volume then return ("%d%%"):format(math.floor(sink.volume * 100 + 0.5)) end
       return nil
     end,
   },
