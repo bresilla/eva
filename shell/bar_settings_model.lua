@@ -7,7 +7,7 @@ local clock=require("clock_format")
 local M={}
 function M.new(active)
   local model={key="bar-settings",active=active,
-    shows={{"on","visibility","On"},{"off","visibility_off","Off"},{"auto","smartphone","Auto"}},
+    shows={{"on","visibility","On"},{"off","visibility_off","Off"},{"auto","smartphone","Automatic"}},
     sides={{"top","vertical_align_top","Top"},{"bottom","vertical_align_bottom","Bottom"},
       {"left","align_horizontal_left","Left"},{"right","align_horizontal_right","Right"}},
     title_modes={{"on","title","Shown"},{"off","apps","Icons only"}},

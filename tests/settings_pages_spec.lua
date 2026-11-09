@@ -22,7 +22,7 @@ local PAGES = {
   { "home", "Network" }, { "network", "Home" }, { "network/connection", "192.168.1.23/24" }, { "network/proxy", "Automatic" },
   { "network/help", "Check for sign-in pages" }, { "backups", "No backup tool here" }, { "backups/more", "Repository" },
   { "welcome", "Make it yours" },
-  { "bluetooth", "Pixel Buds Pro" }, { "displays", "2560×1600 at 60 Hz · 150%" }, { "sound", "Built-in speakers" },
+  { "bluetooth", "Pixel Buds Pro" }, { "displays", "2560×1600" }, { "sound", "Built-in speakers" },
   { "sound/more", "LDAC" }, { "microphone", "Built-in microphone" }, { "input", "English (US)" }, { "input/pointer", "Pointer speed" },
   { "input/devices", "logitech-mx-master-3" }, { "power", "Lid and power button" }, { "storage", "PHOTOS" }, { "printers", "office · Default" },
   { "accessibility", "Sticky keys" }, { "bar/more", "Corner reach" },

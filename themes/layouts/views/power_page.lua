@@ -149,15 +149,18 @@ function M.build(model, w, h)
 
   -- The battery's health, and how it is charged -- set by the firmware
   -- (and root), shown here; its graphs are the dashboard's.
-  local rows = {}
-  for _, entry in ipairs(model.FACTS) do rows[#rows + 1] = { entry.name, entry.value } end
-  local health = P.section { id = "power-health", caption_id = "power-heading-battery", width = w, title = "Battery",
-    visible = model.present,
-    kit.facts(rows, inner, 30),
-    P.buttons { width = inner,
-      { id = "power-open-battery", icon = "monitoring", label = "Battery graphs and details",
-        on_clicked = model.open_battery } },
-  }
+  local health = { id = "power-health", caption_id = "power-heading-battery", width = w, title = "Battery",
+    visible = model.present }
+  for _, entry in ipairs(model.FACTS) do
+    health[#health + 1] = P.row { id = "power-fact-" .. entry.key, width = inner, on = function() return false end,
+      title = entry.name, subtitle = entry.value, visible = function()
+        if entry.key == "limit" and model.limit_supported and model.limit_supported() then return false end
+        return entry.value() ~= "--"
+      end }
+  end
+  health[#health + 1] = P.button { id = "power-open-battery", width = inner, icon = "monitoring",
+    label = "Battery graphs and details", on_clicked = model.open_battery }
+  health = P.section(health)
 
   -- The lid and the power button: the shell's choice while it runs, what
   -- logind does otherwise.

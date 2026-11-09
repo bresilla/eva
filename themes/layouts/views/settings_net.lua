@@ -6,15 +6,16 @@ local F = require("themes.layouts.form")
 
 local M = {}
 
-local METERED = { { "unknown", "auto_mode", "Auto" }, { "yes", "data_usage", "Yes" }, { "no", "all_inclusive", "No" } }
+local METERED = { { "unknown", "auto_mode", "Automatic" }, { "yes", "data_usage", "Yes" }, { "no", "all_inclusive", "No" } }
 local DOT = { { "default", "auto_mode", "Default" }, { "opportunistic", "shield_question", "If offered" }, { "yes", "shield_lock", "Always" },
   { "no", "block", "Off" } }
 local MAC = { { "", "memory", "Default" }, { "stable", "lock", "Stable" }, { "random", "shuffle", "Random" } }
 
---- A field filled from `read` (fn) when the page shows.
-local function bound(id, width, placeholder, read, model)
+--- A field under its `label`, filled from `read` (fn) when the page shows.
+local function bound(id, width, label, placeholder, read, model)
   local value = morf.signal("eva.connection.field." .. id, "")
-  local box, input = P.field { id = id, width = width, placeholder = placeholder, on_changed = function(text) value:set(text) end }
+  local box, input = F.field { id = id, width = width, label = label, placeholder = placeholder,
+    on_changed = function(text) value:set(text) end }
   morf.effect("eva.connection.fill." .. id, function()
     if model.active() then input.text = read() end
   end)
@@ -30,9 +31,17 @@ function M.connection_page(model, w, h)
       trailing = P.button { id = id .. "-copy", label = "Copy", accessible_name = "Copy " .. title,
         on_clicked = function() model.copy(read()) end } }
   end
-  local address, address_text = bound("connection-address", inner, "192.168.1.20/24", function() return d().address or "" end, model)
-  local gateway, gateway_text = bound("connection-gateway", inner, "192.168.1.1", function() return d().gateway or "" end, model)
-  local dns, dns_text = bound("connection-dns", inner, "1.1.1.1, 9.9.9.9", function() return d().dns or "" end, model)
+  local address, address_text = bound("connection-address", inner, "Address, with its prefix", "192.168.1.20/24",
+    function() return d().address or "" end, model)
+  local gateway, gateway_text = bound("connection-gateway", inner, "Gateway", "192.168.1.1",
+    function() return d().gateway or "" end, model)
+  local dns, dns_text = bound("connection-dns", inner, "Servers, separated by commas", "1.1.1.1, 9.9.9.9",
+    function() return d().dns or "" end, model)
+  -- Manual shows its fields once chosen; it is saved by its button.
+  local chosen = morf.signal("eva.connection.method", nil)
+  morf.effect("eva.connection.method.reset", function() if not model.active() then chosen:set(nil) end end)
+  local function method() return chosen:get() or d().method end
+  local function manual() return method() == "manual" end
   return P.page { id = "connection-scroll", width = w, height = h, active = model.active,
     P.section { id = "connection-now", width = w, title = model.name,
       live("connection-ip", "lan", "Address", function() return d().live_address or "" end),
@@ -45,18 +54,21 @@ function M.connection_page(model, w, h)
     P.section { id = "connection-ip-mode", width = w, title = "IP address",
       F.choices { id = "connection-method", width = inner,
         items = { { "auto", "auto_mode", "Automatic" }, { "manual", "tune", "Manual" } },
-        now = function() return d().method end,
-        pick = function(mode) if mode == "auto" then model.save { dhcp = true } end end },
-      F.note(inner, "Manual: the address with its prefix, and the gateway."),
-      address, gateway,
-      P.button { id = "connection-static-save", label = "Use this address", width = inner,
-        on_clicked = function() model.save { static = { address = address_text:get(), gateway = gateway_text:get() } } end },
+        now = method,
+        pick = function(mode)
+          chosen:set(mode)
+          if mode == "auto" then model.save { dhcp = true } end
+        end },
+      ui.Column { width = inner, gap = P.ROW_GAP, visible = manual, address, gateway,
+        P.button { id = "connection-static-save", icon = "check", label = "Use this address", tone = "primary", width = inner,
+          on_clicked = function() model.save { static = { address = address_text:get(), gateway = gateway_text:get() } } end } },
     },
     P.section { id = "connection-dns-section", width = w, title = "DNS",
       dns,
       P.buttons { width = inner,
-        { id = "connection-dns-save", label = "Use these", on_clicked = function() model.save { dns = dns_text:get() } end },
-        { id = "connection-dns-auto", label = "The network's", on_clicked = function() model.save { dns = "" } end } },
+        { id = "connection-dns-save", icon = "check", label = "Use these servers", tone = "primary",
+          on_clicked = function() model.save { dns = dns_text:get() } end },
+        { id = "connection-dns-auto", icon = "auto_mode", label = "Use the network's", on_clicked = function() model.save { dns = "" } end } },
       F.note(inner, "DNS over TLS"),
       F.choices { id = "connection-dot", width = inner, items = DOT, per_row = 2, now = function() return d().dot end,
         pick = function(word) model.save { dot = word } end },

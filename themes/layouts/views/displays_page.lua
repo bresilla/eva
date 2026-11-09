@@ -264,7 +264,13 @@ function M.monitor(model, w)
         local words = ((o.make or "") .. " " .. (o.model or "")):match("^%s*(.-)%s*$")
         return words ~= "" and words or o.name
       end,
-      subtitle = function() local o = model.output() return o and model.summary(o, true) or "" end,
+      subtitle = function()
+        local o = model.output()
+        if not o then return "" end
+        if o.enabled == false then return "Off" end
+        local words = ((o.make or "") .. (o.model or "")):match("%S")
+        return words and o.name or "In use"
+      end,
       trailing = P.switch {
         id = "displays-enabled-switch", name = "Use this monitor",
         on = function() local o = model.output() return o ~= nil and o.enabled end,
