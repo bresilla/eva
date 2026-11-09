@@ -332,9 +332,17 @@ function M.page(w, h)
   -- More settings: the page on show, whole, in the Settings window.
   -- On a phone's sheet its icon alone, so the page's name keeps the room.
   local narrow = require("responsive").sheets()
-  local more = P.button { id = "quick-more", label = not narrow and "More settings" or nil, icon = "open_in_new",
-    accessible_name = "More settings", width = narrow and P.BUTTON_H or nil,
-    visible = function() return M.detail:get() ~= "" end, on_clicked = Q.more }
+  -- Its label goes where the page's name would be cut beside it.
+  local function long()
+    local name = names[M.detail:get()] or ""
+    return narrow or P.text_width(name, require("themes.layouts.parts").SIZE.title) > CARD_W - P.PAD - P.ROW_TEXT_X - 180
+  end
+  local more_box = P.button { id = "quick-more-label", label = "More settings", icon = "open_in_new",
+    accessible_name = "More settings",
+    visible = function() return M.detail:get() ~= "" and not long() end, on_clicked = Q.more }
+  local more_icon = P.button { id = "quick-more-icon", icon = "open_in_new", accessible_name = "More settings",
+    width = P.BUTTON_H, visible = function() return M.detail:get() ~= "" and long() end, on_clicked = Q.more }
+  local more = ui.Row { id = "quick-more", gap = 0, visible = function() return M.detail:get() ~= "" end, more_box, more_icon }
   M.head = {
     -- Over the tiles the panel's tab names it already, where tabs have names.
     title = function()

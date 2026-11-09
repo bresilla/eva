@@ -57,7 +57,7 @@ function M.build(model,w,h)
     blocks[#blocks+1]=P.section {id="wired-ports",caption_id="wired-ports-title",width=w,title="Ports",
       list(model,w,model.network,"No wired ports"),
       note(inner,function() return model.network_available() and model.note or "NetworkManager is not running." end)}
-    blocks[#blocks+1]=P.section {id="wired-help",width=w,
+    blocks[#blocks+1]=P.section {id="wired-help",width=w,title="When it will not connect",
       require("themes.layouts.form").page {id="wired-help-open",width=inner,key="network/help",go=model.help}}
   elseif kind=="tor" then
     blocks[#blocks+1]=P.section {id="tor-services",width=w,title="Tor",list(model,w,model.tor),

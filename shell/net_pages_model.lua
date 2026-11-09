@@ -45,7 +45,7 @@ function M.new(kind,active)
         if d.hw_address and d.hw_address~="" then words[#words+1]=d.hw_address end
         out[#out+1]={key=morf.json.encode({d.path or "",d.interface or ""}),source="wired",target=d.interface,
           id="wired-"..(d.interface or ""),name=d.interface or "",icon=d.carrier==false and "settings_ethernet" or "lan",
-          on=on,can=d.state~="unavailable",detail=table.concat(words," · "),address=d.ip4 or ""}
+          on=on,can=d.state~="unavailable",detail=table.concat(words," ·\u{a0}"),address=d.ip4 or ""}
       end end
     elseif kind=="tunnel" then
       for _,d in ipairs(list(net.state.vpn_connections)) do if not M.is_mesh_link(d.id) then
@@ -69,7 +69,7 @@ function M.new(kind,active)
       for _,id in ipairs(TOOLS[kind]) do for _,r in ipairs(data) do if r.id==id then
         value.app_rows[#value.app_rows+1]={key="app:"..id,source="app",target=id,id="vpn-"..id,name=NAMES[id],
           icon=kind=="mesh" and "hub" or "shield",on=r.up==true,can=r.can_toggle==true,
-          detail=(r.detail or "")..(r.address and r.address~="" and (" · "..r.address) or ""),
+          detail=(r.detail or "")..(r.address and r.address~="" and (" ·\u{a0}"..r.address) or ""),
           on_word=kind=="mesh" and "Up" or "Connect",off_word=kind=="mesh" and "Down" or "Disconnect"}
       end end end
     end

@@ -95,7 +95,10 @@ function M.new(ctx)
       if f.fast then words[#words+1]="Fast" end
       if f.wireless then words[#words+1]=#words>0 and "wireless" or "Wireless" end
       words[#words+1]=#words>0 and "charging" or (f.slow and "Slow charging" or "Charging")
-      return table.concat(words," ")
+      local said=table.concat(words," ")
+      -- Plain charging is the summary's already; the row names the charger.
+      if said=="Charging" and f.kind then return model.charger_name() end
+      return said
     end
     if b.status=="Not charging" and model.target()<100 then return ("Held at %d%%"):format(model.target()) end
     if b.status=="Full" then return "Full" end
@@ -108,7 +111,7 @@ function M.new(ctx)
     local parts={}
     local watts=f.watts or (model.charging() and b.power) or nil
     if watts and watts>.05 then parts[#parts+1]=("%.1f W"):format(watts) end
-    if f.kind then parts[#parts+1]=model.charger_name() end
+    if f.kind and model.charge_title()~=model.charger_name() then parts[#parts+1]=model.charger_name() end
     return table.concat(parts," · ")
   end
   --- What a weak charger is told, or "".

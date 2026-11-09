@@ -46,11 +46,11 @@ function M.page(model, settings, w, h)
     look = function(body_w, body_h)
       return P.page { id = "welcome-look", width = body_w, height = body_h,
         P.section { id = "welcome-look-card", width = body_w, title = "Make it yours",
-          F.note(inner, "Dark or light. You can change it whenever you like."),
+          F.note(inner, "You can change it whenever you like"),
           F.choices { id = "welcome-mode", width = inner, items = MODES, per_row = 2,
             now = function() return require("appearance_model").mode() end, pick = mode.set },
           F.link { id = "welcome-theme", width = inner, icon = "palette", title = "Theme and colours",
-            subtitle = "Dark or light, and Lule", go = open("theme") },
+            subtitle = "Lule colours, fonts and motion", go = open("theme") },
         } }
     end,
     network = function(body_w, body_h)

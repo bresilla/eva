@@ -173,7 +173,7 @@ function M.printers_page(model, w, h)
         label = function() return model.searching:get() and "Looking…" or "Look on this network" end,
         on_clicked = model.discover },
       box,
-      P.button { id = "printers-add-address", label = "Add this address", width = inner,
+      P.button { id = "printers-add-address", icon = "add", label = "Add this address", tone = "primary", width = inner,
         on_clicked = function() model.add_address(address:get():match("//([^/:]+)") or "printer", address:get()) end },
       F.status("printers-status", inner, model),
     },

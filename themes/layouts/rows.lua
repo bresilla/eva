@@ -21,7 +21,8 @@ end
 --- colour, else the secondary container), `tile` (a raised tile when not
 --- chosen, else bare until hovered), `group` (choices with one name are a
 --- segmented choice: one chosen, the arrows walk them -- a kit Press
---- `segment` in an exclusive group), `enter` and `exit`, and children.
+--- `segment` in an exclusive group), `marked` (the row marks its own
+--- choice: no ground for it), `enter` and `exit`, and children.
 function R.choice(spec)
   local on = spec.on or function() return false end
   local props = { id = spec.id, x = spec.x, y = spec.y, width = spec.width, height = spec.height,
@@ -35,7 +36,7 @@ function R.choice(spec)
   else
     area = kit.action(props)
   end
-  local ground = kit.state_surface { area = area, on = on, z = -1,
+  local ground = kit.state_surface { area = area, on = spec.marked and function() return false end or on, z = -1,
     height = type(spec.height) == "number" and spec.height or nil,
     tone = spec.tone == "primary" and "primary" or "secondary" }
   if spec.tile then

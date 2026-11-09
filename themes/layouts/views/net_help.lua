@@ -1,6 +1,7 @@
 -- Connection help, one level under Network and Wired: signing in to a network
 -- that asks, a walk through what could be wrong, a speed test, and the sign-in
 -- check's setting. Each thing that reaches outside names who it reaches.
+local ui = require("morf.ui")
 local kit = require("kit")
 local theme = require("theme")
 local P = require("themes.layouts.page")
@@ -23,9 +24,9 @@ function M.page(model, w, h)
 
   local steps = { id = "net-steps", width = w, title = "Troubleshoot",
     F.note(inner, function()
-      return "Asks your router, your DNS servers and " .. model.server().host .. "."
+      return "Asks your router, your DNS servers and " .. model.server().host
     end, { id = "net-steps-who" }),
-    P.button { id = "net-steps-run", width = inner, tone = "primary", icon = "troubleshoot",
+    P.button { id = "net-steps-run", width = inner, icon = "troubleshoot",
       label = function() return model.walking:get() and "Stop" or "Check my connection" end,
       on_clicked = model.troubleshoot },
   }
@@ -58,7 +59,7 @@ function M.page(model, w, h)
       if model.metered() then parts[2] = "You are on mobile data, so this counts against your allowance." end
       return table.concat(parts, " ")
     end, { id = "net-speed-who" }),
-    P.button { id = "net-speed-run", width = inner, tone = "primary", icon = "speed",
+    P.button { id = "net-speed-run", width = inner, icon = "speed",
       label = function() return model.phase:get() ~= "" and "Stop" or "Start" end, on_clicked = model.speed },
     F.note(inner, function()
       return PHASES[model.phase:get()] or model.speed_said:get()
@@ -77,9 +78,11 @@ function M.page(model, w, h)
       on = model.probing, set = model.set_probing,
       subtitle = function() return "Asks " .. model.server().host end },
     F.note(inner, "Off, eva sends nothing, and hears of a sign-in page only if NetworkManager is set to check for one. Turn it on when a hotel or train network connects but nothing loads."),
-    F.note(inner, "Which server", { id = "net-probe-which" }),
-    F.choices { id = "net-probe-server", width = inner, items = servers, per_row = 3,
-      now = function() return model.server_key() end, pick = model.set_server },
+    F.waiting(ui.Column { width = inner, gap = theme.space.xs,
+      F.note(inner, "Which server", { id = "net-probe-which" }),
+      F.choices { id = "net-probe-server", width = inner, items = servers, per_row = 3,
+        now = function() return model.server_key() end, pick = model.set_server } },
+      function() return model.probing() == true end),
   }
 
   return P.page { id = "net-help-scroll", width = w, height = h, active = model.active, asking, P.section(steps), speed, probing }

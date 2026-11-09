@@ -62,7 +62,7 @@ local function device_row(id_prefix, row, icon)
   local function chosen() local d = live() return d ~= nil and d.default == true end
   -- Its ground reaches past the card's content edges, as a pressable row's.
   return ui.Item { width = INNER, height = P.ROW_H, rows.choice {
-    id = id_prefix .. "-" .. math.floor(row.id), group = id_prefix, x = -P.ROW_REACH,
+    id = id_prefix .. "-" .. math.floor(row.id), group = id_prefix, marked = true, x = -P.ROW_REACH,
     width = INNER + 2 * P.ROW_REACH, height = P.ROW_H, on = chosen, enter = kit.enter(), exit = kit.leave(),
     on_clicked = function() model.select_device(row) end,
     ui.Item { x = P.ROW_REACH, width = INNER, height = P.ROW_H,

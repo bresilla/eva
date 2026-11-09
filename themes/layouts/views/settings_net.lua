@@ -47,7 +47,7 @@ function M.connection_page(model, w, h)
       live("connection-ip", "lan", "Address", function() return d().live_address or "" end),
       live("connection-gw", "router", "Gateway", function() return d().live_gateway or "" end),
       live("connection-servers", "dns", "DNS servers", function() return d().live_dns or "" end),
-      live("connection-v6", "public", "IPv6", function() return d().live_ipv6 or "" end),
+      live("connection-v6", "language", "IPv6", function() return d().live_ipv6 or "" end),
       F.fact { id = "connection-device", width = inner, icon = "memory", title = "Device",
         visible = function() return (d().device or "") ~= "" end, subtitle = function() return d().device or "" end },
     },
@@ -91,23 +91,23 @@ function M.proxy_page(model, w, h)
   local inner = P.inner(w)
   local function manual() return model.mode() == "manual" end
   local function auto() return model.mode() == "auto" end
-  local function line(key, placeholder, visible)
-    local box, input = P.field { id = "proxy-" .. key, width = inner, placeholder = placeholder, visible = visible,
-      on_changed = function(text) model.set(key, text) end }
+  local function line(key, label, placeholder, visible)
+    local box, input = F.field { id = "proxy-" .. key, width = inner, label = label, placeholder = placeholder,
+      visible = visible, on_changed = function(text) model.set(key, text) end }
     morf.effect("eva.proxy.fill." .. key, function()
       if model.active() then input.text = model.value(key) end
     end)
     return box
   end
   return P.page { id = "proxy-scroll", width = w, height = h, active = model.active,
-    P.section { id = "proxy-mode", width = w,
+    P.section { id = "proxy-mode", width = w, title = "How to reach the web",
       F.choices { id = "proxy-how", width = inner, items = model.MODES, per_row = 3, now = model.mode, pick = function(mode) model.set("mode", mode) end },
-      line("http", "http://proxy:3128", manual),
-      line("https", "http://proxy:3128 for secure sites", manual),
-      line("socks", "socks5://proxy:1080", manual),
-      line("exclude", "Sites to reach directly", manual),
-      line("pac", "http://example.com/proxy.pac", auto),
-      P.button { id = "proxy-save", label = "Save", tone = "primary", width = inner, on_clicked = model.apply },
+      line("http", "Web", "http://proxy:3128", manual),
+      line("https", "Secure sites", "http://proxy:3128", manual),
+      line("socks", "SOCKS", "socks5://proxy:1080", manual),
+      line("exclude", "Reached directly", "localhost, .lan", manual),
+      line("pac", "Configuration address", "http://example.com/proxy.pac", auto),
+      P.button { id = "proxy-save", icon = "check", label = "Save", tone = "primary", width = inner, on_clicked = model.apply },
       F.note(inner, "Set through the session's environment and the desktop's proxy setting. Programs already running keep what they had. An address with a password in it would sit in a plain file: use one without."),
       F.status("proxy-status", inner, model),
     },

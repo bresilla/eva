@@ -128,8 +128,8 @@ function M.new(active)
   end
   function model.note()
     local s=snapshot:get()
-    if s.available and not s.managed then return "NetworkManager is not running." end
-    return "Automatic APN can pick the visited network's APN abroad; set your provider's APN if roaming fails."
+    if s.available and not s.managed then return "NetworkManager is not running" end
+    return "Automatic APN can pick the visited network's APN abroad; set your provider's APN if roaming fails"
   end
 
   -- Details from the command lines: modem, SIM, recent bearers, diagnosis.

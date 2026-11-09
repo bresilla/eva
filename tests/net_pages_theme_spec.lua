@@ -100,7 +100,7 @@ local function shot(name) if morf.env("EVA_THEME_SNAPSHOTS")=="1" then test.snap
 for _,style in ipairs {"material","tsugumori"} do
   test.it(style.." Wired reads ports and dispatches by current interface",function()
     load(style,"wired") open() shot(style.."-wired")
-    test.truthy(test.find {text="Connected · Campus · 10.20.30.4 · 1000 Mb/s · AA:BB:01"})
+    test.truthy(test.find {text="Connected ·\u{a0}Campus ·\u{a0}10.20.30.4 ·\u{a0}1000 Mb/s ·\u{a0}AA:BB:01"})
     test.click("wired-eth0-switch") test.click("wired-enp1s0-switch")
     test.eq(test.ipc("state").calls,{{name="wired",target="eth0",on=false},{name="wired",target="enp1s0",on=true}})
     test.truthy(test.get("wired-dock0-switch").opacity < 1, "a port that cannot be brought up looks it")
