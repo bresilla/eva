@@ -132,6 +132,11 @@ function P.buttons(spec)
     end
     row[i] = P.button(item)
   end
+  -- With none of its buttons on show, the row takes no room in its card.
+  row.visible = spec.visible or function()
+    for _, item in ipairs(items) do if get(item.visible) ~= false then return true end end
+    return false
+  end
   return ui.Row(row)
 end
 
@@ -141,9 +146,17 @@ function P.switch(spec)
     on = spec.on, on_toggled = spec.on_toggled }
 end
 
---- An arrow at a row's right: the row opens something.
+--- An arrow at a row's right: the row opens something. Its box is the
+--- glyph's ink, so the arrow ends where a switch beside it ends.
+P.CHEVRON_BEARING = 7
 function P.chevron()
-  return kit.icon("chevron_right", 22, kit.ink("lo"))
+  return ui.Item { width = 22 - P.CHEVRON_BEARING, height = 22, kit.icon("chevron_right", 22, kit.ink("lo")) }
+end
+
+--- An icon button `size` square with a `glyph` icon, for a row's right: held
+--- by its glyph, so the glyph ends where a switch beside it ends.
+function P.flush(button, size, glyph)
+  return ui.Item { width = size - math.floor((size - glyph) / 2), height = size, button }
 end
 
 --- A one-line text field `width` wide: `id`, `kind` ("entry", "password",
@@ -151,18 +164,19 @@ end
 --- `on_accepted`, `on_escape`.
 --- Returns the box to place and the input in it.
 function P.field(spec)
-  local inset, w = S.s + S.xxs, get(spec.width)
-  local node, handle = kit.text_field(spec.kind or "entry", { id = spec.id, x = inset, y = 3, width = w - 2 * inset,
-    height = 30, font_family = theme.font, font_size = 12, placeholder = spec.placeholder, accessible_name = spec.name,
+  local w, h = get(spec.width), P.BUTTON_H
+  local search = spec.kind == "search"
+  local node, handle = kit.text_field(spec.kind or "entry", { id = spec.id, width = w,
+    height = h, font_family = theme.font, font_size = theme.size.normal, placeholder = spec.placeholder, accessible_name = spec.name,
     reveal = spec.kind == "password" and false or nil,
-    -- A search field's magnifier stands at its left.
-    icon = spec.kind == "search" and "search" or nil,
-    inset = spec.kind == "search" and { S.xl + S.l, 0, S.m, 0 } or nil,
+    -- A search field's magnifier stands at its left; it draws its own ground.
+    icon = search and "search" or nil,
+    inset = search and { S.xl + S.l, 0, S.m, 0 } or { S.m, 0, S.m, 0 },
     color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
     caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.25) end,
     on_text_changed = spec.on_changed, on_accepted = spec.on_accepted, on_escape = spec.on_escape })
-  return kit.surface { width = w, height = 36, radius = kit.round(S.s + S.xxs), visible = spec.visible,
-    color = function() return C.surfaceContainerHighest end, node }, handle
+  return kit.surface { width = w, height = h, radius = kit.round(S.s + S.xxs), visible = spec.visible,
+    color = function() return search and C.surfaceContainerHighest:alpha(0) or C.surfaceContainerHighest end, node }, handle
 end
 
 --- A caption across `w`, held to it: a long note is cut at the card's edge,
@@ -178,12 +192,16 @@ end
 --- string or fn), `trailing` (a node at the right), `on_clicked` (the
 --- whole row presses), `on` (fn: the icon lights while true), `height`,
 --- `visible`, `enter` and `exit` (`kit.enter()`, `kit.leave()`).
+--- Its icon and trailing part stand on the card's content edges, as every
+--- other block in the card does; a pressable row's ground reaches past them.
+P.ROW_REACH = 10
+P.ROW_TEXT_X = 36
 function P.row(spec)
   local w, h = spec.width, spec.height or P.ROW_H
   local trailing = spec.trailing
   local function trailing_w() return trailing and ((trailing.layout_width or 0) > 0 and trailing.layout_width or get(trailing.width) or 0) or 0 end
-  local text_x = spec.icon and 50 or 14
-  local text_w = function() return math.max(1e-3, get(w) - text_x - (trailing and trailing_w() + 28 or 14)) end
+  local text_x = spec.icon and P.ROW_TEXT_X or 0
+  local text_w = function() return math.max(1e-3, get(w) - text_x - (trailing and trailing_w() + 16 or 0)) end
   local lit = spec.on or function() return true end
   local text = ui.Column { x = text_x, width=text_w,clip=true,anchors = { vertical_center = true }, gap = 2,
     kit.text { id = spec.id and spec.id .. "-title", text = spec.title, width = text_w, wrap = true, max_lines = 2,
@@ -197,11 +215,11 @@ function P.row(spec)
   local body = {
     id = spec.id, width = w, height = h, enter = spec.enter, exit = spec.exit,
     spec.icon and kit.icon(spec.icon, 22, function() return lit() and kit.ink("accent")() or kit.ink("lo")() end,
-      { x = 14, anchors = { vertical_center = true } }) or nil,
+      { x = 0, anchors = { vertical_center = true } }) or nil,
     text,
   }
   if trailing then
-    body[#body + 1] = ui.Item { anchors = { right = true, right_margin = 12, vertical_center = true },
+    body[#body + 1] = ui.Item { anchors = { right = true, vertical_center = true },
       -- (Never 0x0, though its control be hidden: it holds a place.)
       width = function() return math.max(1, trailing_w()) end,
       height = function() return math.max(1, trailing.layout_height or get(trailing.height) or 0) end,
@@ -210,10 +228,10 @@ function P.row(spec)
   body.visible = spec.visible
   local node = L.item(body)
   if spec.on_clicked then
-    local press = kit.action { id = spec.id and spec.id .. "-press", width = w, height = h, cursor = "pointer",
-      on_clicked = spec.on_clicked, node }
-    if spec.visible then press.visible = spec.visible end
-    return press
+    node.x = P.ROW_REACH
+    local press = kit.action { id = spec.id and spec.id .. "-press", x = -P.ROW_REACH, height = h, cursor = "pointer",
+      width = function() return get(w) + 2 * P.ROW_REACH end, on_clicked = spec.on_clicked, node }
+    return ui.Item { width = w, height = h, visible = spec.visible, press }
   end
   return node
 end
@@ -285,52 +303,67 @@ end
 --- What a page says when it has nothing to list: `id`, `width`, `icon`,
 --- `title`, `text`, `action` (a P.button spec: what to do about it),
 --- `visible`.
+--- It reads as any other row: its icon dim, its words beside it.
 function P.empty(spec)
   local w = spec.width
+  local inner = function() return get(w) - 2 * P.PAD end
+  local text_w = function() return get(w) - 2 * P.PAD - P.ROW_TEXT_X end
+  local words = ui.Column { x = P.ROW_TEXT_X, width = text_w, gap = 2, anchors = { vertical_center = true },
+    kit.text { text = spec.title, font_size = theme.size.normal, font_weight = 500, color = kit.ink("hi"),
+      width = text_w, wrap = true, max_lines = 2 },
+    spec.text and kit.text { text = spec.text, font_size = SUB, color = kit.ink("lo"), wrap = true, width = text_w } or nil }
   return P.section { id = spec.id, width = w, visible = spec.visible,
-    ui.Column { width = function() return get(w) - 2 * P.PAD end, gap = 8, align = "center",
-      ui.Item { width = 1, height = 8 },
-      kit.icon(spec.icon or "info", 34, kit.ink("lo")),
-      kit.text { text = spec.title, font_size = theme.size.normal, font_weight = 600, color = kit.ink("hi"),
-        horizontal_alignment = "center", width = function() return get(w) - 4 * P.PAD end, elide = "right" },
-      spec.text and kit.text { text = spec.text, font_size = SUB, color = kit.ink("lo"), wrap = true,
-        horizontal_alignment = "center", width = function() return get(w) - 4 * P.PAD end } or nil,
-      spec.action and P.button(spec.action) or nil,
-      ui.Item { width = 1, height = 8 },
-    } }
+    ui.Item { width = inner, height = function() return math.max(P.ROW_H, (words.layout_height or 0) + 2 * S.s) end,
+      kit.icon(spec.icon or "info", 22, kit.ink("lo"), { anchors = { vertical_center = true } }), words },
+    spec.action and P.button(spec.action.width and spec.action or setmetatable({ width = inner }, { __index = spec.action })) or nil }
 end
 
 -- ---------------------------------------------------------------- header --
 
 P.HEADER_H = L.heading_h(TITLE) + L.lh(SUB) + 2
+-- A title has no descenders mostly: set this low, it reads centred on its line.
+P.TITLE_NUDGE = 2
 
 --- Reserve only the lines and controls that are actually shown. Reading
 --- the same metrics here and in the frame keeps its body flush below it.
+-- The head's first line: the title, the way back and the actions on it,
+-- at least `spec.line` tall.
+local function line_height(spec)
+  local line=math.max(L.heading_h(TITLE),get(spec.line) or 0)
+  if spec.back and (spec.can_back==nil or get(spec.can_back)) then line=math.max(line,P.BUTTON_H) end
+  for _,action in ipairs(children(spec.actions or {})) do
+    if get(action.visible)~=false then
+      line=math.max(line,action.layout_height or get(action.height) or 0)
+    end
+  end
+  return line
+end
+
 function P.header_height(spec)
   spec=spec or {}
   local note=get(spec.subtitle)
-  local height=L.heading_h(TITLE)+(note and note~="" and L.lh(SUB)+2 or 0)
-  if spec.back and (spec.can_back==nil or get(spec.can_back)) then height=math.max(height,40) end
-  for _,action in ipairs(children(spec.actions or {})) do
-    if get(action.visible)~=false then
-      height=math.max(height,action.layout_height or get(action.height) or 0)
-    end
-  end
-  return height
+  local line=line_height(spec)
+  local below=note and note~="" and L.lh(SUB)+2 or 0
+  return math.max(line,math.floor((line-L.heading_h(TITLE))/2)+P.TITLE_NUDGE+L.heading_h(TITLE)+below)
 end
 
 --- A page's head: `id`, `width`, `title` (string or fn), `subtitle`,
 --- `back` (fn: an arrow at its left that calls it -- a page one level in),
 --- `can_back` (fn: whether the arrow is there; always, without it),
---- `actions` (nodes at its right), `scope` (the heading's), `title_id`.
+--- `actions` (nodes at its right), `scope` (the heading's), `title_id`,
+--- `line` (the first line's least height, so the title keeps its place).
+--- The way back, the title and the actions share the first line; the
+--- subtitle sits under the title.
 function P.header(spec)
   local w = spec.width
   local actions = spec.actions and children(spec.actions) or {}
+  local function line() return line_height(spec) end
   local row
   if #actions > 0 then
-    local r = { anchors = { right = true, vertical_center = true }, gap = 8, align = "center" }
+    local r = { anchors = { right = true }, gap = 8, align = "center" }
     for i, a in ipairs(actions) do r[i] = a end
     row = ui.Row(r)
+    row.y = function() return math.floor((line() - (row.layout_height or 0)) / 2) end
   end
   local can_back = spec.can_back or function() return spec.back ~= nil end
   local function lead() return can_back() and P.BUTTON_H + S.xs or 0 end
@@ -338,11 +371,13 @@ function P.header(spec)
   local back
   if spec.back then
     back = kit.action { id = spec.back_id or (spec.id and spec.id .. "-back"), accessible_name = "Back",
-      width = P.BUTTON_H, height = P.BUTTON_H, cursor = "pointer", anchors = { vertical_center = true }, on_clicked = spec.back, visible = can_back,
+      width = P.BUTTON_H, height = P.BUTTON_H, cursor = "pointer", y = function() return math.floor((line() - P.BUTTON_H) / 2) end,
+      on_clicked = spec.back, visible = can_back,
       kit.icon("arrow_back", 22, kit.ink("hi"), { anchors = { center_in = true } }) }
     kit.hover(back, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
   end
-  local text = ui.Column { x = lead, width=text_w,clip=true,behavior = { x = { duration = theme.duration.small } }, anchors = { vertical_center = true }, gap = 2,
+  local text = ui.Column { x = lead, width=text_w,clip=true,behavior = { x = { duration = theme.duration.small } },
+    y = function() return math.floor((line() - L.heading_h(TITLE)) / 2) + P.TITLE_NUDGE end, gap = 2,
     L.heading { id = spec.title_id or (spec.id and spec.id .. "-title"), scope = spec.scope, level = "title", text = spec.title,
       width = text_w, elide = "right", active = spec.active },
     spec.subtitle and kit.text { id = spec.id and spec.id .. "-subtitle", text = spec.subtitle, font_size = SUB,

@@ -99,7 +99,7 @@ local function channels_expander(prefix)
       kit.text { width = 18, text = name, horizontal_alignment = "center",
         font_size = theme.size.small, font_weight = 600, color = kit.ink("lo") },
       kit.slider {
-        id = prefix .. "-channel-" .. i, width = INNER - 26, height = 26,
+        id = prefix .. "-channel-" .. i, width = INNER - 26,
         accessible_name = function() return "Channel " .. name() end,
         value = function() local s = sink() return s and s.volumes and s.volumes[i] or 0 end,
         set = function(v) model.set_channel(i, v) end,
@@ -202,7 +202,7 @@ local function app_row(row)
       subtitle = function() local s = live() return s and s.media_name or "" end,
       trailing = mute },
     kit.slider {
-      id = "sound-app-" .. math.floor(id) .. "-volume", width = INNER, height = 30,
+      id = "sound-app-" .. math.floor(id) .. "-volume", width = INNER,
       accessible_name = function() return app_name() .. " volume" end,
       value = function() local s = live() return s and s.volume or 0 end,
       set = function(v) model.set_stream_volume(row, v) end,
@@ -344,7 +344,7 @@ local function input_section()
       subtitle = function() local s = source() return s and ("%d%%"):format(math.floor(s.volume * 100 + 0.5)) or "" end,
       trailing = mute_button("sound-input-mute", source, "mic_off", "mic", "Mute input") },
     kit.slider {
-      id = "sound-input-volume", width = INNER, height = 36, accessible_name = "Input volume", visible = available,
+      id = "sound-input-volume", width = INNER, accessible_name = "Input volume", visible = available,
       value = function() local s = source() return s and s.volume or 0 end,
       set = function(v) local s = source() if s then model.set_device_volume(s, v) end end,
       icon = function() local s = source() return (s and s.muted) and "mic_off" or "mic" end,

@@ -209,7 +209,7 @@ function V.build(model)
   local room = w - pane_x - PAD
   local pane_w = math.min(room, model.page_max or V.PAGE_MAX)
   pane_x = pane_x + math.floor((room - pane_w) / 2)
-  local head_h = math.max(P.HEADER_H, P.BUTTON_H)
+  local head_h = P.header_height { subtitle = " ", line = P.BUTTON_H }
   local body_y = top + head_h + P.GAP
   local body_h = h - body_y - PAD
   local names = {}
@@ -225,22 +225,27 @@ function V.build(model)
   -- The page's head and body, and beside them on a desk the way round.
   local function content()
     local body, page_actions = pages(model, pane_w, body_h)
+    local close_x = w - PAD - P.BUTTON_H
     local close = L.icon_button { id = name .. "-close", icon = "close", name = "Close " .. title,
       width = P.BUTTON_H, height = P.BUTTON_H, on_clicked = model.close }
-    local head = P.header { id = name .. "-window-head", width = pane_w, title_id = name .. "-page-title",
+    local head_w = math.min(pane_w, close_x - S.s - pane_x)
+    local head = P.header { id = name .. "-window-head", width = head_w, title_id = name .. "-page-title",
       title = function() return names[key()] or title end,
       subtitle = subtitle,
-      back = model.back, back_id = name .. "-back", can_back = model.can_back,
-      actions = page_actions and { page_actions, close } or { close },
+      back = model.back, back_id = name .. "-back", can_back = model.can_back, line = P.BUTTON_H,
+      actions = page_actions and { page_actions } or nil,
       active = function() return require("presentation").active(name .. "." .. key())() end }
     local parts = { id = name .. "-window-content", anchors = { fill = true },
-      ui.Item { x = pane_x, y = top, width = pane_w, height = head_h, head },
+      ui.Item { x = pane_x, y = top, width = head_w, height = head_h, head },
+      ui.Item { x = close_x, y = top, width = P.BUTTON_H, height = P.BUTTON_H, close },
       ui.Item { x = pane_x, y = body_y, width = pane_w, height = body_h, body } }
     if not model.single then
-      local nav_h = h - 2 * PAD - L.heading_h(L.SIZE.title) - P.GAP
-      parts[#parts + 1] = ui.Column { x = PAD, y = PAD, width = nav_w, gap = P.GAP,
-        L.heading { id = name .. "-window-title", width = nav_w, text = title, elide = "right",
-          active = function() return model.opened:get() end },
+      local nav_h = h - 2 * PAD - P.BUTTON_H - P.GAP
+      parts[#parts + 1] = ui.Column { x = PAD, y = top, width = nav_w, gap = P.GAP,
+        ui.Item { width = nav_w, height = P.BUTTON_H,
+          L.heading { id = name .. "-window-title", width = nav_w, text = title, elide = "right",
+            y = math.floor((P.BUTTON_H - L.heading_h(L.SIZE.title)) / 2) + P.TITLE_NUDGE,
+            active = function() return model.opened:get() end } },
         ui.Item { width = nav_w, height = nav_h, ui.Loader { anchors = { fill = true }, active = true,
           source = function() return require("themes").view("settings_home").navigation(model, nav_w, nav_h) end } } }
       parts[#parts + 1] = L.rule { x = 2 * PAD + nav_w, y = PAD, width = 1, height = h - 2 * PAD }

@@ -112,7 +112,7 @@ local function manage_button(id, visible, on_clicked)
     visible = visible, on_clicked = on_clicked,
     kit.icon("settings", 20, kit.ink("lo"), { anchors = { center_in = true } }) }
   kit.hover(button, function(hovered) return hovered and kit.ink("hi")():alpha(0.12) or kit.ink("hi")():alpha(0) end, 18)
-  return button
+  return P.flush(button, 36, 20)
 end
 
 --- Under the list: the password (and for 802.1X the user name) a network

@@ -28,23 +28,11 @@ function M.button(id, text, icon, width, action, selected)
     ink = function() return selected and selected() and C.onPrimary or C.onSurface end,
   }
 end
-function M.field(id, label, placeholder, width, changed, accepted, escaped, size)
-  local inner = type(width) == "function" and function() return width() - 24 end or width - 24
-  local input_node, input = kit.text_field("entry", {
-    id = id, x = 12, width = inner, height = 40,
-    font_family = theme.font, font_size = size or theme.size.normal,
-    color = function() return C.onSurface end,
-    placeholder_color = function() return C.onSurfaceVariant end,
-    caret_color = function() return C.primary end,
-    selection_color = function() return C.primary:alpha(0.3) end,
-    placeholder = placeholder, on_text_changed = changed, on_accepted = accepted,
-    on_escape = escaped,
-  })
-  local node = ui.Column { width = width, gap = 4,
-    M.label(label),
-    rows.well { width = width, height = 40, input_node },
-  }
-  return node, input
+--- A labelled one-line field: the page template's field under `label`.
+function M.field(id, label, placeholder, width, changed, accepted, escaped)
+  local box, input = require("themes.layouts.page").field { id = id, width = width, placeholder = placeholder,
+    name = label, on_changed = changed, on_accepted = accepted, on_escape = escaped }
+  return ui.Column { width = width, gap = 4, M.label(label), box }, input
 end
 function M.message(text, width, height)
   return kit.subtitle { text = text, width = width, height = height or 46, wrap = true,
