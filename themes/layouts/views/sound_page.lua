@@ -95,14 +95,15 @@ local function channels_expander(prefix)
       if count() == 2 then return i == 1 and "Left" or "Right" end
       return tostring(i)
     end
-    channels[i] = kit.slider {
-      id = prefix .. "-channel-" .. i, width = INNER,
+    channels[i] = ui.Column { width = INNER, gap = theme.space.xs,
       visible = function() return count() > 1 and i <= count() end,
-      accessible_name = function() return "Channel " .. name() end,
-      value = function() local s = sink() return s and s.volumes and s.volumes[i] or 0 end,
-      set = function(v) model.set_channel(i, v) end,
-      reading = function(v) return ("%s %d%%"):format(name(), math.floor(v * 100 + 0.5)) end,
-    }
+      require("themes.layouts.form").note(INNER, name),
+      kit.slider {
+        id = prefix .. "-channel-" .. i, width = INNER,
+        accessible_name = function() return "Channel " .. name() end,
+        value = function() local s = sink() return s and s.volumes and s.volumes[i] or 0 end,
+        set = function(v) model.set_channel(i, v) end,
+      } }
   end
   local list = ui.Column(channels)
   local turn = kit.icon("expand_more", 22, kit.ink("lo"), { width = 22, height = 22,
