@@ -224,10 +224,11 @@ function M.firewall_page(model, w, h)
   }
 end
 
---- Every fact the machine gives (info_model.lua), a card to each kind, built
+--- Every fact the machine gives (info_model.lua), a card to each kind, shown
+--- while `visible` holds and built
 --- again as more of them come in. The versions are the summary's already.
 local FACT_H = 28
-local function details(model, w)
+local function details(model, w, visible)
   local inner = P.inner(w)
   local info = model.info
   local cards = morf.list_model({})
@@ -239,7 +240,7 @@ local function details(model, w)
     end
     cards:replace(rows, "id")
   end)
-  return ui.Repeater { as = "column", gap = P.GAP, width = w, model = cards, delegate = function(row)
+  return ui.Repeater { as = "column", gap = P.GAP, width = w, model = cards, visible = visible, delegate = function(row)
     local section, facts = row.section, {}
     for index, fact in ipairs(section.rows) do facts[index] = { fact[1], fact[2] } end
     return P.section { id = "about-detail-" .. section.key, width = w, title = section.title,
@@ -250,6 +251,7 @@ end
 function M.about_page(model, w, h)
   local inner = P.inner(w)
   local name = morf.signal("eva.about.name", "")
+  local more = morf.signal("eva.about.more", false)
   local box, input = P.field { id = "about-hostname", width = inner, placeholder = "Device name",
     visible = function() return not model.hostname_declared() end,
     on_changed = function(value) name:set(value) end, on_accepted = function() model.set_hostname(name:get()) end }
@@ -261,6 +263,9 @@ function M.about_page(model, w, h)
   end, nil, 16)
   return P.page { id = "about-scroll", width = w, height = h, active = model.active,
     P.section { id = "about-facts", width = w, title = "This machine", facts,
+      P.row { id = "about-more", width = inner, title = "Every detail",
+        subtitle = "System, hardware, graphics and storage", on_clicked = function() more:set(not more:get()) end,
+        trailing = kit.icon(function() return more:get() and "expand_less" or "expand_more" end, 22, kit.ink("lo")) },
       P.button { id = "about-copy", icon = "content_copy", label = "Copy all", width = inner, on_clicked = model.copy },
       F.status("about-status", inner, model),
     },
@@ -271,7 +276,7 @@ function M.about_page(model, w, h)
         visible = function() return not model.hostname_declared() end,
         on_clicked = function() model.set_hostname(name:get()) end },
     },
-    details(model, w),
+    details(model, w, function() return more:get() end),
   }
 end
 

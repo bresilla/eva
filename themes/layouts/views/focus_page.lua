@@ -33,8 +33,8 @@ local function choices(w, id, title, items, now, pick, per)
 end
 
 --- Keep awake for a time: a dial of what is left, the presets, and a line that
---- takes it in words. Its switch is the Interruptions' above.
-local function awake_section(w, awake)
+--- takes it in words, under `switch`: on until turned off.
+local function awake_section(w, awake, switch)
   local S = theme.space
   local inner, DIAL, KEEP = P.inner(w), 96, 120
   local presets = { width = inner }
@@ -47,7 +47,7 @@ local function awake_section(w, awake)
   box, input = P.field { id = "awake-words", width = inner - KEEP - S.s, placeholder = "45 min, 2 hours, until 18:30",
     on_changed = function(value) awake.draft:set(value) end, on_accepted = keep }
   local words = inner - DIAL - S.l
-  return P.section { id = "focus-awake", width = w, title = "Keep awake",
+  return P.section { id = "focus-awake", width = w, title = "Keep awake", switch,
     ui.Row { width = inner, gap = S.l, align = "center",
       ui.Item { width = DIAL, height = DIAL, kit.dial { id = "awake-dial", size = DIAL, value = awake.fraction } },
       ui.Column { width = words, gap = S.xxs,
@@ -79,10 +79,12 @@ function V.build(model, w, h)
         on_toggled = function(now) local m = mode() if m then model.set_on(m.id, now) end end },
       on_clicked = function() local m = mode() if m then model.open(m.id) end end }
   end
-  modes[#modes + 1] = P.button { id = "focus-add", icon = "add", label = "New mode", on_clicked = model.add,
+  modes[#modes + 1] = P.button { id = "focus-add", width = inner, icon = "add", label = "New mode", on_clicked = model.add,
     visible = function() return #model.modes() < model.MAX end }
 
   local section = { id = "settings-focus", width = w, title = "Interruptions" }
+  -- With a Keep awake card below, its switch stands in that card.
+  local awake_switch
   for _, control in ipairs(model.controls) do
     local function on() return control.on() == true end
     local trailing
@@ -91,19 +93,21 @@ function V.build(model, w, h)
     else
       trailing = P.switch { id = "utilities-toggle-" .. control.id, name = control.name, on = on, on_toggled = control.set }
     end
-    section[#section + 1] = P.row { id = "settings-focus-" .. control.id, width = inner, icon = control.icon, on = on,
-      title = control.name, trailing = trailing,
+    local carded = control.id == "awake" and model.awake ~= nil
+    local row = P.row { id = "settings-focus-" .. control.id, width = inner, icon = control.icon, on = on,
+      title = carded and "Until turned off" or control.name, trailing = trailing,
       on_clicked = control.id == "dnd" and function() model.open("dnd") end or nil,
       subtitle = function()
-        if control.id == "awake" then return on() and control.status() or "Allow the screen to sleep" end
+        if control.id == "awake" then return on() and control.status() or "The screen stays on" end
         if control.id == "ringer" then return "Notification sounds and vibration" end
         return on() and "Notifications stay in history" or "Show notification popups"
       end }
+    if carded then awake_switch = row else section[#section + 1] = row end
   end
 
   return P.page { id = "settings-focus-scroll", width = w, height = h, active = model.active,
     P.section(section),
-    model.awake and awake_section(w, model.awake) or nil,
+    model.awake and awake_section(w, model.awake, awake_switch) or nil,
     P.section(modes),
     P.section { id = "focus-session", width = w, title = "A session",
       choices(w, "focus-duration", "How long a mode runs when turned on", model.DURATIONS, model.duration, model.set_duration, 3) },
