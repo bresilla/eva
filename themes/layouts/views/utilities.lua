@@ -152,8 +152,7 @@ end
 local function scale_reading(position)
   local scale = require("themes.ui_scale")
   if scale.compositor then return ("%.2f×"):format(scale.display_scale(position * 2 - 1)) end
-  local v = math.floor((position * 2 - 1) * 100 + 0.5)
-  return v == 0 and "0" or ("%+d%%"):format(v)
+  return ("%d%%"):format(math.floor(2 ^ (position * 2 - 1) * 100 + 0.5))
 end
 
 local function slider(id, value, set, icon, name, reading)
@@ -327,8 +326,10 @@ function M.page(w, h)
   local more = P.button { id = "quick-more", label = "More settings", icon = "open_in_new",
     visible = function() return M.detail:get() ~= "" end, on_clicked = Q.more }
   M.head = {
+    -- Over the tiles the panel's tab names it already, where tabs have names.
     title = function()
       if M.detail:get() == "" and editing() then return "Edit tiles" end
+      if M.detail:get() == "" then return require("responsive").sheets() and "Settings" or "" end
       return names[M.detail:get()] or "Settings"
     end,
     subtitle = function()
