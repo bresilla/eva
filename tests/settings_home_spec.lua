@@ -34,7 +34,9 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(test.find { id = "settings-category-page-device", visible = true }, "a category of many opens their list")
     test.click("settings-open-bluetooth") test.settle(900)
     test.truthy(test.find { id = "bluetooth-scroll", visible = true })
-    test.falsy(test.find { id = "settings-back", visible = true }, "a page beside the way round has a way back")
+    test.truthy(test.find { id = "settings-back", visible = true }, "a page under a category has no way back to its list")
+    test.click("settings-back") test.settle(900)
+    test.truthy(test.find { id = "settings-category-page-device", visible = true }, "Back from a page under a category does not reach its list")
     test.truthy(marked("settings-nav-device"), "the way round does not mark Bluetooth's category")
     -- A category of one page opens it.
     test.click("settings-nav-sound") test.settle(900)

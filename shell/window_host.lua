@@ -42,10 +42,13 @@ function M.new(book)
 
   -- Whether the page on show stands one level into another page, its parent's
   -- or the one it was opened from: not the home, nor a category's list.
-  local function nested()
+  local function above()
     local path = book.navigation.path(book.detail:get())
-    local above = path[#path - 1]
-    return above ~= nil and above.key ~= HOME and not listing[above.key]
+    return path[#path - 1]
+  end
+  local function nested()
+    local up = above()
+    return up ~= nil and up.key ~= HOME and not listing[up.key]
   end
 
   -- What the screen's top keeps for itself on a phone: a cutout there.
@@ -73,12 +76,13 @@ function M.new(book)
     elsewhere = elsewhere,
     dismiss = function() book.close() holder:set("") end,
     -- One page at a time, Back goes up to the home; beside the way round,
-    -- only a page one level into another has a way back.
+    -- every page under a category's list or another page has a way back.
     nested = nested,
     can_back = function()
       local key = book.detail:get()
       if single then return key ~= "" and key ~= HOME end
-      return nested()
+      local up = above()
+      return up ~= nil and up.key ~= HOME
     end,
     -- The search takes the keys as the home comes on show.
     searching = function() return book.opened:get() and book.detail:get() == HOME end,
