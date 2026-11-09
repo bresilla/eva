@@ -62,6 +62,23 @@ function F.note(width, text, spec)
   return node
 end
 
+--- A field under its name: `id`, `width`, `label`, then P.field's `kind`,
+--- `text`, `placeholder`, `on_changed`, `on_accepted`, `on_escape`, `visible`.
+--- Returns the node and the input.
+function F.field(spec)
+  local box, input = P.field { id = spec.id, width = spec.width, kind = spec.kind, text = spec.text,
+    placeholder = spec.placeholder, name = spec.name or spec.label, on_changed = spec.on_changed,
+    on_accepted = spec.on_accepted, on_escape = spec.on_escape }
+  return ui.Column { width = spec.width, gap = S.xs, visible = spec.visible, F.note(spec.width, spec.label), box }, input
+end
+
+--- `node` dimmed while the switch it serves, `on` (fn), is off: it still sets
+--- what the feature takes up once on.
+function F.waiting(node, on, visible)
+  return ui.Column { visible = visible, opacity = function() return on() and 1 or 0.45 end,
+    behavior = { opacity = { duration = theme.duration.small } }, node }
+end
+
 --- What the last action said, in the error colour when it failed. `model`
 --- has `message` and `failed` signals.
 function F.status(id, width, model)

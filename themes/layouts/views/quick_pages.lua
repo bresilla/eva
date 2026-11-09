@@ -23,12 +23,7 @@ local function named(width, name, slider, visible)
   return ui.Column { width = width, gap = theme.space.xs, visible = visible, F.note(width, name), slider }
 end
 
---- `node` dimmed while its feature's switch `on` is off: it still sets
---- what the feature takes up once on.
-local function waiting(node, on, visible)
-  return ui.Column { visible = visible, opacity = function() return on() and 1 or 0.45 end,
-    behavior = { opacity = { duration = theme.duration.small } }, node }
-end
+local waiting = F.waiting
 
 --- What a switch row says: what it does while off, how it stands while on.
 local function says(status, off)
