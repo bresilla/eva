@@ -171,20 +171,9 @@ end
 
 -- -------------------------------------------------------------------- page --
 
-local capture_button = kit.pill {
-  id = "utilities-capture", width = CARD_W, height = 40,
-  icon = "screenshot_monitor", label = "Screenshot / Record",
-  on_clicked = function()
-    model.capture()
-  end,
-}
-local all_settings = kit.pill {
-  id = "utilities-all-settings", width = CARD_W, height = 40, icon = "settings", label = "All settings",
-  on_clicked = function() model.open_home() end,
-}
 local session_card = require("themes").view("quick_session").build(model, CARD_W)
 local slider_card = sliders()
-local cards = { session_card, slider_card, capture_button, all_settings, tiles.node }
+local cards = { session_card, slider_card, tiles.node }
 
 -- While the tiles are edited the cards above them step aside: they fade where
 -- they stand and the tiles rise to the top of the page.
@@ -213,7 +202,7 @@ function M.height() return (editing() and 0 or stacked(#cards)) + tiles.height()
 --- Whether its cards have been measured.
 function M.laid_out() return card_height(session_card) > 0 and card_height(slider_card) > 0 end
 local stack = ui.Item { width = CARD_W, height = M.height,
-  above(session_card, 1), above(slider_card, 2), above(capture_button, 3), above(all_settings, 4), tiles_slot }
+  above(session_card, 1), above(slider_card, 2), tiles_slot }
 
 
 --- The Settings page of the right panel: the cards, top down, and the quick
@@ -299,6 +288,17 @@ function M.page(w, h)
         return (M.detail:get() == d.key or peeked()) and 0 or 20
       end } } })
   end
+  -- The head's own buttons, over the tiles: an icon each, hovered softly.
+  local function head_button(id, icon, name, on_clicked, visible)
+    local button = kit.action { id = id, width = 40, height = 40, cursor = "pointer", accessible_name = name,
+      visible = visible, on_clicked = on_clicked,
+      kit.icon(icon, 22, kit.ink("hi"), { anchors = { center_in = true } }) }
+    kit.hover(button, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
+    return button
+  end
+  local function overview() return M.detail:get() == "" and not editing() end
+  local capture = head_button("utilities-capture", "screenshot_monitor", "Screenshot or record", model.capture, overview)
+  local everything = head_button("utilities-all-settings", "settings", "All settings", model.open_home, overview)
   -- The pencil: edits the tiles, and says done while they are.
   local pencil = kit.action { id = "utilities-edit", width = 40, height = 40, cursor = "pointer",
     accessible_name = function() return editing() and "Done" or "Edit quick settings" end,
@@ -324,7 +324,7 @@ function M.page(w, h)
     back = Q.back, back_id = "quick-back",
     can_back = function() return M.detail:get() ~= "" end,
     keep = function() return true end,
-    actions = { pencil, more },
+    actions = { capture, everything, pencil, more },
     -- Read in afresh as the overview or a detail comes on show.
     active = function()
       local key = M.detail:get()

@@ -119,8 +119,9 @@ for _,style in ipairs {"material","tsugumori"} do
       local first,last=test.get("utilities-volume"),test.get("utilities-scale")
       test.near(first.y-card.y,16,.01)
       test.near(card.y+card.height-last.y-last.height,16,.01,"Scale slider escapes its card padding")
-      local capture=test.get("utilities-capture")
-      test.near(capture.y-card.y-card.height,12,.01)
+      local tiles,capture=test.get("utilities-toggles"),test.get("utilities-capture")
+      test.near(tiles.y-card.y-card.height,12,.01,"the tiles do not follow the sliders")
+      test.truthy(capture.y<card.y,"Screenshot is not in the head")
       local wifi,bluetooth=test.get("utilities-toggle-wifi"),test.get("utilities-toggle-bluetooth")
       test.truthy(wifi.width>=168,"Quick-settings labels have too little room")
       if width==360 then test.truthy(bluetooth.y>wifi.y,"Narrow tiles should stack") end
