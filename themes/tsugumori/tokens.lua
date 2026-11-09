@@ -33,6 +33,10 @@ M.key_radius = 0
 -- length.
 M.CHAMFER = 0
 M.MARK = 10
+-- Icon buttons wear their square: it, not the glyph, meets a card's edge.
+M.icon_box = true
+-- A heading's words stand this far right of its square mark.
+M.heading_inset = 16
 
 -- --------------------------------------------------------------- motion --
 

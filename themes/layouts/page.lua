@@ -204,6 +204,7 @@ end
 --- An icon button `size` square with a `glyph` icon, for a row's right: held
 --- by its glyph, so the glyph ends where a switch beside it ends.
 function P.flush(button, size, glyph)
+  if theme.icon_box then return ui.Item { width = size, height = size, button } end
   return ui.Item { width = size - math.floor((size - glyph) / 2), height = size, button }
 end
 
@@ -247,15 +248,21 @@ P.ROW_TEXT_X = 36
 function P.row(spec)
   local w, h = spec.width, spec.height or P.ROW_H
   local trailing = spec.trailing
-  local function trailing_w() return trailing and ((trailing.layout_width or 0) > 0 and trailing.layout_width or get(trailing.width) or 0) or 0 end
+  local function trailing_w()
+    if not trailing or get(trailing.visible) == false then return 0 end
+    return (trailing.layout_width or 0) > 0 and trailing.layout_width or get(trailing.width) or 0
+  end
   local text_x = spec.icon and P.ROW_TEXT_X or 0
-  local text_w = function() return math.max(1e-3, get(w) - text_x - (trailing and trailing_w() + 16 or 0)) end
-  local lit = spec.on or function() return true end
+  local text_w = function()
+    local room = trailing_w()
+    return math.max(1e-3, get(w) - text_x - (room > 0 and room + 16 or 0))
+  end
+  local lit = spec.on or function() return false end
   local text = ui.Column { x = text_x, width=text_w,clip=true,anchors = { vertical_center = true }, gap = 2,
     kit.text { id = spec.id and spec.id .. "-title", text = spec.title, width = text_w, wrap = true, max_lines = 2,
       font_size = theme.size.normal, font_weight = 500, color = kit.ink("hi") },
     spec.subtitle and kit.text { id = spec.id and spec.id .. "-subtitle", text = spec.subtitle, width = text_w,
-      wrap = true, max_lines = 2, font_size = SUB, color = kit.ink("lo") } or nil,
+      wrap = true, max_lines = 3, font_size = SUB, color = kit.ink("lo") } or nil,
   }
   -- A title that wraps takes the room it needs.
   local fixed = h
@@ -348,7 +355,7 @@ function P.cols(w, n, weights)
   return table.unpack(out)
 end
 
---- What a page says when it has nothing to list: `id`, `width`, `icon`,
+--- What a page says when it has nothing to list: `id`, `width`,
 --- `title`, `text`, `action` (a P.button spec: what to do about it),
 --- `visible`.
 --- It reads as any other row: its icon dim, its words beside it.
@@ -362,7 +369,7 @@ function P.empty(spec)
     spec.text and kit.text { text = spec.text, font_size = SUB, color = kit.ink("lo"), wrap = true, width = text_w } or nil }
   return P.section { id = spec.id, width = w, visible = spec.visible,
     ui.Item { width = inner, height = function() return math.max(P.ROW_H, (words.layout_height or 0) + 2 * S.s) end,
-      kit.icon(spec.icon or "info", 22, kit.ink("lo"), { anchors = { vertical_center = true } }), words },
+      kit.icon("info", 22, kit.ink("lo"), { anchors = { vertical_center = true } }), words },
     spec.action and P.button(spec.action.width and spec.action or setmetatable({ width = inner }, { __index = spec.action })) or nil }
 end
 
@@ -414,9 +421,11 @@ function P.header(spec)
     row.y = function() return math.floor((line() - (row.layout_height or 0)) / 2) end
   end
   local can_back = spec.can_back or function() return spec.back ~= nil end
-  -- The arrow centres on the cards' row icons and the title starts where their words do.
-  local BACK_X = P.PAD + 11 - math.floor(P.BUTTON_H / 2)
-  local function lead() return can_back() and P.PAD + P.ROW_TEXT_X or 0 end
+  -- The arrow centres on the cards' row icons, or its square meets their
+  -- edge, and the title's words start where the rows' do.
+  local INSET = theme.heading_inset or 0
+  local BACK_X = theme.icon_box and 0 or P.PAD + 11 - math.floor(P.BUTTON_H / 2)
+  local function lead() return can_back() and P.PAD + P.ROW_TEXT_X - INSET or 0 end
   local function text_w() return math.max(1e-3, get(w) - lead() - (row and (row.layout_width or 0) + 12 or 0)) end
   local back
   if spec.back then
@@ -432,7 +441,8 @@ function P.header(spec)
       width = text_w, elide = "right", active = spec.active },
     spec.subtitle and kit.text { id = spec.id and spec.id .. "-subtitle", text = spec.subtitle, font_size = SUB,
       visible=function() local note=get(spec.subtitle) return note~=nil and note~=false and note~="" end,
-      color = kit.ink("lo"), width = text_w, height = L.lh(SUB), elide = "right" } or nil,
+      x = INSET, color = kit.ink("lo"), width = function() return math.max(1e-3, text_w() - INSET) end,
+      height = L.lh(SUB), elide = "right" } or nil,
   }
   return L.item { id = spec.id, width = w, height = function() return P.header_height(spec) end, back, text, row }
 end
