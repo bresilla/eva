@@ -1,6 +1,7 @@
 -- A window of pages over the shell (shell/window_host.lua): Settings, Tools,
 -- every page of its book over everything, the rest of the screen dimmed under
--- it. On a desk it stands in the middle, seven tenths of the screen each way,
+-- it. On a desk it stands in the middle, seven tenths of the screen each way
+-- and roomier on a small one,
 -- with the way round (search, categories, their pages) beside the page; on a
 -- phone it fills the screen with one page at a time. The pages are the
 -- model's builders.
@@ -12,7 +13,7 @@ local P = require("themes.layouts.page")
 local L = require("themes.layouts.parts")
 local C, S = theme.color, theme.space
 
-local V = { SHARE = 0.7, NAV_W = 280, PAGE_MAX = 760 }
+local V = { SHARE = 0.7, NAV_W = 280, PAGE_MAX = 760, MIN_W = 1040, MIN_H = 700, MARGIN = 48 }
 
 local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
 -- How far in from the page's left edge a pull back may start, and how far it
@@ -20,9 +21,12 @@ local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasize
 local BACK_EDGE, COMMIT = S.xxl + S.s, .35
 
 --- Where the window stands on a screen `sw` by `sh`: x, y, width, height.
+--- Seven tenths of a desk, and on a small one no less than MIN_W by MIN_H
+--- while MARGIN stays clear round it.
 function V.geometry(sw, sh, phone)
   if phone then return 0, 0, sw, sh end
-  local w, h = math.floor(sw * V.SHARE), math.floor(sh * V.SHARE)
+  local w = math.max(math.floor(sw * V.SHARE), math.min(V.MIN_W, sw - 2 * V.MARGIN))
+  local h = math.max(math.floor(sh * V.SHARE), math.min(V.MIN_H, sh - 2 * V.MARGIN))
   return math.floor((sw - w) / 2), math.floor((sh - h) / 2), w, h
 end
 
