@@ -52,13 +52,7 @@ end
 
 --- A line inside a card saying what is missing, centred in it.
 local function nothing(icon, text, visible)
-  return ui.Column { width = INNER, gap = 8, align = "center", visible = visible,
-    ui.Item { width = 1, height = 6 },
-    kit.icon(icon, 30, kit.ink("lo")),
-    kit.text { text = text, width = INNER, horizontal_alignment = "center", elide = "right",
-      font_size = theme.size.normal, color = kit.ink("lo") },
-    ui.Item { width = 1, height = 6 },
-  }
+  return P.row { width = INNER, icon = icon, on = function() return false end, title = text, visible = visible }
 end
 
 local function name_of(d) return d and (d.description or d.name) or "?" end
@@ -140,6 +134,9 @@ local function output_section()
       },
       channels_expander("sound"),
     },
+    P.row { id = "sound-input", width = INNER, icon = "mic", title = "Microphone",
+      subtitle = "Inputs, level and test", trailing = P.chevron(), visible = function() return model.open_input ~= nil end,
+      on_clicked = function() model.open_input() end },
     P.row { id = "sound-equalizer", width = INNER, icon = "equalizer", title = "Equalizer",
       subtitle = "Tone, presets and audiogram compensation", trailing = P.chevron(),
       on_clicked = model.open_equalizer },

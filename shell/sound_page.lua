@@ -23,6 +23,7 @@ function M.output_page(w,h)
   local model=M.output_model()
   model.open_equalizer=function() require("utilities").request("sound/equalizer") end
   model.open_more=function() require("utilities").request("sound/more") end
+  model.open_input=function() require("utilities").request("microphone","sound") end
   return view.build(model,w,h)
 end
 -- What restarting the sound server last said, "" before it is asked.

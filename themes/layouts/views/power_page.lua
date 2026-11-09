@@ -200,8 +200,13 @@ function M.build(model, w, h)
       on_clicked = function() if row() then model.set_gpu(row()) end end }
   end
 
-  return P.page { id = "power-scroll", width = w, height = h, active = model.active, summary, charging, profile, health, buttons,
-    P.section(graphics), F.status("power-status", w, { message = model.note, failed = model.failed }) }
+  local sleep = P.section { id = "power-sleep", width = w, title = "Sleep", visible = function() return model.open_idle ~= nil end,
+    P.row { id = "power-idle", width = inner, icon = "bedtime", title = "Idle and sleep",
+      subtitle = "When the screen turns off, locks and sleeps", trailing = P.chevron(),
+      on_clicked = function() model.open_idle() end } }
+
+  return P.page { id = "power-scroll", width = w, height = h, active = model.active, summary, charging, profile, sleep, health,
+    buttons, P.section(graphics), F.status("power-status", w, { message = model.note, failed = model.failed }) }
 end
 
 return M

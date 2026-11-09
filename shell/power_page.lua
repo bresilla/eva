@@ -4,6 +4,7 @@ local M={}
 function M.page(w,h,active)
   local model=require("power_model").new(active or require("presentation").active("settings.power"),
     function() require("dashboard_state").show("battery") end)
+  model.open_idle=function() require("utilities").request("idle","power") end
   return require("themes").view("power_page").build(require("power_extras_model").extend(model),w,h)
 end
 return M
