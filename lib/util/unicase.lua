@@ -91,6 +91,24 @@ end
 function M.upper(text) return map(text, string.upper, to_upper) end
 function M.lower(text) return map(text, string.lower, to_lower) end
 
+-- Units that keep their case after a number, and names that keep theirs.
+local UNITS = { min = true, h = true, s = true, ms = true, Hz = true, kHz = true, dB = true, W = true, V = true,
+  K = true, GB = true, MB = true, kB = true, px = true }
+local NAMES = { ["Wi-Fi"] = true }
+
+--- `text` in capitals for a caption, but for a unit after a number, a word
+--- with a digit in it and a name written its own way: "30 min", "eDP-1".
+function M.caps(text)
+  local out, number = {}, false
+  for space, word in tostring(text or ""):gmatch("(%s*)(%S+)") do
+    local bare = word:gsub("[%p]+$", "")
+    local keep = NAMES[bare] or (number and UNITS[bare]) or word:find("%d")
+    out[#out + 1] = space .. (keep and word or M.upper(word))
+    number = word:find("%d[%d.,]*$") ~= nil
+  end
+  return table.concat(out)
+end
+
 -- Each accented letter's plain one.
 local PLAIN = {}
 local function plain(letters, base)

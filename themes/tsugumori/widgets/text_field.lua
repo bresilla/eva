@@ -84,7 +84,7 @@ return function(S, theme, M, hud)
     local lh = math.ceil(size * 1.4)
     local function up() return always or t.focused or not t.empty or spec.tags ~= nil end
     local function rest() return math.floor((box(t, spec) - lh) / 2) end
-    return M.text { text = function() return unicase.upper(tostring(get(spec.label) or "")) end,
+    return M.text { text = function() return unicase.caps(tostring(get(spec.label) or "")) end,
       x = l, height = lh, font_size = size, font_weight = 500,
       width=function() return math.max(1e-3,t.width-l-r) end,elide="right",
       letter_spacing = 0.8, vertical_alignment = "center", transform_origin_x = 0, transform_origin_y = 0, z = 8,

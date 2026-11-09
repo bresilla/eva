@@ -30,7 +30,7 @@ return function(S, theme, M, hud)
     for i, name in ipairs(names_of(spec)) do if name == t.current then return i end end
     return 0
   end
-  local function title_of(spec, name) return unicase.upper(tostring((spec.titles or {})[name] or name or "")) end
+  local function title_of(spec, name) return unicase.caps(tostring((spec.titles or {})[name] or name or "")) end
   local function caps(text, props)
     props = props or {}
     props.text = text

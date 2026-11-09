@@ -66,7 +66,7 @@ return function(theme, M, hud)
   local function pill(t, spec)
     local ink = spec.ink or function() return C.onPrimaryContainer end
     local fill = spec.color or function() return C.primaryContainer end
-    local function caption() return unicase.upper(tostring(get(spec.label) or "")) end
+    local function caption() return unicase.caps(tostring(get(spec.label) or "")) end
     local measure = M.menu_label { text = caption, font_size = theme.typography.menu, height = 18, opacity = 0 }
     local function natural_width()
       return math.max(1, measure.layout_width or utf8.len(caption()) * theme.typography.menu * .62)
@@ -196,7 +196,7 @@ return function(theme, M, hud)
         { x = 10, anchors = { vertical_center = true } }) or nil,
       label = M.menu_label { x = left, anchors = { vertical_center = true },
         width=function() return math.max(1e-3,t.width-left-right) end,elide="right",
-        text = function() return unicase.upper(tostring(get(spec.label) or "")) end,color = function() return C.onSurface end },
+        text = function() return unicase.caps(tostring(get(spec.label) or "")) end,color = function() return C.onSurface end },
       indicator = (spec.widget ~= "menu_item") and ui.Rect { anchors = { right = true, right_margin = 12,
         vertical_center = true }, width = 8, height = 8, color = function() return C.primary end,
         transform_origin_x = 0, scale_x = function() return t.checked and 1 or 0 end,
@@ -509,7 +509,7 @@ return function(theme, M, hud)
         local name = spec.item_id and spec.item_id(i, entry) or ("tab-" .. i)
         local selected = s.current
         local function ink() return selected() and C.onPrimary or C.onSurface end
-        local caption = unicase.upper(entry.name)
+        local caption = unicase.caps(entry.name)
         local has_icon = (entry.icon_build or entry.icon) and true or false
         local function width() return slot() end
         local measure = M.menu_label { text = caption, font_size = MENU, height = 18, opacity = 0 }
@@ -596,7 +596,7 @@ return function(theme, M, hud)
         return ui.Item { anchors = { fill = true },
           ui.Rect { anchors = { fill = true }, color = "transparent", border_width = 1,
             border_color = function() return s.hovered() and stroke(C, "hover") or stroke(C, "quiet") end },
-          M.menu_label { anchors = { center_in = true }, text = unicase.upper(tostring(label)),
+          M.menu_label { anchors = { center_in = true }, text = unicase.caps(tostring(label)),
             color = function() return s.current() and C.primary or C.onSurface end },
           hud().corners { length = 5, weight = 2, color = function() return C.primary end,
             visible = function() return t.visual_focus and s.current() end } }
@@ -631,7 +631,7 @@ return function(theme, M, hud)
             border_color = function() return C.primary end, visible = function() return s.expandable() end },
           M.menu_label { anchors = { vertical_center = true },
             x = function() return 12 + s.depth() * 16 + (s.expandable() and 14 or 0) end,
-            text = function() local r = now() return unicase.upper(tostring(r.label or r.name or r.title or r.key or "")) end,
+            text = function() local r = now() return unicase.caps(tostring(r.label or r.name or r.title or r.key or "")) end,
             color = function() return s.current() and C.primary or C.onSurface end },
           hud().corners { length = 5, weight = 2, color = function() return C.primary end,
             visible = function() return t.visual_focus and s.current() end } }
@@ -651,7 +651,7 @@ return function(theme, M, hud)
           ui.Rect { anchors = { left = true, right = true, bottom = true }, height = 1,
             color = function() return C.primary:alpha(.5) end },
           M.menu_label { x = 8, anchors = { vertical_center = true },
-            text = unicase.upper(tostring(column.title or column.key)), color = function() return C.onSurfaceVariant end },
+            text = unicase.caps(tostring(column.title or column.key)), color = function() return C.onSurfaceVariant end },
           M.menu_label { anchors = { right = true, right_margin = 6, vertical_center = true },
             text = function() return t.sort_ascending and "▲" or "▼" end, color = function() return C.primary end,
             visible = function() return t.sort_column == column.key end } }

@@ -128,7 +128,7 @@ return function(S, theme, M, hud)
 
   local function caps(text, props)
     props = props or {}
-    props.text = unicase.upper(tostring(text))
+    props.text = unicase.caps(tostring(text))
     return M.menu_label(props)
   end
 
@@ -551,7 +551,7 @@ return function(S, theme, M, hud)
       local items = spec.items
       if type(items) == "function" then items = items() end
       local v = (items or {})[t.current or 0]
-      return v and unicase.upper(label_of(v)) or ""
+      return v and unicase.caps(label_of(v)) or ""
     end
   end
   -- The shutter the highlight turns on.
@@ -692,7 +692,7 @@ return function(S, theme, M, hud)
         hud().corners { length = 6, weight = 2, color = function() return C.primary end,
           opacity = function() return t.visual_focus and 1 or 0.6 end } },
       item = function(_, value, s)
-        return M.text { anchors = { fill = true }, text = unicase.upper(label_of(value)), horizontal_alignment = "center",
+        return M.text { anchors = { fill = true }, text = unicase.caps(label_of(value)), horizontal_alignment = "center",
           vertical_alignment = "center", font_size = theme.size.larger, font_weight = 500,
           color = function() return s.current() and C.primary or C.onSurfaceVariant end }
       end,

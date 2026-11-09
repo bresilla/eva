@@ -17,7 +17,7 @@ return function(theme, kit, props)
   local function caption()
     local value = source
     if type(value) == "function" then value = value() end
-    return unicase.upper(tostring(value or ""))
+    return unicase.caps(tostring(value or ""))
   end
   local height = props.height or math.ceil(size * 1.5)
   local width = props.width or function() return utf8.len(caption()) * size * 0.65 + 18 end

@@ -70,7 +70,7 @@ function P.button(spec)
   -- Measured the way the theme's pill sets its caption: a menu face in
   -- capitals where the theme has one, its body text where not.
   local menu = theme.typography and theme.typography.menu
-  local caption = menu and function() return unicase.upper(tostring(get(label) or "")) end or label
+  local caption = menu and function() return unicase.caps(tostring(get(label) or "")) end or label
   local size = menu or theme.size.normal
   local measure = menu and kit.menu_label { text = caption, font_size = size, height = 18, opacity = 0 }
     or kit.text { text = caption, font_size = size, opacity = 0 }
@@ -438,7 +438,8 @@ function P.header(spec)
   local text = ui.Column { x = lead, width=text_w,clip=true,behavior = { x = { duration = theme.duration.small } },
     y = function() return math.floor((line() - L.heading_h(TITLE)) / 2) + P.TITLE_NUDGE end, gap = 2,
     L.heading { id = spec.title_id or (spec.id and spec.id .. "-title"), scope = spec.scope, level = "title", text = spec.title,
-      width = text_w, elide = "right", active = spec.active },
+      width = text_w, elide = "right", active = spec.active,
+      visible = function() local t = get(spec.title) return t ~= nil and t ~= "" end },
     spec.subtitle and kit.text { id = spec.id and spec.id .. "-subtitle", text = spec.subtitle, font_size = SUB,
       visible=function() local note=get(spec.subtitle) return note~=nil and note~=false and note~="" end,
       x = INSET, color = kit.ink("lo"), width = function() return math.max(1e-3, text_w() - INSET) end,
