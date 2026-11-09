@@ -65,6 +65,7 @@ if [ -n "${SEE_CAGE:-}" ]; then
   swaymsg -t get_outputs >> "$SEE_OUT/session.txt" 2>&1
 fi
 swaymsg output HEADLESS-1 mode "$SEE_SCREEN@60Hz" > /dev/null
+[ -n "${SEE_SCALE:-}" ] && swaymsg output HEADLESS-1 scale "$SEE_SCALE" > /dev/null
 
 ROLE=""
 HELD=""
