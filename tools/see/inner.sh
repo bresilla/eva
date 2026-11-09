@@ -42,8 +42,13 @@ default_border none
 include $XDG_STATE_HOME/eva/displays/outputs.sway
 CONF
 RENDER=$(ls /dev/dri/renderD* 2>/dev/null | head -1)
-WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDER_DRM_DEVICE=$RENDER \
-  sway --unsupported-gpu -c "$CONFIG" > "$SEE_OUT/sway.log" 2>&1 &
+if [ -n "${SEE_SOFT:-}" ]; then
+  WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
+    sway --unsupported-gpu -c "$CONFIG" > "$SEE_OUT/sway.log" 2>&1 &
+else
+  WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDER_DRM_DEVICE=$RENDER \
+    sway --unsupported-gpu -c "$CONFIG" > "$SEE_OUT/sway.log" 2>&1 &
+fi
 for _ in $(seq 100); do ls "$XDG_RUNTIME_DIR"/sway-ipc.*.sock > /dev/null 2>&1 && break; sleep 0.1; done
 SWAYSOCK=$(ls "$XDG_RUNTIME_DIR"/sway-ipc.*.sock | head -1)
 WAYLAND_DISPLAY=$(cd "$XDG_RUNTIME_DIR" && ls -d wayland-[0-9] | head -1)

@@ -1,0 +1,10 @@
+# A tile's page growing out of its tile and back into it, a frame every few
+# hundredths of a second, opened as the tile's chevron opens it.
+export EVA_FAKE_AUDIO=1 EVA_FAKE_STATUS=wifi,bluetooth EVA_FAKE_BATTERY=64,charging
+start shell
+ipc sidebar open settings; pause 1.6; shot rest
+ipc quick network; for i in 0 1 2 3 4 5 6 7; do shot "open-$i"; done
+pause 0.8; shot open
+ipc quick back; for i in 0 1 2 3 4 5 6 7; do shot "close-$i"; done
+pause 0.8
+ipc quick sound; pause 0.15; shot sound-mid; pause 0.8; shot sound
