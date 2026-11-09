@@ -38,6 +38,30 @@ function F.choices(spec)
   }
 end
 
+--- One line for one of a few choices: the title, and at the right a list to
+--- pick from (`<id>-field`). The same `spec` as F.choices.
+function F.select(spec)
+  local FIELD = 136
+  local labels = {}
+  for index, choice in ipairs(spec.choices) do labels[index] = choice[2] end
+  local function current()
+    local now = spec.read()
+    for index, choice in ipairs(spec.choices) do
+      if choice[1] == now then return index end
+    end
+    return 1
+  end
+  local field = (require("themes.kit.composites").combo_box {
+    id = spec.id .. "-field", width = FIELD, height = theme.space.TARGET, items = labels, current = current,
+    variant = "select", accessible_name = spec.title,
+    on_changed = function(index)
+      local choice = spec.choices[index]
+      if choice and choice[1] ~= spec.read() then spec.set(choice[1]) end
+    end })
+  return P.row { id = spec.id, width = spec.width, icon = spec.icon, title = spec.title, subtitle = spec.subtitle,
+    trailing = ui.Item { width = FIELD, height = theme.space.TARGET, field } }
+end
+
 --- A row with a switch: `id`, `width`, `icon`, `title`, `subtitle`, `on` (fn),
 --- `set` (fn), `enabled` (fn).
 function F.switch(spec)

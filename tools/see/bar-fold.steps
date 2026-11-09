@@ -1,0 +1,6 @@
+# The Bar's "When the bar is full" page, a line for each icon, and Bluetooth
+# with its program's name on the way out.
+export EVA_FAKE_STATUS=wifi,bluetooth
+start shell
+ipc settings bar/fold; pause 2.5; shot fold
+ipc settings bluetooth; pause 1.2; shot bluetooth

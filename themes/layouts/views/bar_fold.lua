@@ -34,7 +34,7 @@ function V.build(status, w, h)
   for i, rule in ipairs(status.RULES) do with_hide[i] = rule end
   with_hide[#with_hide + 1] = status.HIDE
   for _, row in ipairs(status.ruled()) do
-    indicators[#indicators + 1] = F.choices { id = "bar-fold-" .. row.key, width = inner, title = row.label, choices = with_hide,
+    indicators[#indicators + 1] = F.select { id = "bar-fold-" .. row.key, width = inner, title = row.label, choices = with_hide,
       read = function() return status.rule(row.key) end, set = function(rule) status.set_rule(row.key, rule) end }
   end
 
@@ -42,7 +42,7 @@ function V.build(status, w, h)
     visible = function() return #foldable() > 0 end }
   for index = 1, MODULES do
     local function module() return foldable()[index] end
-    local row = F.choices { id = "bar-fold-module-" .. index, width = inner, choices = status.RULES,
+    local row = F.select { id = "bar-fold-module-" .. index, width = inner, choices = status.RULES,
       title = function() local item = module() return item and item.name or "" end,
       read = function() local item = module() return item and status.rule(item.id) or "auto" end,
       set = function(rule)
