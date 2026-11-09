@@ -343,7 +343,7 @@ function M.page(w, h)
       return names[M.detail:get()] or "Settings"
     end,
     subtitle = function()
-      if M.detail:get() ~= "" then return Q.breadcrumb() end
+      if M.detail:get() ~= "" then return "" end
       return editing() and "Drag to arrange" or ""
     end,
     back = Q.back, back_id = "quick-back",

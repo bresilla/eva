@@ -216,11 +216,11 @@ function V.build(model)
   for _, d in ipairs(model.DETAILS) do names[d.key] = d.name end
 
   local function key() return model.detail:get() end
-  -- Under the title: the way down to a page one level into another, else
-  -- what the page holds.
+  -- Under the title: what the page holds, else the way down to it.
   local function subtitle()
-    if model.nested() then return model.breadcrumb() end
-    return (model.registry.BY_KEY[key()] or {}).summary or ""
+    local summary = (model.registry.BY_KEY[key()] or {}).summary
+    if summary then return summary end
+    return model.nested() and model.breadcrumb() or ""
   end
   -- The page's head and body, and beside them on a desk the way round.
   local function content()

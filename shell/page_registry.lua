@@ -52,6 +52,7 @@ function M.new(book)
     category.key = book.HOME .. "/" .. category.id
     category.only = count[category.id] == 1 and first[category.id] or nil
     book.PAGES[#book.PAGES + 1] = { key = category.key, name = category.name, icon = category.icon, parent = book.HOME,
+      summary = category.summary,
       alias = category.only }
     if category.only then book.ALIASES[category.key] = category.only end
   end

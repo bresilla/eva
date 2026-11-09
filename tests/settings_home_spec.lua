@@ -44,8 +44,8 @@ for _, style in ipairs { "material", "tsugumori" } do
     -- A page one level into another goes back to it.
     test.ipc("settings", "bar/tray") test.settle(900)
     test.truthy(marked("settings-nav-shell"), "the way round does not mark Desktop")
-    test.truthy(test.find { text = "Desktop / Bar", visible = true },
-      "the trail does not lead from the category")
+    test.truthy(test.find { text = "Which tray icons show", visible = true },
+      "a nested page does not say what it holds")
     test.click("settings-back") test.settle(900)
     test.eq(test.ipc("settings", "state").page, "bar", "Back from a nested page goes to its parent")
     test.key("Escape") test.settle(900)
