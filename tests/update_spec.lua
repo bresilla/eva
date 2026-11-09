@@ -181,7 +181,7 @@ test.it("leaves out the managers this machine lacks", function()
   test.eq(#state.managers, 1)
   test.eq(state.managers[1].name, "flatpak")
   test.eq(state.pending, 0)
-  test.eq(test.get({ id = "update-note" }).text, "Nothing waits")
+  test.eq(test.get({ id = "update-state-title" }).text, "Up to date")
 end)
 
 test.it("plays a canned log when dry, and builds nothing", function()

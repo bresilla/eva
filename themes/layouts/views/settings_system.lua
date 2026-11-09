@@ -329,12 +329,15 @@ function M.updates_page(model, w, h)
       title = function()
         local m = manager()
         if not m.name then return "" end
-        return ("%s: %d %s"):format(m.name, m.count, m.count == 1 and "update" or "updates")
+        return (m.name:gsub("^%l", string.upper))
       end,
       subtitle = function()
         local m = manager()
         if not m.name then return "" end
-        return m.count == 0 and "Up to date" or table.concat(m.packages, ", ")
+        if m.count == 0 then return "Up to date" end
+        local names = {}
+        for i, id in ipairs(m.packages) do names[i] = id:match("^%a+%.[%w_-]+%.([%w_.-]+)$") or id end
+        return ("%d %s: %s"):format(m.count, m.count == 1 and "update" or "updates", table.concat(names, ", "))
       end }
   end, nil, 6)
   local log, handle = kit.widgets.virtual_list { id = "update-log", width = inner, height = LOG_H, rows = U.rows,
@@ -351,13 +354,17 @@ function M.updates_page(model, w, h)
       F.fact { id = "updates-morf", width = inner, icon = "memory", title = "morf", subtitle = model.version },
     },
     P.section { id = "updates-do", width = w, title = "New versions",
-      kit.text { id = "update-note", width = inner, elide = "right", font_size = theme.size.small, color = kit.ink("lo"),
-        text = function()
+      P.row { id = "update-state", width = inner, icon = "system_update", on = function() return U.pending() > 0 end,
+        title = function()
+          if U.checking:get() > 0 then return "Checking…" end
+          local count = U.pending()
+          return count == 0 and "Up to date" or count == 1 and "1 update waiting" or (count .. " updates waiting")
+        end,
+        subtitle = function()
           -- A missing flake.lock is the card's below, said once.
           if U.message:get() ~= "" and not (nixos() and not found()) then return U.message:get() end
           if U.checking:get() > 0 then return "Asking the package managers" end
-          local count = U.pending()
-          return count == 0 and "Nothing waits" or (count .. " waiting")
+          return U.pending() == 0 and "Nothing waits" or "Listed below"
         end },
       P.buttons { width = inner,
         { id = "update-check", label = "Check again", icon = "refresh", enabled = function() return U.checking:get() == 0 end,
@@ -372,13 +379,13 @@ function M.updates_page(model, w, h)
       kit.text { id = "update-flake-path", width = inner, elide = "left", font_size = P.SUB, color = kit.ink("lo"),
         text = function() return U.flake:get() end },
       inputs },
-    P.empty { id = "update-no-flake", icon = "lock", title = "No flake.lock", width = w,
-      text = "Name one with EVA_UPDATE_FLAKE, or the setting update.flake, or keep it at /etc/nixos.",
+    P.empty { id = "update-no-flake", icon = "lock", title = "No flake to check", width = w,
+      text = "Keep it in /etc/nixos, or set update.flake to where it is",
       visible = function() return nixos() and not found() end },
     P.section { id = "update-managers", width = w, title = "Packages",
       visible = function() return #U.managers:get() > 0 end, managers },
-    P.empty { id = "update-none", icon = "system_update", title = "Nothing to ask", width = w,
-      text = "This machine has no package manager eva knows.",
+    P.empty { id = "update-none", icon = "inventory_2", title = "No package manager to ask", width = w,
+      text = "eva asks pacman, apt, dnf and Flatpak",
       visible = function() return not nixos() and U.checking:get() == 0 and #U.managers:get() == 0 end },
     P.section { id = "update-log-section", width = w, title = "Rebuild",
       visible = function() return U.lines:get() > 0 or running() end, log },
