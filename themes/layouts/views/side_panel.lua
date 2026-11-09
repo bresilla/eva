@@ -50,7 +50,7 @@ function V.build(model)
   if top then
     return { width = page_width(), height = height, edge = "top",
       content = content, props = { anchors = responsive.panel_anchors(),
-        behavior = { height = theme.spring.drawer } } }
+        behavior = { height = theme.spring.drawer }, clip = true } }
   end
   return { width = theme.SIDE_W + theme.STRIP, height = height, edge = model.edge,
     content = content, props = { anchors = { top = true, [model.edge] = true } } }
