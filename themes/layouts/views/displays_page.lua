@@ -112,6 +112,11 @@ local function canvas(model, w, h)
             local o = output()
             return o and ("%d×%d"):format(o.width, o.height) or ""
           end,
+          -- A tile too narrow for the mode shows its name alone.
+          visible = function()
+            local o = output()
+            return o ~= nil and P.text_width(("%d×%d"):format(o.width, o.height), theme.size.small) + 8 <= (size())
+          end,
           color = function() return selected() and C.onPrimaryContainer or C.onSurfaceVariant end,
           font_size = theme.size.small,
         },

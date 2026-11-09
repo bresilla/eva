@@ -30,8 +30,9 @@ function V.build(model, w, ctx)
     local function sub() return on() and fg():alpha(0.8) or C.onSurfaceVariant end
     local more
     if t.detail and ctx.place then ctx.place(t.detail, box, tile.shown, TILE_H) end
-    -- Title and status both reach the chevron's glyph.
+    -- Title and status both reach the chevron's glyph, or stop short of its square.
     local TEXT_W = tile.slot - S.xxl - S.l - (t.detail and S.xxl + S.xs or S.l + S.xs)
+      - (t.detail and theme.icon_box and S.s or 0)
     local STATUS_W = t.detail and TEXT_W - S.xs or TEXT_W
 
     local area = kit.action {
