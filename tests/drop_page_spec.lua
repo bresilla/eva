@@ -93,7 +93,7 @@ test.describe("drop page", function()
     test.eq(calls(), "", "a page was looked at and drop ran")
     test.falsy(morf.fs.exists(scratch .. "/config/drop/badge"), "looking at a page made a key")
     test.truthy(test.get("drop-placeholder").visible)
-    test.truthy(test.find { text = "Drop has no identity on this machine" })
+    test.truthy(test.find { text = "Drop is not set up yet" })
     test.falsy(test.get("drop-scroll").visible)
   end)
 

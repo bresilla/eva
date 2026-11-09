@@ -267,11 +267,11 @@ function M.build(model, active, w, h)
   local gate = ui.Item { width = w, height = h, visible = function() return not ready() end,
     P.empty { id = "drop-placeholder", width = w, icon = "forum",
       title = function()
-        return model.stage() == "missing" and "drop is not installed" or "Drop has no identity on this machine"
+        return model.stage() == "missing" and "drop is not installed" or "Drop is not set up yet"
       end,
       text = function()
         if model.stage() == "missing" then return "Files, chat and folders with your people and machines, peer to peer. Install drop to use this page." end
-        return "Setting up makes this machine's own key, the first time anything runs. Nothing has run yet."
+        return "Files, chat and folders with your people and machines. Setting up makes this machine's key."
       end,
       action = { id = "drop-set-up", label = "Set up Drop", icon = "key", tone = "primary",
         visible = function() return model.stage() == "first-run" end, on_clicked = model.set_up } } }
