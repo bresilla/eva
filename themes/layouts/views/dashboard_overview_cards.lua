@@ -30,8 +30,10 @@ return function(model, ROW1, ROW2, GAP)
       if not opened:get() then return { available = false } end
       return model.weather()
     end
-    local box = math.min(64, ih)
-    local big = theme.size.extra + 8
+    -- A taller card than the reference sets everything a step larger.
+    local k = math.max(1, math.min(1.45, ih / 110))
+    local box = math.min(math.floor(64 * k), ih)
+    local big = math.floor((theme.size.extra + 8) * k)
     local big_h = math.ceil(big * 1.2)
     local tx = box + 16
     local tw = iw - tx
@@ -57,11 +59,11 @@ return function(model, ROW1, ROW2, GAP)
             if not w.available then return "--" end
             return ("%d%s"):format(math.floor((w.temperature or 0) + 0.5), w.units and w.units.temperature or "°")
           end },
-        L.label { width = tw, elide = "right", font_size = S.body, color = kit.ink("hi"),
+        L.label { width = tw, elide = "right", font_size = math.floor(S.body * k), color = kit.ink("hi"),
           text = function() local w = now() return w.available and (w.condition or "") or "No weather" end },
         L.item { width = tw, height = 8,
           kit.decor("ticks", { y = 1, length = tw, count = 24, major = 6, size = 6, color = kit.stroke("idle") }) },
-        L.label { width = tw, elide = "right",
+        L.label { width = tw, elide = "right", font_size = math.floor(S.label * k),
           text = function()
             local w = now()
             if not w.available then return "Loading…" end
@@ -87,13 +89,14 @@ return function(model, ROW1, ROW2, GAP)
     local iw, ih = P.tile_inner(W, H)
     local face = model.face
     local has_face = face ~= ""
-    local AV = math.min(84, ih - 8)
+    local k = math.max(1, math.min(1.45, ih / 110))
+    local AV = math.min(math.floor(84 * k), ih - 8)
     local X = AV + 20
     local RW = iw - X
     local function system() return opened:get() and model.system() or { uptime = 0 } end
-    local name_size = theme.size.large
-    local up_size = theme.size.normal
-    local code_w = 84
+    local name_size = math.floor(theme.size.large * k)
+    local up_size = math.floor(theme.size.normal * k)
+    local code_w = math.floor(84 * k)
     local CHIP = 82
     return P.tile {
       id = "dashboard-user", title = "User", width = W, height = H, clip = true,
@@ -138,7 +141,8 @@ return function(model, ROW1, ROW2, GAP)
     local function t(fmt) return function() return model.clock(fmt) end end
     -- The digits as big as the box lets them (two of them and the lines
     -- under them).
-    local digits = math.max(18, math.min(theme.size.extra + 6, math.floor((ih - 120) / 2.6)))
+    local digits = math.max(18, math.min(theme.size.extra * 3, math.floor((ih - 120) / 2.6), math.floor((iw - 12) / 1.3)))
+    local big = digits >= 48
     local dh = math.ceil(digits * 1.2)
     local CW = iw - 12
     local function line(props)
@@ -162,8 +166,8 @@ return function(model, ROW1, ROW2, GAP)
         line { text = t("%p"), visible = function() return model.twelve_hour() end, font_size = S.body,
           color = kit.ink("accent") },
         ui.Item { width = 1, height = 4 },
-        line { text = t("%a"), color = kit.ink("hi") },
-        line { text = t("%b %d") },
+        line { text = t("%a"), color = kit.ink("hi"), font_size = big and theme.size.large or nil },
+        line { text = t("%b %d"), font_size = big and theme.size.normal or nil },
         ui.Item { width = 1, height = 4 },
         line { text = t("Week %V"), font_size = S.micro, color = kit.stroke("mark") },
         ui.Item { width = 1, height = 3 },
@@ -194,7 +198,8 @@ return function(model, ROW1, ROW2, GAP)
         kit.shape { anchors = { center_in = true }, width = mark, height = mark,
           shape = function() return opened:get() and "cookie9" or "circle" end, duration = 700,
           color = function() return kit.signal("accent")():alpha(.3) end, visible = function() return day().today end },
-        kit.text { anchors = { center_in = true }, font_size = theme.size.normal - 2,
+        kit.text { anchors = { center_in = true },
+          font_size = math.max(theme.size.normal - 2, math.min(theme.size.large, math.floor(CELL_H * .45))),
           text = function() return tostring(day().day) end,
           color = function()
             local d = day()
@@ -389,7 +394,7 @@ return function(model, ROW1, ROW2, GAP)
     local top = math.max(140, math.floor((H - G) * 0.36))
     local bottom = H - G - top
     local wx, us = P.cols(main, 2, { 4, 5 })
-    local ck, cal, res = P.cols(main, 3, { 1, 3, 1.15 })
+    local ck, cal, res = P.cols(main, 3, { 1.45, 1.25, 0.85 })
     local node = ui.Row { width = W, height = H, gap = G,
       ui.Column { width = main, gap = G,
         ui.Row { gap = G, K.weather(wx, top), K.user(us, top) },

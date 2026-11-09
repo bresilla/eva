@@ -234,7 +234,7 @@ end
 -- Each dashboard tab's own page on a desk (the drawer eases from one to
 -- the next): its width and height.
 local DASHBOARD = {
-  overview = { 840, 439 }, media = { 1000, 400 }, battery = { 1040, 520 },
+  overview = { 1100, 600 }, media = { 1000, 400 }, battery = { 1040, 520 },
   weather = { 838, 561 },
 }
 
