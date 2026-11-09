@@ -141,7 +141,7 @@ for _,style in ipairs {"material","tsugumori"} do
 end
 
 for _,case in ipairs {
-  {"none","No touchscreen"},{"missing","libinput is not installed"},{"denied","May not read the touchscreen"},
+  {"none","No touchscreen"},{"missing","libinput is not installed"},{"denied","Not allowed to read the touchscreen"},
 } do
   test.it("says plainly when it cannot run: "..case[1],function()
     load("material",case[1])

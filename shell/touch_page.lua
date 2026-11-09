@@ -14,7 +14,7 @@ local WORDS = {
   starting = { "Starting", "Opening the touchscreen" },
   none = { "No touchscreen", "Gestures begin when one is plugged in" },
   missing = { "libinput is not installed", "Install libinput, or libinput-tools on Debian" },
-  denied = { "May not read the touchscreen", "programs.eva.touch.enable, or the README's rule" },
+  denied = { "Not allowed to read the touchscreen", "Turn on programs.eva.touch.enable, or add the README's udev rule" },
 }
 
 --- Why it is not reading, once the reader says "off".
