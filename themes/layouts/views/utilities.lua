@@ -399,7 +399,7 @@ function M.page(w, h)
     b_out = { motion = { duration = 60 }, set = { opacity = 0 } } })
   local inner = ui.Item { width = w, height = h, words_node }
   local ground = ui.Rect { anchors = { fill = true },
-    color = function() return C.surface end,
+    color = function() return C.surfaceContainerHigh end,
     radius = function() return open() and 0 or kit.round(P.RADIUS) end,
     behavior = { radius = GROW } }
   ui.claims(ground, {
