@@ -522,7 +522,7 @@ do
       return mode and mode.name or "Off"
     end}
   -- The shell itself: the bar, and how its panels open.
-  M.TOGGLES[#M.TOGGLES + 1] = { id = "eva", name = "Eva", detail = "eva", icon = "dashboard_customize",
+  M.TOGGLES[#M.TOGGLES + 1] = { id = "eva", name = "Desktop", detail = "eva", icon = "dashboard_customize",
     on = function() return false end,
     set = function() M.request("eva") end,
     status = function()
