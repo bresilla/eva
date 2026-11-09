@@ -1,0 +1,7 @@
+# The Settings window's pages, for MORF_PROFILE.
+start shell
+pause 2
+ipc settings home/device; pause 1.5
+for round in 1 2 3 4; do
+  ipc settings bluetooth; pause 1.2; ipc settings home/device; pause 1.2; ipc settings sound; pause 1.2; ipc settings home/device; pause 1.2
+done

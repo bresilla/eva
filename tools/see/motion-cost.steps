@@ -1,0 +1,14 @@
+# What the moving parts cost a frame: the panel opening, a tile's page coming
+# and going, and the Settings window across, in and out of its pages. Run with
+# MORF_PROFILE=frame_split=0 to have the stages counted in the shell's log.
+export EVA_FAKE_AUDIO=1 EVA_FAKE_STATUS=wifi,bluetooth EVA_FAKE_BATTERY=64,charging
+start shell
+pause 2
+for round in 1 2 3; do
+  ipc sidebar open settings; pause 1.2
+  ipc quick network; pause 1; ipc quick back; pause 1
+  ipc quick sound; pause 1; ipc quick back; pause 1
+  ipc close; pause 1
+  ipc settings home/device; pause 1; ipc settings bluetooth; pause 1; ipc settings home/device; pause 1
+  ipc settings sound; pause 1; ipc settings close; pause 1
+done

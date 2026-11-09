@@ -1,0 +1,8 @@
+# The panel and a tile's page coming and going, for MORF_PROFILE.
+export EVA_FAKE_AUDIO=1 EVA_FAKE_STATUS=wifi,bluetooth EVA_FAKE_BATTERY=64,charging
+start shell
+pause 2
+ipc sidebar open settings; pause 1.5
+for round in 1 2 3 4; do
+  ipc quick network; pause 1.2; ipc quick back; pause 1.2
+done
