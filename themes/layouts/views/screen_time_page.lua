@@ -90,7 +90,8 @@ function V.app(model, w, h)
   local function key() return model.selected:get() end
   return P.page { id = "screen-time-app-scroll", width = w, height = h,
     P.section { id = "screen-time-app-section", width = w, title = "This app",
-      P.row { id = "screen-time-app-today", width = inner, icon = "apps", title = function() return (model.name_of(key())) end,
+      P.row { id = "screen-time-app-today", width = inner, icon = "apps",
+        title = function() local name = model.name_of(key()) return (name or "") ~= "" and name or "No app chosen" end,
         subtitle = function() return model.words(model.used(key())) .. " today" end },
       P.row { id = "screen-time-app-honest", width = inner, icon = "info", title = "A limit warns",
         subtitle = "It can be overridden: a shell cannot stop an app" },

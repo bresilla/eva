@@ -279,11 +279,13 @@ function M.identify()
   require("themes").view("displays_identify").show()
 end
 
---- An output in a line: its name, mode, refresh and scale.
-function M.summary(o)
-  if o.enabled == false then return o.name .. " · Off" end
-  return ("%s · %d×%d at %.0f Hz · %d%%"):format(o.name, o.width or 0, o.height or 0, o.refresh or 0,
+--- An output in a line: its name, mode, refresh and scale; `bare` leaves the
+--- name out, for under a heading that says it.
+function M.summary(o, bare)
+  if o.enabled == false then return bare and "Off" or (o.name .. " · Off") end
+  local line = ("%d×%d at %.0f Hz · %d%%"):format(o.width or 0, o.height or 0, o.refresh or 0,
     math.floor((o.scale or 1) * 100 + 0.5))
+  return bare and line or (o.name .. " · " .. line)
 end
 
 --- `eva-displays --auto`: the profile saved for what is connected, applied.

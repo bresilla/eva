@@ -298,7 +298,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.truthy(test.find { id = "displays-tile-1", visible = true })
     test.truthy(test.find { id = "displays-tile-2", visible = true })
     test.eq(state().selected, "DP-1")
-    test.truthy(test.find { text = "DP-1 · 1920×1080 at 60 Hz · 100%", visible = true }, "the mode is not said")
+    test.truthy(test.find { text = "1920×1080 at 60 Hz · 100%", visible = true }, "the mode is not said")
     test.truthy(test.find { id = "displays-resolution", visible = true })
     test.truthy(test.find { id = "displays-profiles" })
     test.eq(#test.logs("error"), 0)
