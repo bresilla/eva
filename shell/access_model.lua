@@ -68,6 +68,17 @@ function M.new(active, settings)
   function model.set_contrast(on) config.set("appearance.high_contrast", on == true) end
   function model.filter() return get("filter") end
   function model.set_filter(name) config.set("accessibility.filter", name) end
+  -- The colour filters on, by name, for the row that leads to them.
+  local NAMES = { grayscale = "Grayscale", invert = "Invert", reading = "Reading", extradim = "Extra dim",
+    correction = "Correction" }
+  function model.filters_now()
+    local filters = require("quick_hardware").filters()
+    local on = {}
+    for _, id in ipairs(filters.ORDER) do
+      if filters.on(id) then on[#on + 1] = NAMES[id] or id end
+    end
+    return #on > 0 and table.concat(on, ", ") or "Off"
+  end
   function model.zoom() return tonumber(get("zoom")) or 1 end
   function model.set_zoom(value)
     config.set("accessibility.zoom", value)

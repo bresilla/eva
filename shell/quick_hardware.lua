@@ -414,6 +414,16 @@ M.filters = lazily(function()
     write = function(path, text) morf.fs.write(path, text, { mode = 420, parents = true }) end }
   local f = { ORDER = lib.ORDER, CORRECTIONS = lib.CORRECTIONS }
   local timer
+  -- Accessibility's one filter of before becomes these switches.
+  local before = config.get("accessibility.filter")
+  if type(before) == "string" and before ~= "none" and before ~= "" then
+    local was = lib.with({}, before)
+    for _, id in ipairs(lib.ORDER) do
+      if was[id] then config.set("filters." .. id, true) end
+    end
+    if was.correction_kind then config.set("filters.correction_kind", was.correction_kind) end
+    config.set("accessibility.filter", "none")
+  end
   local function set_now()
     local set = { dim = f.dim(), correction_kind = f.correction() }
     for _, id in ipairs(lib.ORDER) do set[id] = config.get("filters." .. id) == true end
