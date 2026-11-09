@@ -1,0 +1,28 @@
+# The right panel, each of its pages, then the Settings home, each category's
+# list and each page, on a full stand-in machine. At the Surface's size the
+# shots show what a page opens on; a tall SCREEN shows each one whole.
+#
+#   SCREEN=2736x1824 SCALE=2 COVER=1 EVA_FAKE_SYSTEM=1 tools/see.sh audit
+export EVA_FAKE_BATTERY=${EVA_FAKE_BATTERY:-64,charging} EVA_FAKE_MODEM=1 EVA_FAKE_HARDWARE=1 EVA_FAKE_HAPTICS=1
+export EVA_FAKE_STATUS=wifi,bluetooth EVA_FAKE_AUDIO=1 EVA_FAKE_BACKUPS=snapper EVA_FAKE_FINGER_STACK=1
+export EVA_FAKE_WEATHER=18:2 EVA_CONTACTS=$SEE_EVA/tests/fixtures/contacts
+export EVA_FAKE_NET=$SEE_EVA/tests/fixtures/net
+start shell
+ipc close; pause 1
+if [ -z "${SETTINGS_ONLY:-}" ]; then
+  ipc utilities open; pause ${WAIT:-3}; shot q-panel
+  for page in $(sed -n 's/^M.KEYS = {\(.*\)/\1/p;/^  "microphone"/p' shell/quick_details.lua | grep -o '"[^"]*"' | tr -d '"'); do
+    ipc quick "$page" > /dev/null; pause ${WAIT:-3}; shot "q-${page//\//-}"
+  done
+  ipc close; pause 1
+fi
+if [ -z "${PAGES:-}" ]; then
+  ipc settings home > /dev/null; pause ${WAIT:-3}; shot s-home
+  for id in $(sed -n 's/^  { id = "\([a-z]*\)", name.*/\1/p' shell/settings_registry.lua); do
+    ipc settings "home/$id" > /dev/null; pause ${WAIT:-3}; shot "c-$id"
+  done
+fi
+for page in ${PAGES:-$(grep -o 'key = "[^"]*"' shell/settings_registry.lua | cut -d'"' -f2)}; do
+  [ "$page" = home ] && continue
+  ipc settings "$page" > /dev/null; pause ${WAIT:-3}; shot "s-${page//\//-}"
+done
