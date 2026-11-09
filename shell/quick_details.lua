@@ -34,13 +34,24 @@ function M.new(settings)
   book.close = settings.close_panel
 
   function book.holds(key) return held[ALIASES[key] or key] == true end
+  -- From the cards, a page is told where it grows from a turn before it opens.
+  local function go(key, from)
+    key = ALIASES[key] or key
+    if key == "" or not held[key] or book.detail:get() ~= "" or not book.before_open then
+      return book.navigation.request(key, from)
+    end
+    book.before_open(key)
+    book.going = key
+    morf.time.timer(1, function() book.going = nil book.navigation.request(key, from) end, false)
+    return true
+  end
   --- Opens `key`: one of the panel's own over the cards, any other in the window.
   function book.request(key, from)
-    if key == nil or key == "" or book.holds(key) then return book.navigation.request(key or "", from) end
+    if key == nil or key == "" or book.holds(key) then return go(key or "", from) end
     return settings.request(key, from)
   end
   function book.open(key)
-    if not book.navigation.request(key or "") then return false end
+    if not go(key or "") then return false end
     local pages = require("pages")
     if not pages.on_show("settings") then pages.open("settings") end
     return true

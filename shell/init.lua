@@ -644,7 +644,7 @@ ipc.quick = function(how)
   local settings = require("utilities")
   local inside = settings.in_panel
   local function state()
-    return { open = pages.on_show("settings"), page = inside.detail:get(), editing = settings.tiles.editing:get() }
+    return { open = pages.on_show("settings"), page = inside.going or inside.detail:get(), editing = settings.tiles.editing:get() }
   end
   if how == "edit" or how == "done" then
     inside.open("")

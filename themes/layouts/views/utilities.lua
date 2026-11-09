@@ -114,8 +114,21 @@ local M={TOGGLES=model.TOGGLES,DETAILS=Q.DETAILS,detail=Q.detail,RADIUS=V.RADIUS
 -- take its width.
 local CARD_W,GAP=w,P.GAP
 local overview_viewport, overview_viewport_node, overview_viewport_t, overview_viewport_ctl
+-- Where a page grows from (M.page reads it): its tile's box over the panel,
+-- taken just before the page opens while the tile is on show; false else.
+local origin = morf.signal("eva.settings.quick.origin", false)
+local tiles_top
+local placed = {}
 local tiles = require("themes").view("quick_tiles").build(model, CARD_W,
-  { viewport = function() return overview_viewport end })
+  { viewport = function() return overview_viewport end,
+    place = function(key, box, shown, height) placed[key] = { box = box, shown = shown, height = height } end })
+function Q.before_open(key)
+  local tile = placed[key]
+  if not (tile and tile.shown() and not model.tiles.editing:get()) then origin:set(false) return end
+  local box, scrolled = tile.box(), overview_viewport and overview_viewport.content_y or 0
+  origin:set({ key = key, x = box.x, y = (tiles_top and tiles_top() or 0) + box.y - scrolled,
+    width = box.width, height = tile.height })
+end
 
 -- ----------------------------------------------------------------- sliders --
 
@@ -197,6 +210,7 @@ end
 local tiles_slot = ui.Item { width = CARD_W,
   y = function() return editing() and 0 or stacked(#cards) end,
   height = tiles.height, behavior = { y = theme.spring.spatial }, tiles.node }
+tiles_top = function() return editing() and 0 or stacked(#cards) end
 --- The page's height: the cards and their gaps.
 function M.height() return (editing() and 0 or stacked(#cards)) + tiles.height() end
 --- Whether its cards have been measured.
@@ -335,21 +349,100 @@ function M.page(w, h)
     id = "quick-detail", width = w, height = h,
     table.unpack(stack),
   }
-  -- The last detail shown stays drawn while it slides away. The pages are
-  -- a Navigation stack: with focus inside, Alt+Left and the back button pop.
-  local shortcuts = Q.navigation.shortcuts()
-  local row = ui.Row { gap = 24, main, detail }
-  -- Under a finger the row is the finger's; on its own it eases there.
-  ui.claims(row, { motion = SWITCH,
+  -- A tile's page grows out of the tile over the cards, which fall back
+  -- under it, and shrinks back into it: the window it shows through and the
+  -- page inside travel on one spring, the page held still on the panel as
+  -- its window opens. Its words come in once the shape is under way and go
+  -- first as it shuts. A page opened another way grows from the middle.
+  local GROW = theme.spring.spatial
+  local function open() return M.detail:get() ~= "" end
+  local function from()
+    local o = origin:get()
+    if o and o.key == M.detail:get() or o and not open() then return o end
+    local pw, ph = type(w) == "function" and w() or w, type(h) == "function" and h() or h
+    return { x = math.floor(pw * .04), y = math.floor(ph * .04), width = math.floor(pw * .92), height = math.floor(ph * .92) }
+  end
+  -- Still shrinking back after the page has gone; still growing a while
+  -- after it came. The window's ground shows only while it moves, so a
+  -- theme's own ground (Tsugumori's grid) is under the page at rest.
+  local closing, words = morf.signal("eva.settings.quick.closing", false), morf.signal("eva.settings.quick.words", open())
+  local growing = morf.signal("eva.settings.quick.growing", false)
+  local settle, arrive, landed
+  local was_open = open()
+  morf.effect("eva.settings.quick.grow", function()
+    local now = open()
+    if now == was_open then return end
+    was_open = now
+    if settle then settle:cancel() end
+    if arrive then arrive:cancel() end
+    if landed then landed:cancel() end
+    settle, arrive, landed = nil, nil, nil
+    if now then
+      closing:set(false)
+      growing:set(true)
+      arrive = morf.time.timer(90, function() arrive = nil words:set(true) end, false)
+      landed = morf.time.timer(450, function() landed = nil growing:set(false) end, false)
+    else
+      words:set(false)
+      growing:set(false)
+      closing:set(true)
+      settle = morf.time.timer(520, function() settle = nil closing:set(false) end, false)
+    end
+  end)
+  -- One motion to a node: the words' fade, the page's mirror of the window,
+  -- the window's shape, and a finger's pull on the whole.
+  local words_node = ui.Item { width = w, height = h, detail }
+  ui.claims(words_node, {
+    a_in = { when = function() return words:get() end, motion = { duration = 200, easing = theme.ease.standard },
+      set = { opacity = 1 } },
+    b_out = { motion = { duration = 60 }, set = { opacity = 0 } } })
+  local inner = ui.Item { width = w, height = h, words_node }
+  local ground = ui.Rect { anchors = { fill = true },
+    color = function() return C.surface end,
+    radius = function() return open() and 0 or kit.round(P.RADIUS) end,
+    behavior = { radius = GROW } }
+  ui.claims(ground, {
+    a_moving = { when = function() return growing:get() or closing:get() or pull() > 0 end, motion = { duration = 0 },
+      set = { opacity = 1 } },
+    b_rest = { motion = theme.spring.effects, set = { opacity = 0 } } })
+  local layer = ui.Item { id = "quick-grow", clip = true, ground, inner }
+  -- The window and the page inside it, mirrored, so the page stays put.
+  local function shape(sign)
+    return {
+      a_open = { when = open, motion = GROW, set = { x = 0, y = 0,
+        width = sign > 0 and w or nil, height = sign > 0 and h or nil } },
+      b_closing = { when = function() return closing:get() end, motion = GROW, set = {
+        x = function() return sign * from().x end, y = function() return sign * from().y end,
+        width = sign > 0 and function() return from().width end or nil,
+        height = sign > 0 and function() return from().height end or nil } },
+      c_rest = { motion = { duration = 0 }, set = {
+        x = function() return sign * from().x end, y = function() return sign * from().y end,
+        width = sign > 0 and function() return from().width end or nil,
+        height = sign > 0 and function() return from().height end or nil } },
+    }
+  end
+  ui.claims(layer, shape(1))
+  ui.claims(inner, shape(-1))
+  -- Under a finger the page is the finger's and the cards show again beneath.
+  local pulled = ui.Item { width = w, height = h, z = 1,
+    visible = function() return open() or closing:get() end, layer }
+  ui.claims(pulled, { motion = SWITCH,
     a_hand = { when = function() return pull() > 0 and not nested() end, motion = { duration = 0 },
-      set = { translate_x = function() return -(w + 24) + pull() end } },
-    b_rest = { set = { translate_x = function() return M.detail:get() == "" and 0 or -(w + 24) end } } })
+      set = { translate_x = pull } },
+    b_rest = { set = { translate_x = 0 } } })
+  ui.claims(main, { motion = theme.spring.effects,
+    a_hand = { when = function() return pull() > 0 and not nested() end, motion = { duration = 0 },
+      set = { opacity = peek, scale = function() return .96 + .04 * peek() end } },
+    b_under = { when = open, set = { opacity = 0, scale = .96 } },
+    c_rest = { set = { opacity = 1, scale = 1 } } })
+  -- The pages are a Navigation stack: with focus inside, Alt+Left and the
+  -- back button pop.
+  local shortcuts = Q.navigation.shortcuts()
   local holder = ui.Item {
     width = w, height = h, clip = true,
     shortcuts = shortcuts,
-    row,
+    main, pulled,
   }
-  -- A pull in from the page's left edge goes back, what it goes back to
   -- showing under the finger; let go early, it stays. Further in, a sideways
   -- drag is the panel's, for its tabs.
   local gesture = require("gesture_motion")
