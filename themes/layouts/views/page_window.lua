@@ -15,7 +15,8 @@ local C, S = theme.color, theme.space
 
 local V = { SHARE = 0.7, NAV_W = 280, PAGE_MAX = 760, MIN_W = 1040, MIN_H = 700, MARGIN = 48 }
 
-local SWITCH = { duration = theme.duration.normal, easing = theme.ease.emphasized_decel }
+-- How pages move: on one spring, a page's width of travel kept short.
+local MOVE, OFF, RISE = theme.spring.spatial, 24, 12
 -- How far in from the page's left edge a pull back may start, and how far it
 -- must go to count.
 local BACK_EDGE, COMMIT = S.xxl + S.s, .35
@@ -45,6 +46,27 @@ local function pages(model, w, h)
     local parent = parents[model.detail:get()] or ""
     return parent ~= "" and parent or nil
   end
+  -- Which way the last move went: "in" to a page below the last, "out" to
+  -- one above it, "across" to another; and the page it left, drawn a moment
+  -- longer as it goes.
+  local way = morf.signal("eva." .. name .. ".window.way", "in")
+  local leaving = morf.signal("eva." .. name .. ".window.leaving", "")
+  local last, gone = model.detail:get(), nil
+  local function holds(route, key)
+    for _, page in ipairs(model.navigation.path(route)) do
+      if page.key == key then return true end
+    end
+    return false
+  end
+  morf.effect("eva." .. name .. ".window.way", function()
+    local now = model.detail:get()
+    if now == last then return end
+    way:set(holds(now, last) and "in" or holds(last, now) and "out" or "across")
+    leaving:set(last)
+    last = now
+    if gone then gone:cancel() end
+    gone = morf.time.timer(theme.duration.small + 80, function() gone = nil leaving:set("") end, false)
+  end)
   -- The pages built so far, a row each: a page is built as it first opens.
   -- Those with actions for the head have a row in `acting` too.
   local built, acting, have = morf.list_model({}), morf.list_model({}), {}
@@ -82,24 +104,42 @@ local function pages(model, w, h)
     local key = row.id
     local function current() return model.detail:get() == key end
     local function peeked() return peek_key() == key end
+    local function going() return leaving:get() == key end
+    -- Where a page waits off show: behind a page gone into, ahead of one come
+    -- back from, below one beside it.
+    local function off_x()
+      local now = way:get()
+      return now == "in" and -OFF or now == "out" and OFF or 0
+    end
+    local function off_y() return way:get() == "across" and RISE or 0 end
+    local first = way:get()
     local node = ui.Item {
       id = name .. "-detail-" .. key, width = w, height = h,
-      visible = function() return current() or peeked() end,
+      visible = function() return current() or peeked() or going() end,
       opacity = function() return current() and 1 or peeked() and .4 + .6 * peek() or 0 end,
       scale = function()
         if current() then return 1 - .06 * peek() end
         return peeked() and .94 + .06 * peek() or 1
       end,
       z = function() return current() and 1 or 0 end,
+      enter = { opacity = 0 },
       behavior = { opacity = { duration = theme.duration.small } },
       ui.Loader { anchors = { fill = true }, active = true, keep = true,
         source = function() return model.page_content(key, w, h) end },
     }
-    -- A page pulled back is the finger's; else it eases in.
-    ui.claims(node, { motion = SWITCH,
+    -- A page pulled back is the finger's; a new one starts a step off its
+    -- place, the way it came; else it springs to its place.
+    local arrived = morf.signal("eva." .. name .. ".window.arrived." .. key, false)
+    morf.time.timer(1, function() arrived:set(true) end, false)
+    ui.claims(node, { motion = MOVE,
       a_hand = { when = function() return pull() > 0 and current() and peek_key() ~= nil end,
         motion = { duration = 0 }, set = { translate_x = pull } },
-      b_rest = { set = { translate_x = function() return (current() or peeked()) and 0 or 20 end } } })
+      b_new = { when = function() return not arrived:get() end, motion = { duration = 0 }, set = {
+        translate_x = first == "in" and OFF or first == "out" and -OFF or 0,
+        translate_y = first == "across" and RISE or 0 } },
+      c_rest = { set = {
+        translate_x = function() return (current() or peeked()) and 0 or off_x() end,
+        translate_y = function() return (current() or peeked()) and 0 or off_y() end } } })
     return node
   end
   -- What a built page puts in the head beside the close control, while on show;
