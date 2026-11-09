@@ -62,7 +62,8 @@ P.SUB = SUB           -- a row's second line, a note
 
 --- A button that fits its label (and icon): `id`, `label`, `icon`,
 --- `on_clicked`, `width` (leave it out: the label's), `selected` (fn),
---- `group`, `tone` ("primary", or a fn giving it, is filled), `color` and
+--- `group`, `short` (the label in a narrow row of buttons), `tone` ("primary",
+--- or a fn giving it, is filled), `color` and
 --- `ink` (fns: a colour of its own, an alert's), `visible`.
 function P.button(spec)
   local label = spec.label or ""
@@ -106,10 +107,14 @@ end
 function P.buttons(spec)
   local items = children(spec)
   local gap = 8
-  -- Too narrow for an icon beside each label: the labels alone.
+  -- Too narrow for an icon beside each label: the labels alone, short ones
+  -- where a button has one.
   local each = ((tonumber(get(spec.width)) or 0) - gap * (#items - 1)) / math.max(1, #items)
   if each < P.ICON_ROOM then
-    for _, item in ipairs(items) do if item.label and item.icon then item.icon = nil end end
+    for _, item in ipairs(items) do
+      if item.label and item.icon then item.icon = nil end
+      if item.short then item.label = item.short end
+    end
   end
   local row = { id = spec.id, gap = gap, align = "center" }
   for i, item in ipairs(items) do

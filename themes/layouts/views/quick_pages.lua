@@ -139,7 +139,7 @@ local FILTERS = {
   { id = "invert", name = "Invert colours", icon = "invert_colors", on = "Light turns dark and dark turns light" },
   { id = "reading", name = "Reading mode", icon = "menu_book", on = "Paper tones, little colour" },
   { id = "extradim", name = "Extra dim", icon = "brightness_low", on = "Darker than the lowest brightness" },
-  { id = "correction", name = "Colour correction", icon = "palette", on = "Colours moved apart for colour blindness" },
+  { id = "correction", name = "Colour correction", icon = "palette", on = "For colour blindness" },
 }
 
 local KINDS = { protanopia = "Protan", deuteranopia = "Deutan", tritanopia = "Tritan" }

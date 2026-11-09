@@ -60,7 +60,8 @@ function M.build(model, w, h)
   -- The power profile: three choices, and what the chosen one is for.
   local choices = { width = inner }
   for _, p in ipairs(model.PROFILES) do
-    choices[#choices + 1] = { id = "power-profile-" .. p.id, icon = p.icon, label = p.name, group = "power-profile",
+    choices[#choices + 1] = { id = "power-profile-" .. p.id, icon = p.icon, label = p.name, short = p.short,
+      accessible_name = p.name, group = "power-profile",
       selected = function() return active() == p.id end, on_clicked = function() model.select(p.id) end,
       enabled = function() return model.supports(p.id) end }
   end

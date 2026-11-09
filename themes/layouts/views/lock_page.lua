@@ -47,7 +47,7 @@ function V.build(model, w, h)
     switch("weather", "cloud", "Weather"),
     switch("avatar", "account_circle", "Your picture"),
     switch("name", "badge", "Your name"),
-    switch("clock.twelve_hour", "schedule", "Twelve-hour clock"),
+    switch("clock.twelve_hour", "schedule", "12-hour clock"),
     F.choices { id = "lock-set-clock-position", width = inner, icon = "vertical_align_top", title = "Clock",
       choices = { { "centre", "Centre" }, { "top", "Top" } }, enabled = model.free("clock.position"),
       read = function() return model.get("clock.position") end,
@@ -133,7 +133,8 @@ function V.build(model, w, h)
     P.row { id = "lock-set-pattern", width = inner, icon = "pattern", title = "Pattern",
       subtitle = "Draw or type one before the password", trailing = P.chevron(),
       on_clicked = function() require("utilities").request("lock/pattern") end },
-    P.row { id = "lock-set-readers", width = inner, icon = "fingerprint", title = "Readers", trailing = P.chevron(),
+    P.row { id = "lock-set-readers", width = inner, icon = "fingerprint", title = "Readers",
+      subtitle = "How many tries a reader gets", trailing = P.chevron(),
       on_clicked = function() require("utilities").request("lock/more") end },
   }
 

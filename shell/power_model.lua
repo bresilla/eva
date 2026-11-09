@@ -3,9 +3,9 @@ local morf=require("morf")
 local services=require("services")
 local M={}
 M.PROFILES={
-  {id="power-saver",icon="energy_savings_leaf",name="Power saver",hint="Longest battery"},
+  {id="power-saver",icon="energy_savings_leaf",name="Power saver",short="Saver",hint="Longest battery"},
   {id="balanced",icon="balance",name="Balanced",hint="The default"},
-  {id="performance",icon="rocket_launch",name="Performance",hint="Fastest, hottest"},
+  {id="performance",icon="rocket_launch",name="Performance",short="Fast",hint="Fastest, hottest"},
 }
 function M.new(active,open_battery)
   local model=require("battery_model").new {opened=active}
