@@ -22,7 +22,6 @@ local theme = require("theme")
 local kit = require("kit")
 local rows = require("themes.layouts.rows")
 local P = require("themes.layouts.page")
-local disclosure = require("lib.kit.archetypes.disclosure")
 
 local M = {}
 
@@ -88,33 +87,36 @@ local channels_open = require("themes.session").keep("eva.sound.channels_open", 
 --- The default device's channels, each its own slider, under an expander that
 --- remembers being shut: `prefix` names them.
 local function channels_expander(prefix)
-  local channels = {}
+  local function count() local s = sink() return s and s.channels or 0 end
+  local function open() return channels_open:get() end
+  local channels = { width = INNER, gap = P.ROW_GAP }
   for i = 1, MAX_CHANNELS do
-    local function count() local s = sink() return s and s.channels or 0 end
     local function name()
-      if count() == 2 then return i == 1 and "L" or "R" end
+      if count() == 2 then return i == 1 and "Left" or "Right" end
       return tostring(i)
     end
-    channels[i] = ui.Row {
-      gap = 8, align = "center",
+    channels[i] = kit.slider {
+      id = prefix .. "-channel-" .. i, width = INNER,
       visible = function() return count() > 1 and i <= count() end,
-      kit.text { width = 18, text = name, horizontal_alignment = "center",
-        font_size = theme.size.small, font_weight = 600, color = kit.ink("lo") },
-      kit.slider {
-        id = prefix .. "-channel-" .. i, width = INNER - 26,
-        accessible_name = function() return "Channel " .. name() end,
-        value = function() local s = sink() return s and s.volumes and s.volumes[i] or 0 end,
-        set = function(v) model.set_channel(i, v) end,
-      },
+      accessible_name = function() return "Channel " .. name() end,
+      value = function() local s = sink() return s and s.volumes and s.volumes[i] or 0 end,
+      set = function(v) model.set_channel(i, v) end,
+      reading = function(v) return ("%s %d%%"):format(name(), math.floor(v * 100 + 0.5)) end,
     }
   end
-  return (disclosure.make("expander", {
-    id = prefix .. "-channels", title = "Channels", width = INNER, header_height = 34,
+  local list = ui.Column(channels)
+  local turn = kit.icon("expand_more", 22, kit.ink("lo"), { width = 22, height = 22,
+    rotation = function() return open() and 180 or 0 end, behavior = { rotation = theme.spring.fast } })
+  return ui.Column { id = prefix .. "-channels", width = INNER,
     visible = function() local s = sink() return s ~= nil and (s.channels or 0) > 1 end,
-    expanded = function() return channels_open:get() end,
-    on_toggled = function(open) if open ~= channels_open:get() then channels_open:set(open) end end,
-    content = ui.Column { gap = P.ROW_GAP, table.unpack(channels) },
-  }))
+    P.row { id = prefix .. "-channels-header", width = INNER, icon = "surround_sound", title = "Channels",
+      subtitle = function() return count() == 2 and "Left and right apart" or ("%d, each apart"):format(count()) end,
+      on = open, trailing = ui.Item { width = 22 - 5, height = 22, turn },
+      on_clicked = function() channels_open:set(not open()) end },
+    ui.Item { width = INNER, clip = true, behavior = { height = theme.spring.spatial },
+      height = function() return open() and (list.layout_height or 0) + P.ROW_GAP or 0 end,
+      ui.Item { y = P.ROW_GAP, width = INNER, list } },
+  }
 end
 
 local function output_section()
@@ -125,9 +127,9 @@ local function output_section()
         if not available() then return "No sound server" end
         local s = sink() return s and name_of(s) or "No output selected"
       end,
-      subtitle = function() local s = sink() return s and ("%d%%"):format(math.floor(s.volume * 100 + 0.5)) or "" end,
+      subtitle = function() local s = sink() return s and (s.muted and "Muted" or "The default output") or "" end,
       trailing = mute_button("sound-output-mute", sink, "volume_off", "volume_up", "Mute output") },
-    ui.Column { width = INNER, gap = 4, visible = available,
+    ui.Column { width = INNER, gap = P.ROW_GAP, visible = available,
       kit.slider {
         id = "sound-output-volume", width = INNER, accessible_name = "Output volume",
         value = function() local s = sink() return s and s.volume or 0 end,
@@ -343,7 +345,7 @@ local function input_section()
         if not available() then return "No sound server" end
         local s = source() return s and name_of(s) or "No input selected"
       end,
-      subtitle = function() local s = source() return s and ("%d%%"):format(math.floor(s.volume * 100 + 0.5)) or "" end,
+      subtitle = function() local s = source() return s and (s.muted and "Muted" or "The default input") or "" end,
       trailing = mute_button("sound-input-mute", source, "mic_off", "mic", "Mute input") },
     kit.slider {
       id = "sound-input-volume", width = INNER, accessible_name = "Input volume", visible = available,
