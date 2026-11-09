@@ -219,3 +219,15 @@ for _,style in ipairs {"material","tsugumori"} do
     test.eq(#test.logs("error"),0)
   end)
 end
+
+test.it("Sound's Microphone opens where Sound is: in the panel from the panel",function()
+  load()
+  test.click("utilities-more-sound") test.settle(900)
+  test.eq(state().quick,"sound")
+  test.click("sound-input") test.settle(900)
+  test.eq(state().quick,"microphone","Microphone did not open in the panel")
+  test.falsy(state().window,"Microphone opened the Settings window")
+  test.click("quick-back") test.settle(900)
+  test.eq(state().quick,"sound","Back from Microphone did not return to Sound")
+  test.eq(#test.logs("error"),0)
+end)

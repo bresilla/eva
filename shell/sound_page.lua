@@ -19,12 +19,16 @@ function M.input_model()
   if not model.cards then require("sound_extras_model").extend(model) end
   return model
 end
-function M.output_page(w,h)
-  local model=M.output_model()
-  model.open_equalizer=function() require("utilities").request("sound/equalizer") end
-  model.open_more=function() require("utilities").request("sound/more") end
-  model.open_input=function() require("utilities").request("microphone","sound") end
-  return view.build(model,w,h)
+--- The Sound page on `host` (the Settings window or the panel): Microphone
+--- opens where Sound is on show, the rest in the window.
+function M.output_page(w,h,host)
+  local function settings() return require("utilities") end
+  local page=setmetatable({
+    open_equalizer=function() settings().request("sound/equalizer") end,
+    open_more=function() settings().request("sound/more") end,
+    open_input=function() (host or settings()).request("microphone","sound") end,
+  },{__index=M.output_model()})
+  return view.build(page,w,h)
 end
 -- What restarting the sound server last said, "" before it is asked.
 local restarted=require("morf").signal("eva.sound.restarted","")
