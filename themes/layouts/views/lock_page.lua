@@ -116,7 +116,7 @@ function V.build(model, w, h)
     switch("readers", "fingerprint", "Fingerprint and face", "Off asks for the password every time"),
     switch("power_buttons", "power_settings_new", "Power buttons on the lock", "Anyone at the screen can turn it off"),
     F.choices { id = "lock-set-blank", width = inner, icon = "monitor", title = "Screen off while locked",
-      choices = { { 0, "Never" }, { 30, "30 s" }, { 60, "1 m" }, { 300, "5 m" } }, enabled = model.free("blank_after"),
+      choices = { { 0, "Never" }, { 30, "30 s" }, { 60, "1 min" }, { 300, "5 min" } }, enabled = model.free("blank_after"),
       read = function() return model.get("blank_after") end,
       set = function(seconds) model.set("blank_after", seconds) end },
     line("force_layout", "Keyboard layout for the password, such as us"),

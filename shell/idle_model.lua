@@ -19,7 +19,7 @@ M.STAGES = {
   { id = "suspend", name = "Suspend", icon = "bedtime", choices = { 0, 900, 1800, 3600, 7200 } },
 }
 M.DIM_CHOICES = { 0, 5, 10, 30 }
-M.AWAKE_CHOICES = { { label = "15 m", seconds = 900 }, { label = "1 h", seconds = 3600 }, { label = "4 h", seconds = 14400 } }
+M.AWAKE_CHOICES = { { label = "30 min", seconds = 1800 }, { label = "1 h", seconds = 3600 }, { label = "2 h", seconds = 7200 } }
 
 M.awake = kept.keep("eva.utilities.awake", false)
 local awake_until = kept.keep("eva.utilities.awake_until", 0)

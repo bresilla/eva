@@ -267,7 +267,7 @@ return function(theme, M)
   local function slider(t, spec)
     local H = spec.bar_height or 44
     local function W() return math.max(1,get(spec.width) or t.width) end
-    local reading_width=spec.reading and 64 or 40
+    local reading_width=spec.reading and 64 or 48
     local function label_width() return math.min(reading_width,math.max(1,W()-H-28)) end
     -- On a short rail the moving reading and icon would meet halfway.
     -- Reserve a separate readout there; wide sliders keep the embedded one.
@@ -336,7 +336,7 @@ return function(theme, M)
         -- `reading(position)`: what it says instead of its percent.
         text = function()
           if spec.reading then return spec.reading(clamp01(t.position)) end
-          return ("%d"):format(math.floor(clamp01(t.position) * 100 + 0.5))
+          return ("%d%%"):format(math.floor(clamp01(t.position) * 100 + 0.5))
         end,
         font_size = H >= 40 and theme.size.normal or theme.size.small,
         color = function() return in_fill() and C().onPrimary or C().onSurfaceVariant end }

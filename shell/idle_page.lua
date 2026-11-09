@@ -10,9 +10,9 @@ function M.span(seconds)
   seconds = tonumber(seconds) or 0
   if seconds <= 0 then return "Never" end
   if seconds % 3600 == 0 then return ("%d h"):format(seconds // 3600) end
-  if seconds >= 3600 then return ("%d h %d m"):format(seconds // 3600, (seconds % 3600) // 60) end
-  if seconds % 60 == 0 then return ("%d m"):format(seconds // 60) end
-  if seconds >= 60 then return ("%d m %d s"):format(seconds // 60, seconds % 60) end
+  if seconds >= 3600 then return ("%d h %d min"):format(seconds // 3600, (seconds % 3600) // 60) end
+  if seconds % 60 == 0 then return ("%d min"):format(seconds // 60) end
+  if seconds >= 60 then return ("%d min %d s"):format(seconds // 60, seconds % 60) end
   return ("%d s"):format(seconds)
 end
 
@@ -23,7 +23,10 @@ function M.model(active)
 
   function model.managed(stage) return idle.managed(stage) ~= nil end
   function model.seconds(stage) return idle.seconds(stage) end
-  function model.chosen(stage) return tonumber(config.get("idle." .. stage)) or 0 end
+  function model.chosen(stage)
+    if model.managed(stage) then return idle.seconds(stage) end
+    return tonumber(config.get("idle." .. stage)) or 0
+  end
   function model.set_stage(stage, seconds) if not model.managed(stage) then set("idle." .. stage, seconds) end end
   function model.dim() return tonumber(config.get("idle.dim")) or 0 end
   function model.set_dim(seconds) set("idle.dim", seconds) end

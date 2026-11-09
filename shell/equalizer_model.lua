@@ -138,7 +138,7 @@ morf.effect("eva.equalizer.prescription",function()
     trim=cfg.get(mode..".trim"),per_ear=cfg.get(mode..".per_ear")}
   local ok,curve=pcall(function() return morf.audio.equalizer_curve(opts) end)
   if ok then M.curve:set(curve)
-  else M.curve:set(nil) M.error:set("Equalizer unavailable: update Morf or check saved profile values.") end
+  else M.curve:set(nil) M.error:set("The equalizer needs a newer morf, or a saved profile is broken") end
 end)
 morf.effect("eva.equalizer.lifecycle",function()
   local owns=primary() local enabled=cfg.get("enabled") local curve=M.curve:get()

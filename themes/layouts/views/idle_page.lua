@@ -24,8 +24,8 @@ function V.build(model, w, h)
   local awake = { { false, "Off" } }
   for _, choice in ipairs(model.AWAKE_CHOICES) do awake[#awake + 1] = { choice.seconds, choice.label } end
   awake[#awake + 1] = { true, "On" }
-  local keep = P.section { id = "idle-keep", width = w, title = "Keep awake",
-    F.choices { id = "idle-awake", width = inner, icon = "coffee", title = "Stay awake", choices = awake,
+  local keep = P.section { id = "idle-keep", width = w,
+    F.choices { id = "idle-awake", width = inner, icon = "coffee", title = "Keep awake", choices = awake,
       subtitle = model.awake_note,
       read = function()
         if not model.awake() then return false end

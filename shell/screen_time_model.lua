@@ -12,7 +12,7 @@ local M = {}
 
 -- Seconds between looks, the days kept, and the minutes "more" gives.
 M.TICK, M.DAYS_KEPT, M.MORE = 30, 30, 15
-M.LIMITS = { { 0, "None" }, { 15, "15 m" }, { 30, "30 m" }, { 60, "1 h" }, { 120, "2 h" } }
+M.LIMITS = { { 0, "None" }, { 15, "15 min" }, { 30, "30 min" }, { 60, "1 h" }, { 120, "2 h" } }
 M.PERIODS = { { 1, "Today" }, { 2, "Yesterday" }, { 7, "7 days" } }
 local EVERY_DAY = { 1, 2, 3, 4, 5, 6, 7 }
 
