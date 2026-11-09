@@ -63,23 +63,7 @@ end
 
 --- Registers `model`'s pages, tiles and controls.
 function M.register(model)
-  local page_names = {}
-  local listed = {}
-  for _, entry in ipairs(require("settings_registry").list()) do listed[entry.key] = entry end
-  for _, page in ipairs(model.DETAILS) do
-    page_names[page.key] = page.name
-    local entry = listed[page.key] or {}
-    index.register { id = "setting:" .. page.key, name = page.name, tag = "Setting",
-      keywords = (M.KEYWORDS[page.key] or "") .. " " .. (entry.keywords or ""),
-      description = "Settings", material = entry.icon or "settings", kind = "menu", run = opener(page.key),
-      present = function() return model.page_fits(page.key) end }
-  end
-  for _, control in ipairs(M.CONTROLS) do
-    if page_names[control[2]] then
-      index.register { id = "setting:" .. control[2] .. ":" .. control[1], name = control[1], keywords = control[3], tag = "Setting",
-        description = "Settings  ·  " .. page_names[control[2]], material = control[4], kind = "menu", run = opener(control[2]) }
-    end
-  end
+  -- A tile first: of a tile and a page with one name, the tile switches in place.
   for _, tile in ipairs(model.TOGGLES) do
     local live = model.CONTROLS[tile.id] or tile
     local status = read(live.status)
@@ -99,6 +83,23 @@ function M.register(model)
       end,
       actions = tile.detail and { { name = "Open its page", material = "open_in_new", run = opener(tile.detail) } } or nil,
     }
+  end
+  local page_names = {}
+  local listed = {}
+  for _, entry in ipairs(require("settings_registry").list()) do listed[entry.key] = entry end
+  for _, page in ipairs(model.DETAILS) do
+    page_names[page.key] = page.name
+    local entry = listed[page.key] or {}
+    index.register { id = "setting:" .. page.key, name = page.name, tag = "Setting",
+      keywords = (M.KEYWORDS[page.key] or "") .. " " .. (entry.keywords or ""),
+      description = "Settings", material = entry.icon or "settings", kind = "menu", run = opener(page.key),
+      present = function() return model.page_fits(page.key) end }
+  end
+  for _, control in ipairs(M.CONTROLS) do
+    if page_names[control[2]] then
+      index.register { id = "setting:" .. control[2] .. ":" .. control[1], name = control[1], keywords = control[3], tag = "Setting",
+        description = "Settings  ·  " .. page_names[control[2]], material = control[4], kind = "menu", run = opener(control[2]) }
+    end
   end
 end
 
