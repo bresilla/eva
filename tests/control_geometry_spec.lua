@@ -107,7 +107,7 @@ for _,style in ipairs {"material","tsugumori"} do
     end
     test.eq(#test.logs("error"),0)
   end)
-  test.it(style.." page buttons fill an uneven row and keep long labels inside each button",function()
+  test.it(style.." page buttons wrap rather than cut a long label, each button whole",function()
     load(style,[[
       ui.Item {x=24,y=24,width=320,height=60,
         P.buttons {width=320,
@@ -116,9 +116,9 @@ for _,style in ipairs {"material","tsugumori"} do
           {id="last",label="Last"}}}
     ]])
     local first,middle,last=test.get("first"),test.get("middle"),test.get("last")
-    test.near(last.x+last.width,first.x+320,.01,"Button row leaves a trailing gap")
-    test.near(middle.x-first.x-first.width,8,.01)
-    test.near(last.x-middle.x-middle.width,8,.01)
+    test.near(first.width,320,.01,"a label too long for a third of the row did not wrap")
+    test.near(middle.y-first.y-first.height,8,.01,"wrapped rows do not keep the row gap")
+    test.near(last.x,first.x,.01,"wrapped rows do not share a left edge")
     local by_handle={}
     for _,node in ipairs(test.nodes()) do by_handle[node.handle]=node end
     for _,node in ipairs(test.nodes()) do

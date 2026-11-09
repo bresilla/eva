@@ -61,16 +61,18 @@ local function name_of(d) return d and (d.description or d.name) or "?" end
 local function device_row(id_prefix, row, icon)
   local function live() return model.device(row) end
   local function chosen() local d = live() return d ~= nil and d.default == true end
-  return rows.choice {
-    id = id_prefix .. "-" .. math.floor(row.id), group = id_prefix,
-    width = INNER, height = P.ROW_H, on = chosen, enter = kit.enter(), exit = kit.leave(),
+  -- Its ground reaches past the card's content edges, as a pressable row's.
+  return ui.Item { width = INNER, height = P.ROW_H, rows.choice {
+    id = id_prefix .. "-" .. math.floor(row.id), group = id_prefix, x = -P.ROW_REACH,
+    width = INNER + 2 * P.ROW_REACH, height = P.ROW_H, on = chosen, enter = kit.enter(), exit = kit.leave(),
     on_clicked = function() model.select_device(row) end,
-    P.row { width = INNER, on = chosen, icon = icon,
-      title = function() return name_of(live()) end,
-      subtitle = function() return chosen() and "In use" or "Not in use" end,
-      trailing = kit.icon(function() return chosen() and "radio_button_checked" or "radio_button_unchecked" end, 22,
-        rows.ink(chosen, false, theme.color.onSurfaceVariant)) },
-  }
+    ui.Item { x = P.ROW_REACH, width = INNER, height = P.ROW_H,
+      P.row { width = INNER, on = chosen, icon = icon,
+        title = function() return name_of(live()) end,
+        subtitle = function() return chosen() and "In use" or "Not in use" end,
+        trailing = kit.icon(function() return chosen() and "radio_button_checked" or "radio_button_unchecked" end, 22,
+          rows.ink(chosen, false, theme.color.onSurfaceVariant)) } },
+  } }
 end
 
 local function volume_icon()

@@ -75,14 +75,11 @@ end
 --- A labelled line of text: `id`, `width`, `title`, `value` (fn), `set` (fn), saved
 --- as it is typed.
 function F.text(spec)
-  local node = kit.text_field("entry", { id = spec.id, x = 10, y = 3, width = spec.width - 20, height = 30,
-    font_family = theme.font, font_size = theme.size.small, placeholder = spec.title, text = spec.value(),
-    read_only = spec.enabled and function() return not spec.enabled() end or nil,
-    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
-    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(.25) end,
-    on_text_changed = spec.set })
-  return kit.surface { width = spec.width, height = 36, radius = kit.round(10),
-    color = function() return C.surfaceContainerHighest end, node }
+  local box, input = P.field { id = spec.id, width = spec.width, placeholder = spec.title }
+  input.text = spec.value() or ""
+  if spec.enabled then input.read_only = function() return not spec.enabled() end end
+  input.on_text_changed = spec.set
+  return box
 end
 
 return F

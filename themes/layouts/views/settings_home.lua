@@ -191,7 +191,7 @@ function M.navigation(model, w, h)
     handle.text = ""
   end
   local function go(entry) clear() model.request(entry.key, registry.HOME) end
-  box, handle = P.field { id = name .. "-search", kind = "search", width = w, placeholder = hint,
+  box, handle = P.field { id = name .. "-search", kind = "search", width = w - S.s, placeholder = hint,
     on_changed = function(value) query:set(value) end,
     on_accepted = function() local first = results()[1] if first then go(first) end end,
     on_escape = clear }

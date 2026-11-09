@@ -44,7 +44,7 @@ local function awake_section(w, awake, switch)
   end
   local box, input
   local function keep() if awake.say(awake.draft:get()) then input.text = "" end end
-  box, input = P.field { id = "awake-words", width = inner - KEEP - S.s, placeholder = "45 min, 2 h, until 18:30",
+  box, input = P.field { id = "awake-words", width = inner - KEEP - S.s, placeholder = "45 min, 2 h, 18:30",
     on_changed = function(value) awake.draft:set(value) end, on_accepted = keep }
   local words = inner - DIAL - S.l
   return P.section { id = "focus-awake", width = w, title = "Keep awake", switch,
@@ -121,17 +121,12 @@ end
 
 --- A one-line field the card's width, starting from `text()`, sending `set(value)`.
 local function field(w, id, placeholder, text, set)
-  local node, input = kit.text_field("entry", { id = id, x = 10, y = 3, width = w - 20, height = 30,
-    font_family = theme.font, font_size = theme.size.small, placeholder = placeholder,
-    color = function() return C.onSurface end, placeholder_color = function() return C.onSurfaceVariant end,
-    caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(.25) end,
-    on_text_changed = set })
+  local box, input = P.field { id = id, width = w, placeholder = placeholder, on_changed = set }
   morf.effect("eva.focus.field." .. id, function()
     local now = text()
     if input.text ~= now then input.text = now end
-  end, { owner = node })
-  return kit.surface { width = w, height = 36, radius = kit.round(10),
-    color = function() return C.surfaceContainerHighest end, node }
+  end, { owner = box })
+  return box
 end
 
 function V.mode(model, w, h)
@@ -157,7 +152,7 @@ function V.mode(model, w, h)
     choices(w, "focus-urgency", "Urgency", model.URGENCY, get("allow.urgency"), set("allow.urgency"), 2),
     flag("calls", "call", "Calls", "A second call within 15 min always rings", "allow.calls"),
     flag("alarms", "alarm", "Alarms", "Alarm notifications come through", "allow.alarms"),
-    caption(w, "People: names in a title, separated by commas"),
+    caption(w, "People, separated by commas"),
     field(inner, "focus-people", "Ada, Grace", function() return model.words("allow.people") end,
       function(value) model.set_words("allow.people", value) end),
     caption(w, "Apps", function() return #model.apps() > 0 end),

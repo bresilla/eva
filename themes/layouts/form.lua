@@ -96,7 +96,14 @@ end
 --- `items` ({ key, icon, name }), `now` (fn), `pick(key)`, `enabled`,
 --- `visible`.
 function F.choices(spec)
-  local per_row = spec.per_row or 4
+  -- One count across every row, so no row wraps on its own.
+  local labels = {}
+  for i, item in ipairs(spec.items) do labels[i] = item[3] end
+  local wanted = math.min(spec.per_row or 4, #spec.items)
+  local per_row = P.fit(spec.width, labels, wanted)
+  if per_row < wanted then
+    for f = per_row, 2, -1 do if #spec.items % f == 0 then per_row = f break end end
+  end
   local lines = { width = spec.width, gap = S.s, visible = spec.visible }
   local row
   for index, item in ipairs(spec.items) do

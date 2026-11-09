@@ -12,8 +12,9 @@ local V = {}
 local ROWS = 12
 
 -- A time of day to type, under what it is.
-local function time_field(model, id, key, title, inner)
+local function time_field(model, id, key, title, inner, on_key)
   return ui.Column { id = id, width = inner, gap = theme.space.xs,
+    opacity = function() return config.get(on_key) == true and 1 or 0.45 end,
     kit.subtitle { id = id .. "-label", width = inner, font_size = P.SUB, color = kit.ink("lo"), text = title },
     F.text { id = id .. "-field", width = inner, title = title, value = function() return config.get(key) end,
       set = function(text) model.set_time(key, text) end } }
@@ -67,16 +68,16 @@ function V.build(model, w, h)
     P.section { id = "screen-time-downtime", width = w, title = "Downtime",
       flag("screen-time-downtime-on", "wellbeing.downtime.on", "do_not_disturb_on", "Downtime on a schedule",
         "Apps you did not allow get a warning"),
-      time_field(model, "screen-time-downtime-from", "wellbeing.downtime.from", "Starts", inner),
-      time_field(model, "screen-time-downtime-to", "wellbeing.downtime.to", "Ends", inner),
+      time_field(model, "screen-time-downtime-from", "wellbeing.downtime.from", "Starts", inner, "wellbeing.downtime.on"),
+      time_field(model, "screen-time-downtime-to", "wellbeing.downtime.to", "Ends", inner, "wellbeing.downtime.on"),
     },
     P.section { id = "screen-time-bedtime", width = w, title = "Bedtime",
       flag("screen-time-bedtime-on", "wellbeing.bedtime.on", "bedtime", "Bedtime on a schedule",
         "The screen winds down for the night"),
       flag("screen-time-bedtime-grey", "wellbeing.bedtime.grayscale", "filter_b_and_w", "Grey screen", "Colours off till the morning"),
       flag("screen-time-bedtime-quiet", "wellbeing.bedtime.quiet", "notifications_paused", "Sleep mode", "Turns on the Sleep focus"),
-      time_field(model, "screen-time-bedtime-from", "wellbeing.bedtime.from", "Starts", inner),
-      time_field(model, "screen-time-bedtime-to", "wellbeing.bedtime.to", "Ends", inner),
+      time_field(model, "screen-time-bedtime-from", "wellbeing.bedtime.from", "Starts", inner, "wellbeing.bedtime.on"),
+      time_field(model, "screen-time-bedtime-to", "wellbeing.bedtime.to", "Ends", inner, "wellbeing.bedtime.on"),
     },
     P.section { id = "screen-time-forget", width = w, title = "What is kept",
       P.buttons { id = "screen-time-forget-buttons", width = inner,

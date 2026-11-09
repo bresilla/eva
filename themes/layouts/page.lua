@@ -89,11 +89,14 @@ function P.button(spec)
     opacity = function() return get(spec.enabled)==false and .45 or 1 end,
     checkable = spec.group ~= nil or nil, group = spec.group, checked = spec.group and spec.selected or nil,
     on_clicked = spec.on_clicked,
+    -- A button that cannot be pressed loses its tone with the rest of it.
     color = spec.color or function()
+      if get(spec.enabled) == false then return C.surfaceContainerHighest end
       if (spec.selected and spec.selected()) or primary() then return C.primary end
       return C.surfaceContainerHighest
     end,
     ink = spec.ink or function()
+      if get(spec.enabled) == false then return C.onSurface end
       if (spec.selected and spec.selected()) or primary() then return C.onPrimary end
       return C.onSurface
     end }
@@ -104,9 +107,40 @@ end
 
 --- A row of buttons sharing `width` evenly: `width`, then the buttons'
 --- specs in the array part (each P.button's, `width` left out).
+--- How many of buttons labelled `labels` stand side by side in `width`, at
+--- most `most`, with none of the labels cut.
+function P.fit(width, labels, most)
+  local menu = theme.typography and theme.typography.menu
+  local widest = 0
+  for _, label in ipairs(labels) do
+    local text = tostring(get(label) or "")
+    widest = math.max(widest, utf8.len(text) * (menu or theme.size.normal) * (menu and 0.62 or 0.5) + 32)
+  end
+  local fit, room = most, tonumber(get(width)) or 0
+  if room <= 0 then return most end
+  while fit > 1 and (room - 8 * (fit - 1)) / fit < widest do fit = fit - 1 end
+  return fit
+end
+
 function P.buttons(spec)
   local items = children(spec)
   local gap = 8
+  -- Where the longest label would be cut, the buttons wrap into even rows.
+  local labels = {}
+  for i, item in ipairs(items) do labels[i] = item.label end
+  local fit, room = P.fit(spec.width, labels, #items), tonumber(get(spec.width)) or 0
+  if fit < #items and room > 0 then
+    local even = nil
+    for f = fit, 2, -1 do if #items % f == 0 then even = f break end end
+    fit = even or (#items <= 3 and 1 or fit)
+    local column = { id = spec.id, width = spec.width, gap = S.s, visible = spec.visible }
+    for first = 1, #items, fit do
+      local part = { width = spec.width }
+      for i = first, math.min(#items, first + fit - 1) do part[#part + 1] = items[i] end
+      column[#column + 1] = P.buttons(part)
+    end
+    return ui.Column(column)
+  end
   -- Too narrow for an icon beside each label: the labels alone, short ones
   -- where a button has one.
   local each = ((tonumber(get(spec.width)) or 0) - gap * (#items - 1)) / math.max(1, #items)
@@ -366,12 +400,14 @@ function P.header(spec)
     row.y = function() return math.floor((line() - (row.layout_height or 0)) / 2) end
   end
   local can_back = spec.can_back or function() return spec.back ~= nil end
-  local function lead() return can_back() and P.BUTTON_H + S.xs or 0 end
+  -- The arrow centres on the cards' row icons and the title starts where their words do.
+  local BACK_X = P.PAD + 11 - math.floor(P.BUTTON_H / 2)
+  local function lead() return can_back() and P.PAD + P.ROW_TEXT_X or 0 end
   local function text_w() return math.max(1e-3, get(w) - lead() - (row and (row.layout_width or 0) + 12 or 0)) end
   local back
   if spec.back then
     back = kit.action { id = spec.back_id or (spec.id and spec.id .. "-back"), accessible_name = "Back",
-      width = P.BUTTON_H, height = P.BUTTON_H, cursor = "pointer", y = function() return math.floor((line() - P.BUTTON_H) / 2) end,
+      width = P.BUTTON_H, height = P.BUTTON_H, cursor = "pointer", x = BACK_X, y = function() return math.floor((line() - P.BUTTON_H) / 2) end,
       on_clicked = spec.back, visible = can_back,
       kit.icon("arrow_back", 22, kit.ink("hi"), { anchors = { center_in = true } }) }
     kit.hover(back, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)

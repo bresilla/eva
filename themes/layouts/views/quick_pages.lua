@@ -25,8 +25,8 @@ end
 
 --- `node` dimmed while its feature's switch `on` is off: it still sets
 --- what the feature takes up once on.
-local function waiting(node, on)
-  return ui.Column { opacity = function() return on() and 1 or 0.45 end,
+local function waiting(node, on, visible)
+  return ui.Column { visible = visible, opacity = function() return on() and 1 or 0.45 end,
     behavior = { opacity = { duration = theme.duration.small } }, node }
 end
 
@@ -134,7 +134,7 @@ function V.flashlight_page(model, w, h)
         subtitle = says(torch.status, "The camera's light, as a torch"),
         trailing = P.switch { id = "settings-flashlight-switch", name = "Flashlight", on = on,
           on_toggled = function(now) torch.set(now) end } },
-      named(inner, "Strength", strength, torch.dims),
+      waiting(named(inner, "Strength", strength, torch.dims), on, torch.dims),
       kit.subtitle { id = "settings-flashlight-note", width = inner, wrap = true, font_size = P.SUB,
         visible = function() return not torch.dims() end, text = "This light has one strength." },
     },

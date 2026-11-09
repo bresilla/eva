@@ -122,7 +122,7 @@ function V.page(model, w, h)
   }
 
   local system_node, system_input = kit.text_field("text_area", {
-    id = "assistant-system", x = S.m, y = S.xs, width = inner - 2 * S.m, height = SYSTEM_H - 2 * S.xs,
+    id = "assistant-system", width = inner, height = SYSTEM_H, well = true, inset = { S.m, S.s, S.m, S.s },
     font_family = theme.font, font_size = theme.size.normal, color = function() return C.onSurface end,
     placeholder = "How the assistant should answer", placeholder_color = function() return C.onSurfaceVariant end,
     caret_color = function() return C.primary end, selection_color = function() return C.primary:alpha(0.3) end,
@@ -153,7 +153,7 @@ function V.page(model, w, h)
       color = kit.ink("lo"), text = function() return said:get() end, visible = function() return said:get() ~= "" end },
     P.section { id = "assistant-behaviour", width = w, title = "Behaviour",
       ui.Column { width = inner, gap = S.xs, widgets.label("System prompt"),
-        R.well { width = inner, height = SYSTEM_H, system_node } },
+        system_node },
       P.row { id = "assistant-history", width = inner, icon = "history", title = "Keep conversations", on = history,
         subtitle = function() return history() and "On this machine, in plain JSON" or "Nothing is written to disk" end,
         trailing = P.switch { id = "assistant-history-switch", name = "Keep conversations", on = history,

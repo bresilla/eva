@@ -330,7 +330,10 @@ function M.page(w, h)
     kit.icon(function() return editing() and "check" or "edit" end, 22, kit.ink("hi"), { anchors = { center_in = true } }) }
   kit.hover(pencil, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
   -- More settings: the page on show, whole, in the Settings window.
-  local more = P.button { id = "quick-more", label = "More settings", icon = "open_in_new",
+  -- On a phone's sheet its icon alone, so the page's name keeps the room.
+  local narrow = require("responsive").sheets()
+  local more = P.button { id = "quick-more", label = not narrow and "More settings" or nil, icon = "open_in_new",
+    accessible_name = "More settings", width = narrow and P.BUTTON_H or nil,
     visible = function() return M.detail:get() ~= "" end, on_clicked = Q.more }
   M.head = {
     -- Over the tiles the panel's tab names it already, where tabs have names.
