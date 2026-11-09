@@ -329,7 +329,7 @@ function M.updates_page(model, w, h)
       title = function()
         local m = manager()
         if not m.name then return "" end
-        return (m.name:gsub("^%l", string.upper))
+        return ({ apt = "APT", dnf = "DNF", flatpak = "Flatpak" })[m.name] or m.name
       end,
       subtitle = function()
         local m = manager()

@@ -145,7 +145,7 @@ end
 --- Seconds as a person reads them.
 function M.words(seconds)
   local minutes = math.floor((seconds or 0) / 60)
-  if minutes < 1 then return (seconds or 0) > 0 and "Under a minute" or "None" end
+  if minutes < 1 then return (seconds or 0) > 0 and "Under a minute" or "0 min" end
   if minutes < 60 then return minutes .. " min" end
   local rest = minutes % 60
   return (minutes // 60) .. " h" .. (rest > 0 and " " .. rest .. " min" or "")

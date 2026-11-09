@@ -77,13 +77,17 @@ function M.field(spec)
     children[#children + 1] = spec.content
   elseif kit.text then
     local hi, lo = kit.ink and kit.ink("hi"), kit.ink and kit.ink("lo")
-    children[#children + 1] = kit.text { x = x, anchors = { vertical_center = true },
-      width = math.max(1, W - x - 34), elide = "right", text = spec.text, font_size = spec.text_size,
+    -- At a row's end the value stands against the arrow, as a row's reading does.
+    local bare = spec.variant == "select"
+    children[#children + 1] = kit.text { x = bare and 0 or x, anchors = { vertical_center = true },
+      width = math.max(1, W - (bare and 0 or x) - (bare and 20 or 34)), elide = "right", text = spec.text,
+      font_size = spec.text_size, horizontal_alignment = bare and "right" or nil,
       color = (hi and lo) and function() return (spec.placeholder and spec.placeholder()) and lo() or hi() end or nil }
   end
   if kit.icon then
+    -- Bare, the arrow's ink meets the right edge, where a switch's would.
     children[#children + 1] = ui.Item { width = 20, height = 20,
-      anchors = { right = true, right_margin = 8, vertical_center = true },
+      anchors = { right = true, right_margin = spec.variant == "select" and -5 or 8, vertical_center = true },
       rotation = function() return spec.open and spec.open() and 180 or 0 end,
       behavior = { rotation = { duration = 200, easing = "out_cubic" } },
       kit.icon(spec.chevron or "expand_more", 20, kit.ink and kit.ink("lo")) }

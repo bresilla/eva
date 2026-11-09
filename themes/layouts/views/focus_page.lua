@@ -160,7 +160,7 @@ function V.mode(model, w, h)
   for slot = 1, APPS do
     local function row() return model.apps()[slot] end
     local function on() local r = row() return r ~= nil and model.has("allow.apps", r.key) end
-    allow[#allow + 1] = P.row { id = "focus-app-" .. slot, width = inner, icon = "apps", on = on, height = 48,
+    allow[#allow + 1] = P.row { id = "focus-app-" .. slot, width = inner, icon = "apps", on = on,
       visible = function() return row() ~= nil end, title = function() local r = row() return r and r.name or "" end,
       trailing = P.switch { id = "focus-app-switch-" .. slot, name = "Allow app", on = on,
         on_toggled = function() local r = row() if r then model.flip("allow.apps", r.key) end end } }

@@ -32,7 +32,7 @@ function F.choices(spec)
     lines[#lines + 1] = P.buttons(buttons)
   end
   -- With an icon or a line under it, a row heads the choices; else a caption.
-  local head = (spec.icon or spec.subtitle) and P.row { id = spec.id .. "-row", width = spec.width, height = 44,
+  local head = (spec.icon or spec.subtitle) and P.row { id = spec.id .. "-row", width = spec.width,
     icon = spec.icon, title = spec.title, subtitle = spec.subtitle }
     or kit.subtitle { id = spec.id .. "-row", width = spec.width, wrap = true, font_size = P.SUB, text = spec.title,
       color = kit.ink("lo") }

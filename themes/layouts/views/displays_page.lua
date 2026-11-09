@@ -167,12 +167,12 @@ function M.monitor(model, w)
   local ICONS = { ["displays-resolution"] = "aspect_ratio", ["displays-refresh"] = "speed", ["displays-scale"] = "zoom_in",
     ["displays-rotation"] = "screen_rotation", ["displays-mirror"] = "screen_share" }
   local function row(id, title, control, visible)
-    return P.row { id = id, width = inner, height = S.TARGET + S.m, icon = ICONS[id], title = title, visible = visible,
+    return P.row { id = id, width = inner, icon = ICONS[id], title = title, visible = visible,
       trailing = ui.Item { width = FIELD, height = S.TARGET, control } }
   end
   local function combo(id, items, current, on_changed)
     return (composites.combo_box {
-      id = id, width = FIELD, height = S.TARGET, items = items, current = current, variant = "dropdown",
+      id = id, width = FIELD, height = S.TARGET, items = items, current = current, variant = "select",
       on_changed = on_changed,
     })
   end
@@ -279,7 +279,7 @@ function M.monitor(model, w)
     },
     resolution, rate, scale, rotation,
     P.row {
-      id = "displays-vrr", width = inner, height = S.TARGET + S.s, title = "Variable refresh rate",
+      id = "displays-vrr", width = inner, icon = "motion_blur", title = "Variable refresh rate",
       trailing = P.switch {
         id = "displays-vrr-switch", name = "Variable refresh rate",
         on = function() local o = model.output() return o ~= nil and o.vrr end,

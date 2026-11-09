@@ -30,7 +30,7 @@ function V.build(model, w, h)
   local apps = { id = "screen-time-apps", width = w, title = "Apps",
     F.choices { id = "screen-time-period", width = inner, title = "How far back", choices = model.PERIODS,
       read = function() return model.period:get() end, set = function(value) model.period:set(value) end },
-    P.row { id = "screen-time-total", width = inner, height = 44, icon = "hourglass_top", title = "In all",
+    P.row { id = "screen-time-total", width = inner, icon = "functions", title = "In all",
       subtitle = function()
         local _, total = model.shown()
         return model.words(total)
