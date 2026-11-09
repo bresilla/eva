@@ -78,7 +78,7 @@ test.it("settings detail titles and editor titles begin when their own page appe
   decoded("settings-page-title","MICROPHONE")
   test.truthy(test.get("sound-title-input").visible)
   for _,case in ipairs {
-    {"network","settings-page-title","NETWORK"},
+    {"network","settings-page-title","WI-FI"},
     {"bluetooth","settings-page-title","BLUETOOTH"},
     {"power","settings-page-title","POWER"},
     {"bar","settings-page-title","BAR"},

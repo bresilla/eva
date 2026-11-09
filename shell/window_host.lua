@@ -34,15 +34,15 @@ function M.new(book)
   local name = book.name
   local phone = responsive.form() == "phone"
   local HOME = book.registry.HOME
-  local parents = {}
-  for _, d in ipairs(book.DETAILS) do parents[d.key] = d.parent or "" end
+  local listing = {}
+  for _, category in ipairs(book.registry.CATEGORIES or {}) do listing[category.key] = true end
 
   -- Whether the page on show stands one level into another page, its parent's
-  -- or the one it was opened from: not the home, nor a category of it.
+  -- or the one it was opened from: not the home, nor a category's list.
   local function nested()
     local path = book.navigation.path(book.detail:get())
     local above = path[#path - 1]
-    return above ~= nil and above.key ~= HOME and parents[above.key] ~= HOME
+    return above ~= nil and above.key ~= HOME and not listing[above.key]
   end
 
   -- What the screen's top keeps for itself on a phone: a cutout there.

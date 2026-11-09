@@ -5,9 +5,11 @@ local morf = require("morf")
 local session = require("themes.session")
 local M = {}
 
---- The panel's pages; one whose parent is among them goes back to it.
+--- The panel's pages, and the few that go back to another of them; the rest
+--- go back to the cards, as their tiles open them.
 M.KEYS = { "network", "bluetooth", "wired", "mobile", "mesh", "tunnel", "hotspot", "sound", "sounds",
   "microphone", "power", "focus", "focus/mode", "screen_time", "nightlight", "flashlight", "filters" }
+local PARENTS = { sounds = "sound", ["focus/mode"] = "focus" }
 local ALIASES = { tor = "tunnel" }
 
 --- The panel's book over the settings model `settings`, which answers for it
@@ -18,8 +20,7 @@ function M.new(settings)
   for _, key in ipairs(M.KEYS) do held[key] = true end
   book.DETAILS = {}
   for index, key in ipairs(M.KEYS) do
-    local page = settings.registry.BY_KEY[key]
-    book.DETAILS[index] = { key = key, name = page.name, parent = held[page.parent or ""] and page.parent or nil }
+    book.DETAILS[index] = { key = key, name = settings.registry.BY_KEY[key].name, parent = PARENTS[key] }
   end
   book.detail = session.keep("eva.settings.quick.detail", "")
   book.displayed = session.keep("eva.settings.quick.displayed", "")

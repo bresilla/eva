@@ -19,7 +19,7 @@ end
 -- Each page, and words only its service can have put there: a page that fails
 -- to read, or a binding that dies, leaves them out.
 local PAGES = {
-  { "home", "Connections" }, { "network", "Home" }, { "network/connection", "192.168.1.23/24" }, { "network/proxy", "Proxy" },
+  { "home", "Network" }, { "network", "Home" }, { "network/connection", "192.168.1.23/24" }, { "network/proxy", "Proxy" },
   { "network/help", "Check for sign-in pages" }, { "backups", "No backup tool here" }, { "backups/more", "Repository" },
   { "welcome", "Make it yours" },
   { "bluetooth", "Pixel Buds Pro" }, { "displays", "eDP-1 · 2560×1600 at 60 Hz · 150%" }, { "sound", "Built-in speakers" },
@@ -73,7 +73,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     end
     test.eq(#problems, 0, table.concat(problems, "\n"))
     open("home")
-    open("home/device")
+    open("home/system")
     local row = test.accessible { id = "settings-open-storage-press" }[1] or test.accessible { name = "Storage" }[1]
     test.truthy(row, "no accessible row for Storage")
     test.accessible_action(row, "click")

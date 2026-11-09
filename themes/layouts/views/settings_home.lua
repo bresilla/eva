@@ -26,6 +26,7 @@ end
 --- The first pages of `category` this machine has, for its row.
 function M.names(model, category)
   local registry = book(model)
+  if category.only then return (registry.BY_KEY[category.only] or {}).summary or "" end
   local names = {}
   for _, entry in ipairs(registry.category(category.id)) do
     if model.page_present(entry.key) then names[#names + 1] = entry.name end
@@ -101,7 +102,8 @@ function M.build(model, w, h)
   for _, category in ipairs(registry.CATEGORIES) do
     categories[#categories + 1] = P.row { id = name .. "-category-" .. category.id, width = inner, icon = category.icon,
       title = category.name, subtitle = function() return M.names(model, category) end, trailing = P.chevron(),
-      on_clicked = function() open(category) end }
+      visible = function() return M.has(model, category) end,
+      on_clicked = function() M.go(model, category) end }
   end
 
   local page = { id = name .. "-home-scroll", width = w, height = h, active = model.active,
@@ -153,22 +155,32 @@ function M.place(key, registry)
   end
 end
 
-local NAV_ROW, NAV_PAGE = 40, 34
+local NAV_ROW = 40
+
+--- Whether this machine has any of `category`'s pages.
+function M.has(model, category)
+  local registry = book(model)
+  for _, entry in ipairs(registry.category(category.id)) do
+    if model.page_present(entry.key) then return true end
+  end
+  return false
+end
+
+--- Opens `category`: its one page, or the list of its pages.
+function M.go(model, category)
+  local registry = book(model)
+  model.request(registry.entry and registry.entry(category) or category.key, registry.HOME)
+end
 
 --- A desk's way round the window, beside the page: the search over every page
---- and what each holds, then the categories, the one on show open on its
---- pages. `model`: `detail` (the route), `request`, `page_present`,
---- `searching` (fn: the search takes focus while it holds).
+--- and what each holds, then the categories, still and in one list, the one
+--- holding the page on show marked. `model`: `detail` (the route), `request`,
+--- `page_present`, `searching` (fn: the search takes focus while it holds).
 function M.navigation(model, w, h)
   local registry, name, hint = book(model)
   local query = morf.signal("eva." .. name .. ".nav.query", "")
-  local open = morf.signal("eva." .. name .. ".nav.open", "")
   local function route() return model.detail:get() end
   local function place(key) return M.place(key, registry) end
-  morf.effect("eva." .. name .. ".nav.follow", function()
-    local category = place(route())
-    if category then open:set(category) end
-  end)
   local results = finder(model, registry, query)
   local function searching() return query:get():find("%S") ~= nil end
   local box, handle
@@ -192,45 +204,37 @@ function M.navigation(model, w, h)
   local list = { id = name .. "-nav", width = rw, gap = S.xxs, visible = function() return not searching() end }
   local placed = {}
   for _, category in ipairs(registry.CATEGORIES) do
-    local function chosen() return route() == category.key end
-    local function unfolded() return open:get() == category.id end
+    local function chosen() return place(route()) == category.id end
     local ink = rows.ink(chosen)
     list[#list + 1] = rows.choice { id = name .. "-nav-" .. category.id, width = rw, height = NAV_ROW, on = chosen,
-      on_clicked = function()
-        if unfolded() and chosen() then open:set("") return end
-        open:set(category.id)
-        model.request(category.key, registry.HOME)
-      end,
+      group = name .. "-nav", visible = function() return M.has(model, category) end,
+      on_clicked = function() M.go(model, category) end,
       kit.icon(category.icon, 20, ink, { x = S.m, anchors = { vertical_center = true } }),
-      label(category.name, S.m + 20 + S.m, theme.size.normal, ink),
-      kit.icon(function() return unfolded() and "expand_less" or "expand_more" end, 20, kit.ink("lo"),
-        { anchors = { right = true, right_margin = S.s, vertical_center = true } }) }
-    placed[category.key] = list[#list]
-    for _, entry in ipairs(registry.category(category.id)) do
-      local function marked() local _, key = place(route()) return key == entry.key end
-      local mark = rows.ink(marked)
-      list[#list + 1] = rows.choice { id = name .. "-nav-page-" .. entry.key:gsub("/", "-"), width = rw,
-        height = NAV_PAGE, on = marked,
-        visible = function() return unfolded() and model.page_present(entry.key) end,
-        on_clicked = function() model.request(entry.key, category.key) end,
-        kit.icon(entry.icon, 18, mark, { x = S.m + S.l, anchors = { vertical_center = true } }),
-        label(entry.name, S.m + S.l + 18 + S.m, theme.size.small + 1, mark) }
-      placed[entry.key] = list[#list]
-    end
+      label(category.name, S.m + 20 + S.m, theme.size.normal, ink) }
+    placed[category.id] = list[#list]
   end
   local body_h = function() return math.max(1, (type(h) == "function" and h() or h) - 36 - S.m) end
   local scroll, flick = kit.scroll { id = name .. "-nav-scroll", width = w, height = body_h, clip = true,
     ui.Column { width = w, gap = S.s, ui.Column(list),
       ui.Column { width = w, gap = P.ROW_GAP, visible = searching, found } } }
-  -- The row the route marks scrolls into sight, once its category has opened.
+  -- The row the route marks scrolls into sight, where the window is too short
+  -- for every category: its place counted from the rows above it.
+  local function offset(id)
+    local y = 0
+    for _, category in ipairs(registry.CATEGORIES) do
+      if category.id == id then return y end
+      if M.has(model, category) then y = y + NAV_ROW + S.xxs end
+    end
+  end
   morf.effect("eva." .. name .. ".nav.reveal", function()
-    local category, key = place(route())
-    local row = placed[key or ""] or placed[category and (registry.HOME .. "/" .. category) or ""]
-    if not (row and flick) then return end
+    local id = place(route())
+    if not (id and placed[id] and flick) then return end
     morf.time.timer(theme.duration.small, function()
-      local y, rh, at = row.layout_y or 0, row.layout_height or 0, flick.content_y or 0
+      local y, at = offset(id), flick.content_y or 0
+      local view = flick.layout_height or body_h()
+      if not y or view <= 0 then return end
       if y < at then flick.content_y = y
-      elseif y + rh > at + body_h() then flick.content_y = y + rh - body_h() end
+      elseif y + NAV_ROW > at + view then flick.content_y = y + NAV_ROW - view end
     end, false)
   end)
   -- (A turn later: a panel stepping aside hands focus back as it shuts.)

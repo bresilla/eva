@@ -36,12 +36,41 @@ end
 --- Completes `book` (`HOME`, `CATEGORIES`, `PAGES`): a page for each category
 --- under the home, `BY_KEY`, and the functions below. Returns it.
 function M.new(book)
+  -- A category's pages hang under it; a category of one page is that page,
+  -- under the home itself (`category.only`).
+  local first, count = {}, {}
+  for _, page in ipairs(book.PAGES) do
+    if page.category then
+      count[page.category] = (count[page.category] or 0) + 1
+      first[page.category] = first[page.category] or page.key
+    end
+  end
   for _, category in ipairs(book.CATEGORIES) do
     category.key = book.HOME .. "/" .. category.id
+    category.only = count[category.id] == 1 and first[category.id] or nil
     book.PAGES[#book.PAGES + 1] = { key = category.key, name = category.name, icon = category.icon, parent = book.HOME }
+  end
+  local by_id = {}
+  for _, category in ipairs(book.CATEGORIES) do by_id[category.id] = category end
+  for _, page in ipairs(book.PAGES) do
+    local category = page.category and by_id[page.category]
+    if category and not page.parent then page.parent = category.only and book.HOME or category.key end
   end
   book.BY_KEY = {}
   for _, page in ipairs(book.PAGES) do book.BY_KEY[page.key] = page end
+
+  --- The route a category opens: its one page, or the list of its pages.
+  function book.entry(category) return category.only or category.key end
+
+  --- The way down to the last of `path` (a navigation's), the home left
+  --- out: "Network / Wi-Fi".
+  function book.trail(path)
+    local names = {}
+    for index = 1, #path - 1 do
+      if path[index].key ~= book.HOME then names[#names + 1] = path[index].name end
+    end
+    return table.concat(names, " / ")
+  end
 
   --- The category's pages, in order.
   function book.category(id)

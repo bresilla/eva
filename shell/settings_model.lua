@@ -567,7 +567,7 @@ M.navigation=require("lib.shell.settings.pages").new(M.DETAILS,M.detail,{tor="tu
 M.navigation.on_back=function() require("themes.layouts.page").hold_place() end
 -- How far a page has been pulled back under a finger, in pixels.
 M.peek=morf.signal("eva.settings.peek",0)
-M.breadcrumb=M.navigation.breadcrumb
+function M.breadcrumb() return M.registry.trail(M.navigation.path(M.detail:get())) end
 --- The quick controls' own pages, opened in their panel (shell/quick_details.lua).
 M.in_panel=require("quick_details").new(M)
 function M.overview() return M.quick:get() and M.in_panel.displayed:get()=="" end

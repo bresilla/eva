@@ -25,7 +25,7 @@ for index, page in ipairs(M.registry.PAGES) do
 end
 M.navigation = require("lib.shell.settings.pages").new(M.DETAILS, M.detail, nil, "Tools")
 M.navigation.on_back = function() require("themes.layouts.page").hold_place() end
-M.breadcrumb = M.navigation.breadcrumb
+function M.breadcrumb() return M.registry.trail(M.navigation.path(M.detail:get())) end
 
 function M.present(key) if key == M.detail:get() then M.displayed:set(key) end end
 

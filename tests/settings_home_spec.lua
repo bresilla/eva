@@ -15,6 +15,11 @@ local function load(style, size)
 end
 
 local function open() return test.ipc("settings", "state").open end
+-- Whether the way round marks row `id` as the category on show.
+local function marked(id)
+  local row = test.accessible({ id = id })[1]
+  return row ~= nil and row.checked == true
+end
 
 for _, style in ipairs { "material", "tsugumori" } do
   test.it(style .. ": the panel's All settings opens the window beside its way round", function()
@@ -24,15 +29,21 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.falsy(test.find { id = "drawer-sidebar", visible = true }, "the panel stayed under the window")
     test.truthy(test.find { id = "settings-index", visible = true }, "no index of every page beside the way round")
     test.truthy(test.find { id = "settings-nav-system", visible = true }, "no System category")
-    test.falsy(test.find { id = "settings-nav-page-bluetooth", visible = true }, "a shut category shows its pages")
-    test.click("settings-nav-connections") test.settle(900)
-    test.truthy(test.find { id = "settings-category-page-connections", visible = true }, "a category opens its page")
-    test.click("settings-nav-page-bluetooth") test.settle(900)
+    test.falsy(test.find { id = "settings-nav-page-bluetooth" }, "the way round lists pages, not categories")
+    test.click("settings-nav-device") test.settle(900)
+    test.truthy(test.find { id = "settings-category-page-device", visible = true }, "a category of many opens their list")
+    test.click("settings-open-bluetooth") test.settle(900)
     test.truthy(test.find { id = "bluetooth-scroll", visible = true })
     test.falsy(test.find { id = "settings-back", visible = true }, "a page beside the way round has a way back")
+    test.truthy(marked("settings-nav-device"), "the way round does not mark Bluetooth's category")
+    -- A category of one page opens it.
+    test.click("settings-nav-sound") test.settle(900)
+    test.eq(test.ipc("settings", "state").page, "sound", "a category of one page did not open it")
     -- A page one level into another goes back to it.
     test.ipc("settings", "bar/tray") test.settle(900)
-    test.truthy(test.find { id = "settings-nav-page-bar", visible = true }, "the way round did not open on Eva")
+    test.truthy(marked("settings-nav-shell"), "the way round does not mark Desktop")
+    test.truthy(test.find { text = "Desktop / Bar", visible = true },
+      "the trail does not lead from the category")
     test.click("settings-back") test.settle(900)
     test.eq(test.ipc("settings", "state").page, "bar", "Back from a nested page goes to its parent")
     test.key("Escape") test.settle(900)
@@ -45,18 +56,23 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.click("utilities-all-settings") test.settle(900)
     test.truthy(test.find { id = "settings-home", visible = true })
     test.falsy(test.find { id = "settings-navigation", visible = true }, "a phone has no way round beside the page")
-    test.click("settings-category-connections") test.settle(900)
+    test.click("settings-category-device") test.settle(900)
     test.click("settings-open-bluetooth") test.settle(900)
     test.truthy(test.find { id = "bluetooth-scroll", visible = true })
     test.click("settings-back") test.settle(900)
-    test.truthy(test.find { id = "settings-category-page-connections", visible = true }, "Back from a page goes to its category")
+    test.truthy(test.find { id = "settings-category-page-device", visible = true }, "Back from a page goes to its category")
     test.click("settings-back") test.settle(900)
     test.truthy(test.find { id = "settings-home", visible = true }, "Back from a category goes home")
     test.falsy(test.find { id = "settings-back", visible = true }, "home has a way back")
-    -- A page a tile opens goes back home.
+    -- A category of one page opens it, and Back goes home from it.
+    test.click("settings-category-sound") test.settle(900)
+    test.eq(test.ipc("settings", "state").page, "sound", "a category of one page did not open it")
+    test.click("settings-back") test.settle(900)
+    test.truthy(test.find { id = "settings-home", visible = true }, "Back from a category's one page goes home")
+    -- A page a tile opens goes back up its category.
     test.ipc("settings", "bluetooth") test.settle(900)
     test.click("settings-back") test.settle(900)
-    test.truthy(test.find { id = "settings-home", visible = true }, "A deep link goes back home")
+    test.truthy(test.find { id = "settings-category-page-device", visible = true }, "A deep link goes back to its category")
     test.click("settings-close") test.settle(900)
     test.falsy(open(), "the close control left it open")
     test.eq(#test.logs("error"), 0)
@@ -91,7 +107,7 @@ for _, style in ipairs { "material", "tsugumori" } do
     test.type("firewall") test.settle(300)
     test.key("Return") test.settle(900)
     test.truthy(test.find { id = "firewall-scroll", visible = true }, "Enter opens the first result")
-    test.truthy(test.find { id = "settings-nav-page-firewall", visible = true }, "the way round does not mark it")
+    test.truthy(marked("settings-nav-privacy"), "the way round does not mark its category")
   end)
 
   test.it(style .. ": on a phone the window holds the same home, the whole screen", function()

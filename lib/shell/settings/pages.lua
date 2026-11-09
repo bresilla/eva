@@ -25,21 +25,23 @@ function M.new(pages, selected, aliases, root)
     end
   end
   local tree={pages=pages}
-  -- The page each parentless page was opened from, while the route lasts.
+  -- The page each page was opened from, while the route lasts.
   local via={}
-  --- Opens `key`. `from` is the page Back returns to, for a page with no
-  --- parent of its own.
+  --- Opens `key`. `from` is the page Back returns to, before its parent.
   function tree.request(key,from)
     key=(aliases or {})[key] or key
     if key~="" and not by_key[key] then return false end
     if key~="" then via[key]=from~=key and by_key[from or ""] and from or nil end
     selected:set(key) if tree.follow then tree.follow() end return true
   end
+  -- A page opened from another goes back to it, before its own parent.
   function tree.path(key)
-    local path={}
-    while by_key[key] do
+    local path,seen={},{}
+    while by_key[key] and not seen[key] do
+      seen[key]=true
       table.insert(path,1,by_key[key])
-      key=by_key[key].parent or via[key] or ""
+      local from=via[key]
+      key=(from and not seen[from]) and from or by_key[key].parent or ""
     end
     return path
   end
