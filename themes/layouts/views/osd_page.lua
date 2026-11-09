@@ -115,7 +115,7 @@ function M.build(model, w, h)
     P.section { id = "osd-place", width = w, title = "Position",
       P.row { id = "osd-chosen", width = inner, icon = function() return model.kind().icon end, title = title,
         subtitle = function() return WORDS[model.position()] or "" end,
-        trailing = P.button { id = "osd-try", label = "Try", icon = "play_arrow", tone = "primary",
+        trailing = P.button { id = "osd-try", label = "Try", icon = "play_arrow",
           on_clicked = model.try } },
       preview(model, inner),
     },

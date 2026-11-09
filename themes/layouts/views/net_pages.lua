@@ -8,14 +8,13 @@ local P=require("themes.layouts.page")
 local M={}
 
 --- A link's row: its icon, name and state, and the button that brings it
---- up or down (the primary one while it is down).
+--- up or down.
 local function link_row(w, spec)
   local trailing
   if spec.toggle then
     trailing = P.button {
       id = spec.id .. "-switch", width = 120,
       label = function() return spec.on() and (spec.off_word or "Disconnect") or (spec.on_word or "Connect") end,
-      tone = function() return spec.on() and "plain" or "primary" end,
       enabled = function() return spec.can == nil or spec.can() end,
       on_clicked = function() spec.toggle(not spec.on()) end,
     }
