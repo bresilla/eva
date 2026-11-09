@@ -46,9 +46,17 @@ end
 
 --- Words under a section's controls, wrapped to `width`: `id`, `text`,
 --- `color`, `visible`.
+-- A note of one sentence reads as a caption, without its full stop; one of
+-- several keeps every stop.
+local function caption_of(text)
+  if type(text) ~= "string" or text:find("[%.!?] ") or text:find("%.%.%.$") then return text end
+  return (text:gsub("%.$", ""))
+end
+
 function F.note(width, text, spec)
   spec = spec or {}
-  local node = kit.subtitle { id = spec.id, width = width, wrap = true, font_size = P.SUB, text = text,
+  local said = caption_of(text)
+  local node = kit.subtitle { id = spec.id, width = width, wrap = true, font_size = P.SUB, text = said,
     color = spec.color or kit.ink("lo") }
   if spec.visible then node.visible = spec.visible end
   return node

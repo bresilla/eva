@@ -10,8 +10,8 @@ local page_model = require("page_model")
 
 local M = {}
 
-M.TEXT = { { 1, "text_fields", "Normal" }, { 1.15, "text_increase", "Large" }, { 1.3, "text_increase", "Larger" },
-  { 1.5, "text_increase", "Largest" } }
+M.TEXT = { { 1, false, "Normal" }, { 1.15, false, "Large" }, { 1.3, false, "Larger" },
+  { 1.5, false, "Largest" } }
 
 local function get(key) return config.get("accessibility." .. key) end
 

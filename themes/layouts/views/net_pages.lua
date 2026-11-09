@@ -27,10 +27,7 @@ local function link_row(w, spec)
 end
 
 local function note(w, text, visible)
-  local n = kit.subtitle { width = w, wrap = true, font_size = P.SUB, text = text,
-    color = kit.ink("lo") }
-  if visible then n.visible = visible end
-  return n
+  return require("themes.layouts.form").note(w, text, { visible = visible })
 end
 
 local function entry(model,w,row)

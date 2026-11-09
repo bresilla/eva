@@ -8,8 +8,8 @@ local WIRED={activated="Connected",disconnected="Disconnected",unavailable="No c
   config="Connecting",ip_config="Getting an address",need_auth="Needs a password",deactivating="Disconnecting",failed="Failed"}
 local TOR={off="Off",starting="Starting",on="Running",stopping="Stopping",failed="Could not start"}
 local NOTES={
-  wired="Every wired port NetworkManager looks after: a laptop's own, a dock's, a Thunderbolt link.",
-  mesh="ZeroTier's own command needs root to list its networks: it is shown by its link, and switched with zerotier-cli.",
+  wired="Every wired port NetworkManager looks after: a laptop's own, a dock's, a Thunderbolt link",
+  mesh="ZeroTier's own command needs root to list its networks: it is shown by its link, and switched with zerotier-cli",
   tunnel="Proton VPN's app keeps its connections in NetworkManager, with the other VPNs; its command-line client shows here once installed",
   tor="Starting it runs the system's tor service until it is stopped or the machine restarts; it is never enabled, so every boot is without it. Point a browser or an app at the SOCKS proxy to go through it.",
 }

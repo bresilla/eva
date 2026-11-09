@@ -11,7 +11,9 @@ local S = theme.space
 
 local M = {}
 
-local PICKER_H = 300
+-- The search, then whole rows of families: none is cut through.
+local ROWS = 5
+local PICKER_H = 40 + 8 + ROWS * (S.xxl + S.l)
 local PREVIEW_H = 180
 
 local function preview(model, w)

@@ -21,8 +21,10 @@ local function choices(w, spec)
     row[#row + 1] = { id = spec.group .. "-" .. c[1], icon = c[2], label = c[3], group = spec.group,
       selected = function() return spec.now() == c[1] end, on_clicked = function() spec.pick(c[1]) end }
   end
-  return P.section { id = spec.group, caption_id = spec.caption_id, width = w, title = spec.title, P.buttons(row),
-    spec.note and require("themes.layouts.form").note(P.inner(w), spec.note) or nil }
+  local section = { id = spec.group, caption_id = spec.caption_id, width = w, title = spec.title, P.buttons(row) }
+  if spec.note then section[#section + 1] = require("themes.layouts.form").note(P.inner(w), spec.note) end
+  if spec.after then section[#section + 1] = spec.after end
+  return P.section(section)
 end
 
 --- A row with a switch: `id`, `icon`, `name`, what it says, how to set it.
@@ -75,18 +77,13 @@ function M.build(model, w, h)
       items = model.shows, now = model.mode, pick = model.set_mode,
       note = "Auto puts the bar up on a phone or a narrow screen, and keeps it down on a desk." }),
     choices(w, { group = "bar-side", caption_id = "bar-heading-position", title = "Position",
-      items = model.sides, now = model.side, pick = model.set_side }),
-    P.section { id = "bar-more", width = w,
-      P.row { id = "bar-more-open", width = P.inner(w), icon = "rounded_corner", title = "Screen shape",
+      items = model.sides, now = model.side, pick = model.set_side,
+      after = P.row { id = "bar-more-open", width = P.inner(w), icon = "rounded_corner", title = "Screen shape",
         subtitle = "Rounded corners and a cutout",
-        trailing = P.chevron(), on_clicked = function() require("utilities").request("bar/more") end } },
+        trailing = P.chevron(), on_clicked = function() require("utilities").request("bar/more") end } }),
     choices(w, { group = "bar-titles", caption_id = "bar-heading-window-titles", title = "Window titles",
       items = { { "on", "title", "Shown" }, { "off", "apps", "Icons only" } },
       now = model.titles, pick = model.set_titles }),
-    P.section { id = "bar-fold", width = w,
-      P.row { id = "bar-fold-open", width = P.inner(w), icon = "more_horiz", title = "When the bar is full",
-        subtitle = "What folds first, and what never shows",
-        trailing = P.chevron(), on_clicked = function() require("utilities").request("bar/fold") end } },
     P.section { id = "bar-clock-settings", caption_id = "bar-heading-clock", width = w, title = "Clock",
       toggle(w, "bar-clock-seconds", "timer", "Seconds", model.seconds, model.set_seconds),
     },
@@ -96,7 +93,10 @@ function M.build(model, w, h)
     choices(w, { group = "bar-height", caption_id = "bar-heading-height", title = "Height",
       items = model.heights, now = model.height, pick = model.set_height }),
     P.section { id = "bar-status-settings", caption_id = "bar-heading-status", width = w, title = "Status",
-      toggle(w, "bar-percent", "percent", "Battery percentage", model.percent, model.set_percent) },
+      toggle(w, "bar-percent", "percent", "Battery percentage", model.percent, model.set_percent),
+      P.row { id = "bar-fold-open", width = P.inner(w), icon = "more_horiz", title = "When the bar is full",
+        subtitle = "What folds first, and what never shows",
+        trailing = P.chevron(), on_clicked = function() require("utilities").request("bar/fold") end } },
   }
   local bar = model.bar_model()
   if bar then
