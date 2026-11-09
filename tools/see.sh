@@ -6,7 +6,9 @@
 #   SCREEN=868x1932 TOUCH=1 STYLE=material MODE=light tools/see.sh quick
 #
 # SOFT=1 draws without the GPU: sway on pixman, morf on the Vulkan driver
-# VK_ICD_FILENAMES names (Mesa's lavapipe, lvp_icd.x86_64.json).
+# VK_ICD_FILENAMES names (Mesa's lavapipe, lvp_icd.x86_64.json). CAGE=PATH (a
+# cage binary, with SOFT=1) runs sway as the one window of a headless cage, a
+# session of its own; its screen is cage's, 1280x720, whatever SCREEN says.
 #
 # SCREEN is the output, STYLE the visual theme, MODE dark or light, TOUCH=1 a
 # machine with a touchscreen and no keyboard, COVER=1 one with both. OUT overrides
@@ -22,6 +24,7 @@ NAME=${1:?usage: tools/see.sh SCENARIO}
 STEPS=$EVA/tools/see/$NAME.steps
 [ -f "$STEPS" ] || { echo "no scenario $STEPS" >&2; exit 1; }
 SCREEN=${SCREEN:-1920x1080}
+[ -n "${CAGE:-}" ] && SCREEN=1280x720
 STYLE=${STYLE:-tsugumori}
 MODE=${MODE:-dark}
 OUT=${OUT:-$EVA/.see/$NAME-$STYLE-$MODE-$SCREEN}
@@ -49,7 +52,7 @@ setsid env -i \
   LULE_A="$HOME_DIR/.cache/lule" EVA_APPEARANCE="$HOME_DIR/.config/appearance.json" \
   EVA_WALLPAPER_CONFIG=/nonexistent EVA_DRY_RUN=1 EVA_INPUT_DEVICES="$DEVICES" \
   EVA_FAKE_SYSTEM="${EVA_FAKE_SYSTEM:-}" EVA_FAKE_CAN="${EVA_FAKE_CAN:-}" EVA_FAKE_BATTERY="${EVA_FAKE_BATTERY:-}" \
-  EVA_PATTY_DIR="$HOME_DIR/patty" SEE_SOFT="${SOFT:-}" ${SOFT:+VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-}"} \
+  EVA_PATTY_DIR="$HOME_DIR/patty" SEE_SOFT="${SOFT:-}" SEE_CAGE="${CAGE:-}" ${SOFT:+VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-}"} \
   BOOT="${BOOT:-3}" \
   EVA_THEME_MODE="$MODE" MORF_FONT_PATH="$EVA/shell/fonts:${MORF_FONT_PATH:-}" MORF_LIMITS="${MORF_LIMITS:-}" MORF_PROFILE="${MORF_PROFILE:-}" \
   SEE_EVA="$EVA" SEE_OUT="$OUT" SEE_SCREEN="$SCREEN" SEE_STEPS="$STEPS" STYLE_NOW="$STYLE" \

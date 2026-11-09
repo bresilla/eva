@@ -42,7 +42,13 @@ default_border none
 include $XDG_STATE_HOME/eva/displays/outputs.sway
 CONF
 RENDER=$(ls /dev/dri/renderD* 2>/dev/null | head -1)
-if [ -n "${SEE_SOFT:-}" ]; then
+if [ -n "${SEE_CAGE:-}" ]; then
+  # A session of its own under a headless cage: sway runs as cage's one
+  # window, everything drawn without the GPU, and the shell under sway.
+  WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
+    "$SEE_CAGE" -- env WLR_BACKENDS=wayland WLR_RENDERER=pixman \
+    sway --unsupported-gpu -c "$CONFIG" > "$SEE_OUT/sway.log" 2>&1 &
+elif [ -n "${SEE_SOFT:-}" ]; then
   WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
     sway --unsupported-gpu -c "$CONFIG" > "$SEE_OUT/sway.log" 2>&1 &
 else
@@ -51,8 +57,13 @@ else
 fi
 for _ in $(seq 100); do ls "$XDG_RUNTIME_DIR"/sway-ipc.*.sock > /dev/null 2>&1 && break; sleep 0.1; done
 SWAYSOCK=$(ls "$XDG_RUNTIME_DIR"/sway-ipc.*.sock | head -1)
-WAYLAND_DISPLAY=$(cd "$XDG_RUNTIME_DIR" && ls -d wayland-[0-9] | head -1)
+# Under cage, cage's own display comes first and sway's after it.
+WAYLAND_DISPLAY=$(cd "$XDG_RUNTIME_DIR" && ls -d wayland-[0-9] | sort | tail -1)
 export SWAYSOCK WAYLAND_DISPLAY
+if [ -n "${SEE_CAGE:-}" ]; then
+  echo "cage $(cd "$XDG_RUNTIME_DIR" && ls -d wayland-[0-9] | sort | head -1), sway $WAYLAND_DISPLAY" > "$SEE_OUT/session.txt"
+  swaymsg -t get_outputs >> "$SEE_OUT/session.txt" 2>&1
+fi
 swaymsg output HEADLESS-1 mode "$SEE_SCREEN@60Hz" > /dev/null
 
 ROLE=""
