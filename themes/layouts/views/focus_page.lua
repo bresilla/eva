@@ -137,14 +137,17 @@ function V.mode(model, w, h)
     return toggle(w, "focus-" .. id, icon, name, subtitle, get(key), set(key))
   end
 
-  local SIZE = 44
-  local per_row = math.max(1, (inner + theme.space.xs) // (SIZE + theme.space.xs))
-  local grid = ui.Item { width = inner, height = (SIZE + theme.space.xs) * math.ceil(#model.ICONS / per_row) }
+  -- The icons spread over the card's width, a button's gap apart.
+  local GAP, LEAST = theme.space.s, P.BUTTON_H
+  local per_row = math.max(1, (inner + GAP) // (LEAST + GAP))
+  local SIZE = math.floor((inner - GAP * (per_row - 1)) / per_row)
+  local rows_n = math.ceil(#model.ICONS / per_row)
+  local grid = ui.Item { width = inner, height = rows_n * P.BUTTON_H + (rows_n - 1) * GAP }
   for i, icon in ipairs(model.ICONS) do
-    local button = L.icon_button { id = "focus-icon-" .. i, width = SIZE, height = SIZE, icon = icon, name = icon,
+    local button = L.icon_button { id = "focus-icon-" .. i, width = SIZE, height = P.BUTTON_H, icon = icon, name = icon,
       on = function() return model.get("icon") == icon end, on_clicked = function() model.set("icon", icon) end }
-    button.x = ((i - 1) % per_row) * (SIZE + theme.space.xs)
-    button.y = ((i - 1) // per_row) * (SIZE + theme.space.xs)
+    button.x = ((i - 1) % per_row) * (SIZE + GAP)
+    button.y = ((i - 1) // per_row) * (P.BUTTON_H + GAP)
     ui.reparent(button, grid)
   end
 
