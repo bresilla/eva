@@ -107,6 +107,19 @@ end
 
 --- A row of buttons sharing `width` evenly: `width`, then the buttons'
 --- specs in the array part (each P.button's, `width` left out).
+--- How wide `text` sets in the body face at `size`, near enough to know
+--- whether it fits: each character's advance in ems.
+local ADVANCE = { i = .28, l = .28, I = .3, j = .38, f = .42, r = .42, t = .43, [" "] = .23, ["1"] = .47, T = .49,
+  m = .91, w = .82, M = .81, W = .81 }
+function P.text_width(text, size)
+  local ems = 0
+  for _, code in utf8.codes(tostring(text or "")) do
+    local ch = utf8.char(code)
+    ems = ems + (ADVANCE[ch] or ch:match("%u") and .68 or ch:match("%d") and .64 or .58)
+  end
+  return ems * (size or theme.size.normal)
+end
+
 --- How many of buttons labelled `labels` stand side by side in `width`, at
 --- most `most`, with none of the labels cut.
 function P.fit(width, labels, most)
@@ -114,7 +127,8 @@ function P.fit(width, labels, most)
   local widest = 0
   for _, label in ipairs(labels) do
     local text = tostring(get(label) or "")
-    widest = math.max(widest, utf8.len(text) * (menu or theme.size.normal) * (menu and 0.62 or 0.5) + 32)
+    local set = menu and utf8.len(text) * menu * 0.62 or P.text_width(text)
+    widest = math.max(widest, set + (menu and 32 or 28))
   end
   local fit, room = most, tonumber(get(width)) or 0
   if room <= 0 then return most end
@@ -194,13 +208,13 @@ function P.flush(button, size, glyph)
 end
 
 --- A one-line text field `width` wide: `id`, `kind` ("entry", "password",
---- "search"), `placeholder`, `name` (what a reader calls it), `on_changed`,
---- `on_accepted`, `on_escape`.
+--- "search", "numeric_entry"), `text` (a string or fn), `placeholder`,
+--- `name` (what a reader calls it), `on_changed`, `on_accepted`, `on_escape`.
 --- Returns the box to place and the input in it.
 function P.field(spec)
   local w, h = get(spec.width), P.BUTTON_H
   local search = spec.kind == "search"
-  local node, handle = kit.text_field(spec.kind or "entry", { id = spec.id, width = w,
+  local node, handle = kit.text_field(spec.kind or "entry", { id = spec.id, width = w, text = spec.text,
     height = h, font_family = theme.font, font_size = theme.size.normal, placeholder = spec.placeholder, accessible_name = spec.name,
     reveal = spec.kind == "password" and false or nil,
     -- A search field's magnifier stands at its left; it draws its own ground.
