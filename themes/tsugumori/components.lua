@@ -309,22 +309,7 @@ return function(theme)
   -- No codes inside menus and panels; the frame prints its own.
   function M.code() return "" end
 
-  -- Section captions (one built just after its card) are numbered in the
-  -- order their cards were built, from one again on each page: each burst
-  -- of building, and each collected tab.
-  local captions = { index = 0, cards = 0, seen = 0, burst = nil }
-  local function next_index(eligible)
-    if captions.seen == captions.cards then return nil end
-    captions.seen = captions.cards
-    if not eligible then return nil end
-    if not captions.burst then
-      captions.index = 0
-      captions.burst = morf.time.timer(1, function() captions.burst = nil end, false)
-    end
-    captions.index = captions.index + 1
-    return captions.index
-  end
-  --- The lead under the index plate and, `striped`, a block of `/` stripes
+  --- The lead under the pip and, `striped`, a block of `/` stripes
   --- 4..12 high ending a little short of `vw`.
   local function hazard_d(vw, striped)
     local out = { "M0 14 H20 V16 H0 Z " }
@@ -336,8 +321,8 @@ return function(theme)
     end
     return table.concat(out)
   end
-  --- A caption row across `width`: an index plate (a section caption's
-  --- number, else a registration pip), the caps text, a rule under the row
+  --- A caption row across `width`: a registration pip,
+  --- the caps text, a rule under the row
   --- out to its end tick, a block of hazard stripes at its right end, and
   --- the note there instead when it has one.
   function M.caption(spec)
@@ -345,13 +330,9 @@ return function(theme)
     -- Without a note, L.caption lays the row 140 wider than it shows.
     local room = spec.note == nil and 140 or 0
     local function vw() return math.max(0, get(w) - room) end
-    local index = next_index(type(spec.note) ~= "function")
     local ink = spec.color or M.ink("accent")
-    local plate = index and ui.Rect { y = 1, width = 20, height = 12, color = function() return get(ink):alpha(.6) end,
-      M.text { width = 20, height = 12, text = ("%02d"):format(index), font_size = 9, font_weight = 600,
-        horizontal_alignment = "center", vertical_alignment = "center", color = function() return C.onPrimary end } }
-      or ui.Rect { y = 5, width = 5, height = 5, color = ink }
-    local lead = index and 26 or 11
+    local plate = ui.Rect { y = 5, width = 5, height = 5, color = ink }
+    local lead = 11
     local striped = spec.note == nil or spec.note == ""
     local rule = ui.Path { width = vw, height = 16, view_box = function() return { 0, 0, vw(), 16 } end,
       transform_origin_x = 0,
@@ -405,7 +386,6 @@ return function(theme)
   local collector
   function M.collect(list)
     collector = list
-    if list then captions.index = 0 end
   end
   -- Card chrome: a hairline outline, four corner brackets, and a tick ruler
   -- on the foot, a serial strip under the top edge and an index notch at the
@@ -477,7 +457,6 @@ return function(theme)
     return entry
   end
   function M.card(props)
-    captions.cards = captions.cards + 1
     props.radius = M.round(theme.ROUNDING)
     if props.color == nil then props.color = function() return C.surfaceContainer end end
     if not collector then
