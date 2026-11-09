@@ -96,13 +96,8 @@ return function(theme)
         mark.opacity=over and 1 or 0
       end
       if #reticle>0 then closing=morf.animation.play {{parallel=reticle},on_finished=function() closing=nil end} end
-      if not over and not down then
-        if running then running:stop() running=nil end
-        if scanning then scanning:stop() scanning=nil end
-        glint.opacity=0
-        if scan then scan.opacity=0 end
-        return
-      end
+      -- Let go, a sweep under way runs out on its own.
+      if not over and not down then return end
       local w,h=size()
       if entering or pressing then
         if running then running:stop() end

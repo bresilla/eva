@@ -49,10 +49,10 @@ local function keyboard_page(model, w, h)
     P.section { id = "input-typing", width = w, title = "Typing",
       F.slider { id = "input-repeat-rate", width = inner, icon = "speed", name = "Repeat rate", from = 10, to = 60, step = 1,
         value = function() return model.value("repeat_rate", 25) end, set = function(v) model.set("repeat_rate", v) end,
-        format = function(v) return ("%d a second"):format(v) end },
+        format = function(v) return ("%d/s"):format(v) end },
       F.slider { id = "input-repeat-delay", width = inner, icon = "timer", name = "Repeat delay", from = 150,
         to = 1000, step = 50, value = function() return model.value("repeat_delay", 600) end,
-        set = function(v) model.set("repeat_delay", v) end, format = function(v) return ("%d ms"):format(v) end },
+        set = function(v) model.set("repeat_delay", v) end, format = F.seconds },
       F.toggle { id = "input-numlock", width = inner, icon = "pin", title = "Num Lock at start",
         on = function() return model.value("numlock", false) == true end, set = function(on) model.set("numlock", on) end },
     },
@@ -83,8 +83,8 @@ end
 
 local function pointer_page(model, w, h)
   local inner = P.inner(w)
-  local function flag(id, icon, title, option, visible)
-    return F.toggle { id = id, width = inner, icon = icon, title = title, visible = visible,
+  local function flag(id, icon, title, option, visible, subtitle)
+    return F.toggle { id = id, width = inner, icon = icon, title = title, visible = visible, subtitle = subtitle,
       on = function() return model.value(option, false) == true end, set = function(on) model.set(option, on) end }
   end
   local themes = F.picker { id = "pointer-theme", width = inner, placeholder = "Cursor theme", max = 5,
@@ -95,7 +95,7 @@ local function pointer_page(model, w, h)
     end }
   return P.page { id = "pointer-scroll", width = w, height = h, active = model.active,
     absent(model, w),
-    P.section { id = "pointer-mouse", width = w, title = "Pointer",
+    P.section { id = "pointer-mouse", width = w, title = "Mouse",
       F.slider { id = "pointer-speed", width = inner, icon = "speed", name = "Pointer speed", from = -1, to = 1, step = 0.05,
         value = function() return model.value("sensitivity", 0) end, set = function(v) model.set("sensitivity", v) end,
         format = function(v) return ("%+.2f"):format(v) end },
@@ -106,12 +106,12 @@ local function pointer_page(model, w, h)
       F.slider { id = "pointer-scroll-speed", width = inner, icon = "swap_vert", name = "Scroll speed", from = 0.25, to = 3,
         step = 0.25, value = function() return model.value("scroll_factor", 1) end,
         set = function(v) model.set("scroll_factor", v) end, format = function(v) return ("%.2f×"):format(v) end },
-      flag("pointer-natural", "swipe_vertical", "Natural scrolling", "natural_scroll"),
-      flag("pointer-left", "back_hand", "Left-handed", "left_handed"),
+      flag("pointer-natural", "swipe_vertical", "Natural scrolling", "natural_scroll", nil, "The page follows the wheel, as on a phone"),
+      flag("pointer-left", "back_hand", "Left-handed", "left_handed", nil, "The buttons swap sides"),
     },
     P.section { id = "pointer-touchpad", width = w, title = "Touchpad", visible = model.touchpad,
       flag("pointer-tap", "touch_app", "Tap to click", "tap_to_click"),
-      flag("pointer-pad-natural", "swipe_vertical", "Natural scrolling", "touchpad_natural"),
+      flag("pointer-pad-natural", "swipe_vertical", "Natural scrolling", "touchpad_natural", nil, "The page follows your fingers"),
       flag("pointer-dwt", "keyboard", "Off while typing", "disable_while_typing"),
       flag("pointer-clickfinger", "ads_click", "Two-finger right click", "clickfinger"),
       flag("pointer-drag-lock", "drag_pan", "Drag lock", "drag_lock"),
@@ -158,15 +158,16 @@ local function devices_page(model, w, h)
   return P.page { id = "devices-scroll", width = w, height = h, active = model.active,
     absent(model, w),
     P.section { id = "devices-list", width = w, title = "Devices", list },
-    P.section { id = "devices-one", width = w, title = "This device", visible = picked,
+    P.section { id = "devices-one", width = w, title = "This device", visible = picked, fold = true,
       F.fact { id = "devices-name", width = inner, icon = "tune", title = chosen, subtitle = "Overrides the general settings" },
       F.toggle { id = "devices-enabled", width = inner, icon = "power_settings_new", title = "Use this device",
         on = value("enabled", true), set = store("enabled") },
       F.slider { id = "devices-speed", width = inner, icon = "speed", name = "Speed", from = -1, to = 1, step = 0.05,
         value = value("sensitivity", 0), set = store("sensitivity"), format = function(v) return ("%+.2f"):format(v) end },
       F.toggle { id = "devices-natural", width = inner, icon = "swipe_vertical", title = "Natural scrolling",
+        subtitle = "The page follows the wheel or your fingers",
         on = value("natural_scroll", false), set = store("natural_scroll") },
-      F.toggle { id = "devices-left", width = inner, icon = "back_hand", title = "Left-handed",
+      F.toggle { id = "devices-left", width = inner, icon = "back_hand", title = "Left-handed", subtitle = "The buttons swap sides",
         on = value("left_handed", false), set = store("left_handed") },
       P.button { id = "devices-reset", label = "Back to general settings",
         on_clicked = function() model.forget_device(chosen()) end },

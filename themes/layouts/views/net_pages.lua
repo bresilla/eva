@@ -56,12 +56,12 @@ function M.build(model,w,h)
   if kind=="wired" then
     blocks[#blocks+1]=P.section {id="wired-ports",caption_id="wired-ports-title",width=w,title="Ports",
       list(model,w,model.network,"No wired ports"),
-      note(inner,function() return model.network_available() and model.note or "NetworkManager is not running." end)}
+      note(inner,function() return model.network_available() and model.note or "NetworkManager is not running" end)}
     blocks[#blocks+1]=P.section {id="wired-help",width=w,title="When it will not connect",
       require("themes.layouts.form").page {id="wired-help-open",width=inner,key="network/help",go=model.help}}
   elseif kind=="tor" then
     blocks[#blocks+1]=P.section {id="tor-services",width=w,title="Tor",list(model,w,model.tor),
-      note(inner,function() return model.available() and model.note or "Tor is not installed." end)}
+      note(inner,function() return model.available() and model.note or "Tor is not installed" end)}
   else
     if kind=="tunnel" then
       blocks[#blocks+1]=P.section {id="vpn-tunnel-network",caption_id="vpn-tunnel-network-title",width=w,
@@ -88,7 +88,7 @@ function M.build(model,w,h)
       subtitle=kind=="mesh" and "None of the supported mesh tools are installed" or "None of the supported VPN apps are installed",
       visible=function() return model.loaded() and model.apps:len()==0 end}
     apps[#apps+1]=note(inner,function()
-      if kind=="tunnel" and not model.network_available() then return "NetworkManager is not running." end
+      if kind=="tunnel" and not model.network_available() then return "NetworkManager is not running" end
       return model.note
     end)
     blocks[#blocks+1]=P.section(apps)
@@ -106,7 +106,7 @@ function M.build(model,w,h)
     page.visible=present
     local missing=P.empty {width=w,icon=kind=="wired" and "lan" or "shield",
       title=kind=="wired" and "No network service" or "Tor is not installed",
-      text=kind=="wired" and "NetworkManager is not running." or "Install Tor to run its proxy here."}
+      text=kind=="wired" and "NetworkManager is not running" or "Install Tor to run its proxy here"}
     missing.visible=function() return not present() end
     return ui.Item {width=w,height=h,page,missing}
   end

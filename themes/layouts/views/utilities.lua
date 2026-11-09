@@ -50,7 +50,7 @@ function V.theme_page(model,w,h)
   local inner=P.inner(w)
   return P.page {id="settings-theme-scroll",width=w,height=h,
     P.section {id="settings-theme",width=w,
-      P.row {id="settings-theme-mode",width=inner,icon=function() return dark() and "dark_mode" or "light_mode" end,
+      P.row {id="settings-theme-mode",width=inner,icon=function() return dark() and "dark_mode" or "light_mode" end,on=dark,
         title="Dark mode",
         subtitle=function() return dark() and "The shell in dark colours" or "The shell in light colours" end,
         trailing=P.switch {id="utilities-toggle-theme-mode",name="Dark mode",on=dark,
@@ -108,7 +108,7 @@ function V.eva_page(model,w,h)
       V.eva_link("osd",inner,model),
       V.eva_link("capture",inner,model),
       switch("island","island.enabled","music_note","Island","A pill out of the top of the frame, for music and the time"),
-      switch("standby","desktop.standby","bedtime","StandBy","A phone on charge, turned sideways, becomes a clock"),
+      switch("standby","desktop.standby","bedtime","Standby","A phone on charge, turned sideways, becomes a clock"),
     },
   }
 end
@@ -171,11 +171,11 @@ local function sliders()
   local osd = model.levels
   local brightness = slider("utilities-brightness", function() return (osd.brightness()) end, osd.set_brightness,
     osd.brightness_icon, "Brightness")
-  brightness.visible = osd.brightness_known
   local column=ui.Column {
     x = P.PAD, y = P.PAD, gap = 4,
-    slider("utilities-volume", function() return (osd.volume()) end, osd.set_volume, osd.volume_icon, "Volume"),
-    brightness,
+    P.fold { width = CARD_W - 2 * P.PAD, shown = osd.brightness_known, gap = 4,
+      head = slider("utilities-volume", function() return (osd.volume()) end, osd.set_volume, osd.volume_icon, "Volume"),
+      brightness },
     slider("utilities-scale", scale_now, scale_set, "zoom_in",
       require("themes.ui_scale").compositor and "Display scale" or "Scale", scale_reading),
   }
@@ -342,7 +342,15 @@ function M.page(w, h)
     visible = function() return M.detail:get() ~= "" and not long() end, on_clicked = Q.more }
   local more_icon = P.button { id = "quick-more-icon", icon = "open_in_new", accessible_name = "More settings",
     width = P.BUTTON_H, visible = function() return M.detail:get() ~= "" and long() end, on_clicked = Q.more }
-  local more = ui.Row { id = "quick-more", gap = 0, visible = function() return M.detail:get() ~= "" end, more_box, more_icon }
+  local more = ui.Row { id = "quick-more", gap = 0, anchors = { right = true }, more_box, more_icon }
+  -- The overview's own buttons and a page's give way to each other as the
+  -- title does.
+  local tools = ui.Row { gap = 8, align = "center", anchors = { right = true }, capture, everything, pencil }
+  local function paged() return M.detail:get() ~= "" end
+  P.swapped(tools, function() return not paged() end)
+  P.swapped(more, paged)
+  local head_actions = ui.Item { height = function() return math.max(40, more.layout_height or 0) end,
+    width = function() return ((paged() and more or tools).layout_width or 0) end, tools, more }
   M.head = {
     -- Over the tiles the panel's tab names it already, where tabs have names.
     title = function()
@@ -357,7 +365,7 @@ function M.page(w, h)
     back = Q.back, back_id = "quick-back",
     can_back = function() return M.detail:get() ~= "" end,
     keep = function() return true end,
-    actions = { capture, everything, pencil, more },
+    actions = { head_actions },
     -- Read in afresh as the overview or a detail comes on show.
     active = function()
       local key = M.detail:get()

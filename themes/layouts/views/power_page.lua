@@ -112,36 +112,39 @@ function M.build(model, w, h)
       local level = charge.LOWEST + value * (100 - charge.LOWEST)
       return ("%d%%"):format(math.floor(level / charge.STEP + 0.5) * charge.STEP)
     end }
-  limit_slider.visible = function() return by_file() and limit_on() end
+  local function limit_shown() return by_file() and limit_on() end
   local charging = P.section { id = "power-charging", caption_id = "power-heading-charging", width = w, title = "How it charges",
     visible = model.charging_shown,
     P.row { id = "power-charger", width = inner, icon = model.charger_icon, on = model.charging,
       title = model.charge_title, subtitle = model.charge_detail, trailing = marks },
     kit.subtitle { id = "power-charger-note", width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"),
       visible = function() return model.charge_hint() ~= "" end, text = model.charge_hint },
-    P.row { id = "power-limit-state", width = inner, icon = "battery_saver", on = limit_on, title = "Charge limit",
-      visible = function() return by_file() or route("upower")() end,
-      subtitle = function()
-        if not limit_on() then return "Charges to full" end
-        if by_file() then return ("Stops at %d%%"):format(limit()) end
-        return "Held by UPower"
-      end,
-      trailing = P.switch { id = "power-limit-switch", name = "Charge limit", on = limit_on, on_toggled = charge.set_on } },
-    limit_slider,
-    P.row { id = "power-adaptive", width = inner, icon = "schedule", on = adaptive_on, title = "Adaptive charging",
-      visible = can_adapt,
-      subtitle = function()
-        return adaptive_on() and ("Waits at %d%%, done by %s"):format(charge.HOLD, charge.ready_text()) or "Off"
-      end,
-      trailing = P.switch { id = "power-adaptive-switch", name = "Adaptive charging", on = adaptive_on,
-        on_toggled = charge.set_adaptive } },
-    P.buttons { id = "power-ready", width = inner,
-      { id = "power-ready-earlier", icon = "remove", accessible_name = "Earlier", visible = function() return can_adapt() and adaptive_on() end,
-        on_clicked = function() charge.step_ready(-charge.READY_STEP) end },
-      { id = "power-ready-time", label = charge.ready_text, visible = function() return can_adapt() and adaptive_on() end },
-      { id = "power-ready-later", icon = "add", accessible_name = "Later", visible = function() return can_adapt() and adaptive_on() end,
-        on_clicked = function() charge.step_ready(charge.READY_STEP) end },
-    },
+    P.fold { width = inner, shown = limit_shown, gap = P.ROW_GAP,
+      head = P.row { id = "power-limit-state", width = inner, icon = "battery_saver", on = limit_on, title = "Charge limit",
+        visible = function() return by_file() or route("upower")() end,
+        subtitle = function()
+          if not limit_on() then return "Charges to full" end
+          if by_file() then return ("Stops at %d%%"):format(limit()) end
+          return "Held by UPower"
+        end,
+        trailing = P.switch { id = "power-limit-switch", name = "Charge limit", on = limit_on, on_toggled = charge.set_on } },
+      limit_slider },
+    P.fold { width = inner, shown = can_adapt,
+      P.fold { width = inner, shown = adaptive_on, gap = P.ROW_GAP,
+        head = P.row { id = "power-adaptive", width = inner, icon = "schedule", on = adaptive_on, title = "Adaptive charging",
+          subtitle = function()
+            if adaptive_on() then return ("Waits at %d%%, done by %s"):format(charge.HOLD, charge.ready_text()) end
+            return ("Waits at %d%% until it is needed"):format(charge.HOLD)
+          end,
+          trailing = P.switch { id = "power-adaptive-switch", name = "Adaptive charging", on = adaptive_on,
+            on_toggled = charge.set_adaptive } },
+        P.buttons { id = "power-ready", width = inner,
+          { id = "power-ready-earlier", icon = "remove", accessible_name = "Earlier",
+            on_clicked = function() charge.step_ready(-charge.READY_STEP) end },
+          { id = "power-ready-time", label = charge.ready_text },
+          { id = "power-ready-later", icon = "add", accessible_name = "Later",
+            on_clicked = function() charge.step_ready(charge.READY_STEP) end },
+        } } },
     kit.subtitle { id = "power-limit-note", width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"),
       visible = function() return charge.note() ~= "" or charge.message:get() ~= "" end,
       text = function()

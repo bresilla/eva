@@ -49,15 +49,16 @@ M.PAGES = {
   } },
   launcher = { sections = {
     { title = "Results", fields = {
-      { key = "launcher.max_shown", kind = "number", title = "Results shown", icon = "format_list_numbered",
+      { key = "launcher.max_shown", kind = "number", title = "Shown at first", icon = "format_list_numbered",
         from = 3, to = 15, step = 1 },
-      { key = "launcher.max_results", kind = "number", title = "Results listed", icon = "format_list_numbered",
+      { key = "launcher.max_results", kind = "number", title = "Most in the list", icon = "playlist_add",
         from = 10, to = 100, step = 5 },
       { key = "launcher.layout", kind = "choice", title = "Layout", items = {
         { "list", "view_list", "List" }, { "grid", "apps", "Grid" } } },
       { key = "launcher.preview_pane", kind = "bool", title = "Preview beside the results", icon = "preview",
         note = "Files and pictures, where there is room" },
-      { key = "launcher.keep_query", kind = "bool", title = "Keep the last search", icon = "history" },
+      { key = "launcher.keep_query", kind = "bool", title = "Keep the last search", icon = "history",
+        note = "It is there again when the launcher opens" },
       { key = "launcher.remember", kind = "bool", title = "Remember what is picked", icon = "star",
         note = "For ranking and history" },
     } },
@@ -94,19 +95,20 @@ M.PAGES = {
     { fields = {
       { key = "rail.enabled", kind = "bool", title = "Show the rail", icon = "view_week",
         note = "The workspaces down the left edge" },
-      { key = "rail.hold", kind = "number", title = "Number stays for", icon = "timer", from = 200, to = 3000, step = 100, unit = " ms" },
+      { key = "rail.hold", kind = "number", title = "Number stays for", icon = "timer", from = 200, to = 3000, step = 100, seconds = true },
     } },
   } },
   capture = { sections = {
     { title = "Where", fields = {
       { key = "capture.folder", kind = "text", title = "Folder", icon = "folder", hint = "~/Pictures/Screenshots", note = "Screenshots and recordings go here" },
-      { key = "capture.keybind_file", kind = "text", title = "Keybind file", icon = "description", hint = "~/.config/hypr/keys.conf",
+      { key = "capture.keybind_file", kind = "text", title = "Shortcut file", icon = "description", hint = "~/.config/hypr/keys.conf",
         note = "Where the hotkey is written, empty for none" },
-      { key = "capture.hotkey", kind = "text", title = "Hotkey", icon = "keyboard", hint = "Print" },
+      { key = "capture.hotkey", kind = "text", title = "Shortcut", icon = "keyboard", hint = "Print" },
     } },
     { title = "After a capture", fields = {
       { key = "capture.editor", kind = "bool", title = "Open the editor", icon = "edit" },
-      { key = "capture.cursor", kind = "bool", title = "Show the cursor", icon = "arrow_selector_tool" },
+      { key = "capture.cursor", kind = "bool", title = "Show the cursor", icon = "arrow_selector_tool",
+        note = "The pointer is in the picture" },
       { key = "capture.save_dialog", kind = "bool", title = "Ask where to save", icon = "save_as" },
       { key = "capture.copy_on_save", kind = "bool", title = "Copy when saved", icon = "content_copy" },
       { key = "capture.copy_to_disk", kind = "bool", title = "Also save when copied", icon = "save" },
@@ -192,7 +194,8 @@ M.PAGES = {
         note = "A text asks the network to say when it lands" },
     } },
     { title = "Power key", fields = {
-      { key = "phone.power_ends_call", kind = "bool", title = "Ends a call", icon = "call_end" },
+      { key = "phone.power_ends_call", kind = "bool", title = "Ends a call", icon = "call_end",
+        note = "The power button hangs up" },
       { key = "phone.double_power", kind = "words", title = "Pressed twice", icon = "double_arrow", hint = "megapixels",
         note = "A command to run, such as the camera" },
       { key = "phone.sos", kind = "bool", title = "Five presses for an emergency call", icon = "emergency",
@@ -207,7 +210,8 @@ M.PAGES = {
     { fields = {
       { key = "services.weather_location", kind = "text", title = "Location", icon = "location_on", hint = "Amsterdam",
         note = "A city, or empty to go by this connection's address" },
-      { key = "services.imperial", kind = "bool", title = "Imperial units", icon = "straighten" },
+      { key = "services.imperial", kind = "bool", title = "Imperial units", icon = "straighten",
+        note = "Fahrenheit and miles" },
     } },
   } },
   commands = { sections = {

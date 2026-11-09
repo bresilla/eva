@@ -39,7 +39,7 @@ function M.build(model, active, w, h)
         on_clicked = function() model.open(row.id) end }
     end }
   local empty = P.empty { id = "notes-empty", width = w, icon = "sticky_note_2", title = "Nothing written yet",
-    text = function() return "Notes are plain files in " .. model.folder() .. "." end,
+    text = "Notes are plain files in the folder below",
     visible = function() return model.rows:len() == 0 end }
   local where_node, where = widgets.field("notes-folder", "Folder", "~/Notes", inner, nil,
     function(text) model.set_folder(text) end)

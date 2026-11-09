@@ -13,15 +13,17 @@ function M.defaults_page(model, w, h)
   local section = { id = "apps-kinds", width = w }
   for _, kind in ipairs(model.KINDS) do
     local function open() return model.open:get() == kind.id end
-    section[#section + 1] = F.link { id = "apps-" .. kind.id, width = inner, icon = kind.icon, title = kind.name,
-      subtitle = function() return model.current(kind) end, go = function() model.toggle(kind) end }
-    section[#section + 1] = (F.picker { id = "apps-pick-" .. kind.id, width = inner, placeholder = "Search apps", max = 6,
-      visible = open, none = "No app here says it can",
-      items = function() return model.candidates(kind) end,
-      row = function(item)
-        return { icon = "apps", title = item.name, on = item.name == model.current(kind),
-          pick = function() model.choose(kind, item) end }
-      end })
+    section[#section + 1] = P.fold { width = inner, shown = open, gap = P.ROW_GAP,
+      head = P.row { id = "apps-" .. kind.id, width = inner, icon = kind.icon, title = kind.name, on = open,
+        subtitle = function() return model.current(kind) end, trailing = P.turn(open),
+        on_clicked = function() model.toggle(kind) end },
+      (F.picker { id = "apps-pick-" .. kind.id, width = inner, placeholder = "Search apps", max = 6,
+        none = "No app here says it can",
+        items = function() return model.candidates(kind) end,
+        row = function(item)
+          return { icon = "apps", title = item.name, on = item.name == model.current(kind),
+            pick = function() model.choose(kind, item) end }
+        end }) }
   end
   return P.page { id = "apps-scroll", width = w, height = h, active = model.active,
     F.note(w, "Home Manager keeps mimeapps.list: a change here is replaced at its next switch. Set xdg.mimeApps there to keep it.",
@@ -86,7 +88,7 @@ function M.startup_page(model, w, h)
     P.section { id = "startup-apps", width = w, title = "Apps", entries, add, F.status("startup-status", inner, model) },
     P.section { id = "startup-own", width = w, title = "A command of your own",
       name_box, command_box,
-      P.button { id = "startup-command-add", icon = "add", label = "Start it with the session", width = inner,
+      P.button { id = "startup-command-add", icon = "add", label = "Start it with the session", width = inner, tone = "primary",
         on_clicked = add_command } },
     P.section { id = "startup-services", width = w, title = "User services", services },
     P.section { id = "startup-scheduled", width = w, title = "Scheduled",

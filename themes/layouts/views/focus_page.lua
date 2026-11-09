@@ -185,7 +185,10 @@ function V.mode(model, w, h)
           on_clicked = function() model.shift(key, 30) end } } }
   end
   local schedule = P.section { id = "focus-schedule", width = w, title = "Schedule",
-    flag("schedule-on", "event", "On a schedule", model.schedule_text, "schedule.on"),
+    flag("schedule-on", "event", "On a schedule", function()
+      local said = model.schedule_text()
+      return said == "Off" and "Turns on by itself at set times" or said
+    end, "schedule.on"),
     flag("schedule-paused", "pause_circle", "Pause it", "Keeps the schedule without using it", "schedule.paused"),
     flag("schedule-charging", "battery_charging_full", "Only while charging", "For a bedtime that waits for the charger",
       "schedule.charging"),

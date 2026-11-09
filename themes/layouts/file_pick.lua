@@ -14,8 +14,8 @@ local HEIGHT = 360
 function M.make(spec)
   local open = morf.signal("eva.file_pick." .. spec.id .. "." .. tostring({}), false)
   local chooser
-  local box = ui.Item { width = spec.width, height = function() return open:get() and HEIGHT or 0 end,
-    visible = function() return open:get() end, clip = true }
+  local holder = ui.Item { width = spec.width, height = HEIGHT }
+  local box = P.fold { width = spec.width, shown = function() return open:get() end, holder }
   morf.effect("file_pick." .. spec.id, function()
     if not open:get() or chooser then return end
     chooser = require("themes.kit.composites").file_chooser { id = spec.id .. "-chooser", width = spec.width,
@@ -25,8 +25,8 @@ function M.make(spec)
         spec.on_path(path)
       end,
       on_cancelled = function() open:set(false) end }
-    ui.reparent(chooser, box)
-  end, { owner = box })
+    ui.reparent(chooser, holder)
+  end, { owner = holder })
   local button = P.button { id = spec.id .. "-choose", label = "Choose", icon = "folder_open",
     on_clicked = function() open:set(not open:get()) end }
   return button, box

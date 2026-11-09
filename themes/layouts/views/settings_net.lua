@@ -52,14 +52,14 @@ function M.connection_page(model, w, h)
         visible = function() return (d().device or "") ~= "" end, subtitle = function() return d().device or "" end },
     },
     P.section { id = "connection-ip-mode", width = w, title = "IP address",
-      F.choices { id = "connection-method", width = inner,
+      P.fold { width = inner, shown = manual, gap = P.ROW_GAP, head = F.choices { id = "connection-method", width = inner,
         items = { { "auto", "auto_mode", "Automatic" }, { "manual", "tune", "Manual" } },
         now = method,
         pick = function(mode)
           chosen:set(mode)
           if mode == "auto" then model.save { dhcp = true } end
         end },
-      ui.Column { width = inner, gap = P.ROW_GAP, visible = manual, address, gateway,
+        address, gateway,
         P.button { id = "connection-static-save", icon = "check", label = "Use this address", tone = "primary", width = inner,
           on_clicked = function() model.save { static = { address = address_text:get(), gateway = gateway_text:get() } } end } },
     },
@@ -101,13 +101,22 @@ function M.proxy_page(model, w, h)
   end
   return P.page { id = "proxy-scroll", width = w, height = h, active = model.active,
     P.section { id = "proxy-mode", width = w, title = "How to reach the web",
-      F.choices { id = "proxy-how", width = inner, items = model.MODES, per_row = 3, now = model.mode, pick = function(mode) model.set("mode", mode) end },
-      line("http", "Web", "http://proxy:3128", manual),
-      line("https", "Secure sites", "http://proxy:3128", manual),
-      line("socks", "SOCKS", "socks5://proxy:1080", manual),
-      line("exclude", "Reached directly", "localhost, .lan", manual),
-      line("pac", "Configuration address", "http://example.com/proxy.pac", auto),
-      P.button { id = "proxy-save", icon = "check", label = "Save", tone = "primary", width = inner, on_clicked = model.apply },
+      ui.Column { width = inner,
+        P.fold { width = inner, shown = manual, gap = P.ROW_GAP,
+          head = F.choices { id = "proxy-how", width = inner, items = model.MODES, per_row = 3, now = model.mode,
+            -- None has nothing to fill in: it holds at once.
+            pick = function(mode)
+              model.set("mode", mode)
+              if mode == "none" then model.apply() end
+            end },
+          line("http", "Web", "http://proxy:3128"),
+          line("https", "Secure sites", "http://proxy:3128"),
+          line("socks", "SOCKS", "socks5://proxy:1080"),
+          line("exclude", "Reached directly", "localhost, .lan") },
+        P.fold { width = inner, shown = auto, gap = P.ROW_GAP,
+          line("pac", "Configuration address", "http://example.com/proxy.pac") },
+        P.fold { width = inner, shown = function() return manual() or auto() end, gap = P.ROW_GAP,
+          P.button { id = "proxy-save", icon = "check", label = "Save", tone = "primary", width = inner, on_clicked = model.apply } } },
       F.note(inner, "Set through the session's environment and the desktop's proxy setting. Programs already running keep what they had. An address with a password in it would sit in a plain file: use one without."),
       F.status("proxy-status", inner, model),
     },

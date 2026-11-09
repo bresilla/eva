@@ -25,7 +25,7 @@ return function(t,spec,theme)
     last=offset
     if timeout then timeout:cancel() end
     if fade then fade:stop() fade=nil end
-    thumb.opacity=.6
+    if (thumb.opacity or 0)<.6 then fade=morf.animation.play {{node=thumb,property="opacity",to=.6,duration=120,easing="out_cubic"}} end
     timeout=morf.time.timer(450,function()
       timeout=nil
       fade=morf.animation.play {{node=thumb,property="opacity",to=0,duration=220,easing="out_cubic"}}

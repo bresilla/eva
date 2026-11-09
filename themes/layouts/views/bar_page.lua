@@ -28,8 +28,8 @@ local function choices(w, spec)
 end
 
 --- A row with a switch: `id`, `icon`, `name`, what it says, how to set it.
-local function toggle(w, id, icon, name, on, set)
-  return P.row { id = id, width = P.inner(w), icon = icon, title = name, on = on,
+local function toggle(w, id, icon, name, on, set, subtitle)
+  return P.row { id = id, width = P.inner(w), icon = icon, title = name, on = on, subtitle = subtitle,
     trailing = P.switch { id = id .. "-switch", name = name, on = on, on_toggled = set } }
 end
 
@@ -85,7 +85,7 @@ function M.build(model, w, h)
       items = { { "on", "title", "Shown" }, { "off", "apps", "Icons only" } },
       now = model.titles, pick = model.set_titles }),
     P.section { id = "bar-clock-settings", caption_id = "bar-heading-clock", width = w, title = "Clock",
-      toggle(w, "bar-clock-seconds", "timer", "Seconds", model.seconds, model.set_seconds),
+      toggle(w, "bar-clock-seconds", "timer", "Seconds", model.seconds, model.set_seconds, "The clock shows them too"),
     },
     P.section { id = "bar-date", caption_id = "bar-heading-date", width = w, title = "Date beside the clock",
       require("themes.layouts.form").choices { id = "bar-date", width = P.inner(w), items = model.dates, per_row = 3,

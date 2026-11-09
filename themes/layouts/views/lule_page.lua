@@ -149,7 +149,7 @@ function M.build(state, width)
       end },
   }
   local field_node, field
-  local use_folder = button { id = "lule-use-folder", label = "Use path",
+  local use_folder = button { id = "lule-use-folder", label = "Use path", tone = "primary",
     on_clicked = function() state.select(field.text) end }
   use_folder.anchors = { right = true, vertical_center = true }
   local function folder_w()

@@ -23,7 +23,9 @@ return function(t, spec, o)
     last = offset
     if timeout then timeout:cancel() end
     if fade then fade:stop() fade = nil end
-    bar.opacity = 1
+    if (bar.opacity or 0) < 1 then
+      fade = morf.animation.play { { node = bar, property = "opacity", to = 1, duration = 120, easing = "out_cubic" } }
+    end
     timeout = morf.time.timer(900, function()
       timeout = nil
       fade = morf.animation.play { { node = bar, property = "opacity", to = 0, duration = 260, easing = "out_cubic" } }

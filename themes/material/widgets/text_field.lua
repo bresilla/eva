@@ -58,7 +58,8 @@ return function(S, theme, M)
     return ui.Rect { anchors = { left = true, right = true, top = true }, z = 6, radius = radius,
       height = function() return box(t, spec) end, color = "transparent",
       border_width = function() return (t.focused or bad(t)) and 2 or 0 end,
-      border_color = function() local c = C() return bad(t) and c.error or c.primary end }
+      border_color = function() local c = C() return bad(t) and c.error or c.primary end,
+      behavior = { border_width = quick(), border_color = quick() } }
   end
 
   local SIZE = function() return theme.size.normal end

@@ -87,6 +87,7 @@ function P.button(spec)
   local pill = kit.pill { id = spec.id, label = label, icon = spec.icon, width = width, height = spec.height or P.BUTTON_H,
     enabled = spec.enabled, accessible_name = spec.accessible_name,
     opacity = function() return get(spec.enabled)==false and .45 or 1 end,
+    behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard } },
     checkable = spec.group ~= nil or nil, group = spec.group, checked = spec.group and spec.selected or nil,
     on_clicked = spec.on_clicked,
     -- A button that cannot be pressed loses its tone with the rest of it.
@@ -189,9 +190,25 @@ function P.buttons(spec)
 end
 
 --- The theme's switch, at a row's right.
+-- Each switch's spec, so a row holding one flips it from anywhere on it.
+local switches = setmetatable({}, { __mode = "k" })
 function P.switch(spec)
-  return kit.switch { id = spec.id, accessible_name = spec.name, enabled = spec.enabled,
+  local node = kit.switch { id = spec.id, accessible_name = spec.name, enabled = spec.enabled,
     on = spec.on, on_toggled = spec.on_toggled }
+  switches[node] = spec
+  return node
+end
+
+--- A radio's mark `size` square, `ink` its colour (fn): the chosen mark
+--- grows into the ring as it lights, and fades as it goes. `props` place it.
+function P.radio(chosen, size, ink, props)
+  local item = { width = size, height = size }
+  for k, v in pairs(props or {}) do item[k] = v end
+  item[1] = kit.icon("radio_button_unchecked", size, ink, { anchors = { center_in = true } })
+  item[2] = kit.icon("radio_button_checked", size, ink, { anchors = { center_in = true },
+    opacity = function() return chosen() and 1 or 0 end, scale = function() return chosen() and 1 or .5 end,
+    behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard }, scale = theme.spring.fast } })
+  return ui.Item(item)
 end
 
 --- An arrow at a row's right: the row opens something. Its box is the
@@ -199,6 +216,14 @@ end
 P.CHEVRON_BEARING = 7
 function P.chevron()
   return ui.Item { width = 22 - P.CHEVRON_BEARING, height = 22, kit.icon("chevron_right", 22, kit.ink("lo")) }
+end
+
+--- The arrow of a row that opens what is under it: down while `open` (fn)
+--- does not hold, up while it does, turning between. Held by its glyph.
+function P.turn(open)
+  return ui.Item { width = 22 - 5, height = 22,
+    kit.icon("expand_more", 22, kit.ink("lo"), { width = 22, height = 22,
+      rotation = function() return open() and 180 or 0 end, behavior = { rotation = theme.spring.fast } }) }
 end
 
 --- An icon button `size` square with a `glyph` icon, for a row's right: held
@@ -282,10 +307,21 @@ function P.row(spec)
   end
   body.visible = spec.visible
   local node = L.item(body)
-  if spec.on_clicked then
+  -- A row holding a switch flips it from anywhere on it, through a plain area;
+  -- a row that opens something is a control of its own.
+  local switch = trailing and switches[trailing]
+  local flips = switch and not spec.on_clicked and switch.on_toggled
+  if flips or spec.on_clicked then
     node.x = P.ROW_REACH
-    local press = kit.action { id = spec.id and spec.id .. "-press", x = -P.ROW_REACH, height = h, cursor = "pointer",
-      width = function() return get(w) + 2 * P.ROW_REACH end, on_clicked = spec.on_clicked, node }
+    local area = {
+      id = spec.id and spec.id .. "-press", x = -P.ROW_REACH, height = h, cursor = "pointer",
+      width = function() return get(w) + 2 * P.ROW_REACH end, node,
+      on_clicked = spec.on_clicked or function()
+        if get(switch.enabled) ~= false then switch.on_toggled(not get(switch.on)) end
+      end }
+    local press = flips and ui.MouseArea(area) or kit.action(area)
+    -- Its ground's corners follow the card's, the reach in from its edge.
+    kit.press_ground(press, kit.round(math.max(4, P.RADIUS - P.PAD + P.ROW_REACH)))
     return ui.Item { width = w, height = h, visible = spec.visible, press }
   end
   return node
@@ -294,7 +330,8 @@ end
 -- -------------------------------------------------------------- sections --
 
 --- A caption over one card: `id`, `title` (the caption; none, no caption),
---- `caption_id`, `note`, `width`, `visible`, then what the card holds in the array part (rows, or
+--- `caption_id`, `note`, `width`, `visible` (with `fold`, it folds in and out
+--- as that changes), then what the card holds in the array part (rows, or
 --- any nodes the card's width less its padding), one under the other.
 function P.section(spec)
   local w = spec.width
@@ -310,8 +347,16 @@ function P.section(spec)
     parts[#parts + 1] = caption(spec.caption_id or (spec.id and spec.id .. "-caption"), w, spec.title, spec.note)
   end
   parts[#parts + 1] = card
-  parts.visible = spec.visible
-  return ui.Column(parts)
+  if not spec.fold or type(spec.visible) ~= "function" then
+    parts.visible = spec.visible
+    return ui.Column(parts)
+  end
+  -- A card that comes and goes while the page is open folds in and out.
+  local whole = ui.Column(parts)
+  local fold = P.fold { width = w, shown = spec.visible, whole }
+  local drawn = P.drawn(fold)
+  whole.visible = drawn
+  return fold
 end
 
 --- A tile of a grid (the dashboard's): a section a fixed `height` tall,
@@ -355,6 +400,12 @@ function P.cols(w, n, weights)
   return table.unpack(out)
 end
 
+-- Words of one sentence read as a caption, without the full stop.
+local function once(text)
+  if type(text) ~= "string" or text:find("[%.!?] ") or text:find("%.%.%.$") then return text end
+  return (text:gsub("%.$", ""))
+end
+
 --- What a page says when it has nothing to list: `id`, `width`,
 --- `title`, `text`, `action` (a P.button spec: what to do about it),
 --- `visible`.
@@ -366,11 +417,83 @@ function P.empty(spec)
   local words = ui.Column { x = P.ROW_TEXT_X, width = text_w, gap = 2, anchors = { vertical_center = true },
     kit.text { text = spec.title, font_size = theme.size.normal, font_weight = 500, color = kit.ink("hi"),
       width = text_w, wrap = true, max_lines = 2 },
-    spec.text and kit.text { text = spec.text, font_size = SUB, color = kit.ink("lo"), wrap = true, width = text_w } or nil }
+    spec.text and kit.text { text = once(spec.text), font_size = SUB, color = kit.ink("lo"), wrap = true, width = text_w } or nil }
   return P.section { id = spec.id, width = w, visible = spec.visible,
     ui.Item { width = inner, height = function() return math.max(P.ROW_H, (words.layout_height or 0) + 2 * S.s) end,
       kit.icon("info", 22, kit.ink("lo"), { anchors = { vertical_center = true } }), words },
     spec.action and P.button(spec.action.width and spec.action or setmetatable({ width = inner }, { __index = spec.action })) or nil }
+end
+
+-- ---------------------------------------------------------------- motion --
+
+-- One page giving way to another: what goes leaves first and quickly, what
+-- comes follows it in, a step along the way they went.
+P.SWAP = { out = math.floor(theme.duration.small * .45), inn = math.floor(theme.duration.small * 1.05), shift = 8 }
+
+--- `incoming` in and `outgoing` out as one page gives way to another the
+--- `way` it went ("in", "out", "across"), `shift` px along it. Returns
+--- the motion's handle.
+function P.swap(incoming, outgoing, way, shift)
+  shift = shift or P.SWAP.shift
+  local dx = way == "in" and shift or way == "out" and -shift or 0
+  local dy = way == "across" and shift / 2 or 0
+  local OUT, IN = theme.ease.standard_accel, theme.ease.emphasized_decel
+  local from = incoming.opacity or 1
+  incoming.opacity, incoming.translate_x, incoming.translate_y = 0, dx, dy
+  outgoing.opacity, outgoing.translate_x, outgoing.translate_y = from, 0, 0
+  return morf.animation.play { { parallel = {
+    { node = outgoing, property = "opacity", to = 0, duration = P.SWAP.out, easing = OUT },
+    { node = outgoing, property = "translate_x", to = -dx, duration = P.SWAP.out, easing = OUT },
+    { node = incoming, property = "opacity", to = 1, delay = P.SWAP.out, duration = P.SWAP.inn, easing = IN },
+    { node = incoming, property = "translate_x", to = 0, delay = P.SWAP.out, duration = P.SWAP.inn, easing = IN },
+    { node = incoming, property = "translate_y", to = 0, delay = P.SWAP.out, duration = P.SWAP.inn, easing = IN },
+  } } }
+end
+
+--- `node` comes in with what a swap brings and goes with what it takes:
+--- there while `shown` (fn) holds, and drawn until it has faded.
+function P.swapped(node, shown)
+  local claims = ui.claims(node, {
+    a_on = { when = shown, set = { opacity = 1 },
+      motion = { duration = P.SWAP.inn, delay = P.SWAP.out, easing = theme.ease.emphasized_decel } },
+    b_off = { set = { opacity = 0 }, motion = { duration = P.SWAP.out, easing = theme.ease.standard_accel } } })
+  node.visible = function() return shown() or claims.b_off.presence:get() < .99 end
+  return node
+end
+
+--- What a control shows below it while `shown` (fn) holds: it opens from
+--- nothing on the spatial spring as its rows fade in, and shuts the same
+--- way. `width`, `id`, `gap` (above the rows, inside the fold, so nothing
+--- jumps), `spacing` (between them: P.ROW_GAP), `head` (the control, put
+--- above it) and the rows. Returns the node.
+-- Each fold's test of whether it is still on screen (`P.drawn`).
+local folds = setmetatable({}, { __mode = "k" })
+
+--- Whether a fold `node` is drawn: open, or still folding away. A function.
+function P.drawn(node) return folds[node] end
+
+function P.fold(spec)
+  local shown, gap = spec.shown, spec.gap or 0
+  local column = { width = spec.width, gap = spec.spacing or P.ROW_GAP }
+  for _, child in ipairs(spec) do column[#column + 1] = child end
+  local body = ui.Column(column)
+  local fold = ui.Item { id = spec.id, width = spec.width, clip = true,
+    ui.Item { y = gap, width = spec.width, body } }
+  local function full() return gap + (body.layout_height or 0) end
+  local claims = ui.claims(fold, { motion = theme.spring.spatial,
+    a_open = { when = shown, set = { height = full } },
+    b_shut = { set = { height = 1e-3 }, motion = { duration = theme.duration.normal * .6, easing = theme.ease.standard } } })
+  local function drawn() return shown() or claims.b_shut.presence:get() < .99 end
+  fold.visible = drawn
+  ui.claims(body, {
+    a_lit = { when = shown, set = { opacity = 1 },
+      motion = { duration = P.SWAP.inn, delay = P.SWAP.out, easing = theme.ease.emphasized_decel } },
+    b_dark = { set = { opacity = 0 }, motion = { duration = P.SWAP.out, easing = theme.ease.standard_accel } } })
+  folds[fold] = drawn
+  if not spec.head then return fold end
+  local whole = ui.Column { width = spec.width, visible = spec.visible, spec.head, fold }
+  folds[whole] = drawn
+  return whole
 end
 
 -- ---------------------------------------------------------------- header --
@@ -431,21 +554,55 @@ function P.header(spec)
   if spec.back then
     back = kit.action { id = spec.back_id or (spec.id and spec.id .. "-back"), accessible_name = "Back",
       width = P.BUTTON_H, height = P.BUTTON_H, cursor = "pointer", x = BACK_X, y = function() return math.floor((line() - P.BUTTON_H) / 2) end,
-      on_clicked = spec.back, visible = can_back,
+      on_clicked = spec.back, enabled = can_back,
       kit.icon("arrow_back", 22, kit.ink("hi"), { anchors = { center_in = true } }) }
     kit.hover(back, function(hovered) return hovered and C.onSurface:alpha(0.08) or C.onSurface:alpha(0) end, 20)
+    P.swapped(back, can_back)
   end
-  local text = ui.Column { x = lead, width=text_w,clip=true,behavior = { x = { duration = theme.duration.small } },
-    y = function() return math.floor((line() - L.heading_h(TITLE)) / 2) + P.TITLE_NUDGE end, gap = 2,
-    L.heading { id = spec.title_id or (spec.id and spec.id .. "-title"), scope = spec.scope, level = "title", text = spec.title,
-      width = text_w, elide = "right", active = spec.active,
-      visible = function() local t = get(spec.title) return t ~= nil and t ~= "" end },
-    spec.subtitle and kit.text { id = spec.id and spec.id .. "-subtitle", text = spec.subtitle, font_size = SUB,
-      visible=function() local note=get(spec.subtitle) return note~=nil and note~=false and note~="" end,
-      x = INSET, color = kit.ink("lo"), width = function() return math.max(1e-3, text_w() - INSET) end,
-      height = L.lh(SUB), elide = "right" } or nil,
-  }
-  return L.item { id = spec.id, width = w, height = function() return P.header_height(spec) end, back, text, row }
+  local function words(title, subtitle, named)
+    return ui.Column { width = text_w, clip = true, gap = 2, accessible_hidden = not named or nil,
+      y = function() return math.floor((line() - L.heading_h(TITLE)) / 2) + P.TITLE_NUDGE end,
+      L.heading { id = named and (spec.title_id or (spec.id and spec.id .. "-title")) or nil, scope = named and spec.scope or nil,
+        level = "title", text = title, width = text_w, elide = "right", active = named and spec.active or nil,
+        still = not named or nil,
+        visible = function() local t = get(title) return t ~= nil and t ~= "" end },
+      spec.subtitle and kit.text { id = named and spec.id and spec.id .. "-subtitle" or nil, text = subtitle, font_size = SUB,
+        visible = function() local note = get(subtitle) return note ~= nil and note ~= false and note ~= "" end,
+        x = INSET, color = kit.ink("lo"), width = function() return math.max(1e-3, text_w() - INSET) end,
+        height = L.lh(SUB), elide = "right" } or nil }
+  end
+  -- A new title takes the old one's place the way the page went: the old
+  -- words leave first, the new come in after them where they will stay.
+  local gone_title, gone_note = morf.signal("page.header.gone." .. tostring(spec), ""), morf.signal("page.header.note." .. tostring(spec), "")
+  local text = words(spec.title, spec.subtitle, true)
+  -- Made the first time a title gives way.
+  local ghost
+  local holder = ui.Item {}
+  local was, running
+  morf.effect("page.header.swap." .. tostring(spec), function()
+    local now = { title = get(spec.title) or "", note = get(spec.subtitle) or "", lead = lead() }
+    local before = was
+    was = now
+    if not before then text.x = now.lead return end
+    if now.title == before.title then
+      if now.lead ~= before.lead then
+        morf.animation.play { { node = text, property = "x", to = now.lead, duration = theme.duration.small, easing = theme.ease.standard } }
+      end
+      return
+    end
+    local way = spec.way and spec.way() or now.lead > before.lead and "in" or now.lead < before.lead and "out" or "across"
+    gone_title:set(before.title)
+    gone_note:set(before.note)
+    if not ghost then
+      ghost = words(function() return gone_title:get() end, function() return gone_note:get() end, false)
+      ui.reparent(ghost, holder)
+    end
+    ghost.x = before.lead
+    text.x = now.lead
+    if running then running:stop() end
+    running = P.swap(text, ghost, way)
+  end, { owner = text })
+  return L.item { id = spec.id, width = w, height = function() return P.header_height(spec) end, back, holder, text, row }
 end
 
 -- ----------------------------------------------------------------- frame --

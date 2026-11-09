@@ -30,7 +30,7 @@ local function number(field, inner)
   return F.slider { id = id_of(field.key), width = inner, icon = field.icon, name = field.title, from = field.from,
     to = field.to, step = field.step, value = function() return config.get(field.key) end,
     set = function(value) config.set(field.key, value) end,
-    format = function(value)
+    format = field.seconds and F.seconds or function(value)
       local text = value == math.floor(value) and ("%d"):format(value) or tostring(value)
       return text .. (field.unit or "")
     end }

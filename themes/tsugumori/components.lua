@@ -117,6 +117,16 @@ return function(theme)
 
   -- -------------------------------------------------------------- text --
 
+  -- Ink that follows a state fades with the ground under it.
+  local INK = { duration = theme.duration.small, easing = theme.ease.standard }
+  local ONLY_INK = { color = INK }
+  local function fades(props)
+    if type(props.color) ~= "function" then return end
+    local behavior = props.behavior
+    if behavior == nil then props.behavior = ONLY_INK
+    elseif behavior.color == nil then behavior.color = INK end
+  end
+
   --- Text in the theme's mono face; `props` as a `ui.Text`'s.
   function M.text(props)
     if props.morph then
@@ -127,7 +137,8 @@ return function(theme)
     if (theme.font_file or "") ~= "" and props.font_source == nil then props.font_source = theme.font_file end
     props.font_size = props.font_size or theme.size.normal
     if props.font_weight and props.axes == nil then props.axes = { wght = props.font_weight } end
-    if props.color == nil then props.color = function() return C.onSurface end end
+    if props.color == nil then props.color = function() return C.onSurface end
+    else fades(props) end
     local node = ui.Text(props)
     if type(props.text) == "function" and type(props.font_size) == "number" and props.font_size >= 17.5 then
       M.decoding(node, props.text)
@@ -189,6 +200,7 @@ return function(theme)
       props.behavior = props.behavior or {}
       props.behavior.axes = { duration = theme.duration.small, easing = theme.ease.standard }
     end
+    fades(props)
     return ui.Text(props)
   end
 
@@ -207,6 +219,15 @@ return function(theme)
     return table.unpack(result, 2, result.n)
   end
   function M.heading(props)
+    -- A still one (words on their way out) is its capitals alone.
+    if props.still then
+      local source, size = props.text, theme.typography[props.level or "title"] or theme.typography.title
+      local width = props.width
+      return M.text { x = 16, height = props.height, font_size = size, font_weight = 500, elide = "right",
+        vertical_alignment = "center", color = props.ink or function() return C.primary end, visible = props.visible,
+        width = function() return math.max(1e-3, (type(width) == "function" and width() or width or 0) - 16) end,
+        text = function() return unicase.caps(tostring((type(source) == "function" and source() or source) or "")) end }
+    end
     heading_serial = heading_serial + 1
     props.id = props.id or "tsugumori-heading-" .. heading_serial
     props.font_size = theme.typography[props.level or "title"] or theme.typography.title
@@ -859,6 +880,9 @@ return function(theme)
     feedback(area)
     return area
   end
+
+  --- A pressable row's ground: the area's own feedback is it here.
+  function M.press_ground(area) return area end
   local meters = require("themes.tsugumori.meters")(theme, M)
   M.bar = meters.bar
 

@@ -15,6 +15,7 @@ local ROWS = 12
 local function time_field(model, id, key, title, inner, on_key)
   return ui.Column { id = id, width = inner, gap = theme.space.xs,
     opacity = function() return config.get(on_key) == true and 1 or 0.45 end,
+    behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard } },
     kit.subtitle { id = id .. "-label", width = inner, font_size = P.SUB, color = kit.ink("lo"), text = title },
     F.text { id = id .. "-field", width = inner, title = title, value = function() return config.get(key) end,
       set = function(text) model.set_time(key, text) end } }
@@ -99,6 +100,7 @@ function V.app(model, w, h)
       F.choices { id = "screen-time-limit", width = inner, title = "Daily limit", choices = model.LIMITS,
         read = function() return model.limit(key()) or 0 end, set = function(minutes) model.set_limit(key(), minutes) end },
       F.switch { id = "screen-time-allowed", width = inner, icon = "bedtime_off", title = "Allowed during downtime",
+        subtitle = "Stays usable while the rest is greyed",
         on = function() return model.allowed(key()) end, set = function(on) model.set_allowed(key(), on == true) end },
     } }
 end

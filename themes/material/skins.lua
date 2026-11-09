@@ -53,17 +53,23 @@ return function(theme, M)
   end
 
   --- The M3 switch: a track that fills when on and a circular thumb that
-  --- moves across without changing its size or silhouette.
+  --- moves across, a little larger under the finger.
   local function switch(t, spec)
     local motion = { duration = theme.duration.small, easing = theme.ease.standard }
-    local function thumb() return 24 end
+    local function thumb() return t.down and 28 or 24 end
     local jump = theme.spring.press
+    -- Its glyph, each mark fading for the other.
+    local function glyph(name, on)
+      return M.icon(name, 14, function() return t.checked and C().primary or C().surfaceContainerHighest end,
+        { anchors = { center_in = true }, opacity = function() return t.checked == on and 1 or 0 end,
+          behavior = { opacity = motion } })
+    end
     return {
       background = ui.Rect { anchors = { fill = true }, radius = 16,
         color = function() return t.checked and C().primary or C().surfaceContainerHighest end,
         border_width = function() return t.checked and 0 or 2 end,
         border_color = function() return C().outline end,
-        behavior = { color = motion } },
+        behavior = { color = motion, border_width = motion } },
       indicator = ui.Item { id = spec and spec.id and spec.id .. "-thumb",
         x = function() return ((t.checked ~= (t.mirrored == true)) and 36 or 16) - thumb() / 2 end,
         y = function() return 16 - thumb() / 2 end,
@@ -72,10 +78,9 @@ return function(theme, M)
         stretch = theme.stretch.thumb,
         M.shape { anchors = { fill = true },
           shape = "circle",
-          color = function() return t.checked and C().onPrimary or C().outline end },
-        M.icon(function() return t.checked and "check" or "close" end, 14, function()
-          return t.checked and C().primary or C().surfaceContainerHighest
-        end, { anchors = { center_in = true }, visible = function() return thumb() >= 20 end }),
+          color = function() return t.checked and C().onPrimary or C().outline end,
+          behavior = { fill_color = motion } },
+        glyph("check", true), glyph("close", false),
       },
       badge = ring(t, 16),
     }
@@ -92,8 +97,10 @@ return function(theme, M)
       background = ui.Rect { width = W, height = H,
         radius = function() return h / 2 * (t.down and theme.give.corner or 1) end,
         scale = function() return t.down and theme.give.scale or 1 end,
+        -- Bare at rest, the state layer under the pointer; the alert while on.
         color = function()
-          local base = on() and C().errorContainer or C().surfaceContainerHighest
+          if not on() then return ink():alpha(t.down and 0.12 or t.hovered and 0.08 or 0) end
+          local base = C().errorContainer
           if t.down then return base:mix(ink(), 0.12) end
           if t.hovered then return base:mix(ink(), 0.08) end
           return base

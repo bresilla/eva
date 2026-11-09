@@ -69,16 +69,7 @@ end
 
 --- What the last action said ("a password is needed"), under the list.
 local function status(id, model, w)
-  local function said() return (model.message:get() or "") ~= "" end
-  -- It fades in where it opens its line, and its colour turns with the news.
-  local node = kit.subtitle { id = id, width = P.inner(w), wrap = true, font_size = P.SUB,
-    text = function() return model.message:get() or "" end,
-    color = function() return model.failed:get() and theme.color.error or theme.color.onSurfaceVariant end,
-    opacity = function() return said() and 1 or 0 end,
-    behavior = { opacity = { duration = theme.duration.normal, easing = theme.ease.standard },
-      color = { duration = theme.duration.small } } }
-  node.visible = said
-  return node
+  return require("themes.layouts.form").status(id, P.inner(w), model)
 end
 
 --- A one-line text field the card's width, its text kept in `draft`;
@@ -161,8 +152,8 @@ local function network_prompt(model, w)
     user.focus = on and m == "enterprise"
     pass.focus = on and m == "password"
   end)
-  return ui.Column { id = "network-password-prompt", width = inner, gap = 8,
-    visible = function() return model.asked() ~= nil end,
+  return P.fold { width = inner, shown = function() return model.asked() ~= nil end, ui.Column {
+    id = "network-password-prompt", width = inner, gap = 8,
     kit.subtitle { id = "network-password-title", width = inner, elide = "right", font_size = P.SUB,
       text = function()
         local m, ssid = model.mode(), row().ssid or ""
@@ -171,7 +162,7 @@ local function network_prompt(model, w)
         return "Password for " .. ssid
       end },
     user_box, pass_box, answer, manage, more,
-  }
+  } }
 end
 
 --- The code a phone reads to join the network being managed, drawn straight
@@ -193,17 +184,17 @@ local function share_panel(model, w)
       code.d = made.path
     end, function(why) failure:set(tostring(why)) end)
   end)
-  return ui.Column { id = "network-share-panel", width = inner, gap = theme.space.s, align = "center",
-    visible = function() return model.share_shown:get() end,
+  return P.fold { width = inner, shown = function() return model.share_shown:get() end, ui.Column {
+    id = "network-share-panel", width = inner, gap = theme.space.s, align = "center",
     kit.surface { id = "network-share-paper", width = SIDE, height = SIDE, radius = kit.round(theme.space.s), color = paper, code,
       visible = function() return failure:get() == "" end },
     kit.subtitle { id = "network-share-failure", width = inner, wrap = true, font_size = P.SUB,
       text = function() return failure:get() end, visible = function() return failure:get() ~= "" end,
       color = function() return theme.color.error end },
     kit.subtitle { width = inner, wrap = true, font_size = P.SUB, color = kit.ink("lo"), horizontal_alignment = "center",
-      text = "Point a phone's camera at it to join this network." },
-    P.button { id = "network-share-close", label = "Close", on_clicked = function() model.share_shown:set(false) end },
-  }
+      text = "Point a phone's camera at it to join this network" },
+    P.button { id = "network-share-close", label = "Close", width = inner, on_clicked = function() model.share_shown:set(false) end },
+  } }
 end
 
 --- Joining a network that does not announce itself.
@@ -224,14 +215,13 @@ local function hidden_section(model, w)
       model.join_hidden(name, secret)
     end
   end
-  return P.section { id = "network-hidden", width = w, title = "Other networks", visible = model.available,
-    P.row { id = "network-hidden-open", width = inner, icon = "wifi_find", title = "Join a hidden network",
-      subtitle = "One that does not show in the list", trailing = P.chevron(),
-      on_clicked = function() open:set(not open:get()) end },
-    ui.Column { width = inner, gap = theme.space.s, visible = function() return open:get() end,
+  return P.section { id = "network-hidden", width = w, title = "More", visible = model.available,
+    P.fold { width = inner, shown = function() return open:get() end, gap = P.ROW_GAP, spacing = theme.space.s,
+      head = P.row { id = "network-hidden-open", width = inner, icon = "wifi_find", title = "Join a hidden network",
+        subtitle = "One that does not show in the list", trailing = P.turn(function() return open:get() end),
+        on = function() return open:get() end, on_clicked = function() open:set(not open:get()) end },
       ssid_box, pass_box,
-      P.button { id = "network-hidden-join", label = "Join", tone = "primary", width = inner, on_clicked = join },
-    },
+      P.button { id = "network-hidden-join", icon = "check", label = "Join", tone = "primary", width = inner, on_clicked = join } },
     P.row { id = "network-proxy-open", width = inner, icon = "shield", title = "Proxy", subtitle = "For this session's programs",
       trailing = P.chevron(), on_clicked = function() model.request("network/proxy") end },
     require("themes.layouts.form").page { id = "network-help-open", width = inner, key = "network/help",
@@ -261,7 +251,7 @@ local function network_page(model, w, h)
           manage_button("network-manage-" .. i, function() return ap().known == true or ap().in_use == true end,
             function() model.manage(ap()) end) },
         on_clicked = function() model.choose(ap()) end }
-    end, function() return model.enabled() and "No networks found" or "Turn on Wi-Fi to find networks." end),
+    end, function() return model.enabled() and "No networks found" or "Turn on Wi-Fi to find networks" end),
     network_prompt(model, w),
     share_panel(model, w),
     status("network-status", model, w),
@@ -406,7 +396,7 @@ local function bluetooth_page(model, w, h)
         trailing = manage_button("bluetooth-manage-" .. i, function() return dev().paired == true end,
           function() model.manage(dev()) end),
         on_clicked = function() model.choose(dev()) end }
-    end, function() return model.enabled() and "No devices" or "Turn on Bluetooth to find devices." end),
+    end, function() return model.enabled() and "No devices" or "Turn on Bluetooth to find devices" end),
     pairing_prompt(model, w),
     device_prompt(model, w),
     status("bluetooth-status", model, w),

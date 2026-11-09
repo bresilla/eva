@@ -108,9 +108,9 @@ function M.gesture(model, w, h)
   local list = { id = "touch-actions", width = w, title = "What it does" }
   for _, action in ipairs(model.ACTIONS) do
     local function picked() return model.action() == action.key end
-    local tick = kit.icon(function() return picked() and "radio_button_checked" or "radio_button_unchecked" end, 22,
+    local tick = P.radio(picked, 22,
       function() return picked() and kit.ink("accent")() or kit.ink("lo")() end)
-    list[#list + 1] = P.row { id = "touch-action-" .. action.key, width = inner, height = 52, icon = action.icon,
+    list[#list + 1] = P.row { id = "touch-action-" .. action.key, width = inner, icon = action.icon,
       title = action.name, on = picked, trailing = tick, on_clicked = function() model.pick(action.key) end }
   end
   return P.page { id = "touch-gesture-scroll", width = w, height = h, active = model.active,
@@ -120,7 +120,7 @@ function M.gesture(model, w, h)
       P.buttons { id = "touch-gesture-buttons", width = inner,
         { id = "touch-gesture-reset", label = "Reset", icon = "restart_alt", on_clicked = model.reset } } },
     P.section(list),
-    P.section { id = "touch-command", width = w, title = "Command", visible = model.is_command,
+    P.section { id = "touch-command", width = w, title = "Command", visible = model.is_command, fold = true,
       F.text { id = "touch-command-field", width = inner, title = "Command, as words",
         value = model.command, set = model.set_command } },
   }

@@ -52,10 +52,10 @@ function M.page(model, w, h)
     on_changed = function(text) model.set_path(text) end }
   local choosing = morf.signal("eva.backups.choosing", false)
   local restore = P.section { id = "backups-restore", width = w, title = "Get a file back",
-    visible = function() return model.selected() ~= nil end,
+    visible = function() return model.selected() ~= nil end, fold = true,
     F.note(inner, function()
       local row = model.selected()
-      return row and ("From %s."):format(row.when ~= "" and row.when or row.detail) or ""
+      return row and ("From %s"):format(row.when ~= "" and row.when or row.detail) or ""
     end, { id = "backups-from" }),
     path_box,
     P.button { id = "backups-browse", width = inner, label = function() return choosing:get() and "Close" or "Choose the file" end,
@@ -72,8 +72,8 @@ function M.page(model, w, h)
         label = function() return model.confirming:get() and "Yes, replace it" or "Replace the file" end },
     },
     F.status("backups-said", inner, model),
-    P.button { id = "backups-keep", width = inner, label = "Keep the file as it is", on_clicked = model.keep_file,
-      visible = function() return model.confirming:get() end },
+    P.fold { width = inner, shown = function() return model.confirming:get() end,
+      P.button { id = "backups-keep", width = inner, label = "Keep the file as it is", on_clicked = model.keep_file } },
     F.note(inner, "A copy lands beside the file, with .restored on its name. Nothing is overwritten."),
   }
 

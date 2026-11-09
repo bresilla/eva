@@ -19,6 +19,12 @@ end
 --- `subtitle`, `icon`, `choices` (`{ value, label }`), `read` (fn), `set` (fn),
 --- `enabled` (fn), `per_row` (all of them, without it).
 function F.choices(spec)
+  -- Three or more that cannot stand side by side become a list to pick from.
+  if not spec.per_row and #spec.choices >= 3 and not spec.icon and not spec.subtitle then
+    local labels = {}
+    for i, choice in ipairs(spec.choices) do labels[i] = choice[2] end
+    if P.fit(spec.width, labels, #spec.choices) < #spec.choices then return F.select(spec) end
+  end
   local per_row = spec.per_row or math.max(1, #spec.choices)
   local lines = { width = spec.width, gap = P.ROW_GAP }
   for start = 1, #spec.choices, per_row do

@@ -34,24 +34,26 @@ function M.datetime_page(model, w, h)
     end }
   local set_text = morf.signal("eva.datetime.text", "")
   local set_box = P.field { id = "datetime-set", width = inner, placeholder = "2026-11-01 09:30",
-    on_changed = function(value) set_text:set(value) end, visible = function() return not model.ntp() end }
+    on_changed = function(value) set_text:set(value) end }
   return P.page { id = "datetime-scroll", width = w, height = h, active = model.active,
     P.section { id = "datetime-now", width = w, title = "Now",
       F.fact { id = "datetime-clock", width = inner, icon = "schedule", title = model.clock,
         subtitle = function() return model.timezone() ~= "" and model.timezone() or "Clock service not reachable" end },
-      F.toggle { id = "datetime-twelve", width = inner, icon = "more_time", title = "12-hour clock",
+      F.toggle { id = "datetime-twelve", width = inner, icon = "more_time", title = "12-hour clock", subtitle = "Times with AM and PM",
         on = model.twelve_hour, set = model.set_twelve_hour },
     },
     P.section { id = "datetime-auto", width = w, title = "Setting the clock",
-      F.toggle { id = "datetime-ntp", width = inner, icon = "sync", title = "Set automatically",
-        subtitle = function()
-          if not model.can_ntp() then return "No time service on this system" end
-          return model.synced() and "In step with network time" or "Not in step yet"
-        end,
-        on = model.ntp, enabled = model.can_ntp, set = model.set_ntp },
-      set_box,
-      P.button { id = "datetime-set-save", label = "Set the clock", visible = function() return not model.ntp() end,
-        on_clicked = function() model.set_time(set_text:get()) end },
+      P.fold { width = inner, shown = function() return not model.ntp() end, gap = P.ROW_GAP,
+        head = F.toggle { id = "datetime-ntp", width = inner, icon = "sync", title = "Set automatically",
+          subtitle = function()
+            if not model.can_ntp() then return "No time service on this system" end
+            if not model.ntp() then return "Takes the time from the network" end
+            return model.synced() and "In step with network time" or "Not in step yet"
+          end,
+          on = model.ntp, enabled = model.can_ntp, set = model.set_ntp },
+        set_box,
+        P.button { id = "datetime-set-save", icon = "check", label = "Set the clock", tone = "primary", width = inner,
+          on_clicked = function() model.set_time(set_text:get()) end } },
     },
     P.section { id = "datetime-zones", width = w, title = "Time zone",
       declared("datetime-declared", inner, model.timezone_declared, "time.timeZone"),
@@ -198,7 +200,7 @@ function M.privacy_page(model, w, h)
           return v and "The system disk is encrypted" or "The system disk is not encrypted"
         end },
       F.toggle { id = "privacy-agent", width = inner, icon = "admin_panel_settings", title = "Password prompts in the shell",
-        subtitle = "Off, leave them to another polkit agent", on = model.agent, set = model.set_agent },
+        subtitle = "eva asks when a program needs your password", on = model.agent, set = model.set_agent },
       F.link { id = "privacy-firewall", width = inner, icon = "security", title = "Firewall",
         subtitle = "Incoming connections", go = function() model.request("firewall", "privacy") end },
       P.button { id = "privacy-clear-recent", icon = "delete_history", label = "Clear recent files", width = inner,
@@ -213,8 +215,11 @@ function M.firewall_page(model, w, h)
   local NAMES = { firewalld = "firewalld", ufw = "ufw", nixos = "NixOS firewall" }
   return P.page { id = "firewall-scroll", width = w, height = h, active = model.active,
     P.section { id = "firewall-state", width = w, visible = model.present,
-      F.toggle { id = "firewall-on", width = inner, icon = "security", title = "Block incoming connections",
-        subtitle = function() return (NAMES[model.backend()] or "") .. " · " .. (model.on() and "On" or "Off") end,
+      F.toggle { id = "firewall-on", width = inner, icon = "security", title = "Firewall",
+        subtitle = function()
+          local by = NAMES[model.backend()]
+          return "Blocks incoming connections" .. (by and by ~= "" and (" · " .. by) or "")
+        end,
         on = model.on, enabled = function() return not model.declarative() end, set = model.set },
       F.note(inner, "NixOS builds this firewall from its configuration: change networking.firewall.enable and its ports there, and rebuild.",
         { id = "firewall-declared", visible = model.declarative }),
@@ -222,18 +227,17 @@ function M.firewall_page(model, w, h)
     },
     (function()
       local none = P.empty { id = "firewall-none", width = w, icon = "security", title = "No firewall found",
-        text = "Neither firewalld nor ufw is installed." }
+        text = "Neither firewalld nor ufw is installed" }
       none.visible = function() return not model.present() end
       return none
     end)(),
   }
 end
 
---- Every fact the machine gives (info_model.lua), a card to each kind, shown
---- while `visible` holds and built
+--- Every fact the machine gives (info_model.lua), a card to each kind, built
 --- again as more of them come in. The versions are the summary's already.
 local FACT_H = 28
-local function details(model, w, visible)
+local function details(model, w)
   local inner = P.inner(w)
   local info = model.info
   local cards = morf.list_model({})
@@ -245,7 +249,7 @@ local function details(model, w, visible)
     end
     cards:replace(rows, "id")
   end)
-  return ui.Repeater { as = "column", gap = P.GAP, width = w, model = cards, visible = visible, delegate = function(row)
+  return ui.Repeater { as = "column", gap = P.GAP, width = w, model = cards, delegate = function(row)
     local section, facts = row.section, {}
     for index, fact in ipairs(section.rows) do facts[index] = { fact[1], fact[2] } end
     return P.section { id = "about-detail-" .. section.key, width = w, title = section.title,
@@ -271,8 +275,7 @@ function M.about_page(model, w, h)
     P.section { id = "about-facts", width = w, title = "This machine", facts,
       P.row { id = "about-more", width = inner, icon = "list", title = "Every detail",
         subtitle = "System, hardware, graphics and storage", on_clicked = function() more:set(not more:get()) end,
-        trailing = ui.Item { width = 22 - 5, height = 22,
-          kit.icon(function() return more:get() and "expand_less" or "expand_more" end, 22, kit.ink("lo")) } },
+        on = function() return more:get() end, trailing = P.turn(function() return more:get() end) },
       P.button { id = "about-copy", icon = "content_copy", label = "Copy all", width = inner, on_clicked = model.copy },
       F.status("about-status", inner, model),
     },
@@ -283,7 +286,7 @@ function M.about_page(model, w, h)
         visible = function() return not model.hostname_declared() end,
         on_clicked = function() model.set_hostname(name:get()) end },
     },
-    details(model, w, function() return more:get() end),
+    P.fold { width = w, shown = function() return more:get() end, details(model, w) },
   }
 end
 

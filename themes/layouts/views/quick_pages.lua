@@ -62,7 +62,7 @@ function V.hotspot_page(model, w, h)
   name_handle.text = name:get()
   local pass_box
   pass_box, password_handle = field("settings-hotspot-password", inner,
-    function() return hotspot.saved() and "Password (unchanged)" or "Password, at least 8 characters" end, "password",
+    function() return hotspot.saved() and "Unchanged" or "At least 8 characters" end, "password",
     function(value) password = value typed:set(value ~= "") end, save)
 
   return P.page { id = "settings-hotspot-scroll", width = w, height = h,
@@ -94,7 +94,7 @@ function V.nightlight_page(model, w, h)
   return P.page { id = "settings-nightlight-scroll", width = w, height = h,
     P.section { id = "settings-nightlight", width = w,
       P.row { id = "settings-nightlight-state", width = inner, icon = "nightlight", on = on, title = "Night light",
-        subtitle = function() return on() and "Warmer colours on the screen" or "Colours as they are" end,
+        subtitle = function() return on() and "Warmer colours on the screen" or "Warmer colours in the evening" end,
         trailing = P.switch { id = "settings-nightlight-switch", name = "Night light", on = on,
           on_toggled = function(now) night.set(now) end } },
       waiting(named(inner, "Warmth", kit.slider { id = "settings-nightlight-temperature", accessible_name = "Temperature", width = inner,
@@ -131,7 +131,7 @@ function V.flashlight_page(model, w, h)
           on_toggled = function(now) torch.set(now) end } },
       waiting(named(inner, "Strength", strength, torch.dims), on, torch.dims),
       kit.subtitle { id = "settings-flashlight-note", width = inner, wrap = true, font_size = P.SUB,
-        visible = function() return not torch.dims() end, text = "This light has one strength." },
+        visible = function() return not torch.dims() end, text = "This light has one strength" },
     },
   }
 end
@@ -152,28 +152,28 @@ function V.filters_page(model, w, h)
   local inner = P.inner(w)
   local filters = require("quick_hardware").filters()
   local list = { id = "settings-filters", width = w, title = "The whole screen" }
-  for _, item in ipairs(FILTERS) do
-    local function on() return filters.on(item.id) end
-    list[#list + 1] = P.row { id = "settings-filters-" .. item.id, width = inner, icon = item.icon, on = on, title = item.name,
-      subtitle = item.on,
-      trailing = P.switch { id = "settings-filters-" .. item.id .. "-switch", name = item.name, on = on,
-        on_toggled = function(now) filters.set(item.id, now) end } }
-  end
-  local dim = kit.slider { id = "settings-filters-dim", accessible_name = "How much light is left", width = inner,
+  -- Under its switch, what a filter is set with while it is on.
+  local more = {}
+  more.extradim = named(inner, "Light left", kit.slider { id = "settings-filters-dim",
+    accessible_name = "How much light is left", width = inner,
     icon = "brightness_low", value = filters.dim, set = function(value) filters.set_dim(value) end,
-    reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end }
-  local function dimmed() return filters.on("extradim") end
-  dim.visible = dimmed
-  list[#list + 1] = named(inner, "Light left", dim, dimmed)
-  local kinds = { id = "settings-filters-kind", width = inner, visible = function() return filters.on("correction") end }
+    reading = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end })
+  local kinds = { id = "settings-filters-kind", width = inner }
   for _, kind in ipairs(filters.CORRECTIONS) do
     kinds[#kinds + 1] = { id = "settings-filters-kind-" .. kind, label = KINDS[kind] or unicase.capitalise(kind),
       accessible_name = kind, group = "settings-filters-kind",
-      visible = function() return filters.on("correction") end,
       selected = function() return filters.correction() == kind end,
       on_clicked = function() filters.set_correction(kind) end }
   end
-  list[#list + 1] = P.buttons(kinds)
+  more.correction = P.buttons(kinds)
+  for _, item in ipairs(FILTERS) do
+    local function on() return filters.on(item.id) end
+    local row = P.row { id = "settings-filters-" .. item.id, width = inner, icon = item.icon, on = on, title = item.name,
+      subtitle = item.on,
+      trailing = P.switch { id = "settings-filters-" .. item.id .. "-switch", name = item.name, on = on,
+        on_toggled = function(now) filters.set(item.id, now) end } }
+    list[#list + 1] = more[item.id] and P.fold { width = inner, shown = on, gap = P.ROW_GAP, head = row, more[item.id] } or row
+  end
   return P.page { id = "settings-filters-scroll", width = w, height = h, P.section(list) }
 end
 

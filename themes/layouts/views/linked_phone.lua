@@ -46,7 +46,7 @@ function M.build(model, active, w, h)
     P.empty { id = "phone-none", width = w, icon = "smartphone", title = "No phone paired",
       text = function()
         local failed = model.failed:get()
-        return failed ~= "" and failed or "Pair one from the KDE Connect app on the phone."
+        return failed ~= "" and failed or "Pair one from the KDE Connect app on the phone"
       end,
       visible = function() return model.present() and model.loaded:get() and not has() end },
     P.section { id = "phone-devices", width = w, title = "Phones", visible = has, list },

@@ -51,13 +51,16 @@ function V.build(model, w, h)
   end
 
   local sound = P.section { id = "notif-sound", width = w, title = "Sound",
-    flag("sounds", "volume_up", "Notification sounds", function() return "Ring mode: " .. model.ring() end, "sounds"),
-    ui.Item { width = inner, height = 52, visible = setting("sounds"),
-      kit.slider { id = "notif-volume", accessible_name = "Notification volume", width = inner,
-        value = function() return model.get("volume") / 100 end, icon = "volume_down",
-        set = function(value) model.set("volume", math.floor(value * 100 + .5)) end } },
-    P.row { id = "notif-try", width = inner, icon = "play_arrow", title = "Try the sound", visible = setting("sounds"),
-      trailing = P.button { id = "notif-try-button", label = "Play", on_clicked = model.try } },
+    P.fold { width = inner, shown = setting("sounds"), gap = P.ROW_GAP,
+      head = flag("sounds", "volume_up", "Notification sounds", function()
+        return model.get("sounds") and ("Ring mode: " .. model.ring()) or "A sound as one arrives"
+      end, "sounds"),
+      ui.Item { width = inner, height = 52,
+        kit.slider { id = "notif-volume", accessible_name = "Notification volume", width = inner,
+          value = function() return model.get("volume") / 100 end, icon = "volume_down",
+          set = function(value) model.set("volume", math.floor(value * 100 + .5)) end } },
+      P.row { id = "notif-try", width = inner, icon = "play_arrow", title = "Try the sound",
+        trailing = P.button { id = "notif-try-button", label = "Play", on_clicked = model.try } } },
     flag("cooldown", "volume_down", "Repeats stay quiet", "An app that keeps pinging plays once a minute", "cooldown"),
     flag("flash", "flash_on", "Flash the screen", "A short flash on arrival", "flash"),
     flag("edge", "highlight", "Edge lighting", "The screen's edge glows on arrival", "edge_light"),
@@ -88,8 +91,8 @@ function V.build(model, w, h)
   }
 
   local kept = P.section { id = "notif-history", width = w, title = "History",
-    flag("keep", "history", "Keep a history", "Off, nothing is kept or written", "history.enabled"),
-    flag("dismissed", "playlist_remove", "Keep what you dismiss", "Off, a dismissed popup leaves the history too",
+    flag("keep", "history", "Keep a history", "What came in stays to look back on", "history.enabled"),
+    flag("dismissed", "playlist_remove", "Keep what you dismiss", "A dismissed popup stays in the history",
       "history.keep_dismissed"),
     flag("open", "unfold_more", "Open groups", "Every app starts open", "history.open_groups"),
     choices(w, "notif-limit", "How many it keeps", S.LIMITS, setting("history.limit"), setter("history.limit")),
@@ -115,7 +118,7 @@ function V.build(model, w, h)
   local pattern = morf.signal("eva.notifications.settings.pattern", "")
   local content_rows = { id = "notif-matches", width = w, title = "Matching text" }
   content_rows[#content_rows + 1] = kit.text { width = inner, font_size = P.SUB, color = kit.ink("lo"), wrap = true,
-    text = "A Lua pattern over a notification's title and body, for every app." }
+    text = "A Lua pattern over a notification's title and body, for every app" }
   for slot = 1, 6 do
     local function row() return model.content()[slot] end
     content_rows[#content_rows + 1] = P.row { id = "notif-match-" .. slot, width = inner, icon = "rule",
@@ -133,7 +136,7 @@ function V.build(model, w, h)
   }
 
   local server = P.section { id = "notif-server", width = w, title = "Server",
-    flag("daemon", "dns", "Serve notifications", "Off, another daemon keeps them", "daemon"),
+    flag("daemon", "dns", "Serve notifications", "eva shows them, not another program", "daemon"),
   }
 
   return P.page { id = "notif-scroll", width = w, height = h, active = model.active,
@@ -165,8 +168,8 @@ function V.app(model, w, h)
   local alerts = P.section { id = "notif-rule-alerts", width = w, title = "Alerts",
     kit.subtitle { width = inner, font_size = P.SUB, color = kit.ink("lo"), text = "Mute" },
     P.buttons(mute_row),
-    flag("popup", "web_asset", "Popups", "Off, it goes straight to the history", "popup"),
-    flag("history", "history", "Keep in history", "Off, it leaves no trace", "history"),
+    flag("popup", "web_asset", "Popups", "Shows on the screen as it arrives", "popup"),
+    flag("history", "history", "Keep in history", "Stays to look back on", "history"),
     flag("priority", "priority_high", "Priority", "Passes every Focus mode and rises to the top", "priority"),
     flag("digest", "summarize", "In the summary", "Held for the summary at set times", "digest"),
     choices(w, "notif-rule-urgency", "Urgency", S.URGENCY, get("urgency"), set("urgency")),

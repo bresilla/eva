@@ -52,14 +52,14 @@ function V.page(model, w, h)
       on_clicked = function() model.set_field("openai", "base", preset.base) end }
   end
   local preset_row = P.buttons(presets)
-  preset_row.visible = function() return chosen() == "openai" end
+
 
   local list = P.button { id = "assistant-list-models", label = "List models", icon = "list", on_clicked = function()
     said:set("Asking…")
     model.models(function(found, why)
       if not found then said:set(why) return end
       models:set(found)
-      said:set(#found == 0 and "No models there." or (#found .. " models. Press one to use it."))
+      said:set(#found == 0 and "No models there" or (#found .. " models. Press one to use it."))
     end)
   end }
   local offered = ui.Repeater { as = "column", gap = S.xs, width = inner,
@@ -91,7 +91,7 @@ function V.page(model, w, h)
     key_input.text = ""
     typed:set(false)
     model.save_key(given, function(ok, why)
-      said:set(ok and "Saved in the keyring." or tostring(why))
+      said:set(ok and "Saved in the keyring" or tostring(why))
     end)
   end
   key_input.on_accepted = save_key
@@ -116,7 +116,7 @@ function V.page(model, w, h)
       { id = "assistant-key-forget", label = "Forget key", icon = "delete",
         enabled = function() return model.key_state:get() == "saved" end,
         on_clicked = function()
-          model.forget_key(function(ok, why) said:set(ok and "Forgotten." or tostring(why)) end)
+          model.forget_key(function(ok, why) said:set(ok and "Forgotten" or tostring(why)) end)
         end },
     },
   }
@@ -142,11 +142,17 @@ function V.page(model, w, h)
       P.buttons { width = inner, table.unpack(kinds, 3) },
       P.row { id = "assistant-provider-state", width = inner, icon = "forum", title = model.summary,
         on = function() return model.state() == "ready" end,
-        subtitle = function() return model.state() == "ready" and "Ready" or (select(2, model.explain())) end },
+        subtitle = function()
+          if model.state() == "ready" then return "Ready" end
+          if chosen() == "" then return "Pick a provider above" end
+          return (select(2, model.explain()))
+        end },
     },
     P.section { id = "assistant-endpoint", width = w, title = "Endpoint",
       visible = function() return chosen() ~= "" end,
-      base_node, preset_row, model_node, list, offered,
+      P.fold { width = inner, shown = function() return chosen() == "openai" end, gap = P.ROW_GAP,
+        head = base_node, preset_row },
+      model_node, list, offered,
     },
     key_section,
     kit.subtitle { id = "assistant-settings-said", width = w, wrap = true, font_size = P.SUB,

@@ -11,12 +11,15 @@ function M.clamp01(v)
 end
 
 --- Keep a range's moving pieces together. Values received from a service
---- ease; a held control follows the hand immediately. Each target supplies
---- a node and numeric property bindings; the theme supplies its own timing.
+--- ease, and so does the jump to where a press lands; a held control then
+--- follows the hand immediately. Each target supplies a node and numeric
+--- property bindings; the theme supplies its own timing.
 function M.follow_range(state,owner,targets,motion)
-  local running,initial=nil,true
+  local running,initial,held=nil,true,false
   morf.effect("range.follow."..tostring(owner),function()
-    local direct=state.down or state.dragging
+    local hand=state.down or state.dragging
+    local direct=hand and held
+    held=hand
     local timing=M.get(motion)
     local steps={}
     for _,target in ipairs(targets) do

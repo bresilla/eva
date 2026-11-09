@@ -209,15 +209,29 @@ function M.navigation(model, w, h)
     local function chosen() return place(route()) == category.id end
     local ink = rows.ink(chosen)
     list[#list + 1] = rows.choice { id = name .. "-nav-" .. category.id, width = rw, height = row_h, on = chosen,
-      group = name .. "-nav", visible = function() return M.has(model, category) end,
+      group = name .. "-nav", visible = function() return M.has(model, category) end, marked = true,
       on_clicked = function() M.go(model, category) end,
       kit.icon(category.icon, 20, ink, { x = S.m, anchors = { vertical_center = true } }),
       label(category.name, S.m + 20 + S.m, theme.size.normal, ink) }
     placed[category.id] = list[#list]
   end
+  -- One mark for the chosen category, gliding from row to row; set in
+  -- place, not flown in, while the window first lays out.
+  local function marked() return placed[place(route()) or ""] end
+  local settled = morf.signal("eva." .. name .. ".nav.settled", false)
+  morf.time.timer(400, function() settled:set(true) end, false)
+  local glider = ui.Item { width = rw, height = row_h, stretch = theme.stretch and theme.stretch.selection or nil,
+    visible = function() return marked() ~= nil end,
+    kit.state_surface { on = function() return true end, tone = "secondary", height = row_h } }
+  local column = ui.Column(list)
+  local function at() local row = marked() return row and (row.layout_y or 0) - (column.layout_y or 0) or 0 end
+  ui.claims(glider, {
+    a_set = { when = function() return not settled:get() end, motion = { duration = 0 }, set = { y = at } },
+    b_glide = { motion = theme.spring.spatial, set = { y = at } } })
   local body_h = function() return math.max(1, (type(h) == "function" and h() or h) - 36 - S.m) end
   local scroll, flick = kit.scroll { id = name .. "-nav-scroll", width = w, height = body_h, clip = true,
-    ui.Column { width = w, gap = S.s, ui.Column(list),
+    ui.Column { width = w, gap = S.s,
+      ui.Item { width = rw, visible = function() return not searching() end, glider, column },
       ui.Column { width = w, gap = P.ROW_GAP, visible = searching, found } } }
   -- The row the route marks scrolls into sight, where the window is too short
   -- for every category: its place counted from the rows above it.

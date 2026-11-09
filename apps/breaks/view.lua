@@ -44,7 +44,10 @@ local function today_section(w)
     id = "breaks-today", width = w, title = "Today",
     P.row {
       id = "breaks-screen", width = inner, icon = "schedule",
-      title = function() return alarm.span(math.floor(today())) .. " of screen time" end,
+      title = function()
+        local s = math.floor(today())
+        return (s < 60 and "0 min" or alarm.span(s)) .. " of screen time"
+      end,
       subtitle = function()
         local day = counts()
         return ("%d taken, %d skipped"):format(day.taken, day.skipped)

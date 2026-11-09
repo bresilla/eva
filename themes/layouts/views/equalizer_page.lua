@@ -111,7 +111,7 @@ function M.audiogram(model, w, h)
   end
   local function head(text, width) return F.note(width, text) end
   local table_rows = { width = inner, gap = S.s,
-    ui.Row { width = inner, gap = S.s, head("Frequency", HZ), head("Left ear", col), head("Right ear", col) } }
+    ui.Row { width = inner, gap = S.s, head("Hz", HZ), head("Left ear", col), head("Right ear", col) } }
   for i, hz in ipairs(model.frequencies) do
     table_rows[#table_rows + 1] = ui.Row { width = inner, gap = S.s, align = "center",
       kit.text { width = HZ, text = hz_name(hz), font_size = theme.size.normal, color = kit.ink("hi") },

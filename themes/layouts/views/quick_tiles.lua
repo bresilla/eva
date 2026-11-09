@@ -31,8 +31,9 @@ function V.build(model, w, ctx)
     local more
     if t.detail and ctx.place then ctx.place(t.detail, box, tile.shown, TILE_H) end
     -- Title and status both reach the chevron's glyph, or stop short of its square.
-    local TEXT_W = tile.slot - S.xxl - S.l - (t.detail and S.xxl + S.xs or S.l + S.xs)
-      - (t.detail and theme.icon_box and S.s or 0)
+    local MORE_W = theme.icon_box and 36 or S.TARGET
+    local TEXT_W = tile.slot - S.xxl - S.l
+      - (t.detail and (theme.icon_box and 8 + MORE_W + S.s or S.xxl + S.xs) or S.l + S.xs)
     local STATUS_W = t.detail and TEXT_W - S.xs or TEXT_W
 
     local area = kit.action {
@@ -77,7 +78,7 @@ function V.build(model, w, ctx)
       pressed = function() return more ~= nil and more.pressed end }, area)
     if t.detail then
       more = kit.action {
-        id = "utilities-more-" .. id, accessible_name = "Open " .. name, width = S.TARGET, cursor = "pointer",
+        id = "utilities-more-" .. id, accessible_name = "Open " .. name, width = MORE_W, cursor = "pointer",
         anchors = { right = true, top = true, bottom = true, top_margin = 8, bottom_margin = 8, right_margin = 8 },
         visible = function() return not small() and not editing() end,
         on_clicked = function() grow(t.detail) end,

@@ -45,7 +45,7 @@ function R.choice(spec)
   end
   -- A row in a list is bare until hovered or chosen, its ground easing in.
   local wash = ui.Item { anchors = { fill = true }, z = -1,
-    opacity = function() return (on() or area.hovered or area.pressed) and 1 or 0 end,
+    opacity = function() return ((on() and not spec.marked) or area.hovered or area.pressed) and 1 or 0 end,
     behavior = { opacity = { duration = theme.duration.small, easing = theme.ease.standard } } }
   ui.reparent(ground, wash)
   ui.reparent(wash, area)

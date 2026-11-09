@@ -65,10 +65,19 @@ local function pages(model, w, h)
     end
     return false
   end
+  local function toward(now)
+    return holds(now, last) and "in" or holds(last, now) and "out" or "across"
+  end
+  -- The way to the page on show, whichever hears of it first.
+  local function way_now()
+    local now = model.detail:get()
+    if now == last then return way:get() end
+    return toward(now)
+  end
   morf.effect("eva." .. name .. ".window.way", function()
     local now = model.detail:get()
     if now == last then return end
-    way:set(holds(now, last) and "in" or holds(last, now) and "out" or "across")
+    way:set(toward(now))
     leaving:set(last)
     last = now
     if gone then gone:cancel() end
@@ -123,30 +132,34 @@ local function pages(model, w, h)
     local node = ui.Item {
       id = name .. "-detail-" .. key, width = w, height = h,
       visible = function() return current() or peeked() or going() end,
-      opacity = function() return current() and 1 or peeked() and .4 + .6 * peek() or 0 end,
       scale = function()
         if current() then return 1 - .06 * peek() end
         return peeked() and .94 + .06 * peek() or 1
       end,
       z = function() return current() and 1 or 0 end,
-      enter = { opacity = 0 },
-      behavior = { opacity = { duration = theme.duration.small } },
       ui.Loader { anchors = { fill = true }, active = true, keep = true,
         source = function() return model.page_content(key, w, h) end },
     }
     -- A page pulled back is the finger's; a new one starts a step off its
-    -- place, the way it came; else it springs to its place.
+    -- place, the way it came, and springs to it. The page it leaves fades
+    -- first, and the new one after it.
     local arrived = morf.signal("eva." .. name .. ".window.arrived." .. key, false)
     morf.time.timer(1, function() arrived:set(true) end, false)
     ui.claims(node, { motion = MOVE,
       a_hand = { when = function() return pull() > 0 and current() and peek_key() ~= nil end,
         motion = { duration = 0 }, set = { translate_x = pull } },
+      a_peek = { when = function() return peeked() and not current() end, motion = { duration = 0 },
+        set = { opacity = function() return .4 + .6 * peek() end } },
       b_new = { when = function() return not arrived:get() end, motion = { duration = 0 }, set = {
+        opacity = 0,
         translate_x = first == "in" and OFF or first == "out" and -OFF or 0,
         translate_y = first == "across" and RISE or 0 } },
       c_rest = { set = {
         translate_x = function() return (current() or peeked()) and 0 or off_x() end,
-        translate_y = function() return (current() or peeked()) and 0 or off_y() end } } })
+        translate_y = function() return (current() or peeked()) and 0 or off_y() end } },
+      c_shown = { when = current, set = { opacity = 1 },
+        motion = { duration = P.SWAP.inn, delay = P.SWAP.out, easing = theme.ease.emphasized_decel } },
+      d_gone = { set = { opacity = 0 }, motion = { duration = P.SWAP.out, easing = theme.ease.standard_accel } } })
     return node
   end
   -- What a built page puts in the head beside the close control, while on show;
@@ -190,7 +203,7 @@ local function pages(model, w, h)
   return node, model.has_actions and ui.Item { visible = function() return shown_actions() ~= nil end,
     width = function() local on = shown_actions() return on and on.layout_width or 0 end,
     height = function() local on = shown_actions() return on and on.layout_height or 0 end,
-    ui.Repeater { model = acting, delegate = actions } }
+    ui.Repeater { model = acting, delegate = actions } } or nil, way_now
 end
 
 --- `model`: the window's book (shell/window_host.lua: `name`, the ids' prefix;
@@ -224,7 +237,7 @@ function V.build(model)
   end
   -- The page's head and body, and beside them on a desk the way round.
   local function content()
-    local body, page_actions = pages(model, pane_w, body_h)
+    local body, page_actions, way_now = pages(model, pane_w, body_h)
     local close_x = w - PAD - P.BUTTON_H
     local close = L.icon_button { id = name .. "-close", icon = "close", name = "Close " .. title,
       width = P.BUTTON_H, height = P.BUTTON_H, on_clicked = model.close }
@@ -232,7 +245,7 @@ function V.build(model)
     local head = P.header { id = name .. "-window-head", width = head_w, title_id = name .. "-page-title",
       title = function() return names[key()] or title end,
       subtitle = subtitle,
-      back = model.back, back_id = name .. "-back", can_back = model.can_back, line = P.BUTTON_H,
+      back = model.back, back_id = name .. "-back", can_back = model.can_back, line = P.BUTTON_H, way = way_now,
       actions = page_actions and { page_actions } or nil,
       active = function() return require("presentation").active(name .. "." .. key())() end }
     local parts = { id = name .. "-window-content", anchors = { fill = true },

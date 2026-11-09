@@ -82,9 +82,24 @@ end
 --- What the last action said, in the error colour when it failed. `model`
 --- has `message` and `failed` signals.
 function F.status(id, width, model)
-  return F.note(width, function() return model.message:get() or "" end, { id = id,
-    visible = function() return (model.message:get() or "") ~= "" end,
-    color = function() return model.failed:get() and C.error or C.onSurfaceVariant end })
+  local function said() return (model.message:get() or "") ~= "" end
+  -- The line opens with the news and folds away after it, its last words
+  -- kept while it goes.
+  local last = ""
+  local note = F.note(width, function()
+    local now = model.message:get() or ""
+    if now ~= "" then last = now end
+    return last
+  end, { id = id, color = function() return model.failed:get() and C.error or C.onSurfaceVariant end })
+  local fold = P.fold { width = width, shown = said, note }
+  local drawn = P.drawn(fold)
+  note.visible = drawn
+  return fold
+end
+
+--- `ms` milliseconds written in seconds, as every duration is: "0.6 s".
+function F.seconds(ms)
+  return (("%.2f"):format((tonumber(ms) or 0) / 1000):gsub("0+$", ""):gsub("%.$", "")) .. " s"
 end
 
 --- A slider over a numeric range under its name: `id`, `width`, `icon`,
@@ -162,9 +177,14 @@ function F.chooser(spec)
       path = spec.path or "~", filters = spec.filters, on_accepted = spec.on_accepted, on_cancelled = spec.on_cancelled }
     return node
   end
-  return ui.Item { width = spec.width, height = function() return spec.open() and height or 0 end, clip = true,
-    visible = spec.open,
-    ui.Loader { anchors = { fill = true }, keep = true, active = spec.open, source = make } }
+  -- Laid out while it opens and until it has folded away.
+  local drawn
+  local loader = ui.Loader { anchors = { fill = true }, keep = true, source = make,
+    active = function() if drawn then return drawn() end return spec.open() end }
+  local fold
+  fold = P.fold { width = spec.width, shown = spec.open, ui.Item { width = spec.width, height = height, loader } }
+  drawn = P.drawn(fold)
+  return fold
 end
 
 --- A searchable list: a field over the rows that match, `max` at most.

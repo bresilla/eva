@@ -4,7 +4,7 @@ local services=require("services")
 local M={}
 M.PROFILES={
   {id="power-saver",icon="energy_savings_leaf",name="Power saver",hint="Longest battery"},
-  {id="balanced",icon="balance",name="Balanced",hint="The default"},
+  {id="balanced",icon="balance",name="Balanced",hint="Speed and battery in step"},
   {id="performance",icon="rocket_launch",name="Performance",hint="Fastest, hottest"},
 }
 function M.new(active,open_battery)
@@ -43,7 +43,7 @@ function M.new(active,open_battery)
   function model.charger_icon()
     local f=model.feed()
     if f.wireless then return "contactless" end
-    if model.charging() then return f.fast and "bolt" or "battery_charging_full" end
+    if model.charging() then return f.fast and "bolt" or "power" end
     return "power"
   end
   function model.select(id)

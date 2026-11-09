@@ -60,6 +60,16 @@ end
 -- and its keys are the archetype's; the theme only draws.
 function M.action(props) return require("themes.kit.widgets").area(props) end
 
+-- Ink that follows a state fades with the ground under it.
+local INK = { duration = theme.duration.small, easing = theme.ease.standard }
+local ONLY_INK = { color = INK }
+local function fades(props)
+  if type(props.color) ~= "function" then return end
+  local behavior = props.behavior
+  if behavior == nil then props.behavior = ONLY_INK
+  elseif behavior.color == nil then behavior.color = INK end
+end
+
 --- A Material Symbols Rounded icon by its ligature name (`"wifi_off"`).
 --- `name` and `color` may be bindings; `props.fill` (a boolean or a
 --- binding) fills it in through the face's FILL axis.
@@ -83,6 +93,7 @@ function M.icon(name, size, color, props)
     props.behavior = props.behavior or {}
     props.behavior.axes = { duration = theme.duration.small, easing = theme.ease.standard }
   end
+  fades(props)
   return ui.Text(props)
 end
 
@@ -105,7 +116,9 @@ function M.text(props)
   elseif props.font_weight and props.axes == nil then
     props.axes = { wght = props.font_weight }
   end
-  if props.color == nil then props.color = function() return theme.color.onSurface end end
+  -- A colour the caller set fades as it changes.
+  if props.color == nil then props.color = function() return theme.color.onSurface end
+  else fades(props) end
   return ui.Text(props)
 end
 
@@ -116,6 +129,7 @@ function M.heading(props)
   props.active, props.reveal_delay, props.scope, props.level, props.ink = nil, nil, nil, nil, nil
   props.decode_lead, props.decode_stagger, props.viewport = nil, nil, nil
   props.accessible_role, props.accessible = "heading", { level = level }
+  if props.still then props.still, props.accessible_role, props.accessible = nil, nil, nil end
   return M.text(props)
 end
 M.subtitle = M.text
@@ -166,15 +180,26 @@ function M.hover(area, color, radius)
     anchors = { fill = true }, z = -1,
     -- M3 expressive: pressed, a round button squares up, and springs back.
     radius = function() return area.pressed and radius * 0.45 or radius end,
-    color = function() return color(area.hovered) end,
+    -- Pressed, the layer deepens.
+    color = function()
+      if not area.pressed then return color(area.hovered) end
+      local c = color(true)
+      return c:alpha(math.min(1, c.a + 0.06))
+    end,
     behavior = {
-      color = { duration = theme.duration.small },
-      radius = ui.spring { stiffness = 520, damping = 22 },
+      color = { duration = theme.duration.small, easing = theme.ease.standard },
+      radius = theme.spring.press,
     },
   }
   ui.reparent(bg, area)
   if rings[area] then rings[area].radius = math.max(0, radius - 1) end
   return area
+end
+
+--- A pressable row's ground: the state layer under the pointer and the
+--- finger, `radius` round.
+function M.press_ground(area, radius)
+  return M.hover(area, function(hovered) return theme.color.onSurface:alpha(hovered and 0.08 or 0) end, radius)
 end
 
 -- ----------------------------------------------------------------- motion --

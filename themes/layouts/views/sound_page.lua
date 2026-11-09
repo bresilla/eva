@@ -69,7 +69,7 @@ local function device_row(id_prefix, row, icon)
       P.row { width = INNER, on = chosen, icon = icon,
         title = function() return name_of(live()) end,
         subtitle = function() return chosen() and "In use" or "Not in use" end,
-        trailing = kit.icon(function() return chosen() and "radio_button_checked" or "radio_button_unchecked" end, 22,
+        trailing = P.radio(chosen, 22,
           rows.ink(chosen, false, theme.color.onSurfaceVariant)) } },
   } }
 end
@@ -106,18 +106,14 @@ local function channels_expander(prefix)
       } }
   end
   local list = ui.Column(channels)
-  local turn = kit.icon("expand_more", 22, kit.ink("lo"), { width = 22, height = 22,
-    rotation = function() return open() and 180 or 0 end, behavior = { rotation = theme.spring.fast } })
-  return ui.Column { id = prefix .. "-channels", width = INNER,
-    visible = function() local s = sink() return s ~= nil and (s.channels or 0) > 1 end,
-    P.row { id = prefix .. "-channels-header", width = INNER, icon = "surround_sound", title = "Channels",
+  local node = P.fold { width = INNER, shown = open, gap = P.ROW_GAP,
+    head = P.row { id = prefix .. "-channels-header", width = INNER, icon = "surround_sound", title = "Channels",
       subtitle = function() return count() == 2 and "Left and right apart" or ("%d, each apart"):format(count()) end,
-      on = open, trailing = ui.Item { width = 22 - 5, height = 22, turn },
-      on_clicked = function() channels_open:set(not open()) end },
-    ui.Item { width = INNER, clip = true, behavior = { height = theme.spring.spatial },
-      height = function() return open() and (list.layout_height or 0) + P.ROW_GAP or 0 end,
-      ui.Item { y = P.ROW_GAP, width = INNER, list } },
-  }
+      on = open, trailing = P.turn(open), on_clicked = function() channels_open:set(not open()) end },
+    list }
+  node.id = prefix .. "-channels"
+  node.visible = function() local s = sink() return s ~= nil and (s.channels or 0) > 1 end
+  return node
 end
 
 local function output_section()
@@ -184,7 +180,7 @@ local function app_row(row)
         id = "sound-app-" .. math.floor(id) .. "-to-" .. math.floor(device.id),
         group = "sound-app-" .. math.floor(id), width = INNER, height = 36, on = on,
         on_clicked = function() model.route(row, device) end,
-        kit.icon(function() return on() and "radio_button_checked" or "radio_button_unchecked" end, 18,
+        P.radio(on, 18,
           rows.ink(on, false, theme.color.onSurfaceVariant), { x = 14, anchors = { vertical_center = true } }),
         kit.text { x = 44, width = INNER - 56, elide = "right", anchors = { vertical_center = true },
           text = function() return name_of(model.device(device)) end, font_size = theme.size.small,
@@ -271,10 +267,10 @@ local function card_block(card_of, prefix, index)
   local rows = {}
   for slot = 1, 6 do
     local function profile() local card = card_of() return card and card.profiles[slot] end
+    local function chosen() local card, p = card_of(), profile() return card ~= nil and p ~= nil and card.active == p.key end
     rows[#rows + 1] = P.row { id = prefix .. "-" .. index .. "-" .. slot, width = INNER,
-      visible = function() return profile() ~= nil end,
-      icon = function() local card, p = card_of(), profile() return (card and p and card.active == p.key) and "radio_button_checked" or "radio_button_unchecked" end,
-      on = function() local card, p = card_of(), profile() return card ~= nil and p ~= nil and card.active == p.key end,
+      visible = function() return profile() ~= nil end, on = chosen,
+      trailing = P.radio(chosen, 22, function() return chosen() and kit.ink("accent")() or kit.ink("lo")() end),
       title = function() local p = profile() return p and (p.codec or p.name) or "" end,
       subtitle = function() local p = profile() return p and p.codec and p.name or "" end,
       on_clicked = function() local card, p = card_of(), profile() if card and p then model.set_profile(card, p) end end }
@@ -325,14 +321,15 @@ local function test_section()
   local F = require("themes.layouts.form")
   local testing = function() return model.testing:get() end
   return P.section { id = "sound-test", width = w, title = "Test", visible = available,
-    P.row { id = "sound-test-row", width = INNER, icon = "graphic_eq", on = testing,
-      title = function() return testing() and model.verdict() or "Test the microphone" end,
-      subtitle = function() return testing() and "Speak as you normally would" or "Shows how loud it hears you" end,
-      trailing = P.button { id = "sound-test-button", label = function() return testing() and "Stop" or "Start" end,
-        tone = function() return testing() and "primary" or nil end, on_clicked = function() model.test(not testing()) end } },
-    ui.Item { id = "sound-test-level", width = INNER, height = theme.space.m, visible = testing,
-      kit.fill { width = INNER, height = theme.space.m, color = kit.signal("accent"),
-        value = function() return model.level:get() end } },
+    P.fold { width = INNER, shown = testing, gap = P.ROW_GAP,
+      head = P.row { id = "sound-test-row", width = INNER, icon = "graphic_eq", on = testing,
+        title = function() return testing() and model.verdict() or "Test the microphone" end,
+        subtitle = function() return testing() and "Speak as you normally would" or "Shows how loud it hears you" end,
+        trailing = P.button { id = "sound-test-button", label = function() return testing() and "Stop" or "Start" end,
+          tone = function() return testing() and "primary" or nil end, on_clicked = function() model.test(not testing()) end } },
+      ui.Item { id = "sound-test-level", width = INNER, height = theme.space.m,
+        kit.fill { width = INNER, height = theme.space.m, color = kit.signal("accent"),
+          value = function() return model.level:get() end } } },
     model.message and F.status("sound-test-status", INNER, model) or nil,
   }
 end

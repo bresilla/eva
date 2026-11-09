@@ -77,14 +77,15 @@ function M.storage_page(model, w, h)
   box, input = P.field { id = "storage-passphrase", kind = "password", width = inner, placeholder = "Passphrase",
     on_changed = function(value) passphrase = value typed:set(value ~= "") end, on_accepted = send, on_escape = cancel }
   morf.effect("eva.storage.passphrase.focus", function() input.focus = asked() ~= nil end)
-  local prompt = ui.Column { id = "storage-unlock-prompt", width = inner, gap = S.s, visible = function() return asked() ~= nil end,
+  local prompt = P.fold { width = inner, shown = function() return asked() ~= nil end, ui.Column {
+    id = "storage-unlock-prompt", width = inner, gap = S.s,
     F.note(inner, function() return "Passphrase for " .. ((asked() or {}).name or "") end),
     box,
     P.buttons { width = inner,
       { id = "storage-unlock-cancel", label = "Cancel", on_clicked = cancel },
       { id = "storage-unlock-send", label = "Unlock", tone = "primary", on_clicked = send,
         enabled = function() return typed:get() end } },
-  }
+  } }
 
   local function trash_words()
     local bin = model.trash()
@@ -160,7 +161,7 @@ function M.printers_page(model, w, h)
       title = function() return row().name or "" end, subtitle = function() return row().device or "" end }
   end, nil, 4)
   local missing = P.empty { id = "printers-none", width = w, icon = "print_disabled", title = "No printing here",
-    text = "CUPS is not installed or not running." }
+    text = "CUPS is not installed or not running" }
   missing.visible = function() return not here() end
   return P.page { id = "printers-scroll", width = w, height = h, active = model.active,
     missing,
