@@ -56,7 +56,7 @@ end
 local function program()
   local argv = require("config").get("bar.bluetooth_settings")
   local base = (type(argv) == "table" and tostring(argv[1] or "") or ""):match("([^/]+)$") or ""
-  base = base:gsub("%-manager$", ""):gsub("^%l", string.upper)
+  base = require("lib.util.unicase").capitalise((base:gsub("%-manager$", "")))
   return base ~= "" and base or "the Bluetooth program"
 end
 
