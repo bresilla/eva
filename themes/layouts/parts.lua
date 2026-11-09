@@ -280,12 +280,13 @@ function L.icon_button(spec)
       if strong then return C.surface end
       if ignored and ignored() then return kit.ink("lo")():alpha(0.35) end
       return (on and on()) and accent() or kit.ink("hi")()
-    end, { anchors = { center_in = true }, fill = true }),
+    end, { anchors = { center_in = true }, fill = function() return strong or (on ~= nil and on()) == true end }),
   }
+  -- Bare at rest, as the way back is; a ground only while on or hovered.
   return kit.hover(area, function(hovered)
     if strong then return hovered and accent():mix(C.surface, 0.12) or accent() end
     if on and on() then return accent():alpha(hovered and 0.26 or 0.18) end
-    return accent():alpha(hovered and 0.14 or 0.05)
+    return accent():alpha(hovered and 0.14 or 0)
   end, L.control_round(spec.height))
 end
 

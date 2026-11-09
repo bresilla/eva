@@ -693,7 +693,7 @@ return function(S, theme, M, hud)
       return list
     end
     local track_props = { anchors = { fill = true }, fill_color = function() return stroke(C, "hover") end,
-      visible = function() return (t.hold or 800) > 0 end }
+      visible = function() return (t.hold or 800) > 0 and (t.down or t.holding) == true end }
     for i, shape in ipairs(frame_shapes()) do track_props[i] = shape end
     local fill_props = { anchors = { fill = true }, fill_color = tone }
     for i, shape in ipairs(frame_shapes(fill)) do fill_props[i] = shape end

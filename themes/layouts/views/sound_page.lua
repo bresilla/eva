@@ -40,7 +40,7 @@ local sink, source = model.default, model.default
 --- A mute toggle at a row's right: the theme's alert tone when on.
 local function mute_button(id, target, icon_on, icon_off, name)
   local function muted() local t = target() return t and t.muted end
-  return rows.toggle { id = id, accessible_name = name, width = 40, height = 36,
+  return rows.toggle { id = id, accessible_name = name, width = 40, height = 40,
     on = function() return muted() == true end, icon_on = icon_on, icon_off = icon_off,
     on_clicked = function()
       local t = target()
@@ -51,7 +51,7 @@ end
 
 --- A line inside a card saying what is missing, centred in it.
 local function nothing(icon, text, visible)
-  return P.row { width = INNER, icon = icon, on = function() return false end, title = text, visible = visible }
+  return P.row { width = INNER, icon = "info", title = text, visible = visible }
 end
 
 local function name_of(d) return d and (d.description or d.name) or "?" end

@@ -41,7 +41,7 @@ function M.build(model, active, w, h)
 
   local page = P.page { id = "phone-page-scroll", width = w, height = h,
     P.empty { id = "phone-missing", width = w, icon = "smartphone", title = "KDE Connect is not installed",
-      text = "Install it, pair your phone from its app, and it will show here.",
+      text = "Install it and pair your phone from its app, and it shows here",
       visible = function() return not model.present() end },
     P.empty { id = "phone-none", width = w, icon = "smartphone", title = "No phone paired",
       text = function()
