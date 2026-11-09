@@ -1,0 +1,16 @@
+# The Settings window's way round: the home, a category of many pages and
+# one of its pages, a category of one page, a page one level in, and the
+# panel's own page for a tile.
+export EVA_FAKE_AUDIO=1 EVA_FAKE_STATUS=wifi,bluetooth EVA_FAKE_BATTERY=64,charging
+start shell
+ipc settings home; pause 1.4; shot home
+ipc settings home/device; pause 1.2; shot devices
+ipc settings bluetooth; pause 1.2; shot bluetooth
+ipc settings sound; pause 1.2; shot sound
+ipc settings theme; pause 1.2; shot appearance
+ipc settings eva; pause 1.2; shot desktop
+ipc settings bar/tray; pause 1.2; shot nested
+ipc settings accessibility; pause 1.2; shot accessibility
+ipc settings close; pause 0.8
+ipc sidebar open settings; pause 1.2; shot panel
+ipc quick microphone; pause 1.2; shot panel-mic
