@@ -28,7 +28,7 @@ function M.new(settings)
   book.navigation = require("lib.shell.settings.pages").new(book.DETAILS, book.detail, ALIASES)
   book.navigation.on_back = function() require("themes.layouts.page").hold_place() end
   book.peek = morf.signal("eva.settings.quick.peek", 0)
-  book.breadcrumb = book.navigation.breadcrumb
+  function book.breadcrumb() return settings.registry.trail(book.navigation.path(book.detail:get())) end
   book.back = book.navigation.back
   book.opened = settings.quick
   book.close = settings.close_panel
