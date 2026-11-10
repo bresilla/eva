@@ -42,11 +42,18 @@ local function resolve()
 end
 
 M.current:set(resolve())
--- lule changing its picture changes this one.
+-- lule changing its picture changes this one. Shared by the primary output
+-- alone, and only when picture or scheme is new: every output's shell runs
+-- this, and each share decodes the whole picture again.
+local shared
 morf.effect("eva.wallpaper.follow", function()
-  lule_scheme:get()
+  local scheme = lule_scheme:get()
   local path=resolve()
   M.current:set(path)
+  if morf.window.primary and not morf.window.primary() then return end
+  local key = path .. "\0" .. morf.json.encode(scheme or {})
+  if key == shared then return end
+  shared = key
   require("themes.wallpaper_handoff").publish(path,lule.path())
 end)
 
