@@ -111,6 +111,7 @@ builders.updates=system("updates_page",function() return require("about_model").
 builders.displays=system("displays_page",function() return require("about_model").displays() end)
 builders.storage=function(w,h) return themed("settings_devices").storage_page(with_request(require("storage_model").new()),w,h) end
 builders.printers=function(w,h) return themed("settings_devices").printers_page(with_request(require("storage_model").printers()),w,h) end
+builders.lan_mouse=function(w,h) return themed("lan_mouse_page").build(with_request(require("lan_mouse_model").new()),w,h) end
 builders.apps=function(w,h) return themed("settings_apps").defaults_page(with_request(require("apps_model").defaults()),w,h) end
 builders.startup=function(w,h) return themed("settings_apps").startup_page(with_request(require("apps_model").startup()),w,h) end
 builders.accessibility=function(w,h) return themed("settings_access").build(require("access_model").new(nil,M),w,h) end

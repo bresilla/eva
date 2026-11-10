@@ -53,6 +53,7 @@ return {
     calendar_settings = "themes.layouts.views.calendar_settings",
     notes = "themes.layouts.views.notes",
     linked_phone = "themes.layouts.views.linked_phone",
+    lan_mouse_page = "themes.layouts.views.lan_mouse_page",
     dashboard_performance = "themes.layouts.views.dashboard_performance",
     graphs = "themes.layouts.views.graphs",
     dashboard_battery = "themes.layouts.views.dashboard_battery",

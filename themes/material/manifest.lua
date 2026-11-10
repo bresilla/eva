@@ -50,6 +50,7 @@ return {
     calendar_settings = "themes.layouts.views.calendar_settings",
     notes = "themes.layouts.views.notes",
     linked_phone = "themes.layouts.views.linked_phone",
+    lan_mouse_page = "themes.layouts.views.lan_mouse_page",
     lule_page = "themes.layouts.views.lule_page",
     desktop_faces = "themes.layouts.views.desktop_faces",
     standby = "themes.layouts.views.standby",

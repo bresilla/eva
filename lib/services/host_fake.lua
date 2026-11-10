@@ -17,7 +17,8 @@ function M.managed() return false end
 
 local PROGRAMS = { ["pw-dump"] = true, ["pw-play"] = true, xkbcli = true, wlrctl = true, supergfxctl = true,
   scanimage = not NIXOS, lpstat = not NIXOS, ["firewall-cmd"] = not NIXOS, gsettings = true, lspci = true, ["xdg-open"] = true,
-  gio = true, ["eva-battery"] = true, ping = true, getent = true, ddcutil = true, nix = true, flatpak = true }
+  gio = true, ["eva-battery"] = true, ping = true, getent = true, ddcutil = true, nix = true, flatpak = true,
+  ["lan-mouse"] = true }
 
 -- Which backup tools this machine has: EVA_FAKE_BACKUPS="snapper,restic". Their
 -- commands are answered below; the real ones never run.
