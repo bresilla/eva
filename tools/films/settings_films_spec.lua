@@ -89,6 +89,15 @@ test.describe("settings films", function()
     film("about-more", 16)
   end)
 
+  take("lan_mouse", function()
+    load()
+    page("lan_mouse")
+    test.snapshot("lan-mouse.png", { surface = "screen" })
+    test.click { id = "lan-mouse-machine-2" }
+    test.settle(800)
+    test.snapshot("lan-mouse-open.png", { surface = "screen" })
+  end)
+
   take("dashboard", function()
     load()
     test.ipc("dashboard", "open")
