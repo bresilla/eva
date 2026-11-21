@@ -44,16 +44,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1794356034,
-        "narHash": "sha256-vCsszISfXMxSffkuJr5/LbteL+rYvZIBSY9+u7XFiYc=",
+        "lastModified": 1795220020,
+        "narHash": "sha256-SOLGIn4fTH2Vs9oQzogx6H2S6L6ldA7ru7aCCKhA3gE=",
         "owner": "paneworks",
         "repo": "morf",
-        "rev": "66735948b9c371c6da76840f389e34a3f3ff45e7",
+        "rev": "57d46eea10fd16e9d5017cc8b5cfc2f8e409a712",
         "type": "github"
       },
       "original": {
         "owner": "paneworks",
-        "ref": "v0.6.5",
+        "ref": "v0.6.6",
         "repo": "morf",
         "type": "github"
       }
